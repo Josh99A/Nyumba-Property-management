@@ -1,0 +1,707 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import '../../../../app/theme/nyumba_colors.dart';
+import '../../../../core/presentation/responsive.dart';
+import '../../../../core/presentation/status_badge.dart';
+import '../../../../core/presentation/surface.dart';
+import '../../application/dashboard_snapshot.dart';
+import 'dashboard_charts.dart';
+
+final _kes = NumberFormat.currency(
+  locale: 'en_KE',
+  symbol: 'KES ',
+  decimalDigits: 0,
+);
+
+String formatKes(int amountMinor) => _kes.format(amountMinor / 100);
+
+String relativeTime(DateTime at) {
+  final difference = DateTime.now().difference(at);
+  if (difference.inMinutes < 1) return 'Just now';
+  if (difference.inHours < 1) return '${difference.inMinutes}m ago';
+  if (difference.inDays < 1) return '${difference.inHours}h ago';
+  return '${difference.inDays}d ago';
+}
+
+class KpiCard extends StatelessWidget {
+  const KpiCard({
+    required this.label,
+    required this.value,
+    required this.caption,
+    required this.icon,
+    required this.tone,
+    super.key,
+  });
+
+  final String label;
+  final String value;
+  final String caption;
+  final IconData icon;
+  final Color tone;
+
+  @override
+  Widget build(BuildContext context) {
+    return NyumbaSurface(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: tone.withValues(alpha: .11),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: tone, size: 23),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: Theme.of(context).textTheme.bodySmall),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        value,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              color: tone,
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(caption, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
+class OccupancyCard extends StatelessWidget {
+  const OccupancyCard({required this.snapshot, super.key});
+
+  final DashboardSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return NyumbaSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const NyumbaSectionHeader(
+            title: 'Occupancy',
+            trailing: Icon(Icons.more_vert_rounded, size: 20),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final vertical = constraints.maxWidth < 410;
+                final chart = OccupancyRing(
+                  rate: snapshot.occupancyRate,
+                  size: vertical
+                      ? constraints.maxHeight.clamp(130, 170)
+                      : constraints.maxHeight.clamp(145, 188),
+                );
+                final legend = _OccupancyLegend(snapshot: snapshot);
+                if (vertical) {
+                  return Column(
+                    children: [
+                      Expanded(child: Center(child: chart)),
+                      const SizedBox(height: 10),
+                      legend,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(flex: 3, child: Center(child: chart)),
+                    const SizedBox(width: 20),
+                    Expanded(flex: 2, child: legend),
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Occupancy rate across all properties',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OccupancyLegend extends StatelessWidget {
+  const _OccupancyLegend({required this.snapshot});
+
+  final DashboardSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 22,
+      runSpacing: 12,
+      direction: Axis.vertical,
+      children: [
+        _LegendItem(
+          color: NyumbaColors.sageGreen,
+          label: 'Occupied',
+          value: '${snapshot.occupiedUnits} units',
+          valueColor: NyumbaColors.sageDark,
+        ),
+        _LegendItem(
+          color: const Color(0xFFE3E5E4),
+          label: 'Vacant',
+          value: '${snapshot.totalUnits - snapshot.occupiedUnits} units',
+          valueColor: NyumbaColors.mutedInk,
+        ),
+      ],
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    required this.value,
+    required this.valueColor,
+  });
+
+  final Color color;
+  final String label;
+  final String value;
+  final Color valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 9),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: valueColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class RentCollectionCard extends StatelessWidget {
+  const RentCollectionCard({required this.snapshot, super.key});
+
+  final DashboardSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return NyumbaSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const NyumbaSectionHeader(
+            title: 'Rent collection',
+            subtitle: 'This month',
+            trailing: Icon(Icons.more_vert_rounded, size: 20),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 28,
+            runSpacing: 12,
+            children: [
+              _AmountSummary(
+                label: 'Collected',
+                amount: formatKes(snapshot.rentCollectedMinor),
+                color: NyumbaColors.sageDark,
+              ),
+              _AmountSummary(
+                label: 'Outstanding',
+                amount: formatKes(snapshot.rentOutstandingMinor),
+                color: NyumbaColors.terracottaDark,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _LineLegend(color: NyumbaColors.sageDark, label: 'Collected'),
+              const SizedBox(width: 18),
+              _LineLegend(
+                color: NyumbaColors.terracottaGold,
+                label: 'Outstanding',
+                dashed: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            child: RentTrendChart(
+              collected: snapshot.collectionTrend,
+              outstanding: snapshot.outstandingTrend,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AmountSummary extends StatelessWidget {
+  const _AmountSummary({
+    required this.label,
+    required this.amount,
+    required this.color,
+  });
+
+  final String label;
+  final String amount;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          amount,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LineLegend extends StatelessWidget {
+  const _LineLegend({
+    required this.color,
+    required this.label,
+    this.dashed = false,
+  });
+
+  final Color color;
+  final String label;
+  final bool dashed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 22,
+          child: Row(
+            children: dashed
+                ? [
+                    Expanded(child: Container(height: 2, color: color)),
+                    const SizedBox(width: 3),
+                    Expanded(child: Container(height: 2, color: color)),
+                  ]
+                : [Expanded(child: Container(height: 2, color: color))],
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: Theme.of(context).textTheme.labelSmall),
+      ],
+    );
+  }
+}
+
+class RecentPaymentsCard extends StatelessWidget {
+  const RecentPaymentsCard({
+    required this.payments,
+    required this.onViewAll,
+    super.key,
+  });
+
+  final List<RecentPayment> payments;
+  final VoidCallback onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return NyumbaSurface(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
+            child: NyumbaSectionHeader(
+              title: 'Recent payments',
+              trailing: TextButton(
+                onPressed: onViewAll,
+                child: const Text('View all'),
+              ),
+            ),
+          ),
+          const Divider(),
+          if (context.isCompact)
+            for (final payment in payments) _PaymentListRow(payment: payment)
+          else
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 720),
+                child: DataTable(
+                  headingRowHeight: 42,
+                  dataRowMinHeight: 52,
+                  dataRowMaxHeight: 60,
+                  horizontalMargin: 20,
+                  columnSpacing: 30,
+                  columns: const [
+                    DataColumn(label: Text('Tenant')),
+                    DataColumn(label: Text('Unit')),
+                    DataColumn(label: Text('Property')),
+                    DataColumn(label: Text('Amount')),
+                    DataColumn(label: Text('Date')),
+                    DataColumn(label: Text('Status')),
+                  ],
+                  rows: payments
+                      .map(
+                        (payment) => DataRow(
+                          cells: [
+                            DataCell(Text(payment.tenant)),
+                            DataCell(Text(payment.unit)),
+                            DataCell(Text(payment.property)),
+                            DataCell(Text(formatKes(payment.amountMinor))),
+                            DataCell(
+                              Text(DateFormat('d MMM y').format(payment.date)),
+                            ),
+                            DataCell(_PaymentBadge(state: payment.state)),
+                          ],
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+              child: TextButton.icon(
+                onPressed: onViewAll,
+                iconAlignment: IconAlignment.end,
+                icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+                label: const Text('View all payments'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentListRow extends StatelessWidget {
+  const _PaymentListRow({required this.payment});
+
+  final RecentPayment payment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFEDE9E2))),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: const BoxDecoration(
+              color: NyumbaColors.sageTint,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              size: 19,
+              color: NyumbaColors.sageDark,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  payment.tenant,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                Text(
+                  '${payment.unit} · ${payment.property}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formatKes(payment.amountMinor),
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                DateFormat('d MMM').format(payment.date),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentBadge extends StatelessWidget {
+  const _PaymentBadge({required this.state});
+
+  final PaymentState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (state) {
+      PaymentState.paid => const StatusBadge(
+        label: 'Paid',
+        tone: BadgeTone.success,
+      ),
+      PaymentState.pending => const StatusBadge(
+        label: 'Pending',
+        tone: BadgeTone.warning,
+      ),
+      PaymentState.overdue => const StatusBadge(
+        label: 'Overdue',
+        tone: BadgeTone.danger,
+      ),
+    };
+  }
+}
+
+class MaintenanceCard extends StatelessWidget {
+  const MaintenanceCard({
+    required this.items,
+    required this.onViewAll,
+    super.key,
+  });
+
+  final List<MaintenanceSummary> items;
+  final VoidCallback onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return NyumbaSurface(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 12, 6),
+            child: NyumbaSectionHeader(
+              title: 'Maintenance',
+              trailing: TextButton(
+                onPressed: onViewAll,
+                child: const Text('View all'),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 2, 20, 12),
+            child: Row(
+              children: [
+                const StatusBadge(label: 'Urgent (3)', tone: BadgeTone.info),
+                const SizedBox(width: 18),
+                Text(
+                  'Open (3)',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: NyumbaColors.midnightNavy,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          for (final item in items) _MaintenanceRow(item: item),
+        ],
+      ),
+    );
+  }
+}
+
+class _MaintenanceRow extends StatelessWidget {
+  const _MaintenanceRow({required this.item});
+
+  final MaintenanceSummary item;
+
+  @override
+  Widget build(BuildContext context) {
+    final urgent = item.priority == MaintenancePriority.urgent;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFEDE9E2))),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(top: 6),
+            decoration: BoxDecoration(
+              color: urgent ? NyumbaColors.danger : NyumbaColors.warning,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.title, style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 2),
+                Text(
+                  '${item.unit} · ${item.property}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                Text(
+                  'Reported ${relativeTime(item.reportedAt)} by ${item.reportedBy}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          StatusBadge(
+            label: urgent ? 'Urgent' : 'High',
+            tone: urgent ? BadgeTone.danger : BadgeTone.warning,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ActivityCard extends StatelessWidget {
+  const ActivityCard({required this.activity, super.key});
+
+  final List<ActivitySummary> activity;
+
+  @override
+  Widget build(BuildContext context) {
+    return NyumbaSurface(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(18, 18, 18, 12),
+            child: NyumbaSectionHeader(title: 'Recent activity'),
+          ),
+          for (final item in activity)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFFEDE9E2))),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: item.tone.withValues(alpha: .1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(item.icon, color: item.tone, size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title,
+                            style: Theme.of(context).textTheme.labelMedium,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            item.detail,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            relativeTime(item.at),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: TextButton.icon(
+              onPressed: () {},
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+              label: const Text('View all activity'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

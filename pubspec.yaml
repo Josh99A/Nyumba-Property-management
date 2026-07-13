@@ -1,5 +1,5 @@
 name: nyumba_property_management
-description: "A new Flutter project."
+description: "Offline-first property management for landlords, tenants, admins, and prospective tenants."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -48,6 +48,8 @@ dependencies:
   cloud_firestore: ^6.6.0
   firebase_storage: ^13.4.3
   firebase_messaging: ^16.4.1
+  pdf: ^3.12.0
+  printing: ^5.14.3
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +61,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -70,6 +73,23 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/branding/
+    - assets/listings/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/nyumba-app-icon-production.png
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  background_color_ios: "#F7F4ED"
+  web:
+    generate: true
+    image_path: assets/branding/nyumba-app-icon-production.png
+    background_color: "#F7F4ED"
+    theme_color: "#123A6F"
 
   # To add assets to your application, add an assets section, like this:
   # assets:

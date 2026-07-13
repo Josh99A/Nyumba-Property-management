@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isPlatformAdmin() {
+      return signedIn() && request.auth.token.platformAdmin == true;
+    }
+
+    function validStagingUpload() {
+      // PROVISIONAL safety ceiling. TBD: finalize per-document upload limits.
+      return request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType is string
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf');
+    }
+
+    function publicListingIsReadable(listingId) {
+      let listing = firestore.get(
+        /databases/(default)/documents/publicListings/$(listingId)
+      );
+      return listing.data.status == 'published'
+        && listing.data.expiresAt is timestamp
+        && listing.data.expiresAt > request.time;
+    }
+
+    // Two-phase user staging area. A function validates checksum/type/ownership
+    // and moves/copies accepted objects into a canonical private/public path.
+    match /uploads/{uid}/{commandId}/{fileName} {
+      allow read: if isSelf(uid);
+      allow create, update: if isSelf(uid) && validStagingUpload();
+      allow delete: if isSelf(uid);
+    }
+
+    // Server-projected listing assets. Uploading to staging never makes a file
+    // public; publication must also create the Firestore public projection.
+    match /public/listings/{listingId}/{allPaths=**} {
+      allow read: if publicListingIsReadable(listingId);
+      allow write: if false;
+    }
+
+    // Canonical private content. Backend code alone writes these prefixes.
+    match /private/landlords/{landlordId}/{allPaths=**} {
+      allow read: if isSelf(landlordId) || isPlatformAdmin();
+      allow write: if false;
+    }
+
+    match /private/tenants/{tenantUid}/{allPaths=**} {
+      allow read: if isSelf(tenantUid) || isPlatformAdmin();
+      allow write: if false;
+    }
+
+    match /private/clients/{clientUid}/{allPaths=**} {
+      allow read: if isSelf(clientUid) || isPlatformAdmin();
+      allow write: if false;
+    }
+
+    match /private/admin/{allPaths=**} {
+      allow read: if isPlatformAdmin();
+      allow write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
