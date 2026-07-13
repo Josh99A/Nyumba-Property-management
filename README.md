@@ -15,17 +15,78 @@ The application starts at the public listing catalogue (`/explore`). Authenticat
 
 ## Architecture
 
-Nyumba follows feature-first clean architecture with dependencies pointing inward:
+Nyumba follows feature-first clean architecture with an offline-first data path. The diagram shows both the implemented Flutter/local layers and the Firebase production boundary that the included contracts and rules are designed to connect to.
 
-```text
-presentation (Flutter, Riverpod, GoRouter)
-                 |
-application (use cases and orchestration)
-                 |
-domain (entities and repository contracts)
-                 ^
-data (Sembast repositories, mappers, Firebase adapters)
+```mermaid
+flowchart TB
+  subgraph Actors["Nyumba actors"]
+    admin["Admin"]
+    landlord["Landlord"]
+    tenant["Tenant"]
+    client["Prospective client"]
+  end
+
+  subgraph FlutterApp["Flutter application · web, Android and iOS"]
+    presentation["Presentation<br/>Flutter · Riverpod · GoRouter"]
+    application["Application<br/>Use cases · policies · orchestration"]
+    domain["Domain<br/>Pure Dart entities · value objects · repository contracts"]
+    data["Data<br/>Sembast repositories · mappers · remote adapters"]
+    local[("Sembast local source of truth<br/>IndexedDB on web · local file on mobile")]
+    outbox[("Durable outbox<br/>commands · dependencies · retry state")]
+    sync["Sync engine<br/>ordering · idempotency · backoff"]
+
+    presentation --> application
+    application --> domain
+    data -. "implements contracts" .-> domain
+    data <--> local
+    data --> outbox
+    outbox --> sync
+  end
+
+  subgraph FirebaseBoundary["Firebase production boundary"]
+    auth["Firebase Authentication"]
+    functions["Callable Cloud Functions<br/>authorization · validation · audit"]
+    firestore[("Cloud Firestore<br/>canonical private records")]
+    projections[("Public listings and<br/>tenant portal projections")]
+    storage[("Cloud Storage<br/>documents · listing media")]
+    messaging["Firebase Cloud Messaging"]
+  end
+
+  admin --> presentation
+  landlord --> presentation
+  tenant --> presentation
+  client --> presentation
+
+  presentation -. "verified session" .-> auth
+  sync -->|"idempotent commands"| functions
+  functions --> firestore
+  functions --> projections
+  functions --> storage
+  firestore -->|"listeners and cursor pulls"| data
+  projections -->|"scope-safe reads"| data
+  storage -->|"authorized downloads"| data
+  messaging -. "notifications and sync hints" .-> presentation
+
+  classDef navy fill:#123A6F,stroke:#0C294F,color:#FFFFFF;
+  classDef sage fill:#E8F1EA,stroke:#5F8F6B,color:#123A6F;
+  classDef gold fill:#FAEEDC,stroke:#C98B2E,color:#123A6F;
+  classDef ivory fill:#F7F4ED,stroke:#C9C2B4,color:#123A6F;
+  class presentation,application navy;
+  class domain,data sage;
+  class local,outbox,sync gold;
+  class auth,functions,firestore,projections,storage,messaging ivory;
 ```
+
+### How the architecture works
+
+1. **Actors enter through one role-aware presentation layer.** GoRouter guards and the responsive app shell select the correct landlord, tenant, admin, or public experience. These guards improve navigation; Firebase Rules and Cloud Functions remain the real authorization boundary.
+2. **Business rules point inward.** Presentation invokes application behavior, application code depends on domain contracts, and the pure Dart domain does not import Flutter, Firebase, Sembast, or persistence DTOs. Data implementations satisfy those contracts and are composed during bootstrap.
+3. **Every screen reads local state first.** Repositories stream Sembast records to the UI, so cached properties, units, listings, and pending work remain usable without a network connection. Firestore never feeds widgets directly.
+4. **Offline writes are atomic and durable.** A repository stores the optimistic entity change and its outbox command in one local transaction. The sync engine later preserves aggregate dependencies, reuses the same idempotency key, and retries transient failures with backoff.
+5. **Sensitive outcomes stay server-authoritative.** Payments, receipts, lease activation, landlord approval, subscriptions, unit entitlements, and listing publication are confirmed only by trusted backend logic. Cloud Functions update canonical records and create deliberately limited public or tenant projections.
+6. **Remote changes return through the same local database.** Firestore listeners or cursor-based pulls merge authorized server state into Sembast; the UI then reacts to the local stream. This keeps online and offline rendering on one predictable path.
+
+The local database, repositories, outbox, sync engine, and demo gateway are implemented. The Firebase side of the diagram is currently represented by packages, security rules, indexes, and backend contracts; it requires environment credentials and production command handlers before release.
 
 - `lib/app/` contains bootstrap, routing, navigation, and brand theme composition.
 - `lib/core/domain/` contains shared domain primitives and validation.
@@ -35,6 +96,8 @@ data (Sembast repositories, mappers, Firebase adapters)
 - `firebase/` contains environment-neutral Firestore/Storage rules, indexes, emulator configuration, and the Cloud Functions implementation handoff.
 
 Widgets read repository streams; they do not query Firestore or open Sembast directly. Domain models remain independent of Flutter, Firebase, and persistence DTOs.
+
+Contributors and coding agents should read [AGENTS.md](AGENTS.md) before changing architecture or persistence behavior.
 
 ## Offline-first behavior
 
