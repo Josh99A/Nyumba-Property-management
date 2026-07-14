@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
@@ -118,10 +119,10 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                         padding: const EdgeInsets.all(34),
                         child: Column(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.apartment_outlined,
                               size: 44,
-                              color: NyumbaColors.mutedInk,
+                              color: context.nyumba.mutedInk,
                             ),
                             const SizedBox(height: 12),
                             Text(
@@ -179,7 +180,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     final formKey = GlobalKey<FormState>();
     final name = TextEditingController();
     final address = TextEditingController();
-    final city = TextEditingController(text: 'Nairobi');
+    final city = TextEditingController(text: 'Kampala');
     final description = TextEditingController();
     String? error;
     final property = await showDialog<Property>(
@@ -238,7 +239,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                       const SizedBox(height: 12),
                       Text(
                         error!,
-                        style: const TextStyle(color: NyumbaColors.danger),
+                        style: TextStyle(color: context.nyumba.danger),
                       ),
                     ],
                   ],
@@ -306,11 +307,11 @@ class _PortfolioUsage extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          const CircleAvatar(
-            backgroundColor: NyumbaColors.navyTint,
+          CircleAvatar(
+            backgroundColor: context.nyumba.navyTint,
             child: Icon(
               Icons.workspace_premium_outlined,
-              color: NyumbaColors.midnightNavy,
+              color: context.nyumba.midnightNavy,
             ),
           ),
           const SizedBox(width: 13),
@@ -337,15 +338,18 @@ class _PortfolioUsage extends StatelessWidget {
                   value: usage,
                   minHeight: 6,
                   borderRadius: BorderRadius.circular(4),
-                  color: NyumbaColors.sageGreen,
-                  backgroundColor: NyumbaColors.sageTint,
+                  color: context.nyumba.sageGreen,
+                  backgroundColor: context.nyumba.sageTint,
                 ),
               ],
             ),
           ),
           if (!context.isCompact) ...[
             const SizedBox(width: 18),
-            TextButton(onPressed: () {}, child: const Text('View plan')),
+            const ComingSoon(
+              message: 'Plan management coming soon',
+              child: TextButton(onPressed: null, child: Text('View plan')),
+            ),
           ],
         ],
       ),
@@ -369,8 +373,8 @@ class _PropertyCard extends StatelessWidget {
       (total, unit) => total + unit.monthlyRentMinor,
     );
     final currency = NumberFormat.currency(
-      locale: 'en_KE',
-      symbol: 'KES ',
+      locale: 'en_UG',
+      symbol: 'UGX ',
       decimalDigits: 0,
     );
     final pending = property.syncMetadata.state != EntitySyncState.synced;
@@ -493,7 +497,7 @@ class _PropertyFact extends StatelessWidget {
           value,
           style: Theme.of(
             context,
-          ).textTheme.titleMedium?.copyWith(color: NyumbaColors.midnightNavy),
+          ).textTheme.titleMedium?.copyWith(color: context.nyumba.midnightNavy),
         ),
         Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],

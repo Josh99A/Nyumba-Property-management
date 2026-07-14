@@ -3,10 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme/nyumba_colors.dart';
+import '../../core/offline/outbox_entry.dart';
+import '../../core/presentation/coming_soon.dart';
+import '../../core/presentation/motion.dart';
 import '../../core/presentation/nyumba_logo.dart';
 import '../../core/presentation/responsive.dart';
 import '../../features/auth/application/session_controller.dart';
 import '../../features/auth/domain/user_session.dart';
+import '../bootstrap/app_dependencies.dart';
 
 class AppDestination {
   const AppDestination({
@@ -144,7 +148,7 @@ class NyumbaAppShell extends ConsumerWidget {
 
     final collapsed = context.windowSizeClass == WindowSizeClass.medium;
     return Scaffold(
-      backgroundColor: NyumbaColors.softIvory,
+      backgroundColor: context.nyumba.softIvory,
       body: Row(
         children: [
           _DesktopSidebar(
@@ -188,11 +192,15 @@ class _DesktopSidebar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
+    return AnimatedContainer(
+      duration: NyumbaMotion.reducedMotion(context)
+          ? Duration.zero
+          : NyumbaMotion.medium,
+      curve: NyumbaMotion.easeOut,
       width: collapsed ? 84 : 232,
-      decoration: const BoxDecoration(
-        color: NyumbaColors.surface,
-        border: Border(right: BorderSide(color: NyumbaColors.outline)),
+      decoration: BoxDecoration(
+        color: context.nyumba.surface,
+        border: Border(right: BorderSide(color: context.nyumba.outline)),
       ),
       child: SafeArea(
         child: Column(
@@ -219,95 +227,18 @@ class _DesktopSidebar extends ConsumerWidget {
                 separatorBuilder: (_, _) => const SizedBox(height: 5),
                 itemBuilder: (context, index) {
                   final destination = destinations[index];
-                  final selected = _isSelected(currentPath, destination.path);
-                  return Tooltip(
-                    message: collapsed ? destination.label : '',
-                    child: Material(
-                      color: selected
-                          ? NyumbaColors.midnightNavy
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(9),
-                      child: InkWell(
-                        onTap: () => context.go(destination.path),
-                        borderRadius: BorderRadius.circular(9),
-                        child: SizedBox(
-                          height: 48,
-                          child: Row(
-                            mainAxisAlignment: collapsed
-                                ? MainAxisAlignment.center
-                                : MainAxisAlignment.start,
-                            children: [
-                              if (!collapsed) const SizedBox(width: 14),
-                              Icon(
-                                selected
-                                    ? destination.selectedIcon
-                                    : destination.icon,
-                                size: 21,
-                                color: selected
-                                    ? Colors.white
-                                    : NyumbaColors.mutedInk,
-                              ),
-                              if (!collapsed) ...[
-                                const SizedBox(width: 13),
-                                Expanded(
-                                  child: Text(
-                                    destination.label,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelLarge
-                                        ?.copyWith(
-                                          color: selected
-                                              ? Colors.white
-                                              : NyumbaColors.ink,
-                                        ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                  return _SidebarItem(
+                    destination: destination,
+                    selected: _isSelected(currentPath, destination.path),
+                    collapsed: collapsed,
+                    onTap: () => context.go(destination.path),
                   );
                 },
               ),
             ),
             Padding(
               padding: const EdgeInsets.all(12),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: NyumbaColors.sageTint,
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(color: const Color(0xFFCDE4D2)),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: collapsed ? 0 : 12,
-                    vertical: 11,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: collapsed
-                        ? MainAxisAlignment.center
-                        : MainAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.check_circle_outline_rounded,
-                        color: NyumbaColors.sageDark,
-                        size: 19,
-                      ),
-                      if (!collapsed) ...[
-                        const SizedBox(width: 9),
-                        Expanded(
-                          child: Text(
-                            'Synced just now',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
+              child: _SidebarSyncStatus(collapsed: collapsed),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(11, 0, 11, 14),
@@ -318,6 +249,196 @@ class _DesktopSidebar extends ConsumerWidget {
                     ref.read(sessionControllerProvider.notifier).signOut(),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarItem extends StatefulWidget {
+  const _SidebarItem({
+    required this.destination,
+    required this.selected,
+    required this.collapsed,
+    required this.onTap,
+  });
+
+  final AppDestination destination;
+  final bool selected;
+  final bool collapsed;
+  final VoidCallback onTap;
+
+  @override
+  State<_SidebarItem> createState() => _SidebarItemState();
+}
+
+class _SidebarItemState extends State<_SidebarItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = widget.selected;
+    final duration = NyumbaMotion.reducedMotion(context)
+        ? Duration.zero
+        : NyumbaMotion.medium;
+    final scheme = Theme.of(context).colorScheme;
+    final foreground = selected ? scheme.onPrimary : context.nyumba.ink;
+    return Tooltip(
+      message: widget.collapsed ? widget.destination.label : '',
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: widget.destination.label,
+        child: AnimatedContainer(
+          duration: duration,
+          curve: NyumbaMotion.easeOut,
+          height: 48,
+          decoration: BoxDecoration(
+            color: selected
+                ? scheme.primary
+                : _hovered
+                ? context.nyumba.navyTint
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onTap,
+              onHover: (value) => setState(() => _hovered = value),
+              borderRadius: BorderRadius.circular(9),
+              child: Row(
+                mainAxisAlignment: widget.collapsed
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
+                children: [
+                  if (!widget.collapsed) const SizedBox(width: 14),
+                  AnimatedScale(
+                    scale: _hovered && !selected ? 1.08 : 1,
+                    duration: duration,
+                    curve: NyumbaMotion.easeOut,
+                    child: Icon(
+                      selected
+                          ? widget.destination.selectedIcon
+                          : widget.destination.icon,
+                      size: 21,
+                      color: selected
+                          ? scheme.onPrimary
+                          : context.nyumba.mutedInk,
+                    ),
+                  ),
+                  if (!widget.collapsed) ...[
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: AnimatedDefaultTextStyle(
+                        duration: duration,
+                        style:
+                            Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: foreground,
+                            ) ??
+                            TextStyle(color: foreground),
+                        child: Text(widget.destination.label),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Live sync summary driven by the durable outbox instead of static copy.
+class _SidebarSyncStatus extends ConsumerWidget {
+  const _SidebarSyncStatus({required this.collapsed});
+
+  final bool collapsed;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entries = ref.watch(outboxEntriesProvider);
+    final (icon, tint, borderColor, iconColor, message) = entries.when(
+      loading: () => (
+        Icons.sync_rounded,
+        context.nyumba.neutralTint,
+        context.nyumba.outline,
+        context.nyumba.mutedInk,
+        'Checking sync status…',
+      ),
+      error: (_, _) => (
+        Icons.cloud_off_outlined,
+        context.nyumba.neutralTint,
+        context.nyumba.outline,
+        context.nyumba.mutedInk,
+        'Sync status unavailable',
+      ),
+      data: (outbox) {
+        final failed = outbox
+            .where((entry) => entry.state == OutboxState.permanentlyFailed)
+            .length;
+        final pending = outbox.length - failed;
+        if (failed > 0) {
+          return (
+            Icons.error_outline_rounded,
+            context.nyumba.dangerTint,
+            context.nyumba.dangerBorder,
+            context.nyumba.danger,
+            '$failed change${failed == 1 ? '' : 's'} failed to sync',
+          );
+        }
+        if (pending > 0) {
+          return (
+            Icons.cloud_upload_outlined,
+            context.nyumba.goldTint,
+            context.nyumba.goldBorder,
+            context.nyumba.terracottaDark,
+            '$pending change${pending == 1 ? '' : 's'} waiting to sync',
+          );
+        }
+        return (
+          Icons.check_circle_outline_rounded,
+          context.nyumba.sageTint,
+          context.nyumba.sageBorder,
+          context.nyumba.sageDark,
+          'All changes synced',
+        );
+      },
+    );
+
+    return Tooltip(
+      message: collapsed ? message : '',
+      child: AnimatedContainer(
+        duration: NyumbaMotion.reducedMotion(context)
+            ? Duration.zero
+            : NyumbaMotion.medium,
+        decoration: BoxDecoration(
+          color: tint,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: borderColor),
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: collapsed ? 0 : 12,
+          vertical: 11,
+        ),
+        child: Row(
+          mainAxisAlignment: collapsed
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.start,
+          children: [
+            Icon(icon, color: iconColor, size: 19),
+            if (!collapsed) ...[
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -344,7 +465,11 @@ class _SidebarProfile extends StatelessWidget {
         if (value == 'sign-out') onSignOut();
       },
       itemBuilder: (context) => const [
-        PopupMenuItem(value: 'profile', child: Text('Profile settings')),
+        PopupMenuItem(
+          value: 'profile',
+          enabled: false,
+          child: Text('Profile settings (coming soon)'),
+        ),
         PopupMenuItem(value: 'sign-out', child: Text('Sign out')),
       ],
       child: Container(
@@ -396,45 +521,39 @@ class _DesktopTopBar extends StatelessWidget {
     return Container(
       height: 76,
       padding: const EdgeInsets.symmetric(horizontal: 30),
-      decoration: const BoxDecoration(
-        color: NyumbaColors.surface,
-        border: Border(bottom: BorderSide(color: NyumbaColors.outline)),
+      decoration: BoxDecoration(
+        color: context.nyumba.surface,
+        border: Border(bottom: BorderSide(color: context.nyumba.outline)),
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(
-              'Good morning, ${session.firstName}',
+              '${_greeting()}, ${session.firstName}',
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
           if (MediaQuery.sizeOf(context).width >= 1040)
-            SizedBox(
+            const SizedBox(
               width: 300,
-              child: TextField(
-                decoration: const InputDecoration(
-                  hintText: 'Search properties, tenants…',
-                  prefixIcon: Icon(Icons.search_rounded),
-                  isDense: true,
+              child: ComingSoon(
+                message: 'Workspace search coming soon',
+                child: TextField(
+                  enabled: false,
+                  decoration: InputDecoration(
+                    hintText: 'Search (coming soon)',
+                    prefixIcon: Icon(Icons.search_rounded),
+                    isDense: true,
+                  ),
                 ),
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Searching for “${value.trim()}”'),
-                      ),
-                    );
-                  }
-                },
               ),
             ),
           const SizedBox(width: 14),
-          Badge(
-            label: const Text('3'),
+          const ComingSoon(
+            message: 'Notifications coming soon',
             child: IconButton(
-              tooltip: 'Notifications',
-              onPressed: () => _showNotifications(context),
-              icon: const Icon(Icons.notifications_none_rounded),
+              onPressed: null,
+              icon: Icon(Icons.notifications_none_rounded),
             ),
           ),
           const SizedBox(width: 12),
@@ -474,19 +593,18 @@ class _MobileShell extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: NyumbaColors.softIvory,
+      backgroundColor: context.nyumba.softIvory,
       appBar: AppBar(
         toolbarHeight: 68,
-        backgroundColor: NyumbaColors.surface,
+        backgroundColor: context.nyumba.surface,
         titleSpacing: 16,
         title: const NyumbaLogo(height: 38),
         actions: [
-          Badge(
-            label: const Text('3'),
+          const ComingSoon(
+            message: 'Notifications coming soon',
             child: IconButton(
-              tooltip: 'Notifications',
-              onPressed: () => _showNotifications(context),
-              icon: const Icon(Icons.notifications_none_rounded),
+              onPressed: null,
+              icon: Icon(Icons.notifications_none_rounded),
             ),
           ),
           PopupMenuButton<String>(
@@ -497,7 +615,11 @@ class _MobileShell extends ConsumerWidget {
               }
             },
             itemBuilder: (context) => const [
-              PopupMenuItem(value: 'profile', child: Text('Profile settings')),
+              PopupMenuItem(
+                value: 'profile',
+                enabled: false,
+                child: Text('Profile settings (coming soon)'),
+              ),
               PopupMenuItem(value: 'sign-out', child: Text('Sign out')),
             ],
             child: Padding(
@@ -548,20 +670,33 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final parts = session.displayName.trim().split(RegExp(r'\s+'));
-    final initials = parts.take(2).map((part) => part[0]).join().toUpperCase();
+    final parts = session.displayName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty);
+    final initials = parts.isEmpty
+        ? '?'
+        : parts.take(2).map((part) => part[0]).join().toUpperCase();
+    final scheme = Theme.of(context).colorScheme;
     return CircleAvatar(
       radius: radius,
-      backgroundColor: NyumbaColors.midnightNavy,
-      foregroundColor: Colors.white,
+      backgroundColor: scheme.primary,
+      foregroundColor: scheme.onPrimary,
       child: Text(
         initials,
         style: Theme.of(
           context,
-        ).textTheme.labelMedium?.copyWith(color: Colors.white),
+        ).textTheme.labelMedium?.copyWith(color: scheme.onPrimary),
       ),
     );
   }
+}
+
+String _greeting() {
+  final hour = DateTime.now().hour;
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 bool _isSelected(String currentPath, String destinationPath) {
@@ -572,41 +707,6 @@ bool _isSelected(String currentPath, String destinationPath) {
     return false;
   }
   return currentPath.startsWith('$destinationPath/');
-}
-
-void _showNotifications(BuildContext context) {
-  showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Notifications',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 14),
-            const ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(child: Icon(Icons.payments_outlined)),
-              title: Text('Rent received from Brian Otieno'),
-              subtitle: Text('KES 45,000 · 20 minutes ago'),
-            ),
-            const ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(child: Icon(Icons.build_outlined)),
-              title: Text('New maintenance request'),
-              subtitle: Text('Leaking tap in kitchen · 1 hour ago'),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 void _showMoreDestinations(

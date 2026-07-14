@@ -2,7 +2,7 @@
 
 Nyumba is an offline-first Flutter application for rental property management. One responsive codebase supports web, Android, and iOS, with role-aware experiences for landlords, tenants, platform administrators, and prospective tenants.
 
-The current build is a functional implementation baseline backed by Sembast and seeded demo data. Firebase packages, security rules, indexes, and backend contracts are included, but no Firebase project credentials or generated options are committed yet.
+The current build is a functional implementation baseline backed by Sembast and seeded demo data. The app is connected to the `nyumba-property-management` Firebase project (Blaze plan): `Firebase.initializeApp` runs during bootstrap using options generated locally by the FlutterFire CLI. Generated configuration (`lib/firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`) is **gitignored by design** — every contributor regenerates it with `flutterfire configure`; no credentials, service accounts, or `.env` files are ever committed.
 
 ## Implemented experiences
 
@@ -129,12 +129,20 @@ From **Sign in**, choose **Landlord**, **Tenant**, or **Admin** under "Explore t
 
 Demo identities and data are local only; they are not Firebase accounts and must not be used as production fixtures.
 
-## Firebase handoff
+## Firebase configuration
 
-No Firebase project ID, API key, service account, `.firebaserc`, or generated `firebase_options.dart` is included. To connect an environment:
+The development environment is connected to the `nyumba-property-management` project (Blaze plan, region `europe-west1`). Client configuration is generated per machine and per environment — it is intentionally not in version control:
 
-1. Create separate development, staging, and production Firebase projects, then run `flutterfire configure` for each intended Flutter platform.
-2. Initialize `Firebase.initializeApp` with the generated options during bootstrap and replace the local demo session with a Firebase Auth adapter.
+```sh
+dart pub global run flutterfire_cli:flutterfire configure --project nyumba-property-management
+```
+
+This writes `lib/firebase_options.dart` and the platform files (`android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`), all covered by `.gitignore`. These are client identifiers, not secrets — real protection comes from Security Rules, App Check, and API-key restrictions in the Google Cloud console — but keeping them out of the repository keeps environments explicit and prevents accidental cross-environment builds. Service accounts, `.env` files, and signing keys are likewise ignored and must never be committed.
+
+Remaining backend work before release:
+
+1. Create the staging and production Firebase projects (same region, `europe-west1`) and run `flutterfire configure` against each.
+2. Replace the local demo session with a Firebase Auth adapter.
 3. Implement `RemoteSyncGateway` against authenticated callable Cloud Functions using [the backend command contracts](docs/architecture/backend-command-contracts.md). The current demo gateway is deliberately local and idempotent.
 4. Implement the server-authoritative command handlers described in [firebase/functions/COMMANDS.md](firebase/functions/COMMANDS.md), including entitlement, approval, publication, invoice, payment, projection, and audit checks.
 5. Validate the provided rules and queries with the Emulator Suite before deploying them to an explicitly selected non-production project:
@@ -175,8 +183,16 @@ The test suite covers the offline database transaction, outbox sync behavior, do
 | Android | `android/` | Sembast local file |
 | iOS | `ios/` | Sembast local file |
 
-## Product configuration still TBD
+## Product configuration
 
-Nyumba's plan names are **Starter**, **Pro**, **Premium**, and **Enterprise**, but subscription prices, billing intervals, trials, grace periods, feature entitlements, and per-plan unit limits are not finalized. These values must be supplied by server-owned configuration and must not be hard-coded in Flutter or security rules. Until they are approved, production entitlement checks should fail closed.
+Finalized decisions (mirrored in [`lib/core/config/market_config.dart`](lib/core/config/market_config.dart); the backend stays authoritative):
 
-Other production decisions still required include Firebase project IDs and region, production Android/iOS bundle identifiers and signing, payment provider and currencies, public-listing lifetime/moderation, upload limits, and retention policies. The full list is maintained in [the architecture overview](docs/architecture/README.md).
+- **Market:** Uganda only at launch — UGX currency, `+256` E.164 phone numbers, `Africa/Kampala` reporting timezone. Payment rails: MTN Mobile Money, Airtel Money, bank transfer, landlord-recorded cash. Uganda VAT (18%) on subscription fees is computed server-side.
+- **Firebase region:** `europe-west1` (Firestore, Cloud Functions, Storage).
+- **Listing lifetime:** published listings expire 30 days after (re)publication and are renewable by the landlord; expiry is enforced server-side.
+- **Upload limits:** max 10 photos per listing at 5 MB each (jpeg/png/webp); documents up to 10 MB (pdf/jpeg/png) — enforced in `firebase/storage.rules`.
+- **Retention:** financial records 7 years; deleted listings/media purged after 90 days; maintenance media 2 years.
+
+Still TBD: Nyumba's plan names are **Starter**, **Pro**, **Premium**, and **Enterprise**, but subscription prices, billing intervals, trials, grace periods, feature entitlements, and per-plan unit limits are not finalized. These values must be supplied by server-owned configuration and must not be hard-coded in Flutter or security rules. Until they are approved, production entitlement checks should fail closed.
+
+Other production decisions still required include staging/production Firebase project IDs, production Android/iOS bundle identifiers and signing, the mobile-money aggregator, and the listing moderation policy. The full list is maintained in [the architecture overview](docs/architecture/README.md).

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
@@ -87,17 +88,17 @@ class _LandlordListingsScreenState
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
                   child: NyumbaSurface(
-                    backgroundColor: NyumbaColors.goldTint,
-                    borderColor: const Color(0xFFF0D5A7),
+                    backgroundColor: context.nyumba.goldTint,
+                    borderColor: context.nyumba.goldBorder,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 11,
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.cloud_upload_outlined,
-                          color: NyumbaColors.terracottaDark,
+                          color: context.nyumba.terracottaDark,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -271,9 +272,9 @@ class _LandlordListingsScreenState
           '${selectedUnit.label} at ${propertyById[selectedUnit.propertyId]?.name ?? 'My property'}',
     );
     final description = TextEditingController(
-      text: 'A well maintained home in a convenient Nairobi location.',
+      text: 'A well maintained home in a convenient Kampala location.',
     );
-    final phone = TextEditingController(text: '+254 712 000 100');
+    final phone = TextEditingController(text: '+256 772 000 100');
     final created = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -427,8 +428,8 @@ class _LandlordListingCard extends StatelessWidget {
         ? ('Published', BadgeTone.success)
         : ('Draft', BadgeTone.neutral);
     final currency = NumberFormat.currency(
-      locale: 'en_KE',
-      symbol: 'KES ',
+      locale: 'en_UG',
+      symbol: 'UGX ',
       decimalDigits: 0,
     );
     return NyumbaSurface(
@@ -472,7 +473,7 @@ class _LandlordListingCard extends StatelessWidget {
                 Text(
                   currency.format(listing.monthlyRentMinor / 100),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: NyumbaColors.midnightNavy,
+                    color: context.nyumba.midnightNavy,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -480,10 +481,10 @@ class _LandlordListingCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.people_outline_rounded,
                       size: 18,
-                      color: NyumbaColors.mutedInk,
+                      color: context.nyumba.mutedInk,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -497,10 +498,12 @@ class _LandlordListingCard extends StatelessWidget {
                         child: const Text('Publish'),
                       )
                     else
-                      IconButton(
-                        tooltip: 'Listing actions',
-                        onPressed: () {},
-                        icon: const Icon(Icons.more_horiz_rounded),
+                      const ComingSoon(
+                        message: 'Listing actions coming soon',
+                        child: IconButton(
+                          onPressed: null,
+                          icon: Icon(Icons.more_horiz_rounded),
+                        ),
                       ),
                   ],
                 ),
@@ -522,13 +525,13 @@ class _ApplicationsInbox extends StatelessWidget {
   Widget build(BuildContext context) {
     final latest = applications.first;
     return NyumbaSurface(
-      backgroundColor: NyumbaColors.navyTint,
-      borderColor: const Color(0xFFC9D9EB),
+      backgroundColor: context.nyumba.navyTint,
+      borderColor: context.nyumba.navyBorder,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CircleAvatar(
-            backgroundColor: NyumbaColors.midnightNavy,
+          CircleAvatar(
+            backgroundColor: context.nyumba.midnightNavy,
             foregroundColor: Colors.white,
             child: Icon(Icons.mark_email_unread_outlined, size: 20),
           ),
@@ -596,8 +599,8 @@ void _showApplications(
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
-                        backgroundColor: NyumbaColors.navyTint,
-                        foregroundColor: NyumbaColors.midnightNavy,
+                        backgroundColor: context.nyumba.navyTint,
+                        foregroundColor: context.nyumba.midnightNavy,
                         child: Text(application.applicantName[0].toUpperCase()),
                       ),
                       title: Text(application.applicantName),

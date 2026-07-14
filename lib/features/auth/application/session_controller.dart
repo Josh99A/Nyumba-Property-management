@@ -13,20 +13,20 @@ class SessionController extends Notifier<UserSession?> {
     state = switch (role) {
       AppRole.landlord => const UserSession(
         userId: 'demo-landlord-001',
-        displayName: 'Joshua Mwangi',
-        email: 'joshua@demo.nyumba.co.ke',
+        displayName: 'Joshua Mugisha',
+        email: 'joshua@demo.nyumba.ug',
         role: AppRole.landlord,
       ),
       AppRole.tenant => const UserSession(
         userId: 'demo-tenant-001',
-        displayName: 'Amina Kamau',
-        email: 'amina@demo.nyumba.co.ke',
+        displayName: 'Brian Okello',
+        email: 'brian@demo.nyumba.ug',
         role: AppRole.tenant,
       ),
       AppRole.admin => const UserSession(
         userId: 'demo-admin-001',
         displayName: 'Nyumba Admin',
-        email: 'admin@demo.nyumba.co.ke',
+        email: 'admin@demo.nyumba.ug',
         role: AppRole.admin,
       ),
     };
@@ -38,7 +38,7 @@ class SessionController extends Notifier<UserSession?> {
     await Future<void>.delayed(const Duration(milliseconds: 500));
     state = UserSession(
       userId: 'demo-landlord-001',
-      displayName: 'Joshua Mwangi',
+      displayName: 'Joshua Mugisha',
       email: email.trim(),
       role: AppRole.landlord,
     );

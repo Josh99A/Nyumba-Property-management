@@ -1,8 +1,11 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
 import '../../../../app/theme/nyumba_colors.dart';
+import '../../../../core/presentation/motion.dart';
 
 class OccupancyRing extends StatelessWidget {
   const OccupancyRing({required this.rate, super.key, this.size = 184});
@@ -13,25 +16,41 @@ class OccupancyRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final percentage = (rate * 100).round();
+    final palette = context.nyumba;
     return Semantics(
       label: '$percentage percent of units are occupied',
-      child: SizedBox.square(
-        dimension: size,
-        child: CustomPaint(
-          painter: _OccupancyPainter(rate: rate),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$percentage%',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: NyumbaColors.sageDark,
-                    fontSize: size * .24,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(
+          begin: NyumbaMotion.reducedMotion(context) ? rate : 0,
+          end: rate,
+        ),
+        duration: NyumbaMotion.chart,
+        curve: NyumbaMotion.easeOut,
+        builder: (context, animatedRate, _) => SizedBox.square(
+          dimension: size,
+          child: CustomPaint(
+            painter: _OccupancyPainter(
+              rate: animatedRate,
+              trackColor: palette.divider,
+              gradientColors: [palette.sageGreen, palette.sageDark],
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${(animatedRate * 100).round()}%',
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      color: palette.sageDark,
+                      fontSize: size * .24,
+                    ),
                   ),
-                ),
-                Text('Occupied', style: Theme.of(context).textTheme.bodySmall),
-              ],
+                  Text(
+                    'Occupied',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -41,9 +60,15 @@ class OccupancyRing extends StatelessWidget {
 }
 
 class _OccupancyPainter extends CustomPainter {
-  const _OccupancyPainter({required this.rate});
+  const _OccupancyPainter({
+    required this.rate,
+    required this.trackColor,
+    required this.gradientColors,
+  });
 
   final double rate;
+  final Color trackColor;
+  final List<Color> gradientColors;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -51,13 +76,11 @@ class _OccupancyPainter extends CustomPainter {
     final rect = Offset.zero & size;
     final arcRect = rect.deflate(strokeWidth / 2);
     final background = Paint()
-      ..color = const Color(0xFFE8E9E7)
+      ..color = trackColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
     final foreground = Paint()
-      ..shader = const LinearGradient(
-        colors: [NyumbaColors.sageGreen, NyumbaColors.sageDark],
-      ).createShader(rect)
+      ..shader = LinearGradient(colors: gradientColors).createShader(rect)
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.butt
       ..strokeWidth = strokeWidth;
@@ -73,7 +96,9 @@ class _OccupancyPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _OccupancyPainter oldDelegate) =>
-      oldDelegate.rate != rate;
+      oldDelegate.rate != rate ||
+      oldDelegate.trackColor != trackColor ||
+      oldDelegate.gradientColors != gradientColors;
 }
 
 class RentTrendChart extends StatelessWidget {
@@ -88,16 +113,30 @@ class RentTrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.nyumba;
     return Semantics(
       label: 'Monthly rent collection trend',
       child: SizedBox(
         height: 154,
-        child: CustomPaint(
-          painter: _TrendPainter(
-            collected: collected,
-            outstanding: outstanding,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(
+            begin: NyumbaMotion.reducedMotion(context) ? 1 : 0,
+            end: 1,
           ),
-          child: const SizedBox.expand(),
+          duration: NyumbaMotion.chart,
+          curve: NyumbaMotion.easeOut,
+          builder: (context, progress, _) => CustomPaint(
+            painter: _TrendPainter(
+              collected: collected,
+              outstanding: outstanding,
+              progress: progress,
+              collectedColor: palette.sageDark,
+              outstandingColor: palette.terracottaGold,
+              gridColor: palette.divider,
+              labelColor: palette.mutedInk,
+            ),
+            child: const SizedBox.expand(),
+          ),
         ),
       ),
     );
@@ -105,10 +144,25 @@ class RentTrendChart extends StatelessWidget {
 }
 
 class _TrendPainter extends CustomPainter {
-  const _TrendPainter({required this.collected, required this.outstanding});
+  _TrendPainter({
+    required this.collected,
+    required this.outstanding,
+    required this.collectedColor,
+    required this.outstandingColor,
+    required this.gridColor,
+    required this.labelColor,
+    this.progress = 1,
+  });
 
   final List<double> collected;
   final List<double> outstanding;
+  final Color collectedColor;
+  final Color outstandingColor;
+  final Color gridColor;
+  final Color labelColor;
+
+  /// Fraction of each line's length drawn, animating the chart in.
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -124,7 +178,7 @@ class _TrendPainter extends CustomPainter {
     );
 
     final gridPaint = Paint()
-      ..color = const Color(0xFFE9E7E1)
+      ..color = gridColor
       ..strokeWidth = 1;
     for (var i = 0; i <= 3; i++) {
       final y = chart.top + (chart.height * i / 3);
@@ -136,7 +190,7 @@ class _TrendPainter extends CustomPainter {
       chart,
       collected,
       Paint()
-        ..color = NyumbaColors.sageDark
+        ..color = collectedColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5
         ..strokeCap = StrokeCap.round
@@ -147,19 +201,19 @@ class _TrendPainter extends CustomPainter {
       chart,
       outstanding,
       Paint()
-        ..color = NyumbaColors.terracottaGold
+        ..color = outstandingColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
         ..strokeCap = StrokeCap.round,
       dashed: true,
     );
 
-    final labels = ['1 May', '8 May', '15 May', '22 May', '31 May'];
+    final labels = _monthLabels();
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
     for (var i = 0; i < labels.length; i++) {
       textPainter.text = TextSpan(
         text: labels[i],
-        style: const TextStyle(fontSize: 10, color: NyumbaColors.mutedInk),
+        style: TextStyle(fontSize: 10, color: labelColor),
       );
       textPainter.layout();
       final x = chart.left + chart.width * i / (labels.length - 1);
@@ -171,6 +225,16 @@ class _TrendPainter extends CustomPainter {
         ),
       );
     }
+  }
+
+  List<String> _monthLabels() {
+    final now = DateTime.now();
+    final lastDay = DateTime(now.year, now.month + 1, 0).day;
+    final format = DateFormat('d MMM');
+    return [
+      for (final day in [1, 8, 15, 22, lastDay])
+        format.format(DateTime(now.year, now.month, day)),
+    ];
   }
 
   void _drawLine(
@@ -190,35 +254,42 @@ class _TrendPainter extends CustomPainter {
         ),
       );
     }
+    final fullPath = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      fullPath.lineTo(point.dx, point.dy);
+    }
+    final path = progress >= 1 ? fullPath : _partialPath(fullPath);
+
     if (!dashed) {
-      final path = Path()..moveTo(points.first.dx, points.first.dy);
-      for (final point in points.skip(1)) {
-        path.lineTo(point.dx, point.dy);
-      }
       canvas.drawPath(path, paint);
       return;
     }
-    for (var i = 0; i < points.length - 1; i++) {
-      final start = points[i];
-      final end = points[i + 1];
-      final delta = end - start;
-      final distance = delta.distance;
-      final direction = delta / distance;
+    for (final metric in path.computeMetrics()) {
       var travelled = 0.0;
-      while (travelled < distance) {
-        final dashEnd = math.min(travelled + 5, distance);
-        canvas.drawLine(
-          start + direction * travelled,
-          start + direction * dashEnd,
-          paint,
-        );
+      while (travelled < metric.length) {
+        final dashEnd = math.min(travelled + 5, metric.length);
+        canvas.drawPath(metric.extractPath(travelled, dashEnd), paint);
         travelled += 9;
       }
     }
   }
 
+  Path _partialPath(Path fullPath) {
+    final result = Path();
+    for (final ui.PathMetric metric in fullPath.computeMetrics()) {
+      result.addPath(
+        metric.extractPath(0, metric.length * progress.clamp(0, 1)),
+        Offset.zero,
+      );
+    }
+    return result;
+  }
+
   @override
   bool shouldRepaint(covariant _TrendPainter oldDelegate) =>
       oldDelegate.collected != collected ||
-      oldDelegate.outstanding != outstanding;
+      oldDelegate.outstanding != outstanding ||
+      oldDelegate.progress != progress ||
+      oldDelegate.collectedColor != collectedColor ||
+      oldDelegate.outstandingColor != outstandingColor;
 }

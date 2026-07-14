@@ -14,12 +14,24 @@ service firebase.storage {
       return signedIn() && request.auth.token.platformAdmin == true;
     }
 
+    // Finalized limits (mirrored in lib/core/config/market_config.dart):
+    // images (listing photos, maintenance media) 5 MB — jpeg/png/webp;
+    // documents 10 MB — pdf. Per-listing photo count (max 10) and checksum
+    // validation are enforced by the finalizing Cloud Function.
+    function validImageUpload() {
+      return request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType in
+          ['image/jpeg', 'image/png', 'image/webp'];
+    }
+
+    function validDocumentUpload() {
+      return request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType == 'application/pdf';
+    }
+
     function validStagingUpload() {
-      // PROVISIONAL safety ceiling. TBD: finalize per-document upload limits.
-      return request.resource.size < 10 * 1024 * 1024
-        && request.resource.contentType is string
-        && (request.resource.contentType.matches('image/.*')
-          || request.resource.contentType == 'application/pdf');
+      return request.resource.contentType is string
+        && (validImageUpload() || validDocumentUpload());
     }
 
     function publicListingIsReadable(listingId) {

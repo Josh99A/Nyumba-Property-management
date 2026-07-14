@@ -33,7 +33,7 @@ final class DemoDataSeeder {
        _units = units,
        _listings = listings;
 
-  static const String _demoPropertyName = 'Kilimani Garden Court';
+  static const String _demoPropertyName = 'Kololo Garden Court';
 
   final PropertyRepository _properties;
   final UnitRepository _units;
@@ -60,7 +60,7 @@ final class DemoDataSeeder {
         landlordId: landlordId,
         name: _demoPropertyName,
         addressLine: 'Argwings Kodhek Road',
-        city: 'Nairobi',
+        city: 'Kampala',
         description: 'A secure mixed-unit property close to local amenities.',
       ),
     );
@@ -113,7 +113,7 @@ final class DemoDataSeeder {
                 'A well maintained ${unit.type.name} in ${property.city}.',
             monthlyRentMinor: unit.monthlyRentMinor,
             currency: unit.currency,
-            contactPhone: '+254 700 000 000',
+            contactPhone: '+256 700 000 000',
           ),
         );
         listing = await _listings.publish(listing.id);
@@ -146,7 +146,7 @@ final class DemoDataSeeder {
           label: 'Apartment A1',
           type: UnitType.apartment,
           status: UnitStatus.vacant,
-          monthlyRentMinor: 4500000,
+          monthlyRentMinor: 120000000,
           bedrooms: 2,
           bathrooms: 2,
           amenities: <String>['Parking', 'Balcony', 'Backup water'],
@@ -155,7 +155,7 @@ final class DemoDataSeeder {
           label: 'Bedsitter B3',
           type: UnitType.bedsitter,
           status: UnitStatus.vacant,
-          monthlyRentMinor: 1800000,
+          monthlyRentMinor: 50000000,
           bedrooms: 0,
           bathrooms: 1,
           amenities: <String>['Backup water'],
@@ -164,7 +164,7 @@ final class DemoDataSeeder {
           label: 'Shop G2',
           type: UnitType.shop,
           status: UnitStatus.occupied,
-          monthlyRentMinor: 3500000,
+          monthlyRentMinor: 95000000,
           bedrooms: 0,
           bathrooms: 1,
           amenities: <String>['Street frontage'],

@@ -70,10 +70,10 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
             AdminMetricCard(
               label: 'Verified landlords',
               value: '${metrics.landlords}',
-              caption: 'Across 31 counties',
+              caption: 'Across 31 districts',
               trend: metrics.landlordTrend,
               icon: Icons.real_estate_agent_outlined,
-              tone: NyumbaColors.midnightNavy,
+              tone: context.nyumba.midnightNavy,
             ),
             AdminMetricCard(
               label: 'Managed units',
@@ -81,17 +81,17 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               caption: '89.6% currently occupied',
               trend: metrics.unitTrend,
               icon: Icons.apartment_rounded,
-              tone: NyumbaColors.sageDark,
+              tone: context.nyumba.sageDark,
             ),
             AdminMetricCard(
               label: 'Subscription revenue',
-              value: formatAdminKes(metrics.monthlyRevenue),
+              value: formatAdminUgx(metrics.monthlyRevenue),
               caption: _period == 'This quarter'
                   ? 'Quarter to date'
                   : 'Period total',
               trend: metrics.revenueTrend,
               icon: Icons.payments_outlined,
-              tone: NyumbaColors.terracottaDark,
+              tone: context.nyumba.terracottaDark,
             ),
             AdminMetricCard(
               label: 'Active subscriptions',
@@ -99,7 +99,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               caption: '89.6% of verified landlords',
               trend: metrics.subscriptionTrend,
               icon: Icons.workspace_premium_outlined,
-              tone: NyumbaColors.sageDark,
+              tone: context.nyumba.sageDark,
             ),
           ],
         ),
@@ -219,7 +219,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               ),
               const SizedBox(height: 20),
               _ReviewFact(label: 'Business', value: approval.business),
-              _ReviewFact(label: 'County', value: approval.county),
+              _ReviewFact(label: 'District', value: approval.district),
               _ReviewFact(label: 'Submitted', value: approval.submitted),
               const SizedBox(height: 12),
               const StatusBadge(
@@ -308,10 +308,10 @@ class _PlatformInsights extends StatelessWidget {
           Wrap(
             spacing: 22,
             runSpacing: 10,
-            children: const [
-              _Legend(color: NyumbaColors.midnightNavy, label: 'New units'),
+            children: [
+              _Legend(color: context.nyumba.midnightNavy, label: 'New units'),
               _Legend(
-                color: NyumbaColors.terracottaGold,
+                color: context.nyumba.terracottaGold,
                 label: 'Revenue index',
               ),
             ],
@@ -427,11 +427,11 @@ class _HealthRow extends StatelessWidget {
         Container(
           width: 38,
           height: 38,
-          decoration: const BoxDecoration(
-            color: NyumbaColors.navyTint,
+          decoration: BoxDecoration(
+            color: context.nyumba.navyTint,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 20, color: NyumbaColors.midnightNavy),
+          child: Icon(icon, size: 20, color: context.nyumba.midnightNavy),
         ),
         const SizedBox(width: 11),
         Expanded(
@@ -520,7 +520,7 @@ class _ApprovalRow extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   Text(
-                    '${approval.business} • ${approval.county}',
+                    '${approval.business} • ${approval.district}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,
@@ -570,14 +570,14 @@ class _AdminActivityPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AdminPanel(
+    return AdminPanel(
       title: 'Platform activity',
       subtitle: 'Recent security and billing events',
       child: Column(
         children: [
           _ActivityRow(
             icon: Icons.person_add_alt_1_outlined,
-            color: NyumbaColors.midnightNavy,
+            color: context.nyumba.midnightNavy,
             title: '18 new users registered',
             detail: 'Landlords 6 • Tenants 12',
             time: '38 min ago',
@@ -585,7 +585,7 @@ class _AdminActivityPanel extends StatelessWidget {
           Divider(height: 25),
           _ActivityRow(
             icon: Icons.workspace_premium_outlined,
-            color: NyumbaColors.terracottaDark,
+            color: context.nyumba.terracottaDark,
             title: '7 subscriptions upgraded',
             detail: 'Pro to Premium was most common',
             time: '2 hr ago',
@@ -593,7 +593,7 @@ class _AdminActivityPanel extends StatelessWidget {
           Divider(height: 25),
           _ActivityRow(
             icon: Icons.admin_panel_settings_outlined,
-            color: NyumbaColors.sageDark,
+            color: context.nyumba.sageDark,
             title: 'Access review completed',
             detail: 'No anomalous admin sessions found',
             time: '4 hr ago',
@@ -644,9 +644,9 @@ class _ActivityRow extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 time,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: NyumbaColors.mutedInk),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: context.nyumba.mutedInk,
+                ),
               ),
             ],
           ),
@@ -709,37 +709,37 @@ class _LandlordApproval {
     required this.name,
     required this.email,
     required this.business,
-    required this.county,
+    required this.district,
     required this.submitted,
   });
 
   final String name;
   final String email;
   final String business;
-  final String county;
+  final String district;
   final String submitted;
 }
 
 const _seedApprovals = [
   _LandlordApproval(
-    name: 'Grace Njeri',
-    email: 'grace@karurihomes.co.ke',
+    name: 'Grace Auma',
+    email: 'grace@karurihomes.ug',
     business: 'Karuri Homes',
-    county: 'Kiambu',
+    district: 'Wakiso',
     submitted: 'today at 08:14',
   ),
   _LandlordApproval(
-    name: 'David Omondi',
-    email: 'david@lakeviewlettings.co.ke',
+    name: 'David Opio',
+    email: 'david@lakeviewlettings.ug',
     business: 'Lakeview Lettings',
-    county: 'Kisumu',
+    district: 'Gulu',
     submitted: 'yesterday at 16:40',
   ),
   _LandlordApproval(
     name: 'Amina Noor',
-    email: 'amina@tuliahomes.co.ke',
+    email: 'amina@tuliahomes.ug',
     business: 'Tulia Homes',
-    county: 'Mombasa',
+    district: 'Mbarara',
     submitted: '11 Jul at 10:22',
   ),
 ];

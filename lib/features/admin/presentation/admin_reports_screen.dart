@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import 'widgets/admin_components.dart';
@@ -16,7 +17,7 @@ class AdminReportsScreen extends StatefulWidget {
 class _AdminReportsScreenState extends State<AdminReportsScreen> {
   String _period = 'Last 30 days';
   String _reportView = 'Platform';
-  String _county = 'All counties';
+  String _district = 'All districts';
   final List<_GeneratedReport> _generated = [..._seedGeneratedReports];
 
   _ReportMetrics get _metrics {
@@ -26,12 +27,12 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       'Year to date' => 6.42,
       _ => 1.0,
     };
-    final countyMultiplier = _county == 'All counties' ? 1.0 : .34;
+    final districtMultiplier = _district == 'All districts' ? 1.0 : .34;
     return _ReportMetrics(
-      paymentVolume: (126800000 * multiplier * countyMultiplier).round(),
-      newUnits: (684 * multiplier * countyMultiplier).round(),
-      applications: (924 * multiplier * countyMultiplier).round(),
-      resolutionRate: _county == 'All counties' ? 91.4 : 88.7,
+      paymentVolume: (126800000 * multiplier * districtMultiplier).round(),
+      newUnits: (684 * multiplier * districtMultiplier).round(),
+      applications: (924 * multiplier * districtMultiplier).round(),
+      resolutionRate: _district == 'All districts' ? 91.4 : 88.7,
     );
   }
 
@@ -41,10 +42,13 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     return AdminPage(
       title: 'Reports & insights',
       description: 'Explore operational trends and generate auditable exports.',
-      secondaryAction: OutlinedButton.icon(
-        onPressed: _scheduleReport,
-        icon: const Icon(Icons.schedule_send_outlined),
-        label: const Text('Schedule report'),
+      secondaryAction: ComingSoon(
+        message: 'Scheduled reports coming soon',
+        child: OutlinedButton.icon(
+          onPressed: null,
+          icon: Icon(Icons.schedule_send_outlined),
+          label: Text('Schedule report'),
+        ),
       ),
       primaryAction: FilledButton.icon(
         onPressed: () => _generateReport(_reportTemplates.first),
@@ -97,17 +101,17 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                   SizedBox(
                     width: width,
                     child: _ReportDropdown(
-                      label: 'County',
-                      value: _county,
+                      label: 'District',
+                      value: _district,
                       values: const [
-                        'All counties',
-                        'Nairobi',
-                        'Kiambu',
-                        'Mombasa',
-                        'Kisumu',
+                        'All districts',
+                        'Kampala',
+                        'Wakiso',
+                        'Mbarara',
+                        'Gulu',
                       ],
                       icon: Icons.location_on_outlined,
-                      onChanged: (value) => setState(() => _county = value),
+                      onChanged: (value) => setState(() => _district = value),
                     ),
                   ),
                   StatusBadge(
@@ -125,11 +129,11 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           children: [
             AdminMetricCard(
               label: 'Rent payment volume',
-              value: formatAdminKes(metrics.paymentVolume),
+              value: formatAdminUgx(metrics.paymentVolume),
               caption: 'Across recorded tenant payments',
               trend: '+11.8%',
               icon: Icons.payments_outlined,
-              tone: NyumbaColors.sageDark,
+              tone: context.nyumba.sageDark,
             ),
             AdminMetricCard(
               label: 'New managed units',
@@ -137,7 +141,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               caption: 'Added in the selected period',
               trend: '+6.2%',
               icon: Icons.apartment_outlined,
-              tone: NyumbaColors.midnightNavy,
+              tone: context.nyumba.midnightNavy,
             ),
             AdminMetricCard(
               label: 'Listing applications',
@@ -145,7 +149,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               caption: 'From public property listings',
               trend: '+9.1%',
               icon: Icons.assignment_outlined,
-              tone: NyumbaColors.terracottaDark,
+              tone: context.nyumba.terracottaDark,
             ),
             AdminMetricCard(
               label: 'Requests resolved',
@@ -153,7 +157,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               caption: 'Maintenance closed within SLA',
               trend: '+2.4%',
               icon: Icons.task_alt_rounded,
-              tone: NyumbaColors.sageDark,
+              tone: context.nyumba.sageDark,
             ),
           ],
         ),
@@ -161,7 +165,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         LayoutBuilder(
           builder: (context, constraints) {
             final trend = _TrendPanel(reportView: _reportView, period: _period);
-            final footprint = _CountyFootprint(selectedCounty: _county);
+            final footprint = _DistrictFootprint(selectedDistrict: _district);
             if (constraints.maxWidth < 980) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -254,11 +258,11 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: NyumbaColors.navyTint,
+                    color: context.nyumba.navyTint,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    '$_period • $_county • $_reportView view',
+                    '$_period • $_district • $_reportView view',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
@@ -289,13 +293,13 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                   onChanged: (value) =>
                       setDialogState(() => includeDetails = value),
                 ),
-                const Row(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.shield_outlined,
                       size: 18,
-                      color: NyumbaColors.sageDark,
+                      color: context.nyumba.sageDark,
                     ),
                     SizedBox(width: 8),
                     Expanded(
@@ -330,7 +334,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         _GeneratedReport(
           name: '${template.title} • $_period',
           format: format,
-          generatedBy: 'Daniel Kamau',
+          generatedBy: 'Daniel Musoke',
           generatedAt: DateFormat('d MMM, HH:mm').format(DateTime.now()),
         ),
       );
@@ -338,67 +342,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     showAdminMessage(
       context,
       '${template.title} generated as $format and saved locally.',
-    );
-  }
-
-  Future<void> _scheduleReport() {
-    var cadence = 'Every Monday';
-    var recipients = 'Platform admins';
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Schedule a report'),
-          content: SizedBox(
-            width: 460,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _ReportDropdown(
-                  label: 'Cadence',
-                  value: cadence,
-                  values: const [
-                    'Every Monday',
-                    'First day of month',
-                    'End of quarter',
-                  ],
-                  icon: Icons.event_repeat_outlined,
-                  onChanged: (value) => setDialogState(() => cadence = value),
-                ),
-                const SizedBox(height: 12),
-                _ReportDropdown(
-                  label: 'Recipients',
-                  value: recipients,
-                  values: const [
-                    'Platform admins',
-                    'Finance team',
-                    'Operations team',
-                  ],
-                  icon: Icons.group_outlined,
-                  onChanged: (value) =>
-                      setDialogState(() => recipients = value),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                showAdminMessage(
-                  context,
-                  'Report scheduled for $cadence to $recipients.',
-                );
-              },
-              child: const Text('Save schedule'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -472,13 +415,13 @@ class _TrendPanel extends StatelessWidget {
           Wrap(
             spacing: 20,
             runSpacing: 8,
-            children: const [
+            children: [
               _ChartLegend(
-                color: NyumbaColors.midnightNavy,
+                color: context.nyumba.midnightNavy,
                 label: 'Current period',
               ),
               _ChartLegend(
-                color: NyumbaColors.terracottaGold,
+                color: context.nyumba.terracottaGold,
                 label: 'Previous period',
               ),
             ],
@@ -521,39 +464,39 @@ class _ChartLegend extends StatelessWidget {
   }
 }
 
-class _CountyFootprint extends StatelessWidget {
-  const _CountyFootprint({required this.selectedCounty});
+class _DistrictFootprint extends StatelessWidget {
+  const _DistrictFootprint({required this.selectedDistrict});
 
-  final String selectedCounty;
+  final String selectedDistrict;
 
   @override
   Widget build(BuildContext context) {
-    final counties = selectedCounty == 'All counties'
+    final districts = selectedDistrict == 'All districts'
         ? const [
-            ('Nairobi', .78, '7,840 units'),
-            ('Kiambu', .56, '3,420 units'),
-            ('Mombasa', .41, '2,160 units'),
-            ('Kisumu', .31, '1,470 units'),
-            ('Nakuru', .24, '1,105 units'),
+            ('Kampala', .78, '7,840 units'),
+            ('Wakiso', .56, '3,420 units'),
+            ('Mbarara', .41, '2,160 units'),
+            ('Gulu', .31, '1,470 units'),
+            ('Jinja', .24, '1,105 units'),
           ]
-        : [(selectedCounty, .72, 'Selected county detail')];
+        : [(selectedDistrict, .72, 'Selected district detail')];
     return AdminPanel(
       title: 'Managed-unit footprint',
-      subtitle: selectedCounty == 'All counties'
-          ? 'Top counties by active unit count'
-          : 'Filtered to $selectedCounty',
+      subtitle: selectedDistrict == 'All districts'
+          ? 'Top districts by active unit count'
+          : 'Filtered to $selectedDistrict',
       child: Column(
         children: [
-          for (var index = 0; index < counties.length; index++) ...[
+          for (var index = 0; index < districts.length; index++) ...[
             AdminProgressRow(
-              label: counties[index].$1,
-              value: counties[index].$2,
-              trailing: counties[index].$3,
+              label: districts[index].$1,
+              value: districts[index].$2,
+              trailing: districts[index].$3,
               color: index.isEven
-                  ? NyumbaColors.midnightNavy
-                  : NyumbaColors.sageDark,
+                  ? context.nyumba.midnightNavy
+                  : context.nyumba.sageDark,
             ),
-            if (index < counties.length - 1) const SizedBox(height: 18),
+            if (index < districts.length - 1) const SizedBox(height: 18),
           ],
         ],
       ),
@@ -653,8 +596,8 @@ class _GeneratedReportRow extends StatelessWidget {
         Container(
           width: 40,
           height: 40,
-          decoration: const BoxDecoration(
-            color: NyumbaColors.navyTint,
+          decoration: BoxDecoration(
+            color: context.nyumba.navyTint,
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -662,7 +605,7 @@ class _GeneratedReportRow extends StatelessWidget {
                 ? Icons.picture_as_pdf_outlined
                 : Icons.table_chart_outlined,
             size: 21,
-            color: NyumbaColors.midnightNavy,
+            color: context.nyumba.midnightNavy,
           ),
         ),
         const SizedBox(width: 11),
@@ -681,11 +624,12 @@ class _GeneratedReportRow extends StatelessWidget {
         const SizedBox(width: 10),
         StatusBadge(label: report.format, tone: BadgeTone.neutral),
         const SizedBox(width: 6),
-        IconButton(
-          tooltip: 'Download again',
-          onPressed: () =>
-              showAdminMessage(context, '${report.name} is ready to download.'),
-          icon: const Icon(Icons.download_rounded),
+        const ComingSoon(
+          message: 'Re-download coming soon',
+          child: IconButton(
+            onPressed: null,
+            icon: Icon(Icons.download_rounded),
+          ),
         ),
       ],
     );
@@ -786,19 +730,19 @@ const _seedGeneratedReports = [
   _GeneratedReport(
     name: 'Monthly platform performance • June 2026',
     format: 'PDF',
-    generatedBy: 'Daniel Kamau',
+    generatedBy: 'Daniel Musoke',
     generatedAt: '1 Jul, 08:20',
   ),
   _GeneratedReport(
     name: 'Subscription revenue • Q2 2026',
     format: 'CSV',
-    generatedBy: 'Mary Atieno',
+    generatedBy: 'Mary Achola',
     generatedAt: '30 Jun, 17:46',
   ),
   _GeneratedReport(
     name: 'Landlord approvals • June 2026',
     format: 'PDF',
-    generatedBy: 'Daniel Kamau',
+    generatedBy: 'Daniel Musoke',
     generatedAt: '30 Jun, 16:10',
   ),
 ];

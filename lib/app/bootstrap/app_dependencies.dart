@@ -70,7 +70,7 @@ final outboxEntriesProvider = StreamProvider((ref) {
 });
 
 Future<AppDependencies> createAppDependencies() async {
-  final database = await openScopedOfflineDatabase('workspace_v1');
+  final database = await openScopedOfflineDatabase('workspace_v2');
   final properties = SembastPropertyRepository(database: database);
   final units = SembastUnitRepository(database: database);
   final listings = SembastListingRepository(database: database, units: units);
@@ -117,33 +117,54 @@ Future<void> _seedPortfolioIfNeeded({
     const _PropertySeed(
       name: 'Sunset Apartments',
       address: 'Muthangari Drive',
-      city: 'Nairobi',
-      description: 'Quiet apartment living with secure parking in Westlands.',
+      city: 'Kampala',
+      description: 'Quiet apartment living with secure parking in Ntinda.',
       units: [
-        _UnitSeed('B4', UnitType.apartment, UnitStatus.occupied, 4500000, 2, 2),
-        _UnitSeed('B5', UnitType.apartment, UnitStatus.vacant, 4500000, 2, 2),
-        _UnitSeed('C1', UnitType.apartment, UnitStatus.occupied, 5200000, 3, 2),
+        _UnitSeed(
+          'B4',
+          UnitType.apartment,
+          UnitStatus.occupied,
+          120000000,
+          2,
+          2,
+        ),
+        _UnitSeed('B5', UnitType.apartment, UnitStatus.vacant, 120000000, 2, 2),
+        _UnitSeed(
+          'C1',
+          UnitType.apartment,
+          UnitStatus.occupied,
+          150000000,
+          3,
+          2,
+        ),
       ],
     ),
     const _PropertySeed(
       name: 'Riverside Heights',
       address: 'Riverside Drive',
-      city: 'Nairobi',
+      city: 'Kampala',
       description:
           'Bright homes close to offices, schools, and everyday services.',
       units: [
-        _UnitSeed('D1', UnitType.apartment, UnitStatus.occupied, 5000000, 2, 2),
-        _UnitSeed('D2', UnitType.apartment, UnitStatus.vacant, 5000000, 2, 2),
+        _UnitSeed(
+          'D1',
+          UnitType.apartment,
+          UnitStatus.occupied,
+          140000000,
+          2,
+          2,
+        ),
+        _UnitSeed('D2', UnitType.apartment, UnitStatus.vacant, 140000000, 2, 2),
       ],
     ),
     const _PropertySeed(
       name: 'Nyumbani Gardens',
-      address: 'Kiambu Road',
-      city: 'Nairobi',
+      address: 'Ggaba Road',
+      city: 'Kampala',
       description: 'Family homes with green shared spaces and reliable water.',
       units: [
-        _UnitSeed('C2', UnitType.house, UnitStatus.occupied, 4750000, 3, 2),
-        _UnitSeed('C3', UnitType.house, UnitStatus.occupied, 4750000, 3, 2),
+        _UnitSeed('C2', UnitType.house, UnitStatus.occupied, 130000000, 3, 2),
+        _UnitSeed('C3', UnitType.house, UnitStatus.occupied, 130000000, 3, 2),
       ],
     ),
   ];
@@ -181,7 +202,7 @@ Future<void> _seedPortfolioIfNeeded({
           title: '${unit.label} at ${property.name}',
           description: '${seed.description} Available now in ${seed.city}.',
           monthlyRentMinor: unit.monthlyRentMinor,
-          contactPhone: '+254 712 000 100',
+          contactPhone: '+256 772 000 100',
         ),
       );
       await listings.publish(draft.id);

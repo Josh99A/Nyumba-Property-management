@@ -82,7 +82,7 @@ Projection rules are UID-path based and all projection writes are denied to clie
 
 - listing ID and opaque landlord/public contact token;
 - title, description, property/unit type, amenities, bedroom/bathroom counts;
-- county/city/neighborhood and an intentionally approximate map location;
+- district/city/neighborhood and an intentionally approximate map location;
 - monthly rent in integer minor units and currency;
 - server-approved public image paths;
 - `status`, `publishedAt`, `expiresAt`, and projection version.
@@ -101,7 +101,7 @@ Only an admin command may approve or suspend. It writes the account state and au
 
 The payment/billing provider webhook controls subscription status. The client can request checkout but cannot activate a tier. `createUnit` transactionally reads the account, subscription, plan entitlement, and current counter; it creates the unit and increments the counter only if below the limit. Archive/restore adjusts counters idempotently. A periodic reconciliation compares counters with canonical active units.
 
-**TBD:** exact Starter/Pro/Premium/Enterprise prices, billing periods, unit limits, grace periods, and features. They belong in versioned backend configuration, not Flutter or rules. Until configured, unknown/missing entitlements fail closed. Advertising requires approval plus an active/trialing subscription and an explicit advertising entitlement.
+The tier structure, suggested limits, and downgrade rules are normative in [subscription-tiers.md](subscription-tiers.md); subscriptions apply only to landlords and property managers, and tenant/prospect access stays free. **TBD:** monetary prices, billing periods, trials, and exact grace-period lengths. All entitlement values belong in versioned backend configuration, not Flutter or rules. Until configured, unknown/missing entitlements fail closed. Advertising requires approval plus an active/trialing subscription and an explicit advertising entitlement, within the tier's active-listing limit.
 
 ### Payments, invoices, and receipts
 
@@ -109,7 +109,7 @@ The server calculates invoice totals from validated line items. Electronic payme
 
 ### Listing publication
 
-`listing.publish` transactionally checks ownership, landlord approval, active entitlement, unit existence, unit availability, content validation, media validation, moderation policy, and absence of a conflicting active listing. It then updates the private state and writes the public whitelist projection. Suspension, subscription loss, unit occupancy, explicit unpublish, or expiry removes public readability and schedules public-media cleanup. **TBD:** listing lifetime and moderation policy; the secure default is to stop or unpublish advertising when entitlement is inactive.
+`listing.publish` transactionally checks ownership, landlord approval, active entitlement, unit existence, unit availability, content validation, media validation, moderation policy, and absence of a conflicting active listing. It then updates the private state and writes the public whitelist projection. Suspension, subscription loss, unit occupancy, explicit unpublish, or expiry removes public readability and schedules public-media cleanup. Listing lifetime is finalized at **30 days from (re)publication, renewable by the landlord**; a scheduled job expires overdue projections. **TBD:** moderation policy; the secure default is to stop or unpublish advertising when entitlement is inactive.
 
 ## Security controls outside rules
 
@@ -124,10 +124,10 @@ The server calculates invoice totals from validated line items. Electronic payme
 
 ## Deployment placeholders
 
-No project ID or secret is committed. Create environment-specific aliases only after the Firebase projects exist:
+No project ID or secret is committed to version control; `.firebaserc` and generated client options stay gitignored. The development project exists and the app is connected to it locally. Deployment region is finalized as `europe-west1`.
 
 ```text
-dev     -> TBD_NYUMBA_FIREBASE_DEV_PROJECT_ID
+dev     -> nyumba-property-management (Blaze plan; currently connected)
 staging -> TBD_NYUMBA_FIREBASE_STAGING_PROJECT_ID
 prod    -> TBD_NYUMBA_FIREBASE_PROD_PROJECT_ID
 ```

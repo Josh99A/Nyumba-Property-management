@@ -20,29 +20,29 @@ class StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (foreground, background, border) = switch (tone) {
       BadgeTone.info => (
-        NyumbaColors.midnightNavy,
-        NyumbaColors.navyTint,
-        const Color(0xFFC9D9EB),
+        context.nyumba.midnightNavy,
+        context.nyumba.navyTint,
+        context.nyumba.navyBorder,
       ),
       BadgeTone.success => (
-        NyumbaColors.sageDark,
-        NyumbaColors.sageTint,
-        const Color(0xFFCDE4D2),
+        context.nyumba.sageDark,
+        context.nyumba.sageTint,
+        context.nyumba.sageBorder,
       ),
       BadgeTone.warning => (
-        NyumbaColors.terracottaDark,
-        NyumbaColors.goldTint,
-        const Color(0xFFF0D5A7),
+        context.nyumba.terracottaDark,
+        context.nyumba.goldTint,
+        context.nyumba.goldBorder,
       ),
       BadgeTone.danger => (
-        NyumbaColors.danger,
-        NyumbaColors.dangerTint,
-        const Color(0xFFF2C2B7),
+        context.nyumba.danger,
+        context.nyumba.dangerTint,
+        context.nyumba.dangerBorder,
       ),
       BadgeTone.neutral => (
-        NyumbaColors.mutedInk,
-        const Color(0xFFF4F5F7),
-        NyumbaColors.outline,
+        context.nyumba.mutedInk,
+        context.nyumba.neutralTint,
+        context.nyumba.outline,
       ),
     };
 

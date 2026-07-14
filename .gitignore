@@ -43,3 +43,26 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase configuration (generated per-environment with `flutterfire configure`;
+# regenerate locally, never commit — see README "Firebase configuration")
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+firebase_app_id_file.json
+.firebaserc
+
+# Service accounts and other secrets — never commit
+*service-account*.json
+*serviceAccount*.json
+firebase-adminsdk*.json
+.env
+.env.*
+!.env.example
+
+# Android release signing
+android/key.properties
+android/app/upload-keystore.jks
+*.keystore
+*.jks

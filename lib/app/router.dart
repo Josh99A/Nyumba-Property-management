@@ -25,6 +25,40 @@ import '../features/tenant_portal/presentation/tenant_payments_screen.dart';
 import '../features/tenants/presentation/tenants_screen.dart';
 import 'navigation/nyumba_app_shell.dart';
 
+/// Calm fade-and-rise transition shared by every route. Falls back to an
+/// immediate swap when the platform requests reduced motion.
+CustomTransitionPage<void> _transitionPage({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+        return child;
+      }
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, .015),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _RouterRefreshNotifier();
   ref.listen<UserSession?>(sessionControllerProvider, (_, _) {
@@ -45,96 +79,140 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', redirect: (_, _) => '/explore'),
       GoRoute(
         path: '/sign-in',
-        builder: (context, state) => const SignInScreen(),
+        pageBuilder: (context, state) =>
+            _transitionPage(state: state, child: const SignInScreen()),
       ),
       GoRoute(
         path: '/explore',
-        builder: (context, state) => const PublicListingsScreen(),
+        pageBuilder: (context, state) =>
+            _transitionPage(state: state, child: const PublicListingsScreen()),
       ),
       GoRoute(
         path: '/listing/:listingId',
-        builder: (context, state) =>
-            ListingDetailScreen(listingId: state.pathParameters['listingId']!),
+        pageBuilder: (context, state) => _transitionPage(
+          state: state,
+          child: ListingDetailScreen(
+            listingId: state.pathParameters['listingId']!,
+          ),
+        ),
       ),
       ShellRoute(
         builder: (context, state, child) => NyumbaAppShell(child: child),
         routes: [
           GoRoute(
             path: '/dashboard',
-            builder: (context, state) => const LandlordDashboardScreen(),
+            pageBuilder: (context, state) => _transitionPage(
+              state: state,
+              child: const LandlordDashboardScreen(),
+            ),
           ),
           GoRoute(
             path: '/properties',
-            builder: (context, state) => const PropertiesScreen(),
+            pageBuilder: (context, state) =>
+                _transitionPage(state: state, child: const PropertiesScreen()),
             routes: [
               GoRoute(
                 path: 'new',
-                builder: (context, state) =>
-                    const PropertiesScreen(openCreateOnLoad: true),
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const PropertiesScreen(openCreateOnLoad: true),
+                ),
               ),
               GoRoute(
                 path: ':propertyId',
-                builder: (context, state) => PropertyDetailScreen(
-                  propertyId: state.pathParameters['propertyId']!,
-                  openAddUnitOnLoad:
-                      state.uri.queryParameters['addUnit'] == 'true',
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: PropertyDetailScreen(
+                    propertyId: state.pathParameters['propertyId']!,
+                    openAddUnitOnLoad:
+                        state.uri.queryParameters['addUnit'] == 'true',
+                  ),
                 ),
               ),
             ],
           ),
           GoRoute(
             path: '/tenants',
-            builder: (context, state) => const TenantsScreen(),
+            pageBuilder: (context, state) =>
+                _transitionPage(state: state, child: const TenantsScreen()),
           ),
           GoRoute(
             path: '/finances',
-            builder: (context, state) => const FinanceScreen(),
+            pageBuilder: (context, state) =>
+                _transitionPage(state: state, child: const FinanceScreen()),
           ),
           GoRoute(
             path: '/maintenance',
-            builder: (context, state) => const MaintenanceScreen(),
+            pageBuilder: (context, state) =>
+                _transitionPage(state: state, child: const MaintenanceScreen()),
           ),
           GoRoute(
             path: '/listings',
-            builder: (context, state) => const LandlordListingsScreen(),
+            pageBuilder: (context, state) => _transitionPage(
+              state: state,
+              child: const LandlordListingsScreen(),
+            ),
           ),
           GoRoute(
             path: '/documents',
-            builder: (context, state) => const DocumentsScreen(),
+            pageBuilder: (context, state) =>
+                _transitionPage(state: state, child: const DocumentsScreen()),
           ),
           GoRoute(
             path: '/tenant',
-            builder: (context, state) => const TenantHomeScreen(),
+            pageBuilder: (context, state) =>
+                _transitionPage(state: state, child: const TenantHomeScreen()),
             routes: [
               GoRoute(
                 path: 'payments',
-                builder: (context, state) => const TenantPaymentsScreen(),
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const TenantPaymentsScreen(),
+                ),
               ),
               GoRoute(
                 path: 'maintenance',
-                builder: (context, state) => const TenantMaintenanceScreen(),
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const TenantMaintenanceScreen(),
+                ),
               ),
               GoRoute(
                 path: 'documents',
-                builder: (context, state) => const TenantDocumentsScreen(),
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const TenantDocumentsScreen(),
+                ),
               ),
             ],
           ),
           GoRoute(
             path: '/admin',
-            builder: (context, state) => const AdminOverviewScreen(),
+            pageBuilder: (context, state) => _transitionPage(
+              state: state,
+              child: const AdminOverviewScreen(),
+            ),
             routes: [
               GoRoute(
                 path: 'users',
-                builder: (context, state) => const AdminUsersScreen(),
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const AdminUsersScreen(),
+                ),
               ),
               GoRoute(
                 path: 'subscriptions',
-                builder: (context, state) => const AdminSubscriptionsScreen(),
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const AdminSubscriptionsScreen(),
+                ),
               ),
               GoRoute(
                 path: 'reports',
-                builder: (context, state) => const AdminReportsScreen(),
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const AdminReportsScreen(),
+                ),
               ),
             ],
           ),

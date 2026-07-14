@@ -34,7 +34,7 @@ final class Unit {
   final UnitType type;
   final UnitStatus status;
 
-  /// Monthly rent in the currency's smallest unit (for example KES cents).
+  /// Monthly rent in the currency's smallest unit (for example UGX cents).
   /// It is intentionally an [int] to avoid floating-point money errors.
   final int monthlyRentMinor;
   final String currency;
@@ -111,7 +111,7 @@ final class CreateUnitInput {
     required this.label,
     required this.type,
     required this.monthlyRentMinor,
-    this.currency = 'KES',
+    this.currency = 'UGX',
     this.status = UnitStatus.vacant,
     this.bedrooms = 0,
     this.bathrooms = 0,

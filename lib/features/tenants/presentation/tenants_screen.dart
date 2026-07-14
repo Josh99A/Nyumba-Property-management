@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -37,39 +38,39 @@ class _TenantsScreenState extends State<TenantsScreen> {
   final _searchController = TextEditingController();
   final List<_TenantRecord> _tenants = [
     _TenantRecord(
-      name: 'Brian Otieno',
+      name: 'Brian Okello',
       email: 'brian.otieno@example.com',
-      phone: '+254 712 345 678',
+      phone: '+256 772 345 678',
       unit: 'B4',
       property: 'Sunset Apartments',
       balanceMinor: 0,
       leaseEnd: DateTime(2027, 2, 28),
     ),
     _TenantRecord(
-      name: 'Grace Wanjiku',
-      email: 'grace.wanjiku@example.com',
-      phone: '+254 724 113 886',
+      name: 'Grace Namuli',
+      email: 'grace.sandra@example.com',
+      phone: '+256 704 113 886',
       unit: 'D1',
       property: 'Riverside Heights',
       balanceMinor: 0,
       leaseEnd: DateTime(2026, 11, 30),
     ),
     _TenantRecord(
-      name: 'Peter Mwangi',
+      name: 'Peter Ssemwanga',
       email: 'peter.mwangi@example.com',
-      phone: '+254 733 902 118',
+      phone: '+256 753 902 118',
       unit: 'A1',
       property: 'Greenview Court',
-      balanceMinor: 4000000,
+      balanceMinor: 110000000,
       leaseEnd: DateTime(2026, 12, 31),
     ),
     _TenantRecord(
-      name: 'Mary Muthoni',
+      name: 'Mary Nansubuga',
       email: 'mary.muthoni@example.com',
-      phone: '+254 701 822 470',
+      phone: '+256 771 822 470',
       unit: 'C2',
       property: 'Nyumbani Gardens',
-      balanceMinor: 1250000,
+      balanceMinor: 35000000,
       leaseEnd: DateTime(2027, 4, 30),
     ),
   ];
@@ -123,29 +124,29 @@ class _TenantsScreenState extends State<TenantsScreen> {
                     children: [
                       SizedBox(
                         width: context.isCompact ? constraints.maxWidth : width,
-                        child: const _TenantMetric(
+                        child: _TenantMetric(
                           label: 'Active tenants',
                           value: '20',
                           icon: Icons.people_outline_rounded,
-                          tone: NyumbaColors.midnightNavy,
+                          tone: context.nyumba.midnightNavy,
                         ),
                       ),
                       SizedBox(
                         width: context.isCompact ? constraints.maxWidth : width,
-                        child: const _TenantMetric(
+                        child: _TenantMetric(
                           label: 'Balances up to date',
                           value: '17',
                           icon: Icons.verified_outlined,
-                          tone: NyumbaColors.sageDark,
+                          tone: context.nyumba.sageDark,
                         ),
                       ),
                       SizedBox(
                         width: context.isCompact ? constraints.maxWidth : width,
-                        child: const _TenantMetric(
+                        child: _TenantMetric(
                           label: 'Leases ending soon',
                           value: '3',
                           icon: Icons.event_outlined,
-                          tone: NyumbaColors.terracottaDark,
+                          tone: context.nyumba.terracottaDark,
                         ),
                       ),
                     ],
@@ -350,8 +351,8 @@ class _TenantRow extends StatelessWidget {
     final balanceDue = tenant.balanceMinor > 0;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFEDE9E2))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.nyumba.divider)),
       ),
       child: context.isCompact
           ? Column(
@@ -363,14 +364,17 @@ class _TenantRow extends StatelessWidget {
                   children: [
                     StatusBadge(
                       label: balanceDue
-                          ? 'KES ${tenant.balanceMinor ~/ 100} due'
+                          ? 'UGX ${tenant.balanceMinor ~/ 100} due'
                           : 'Up to date',
                       tone: balanceDue ? BadgeTone.warning : BadgeTone.success,
                     ),
                     const Spacer(),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.chevron_right_rounded),
+                    const ComingSoon(
+                      message: 'Tenant details coming soon',
+                      child: IconButton(
+                        onPressed: null,
+                        icon: Icon(Icons.chevron_right_rounded),
+                      ),
                     ),
                   ],
                 ),
@@ -396,9 +400,12 @@ class _TenantRow extends StatelessWidget {
                     'Ends ${tenant.leaseEnd.day}/${tenant.leaseEnd.month}/${tenant.leaseEnd.year}',
                   ),
                 ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.more_horiz_rounded),
+                const ComingSoon(
+                  message: 'Tenant details coming soon',
+                  child: IconButton(
+                    onPressed: null,
+                    icon: Icon(Icons.more_horiz_rounded),
+                  ),
                 ),
               ],
             ),
@@ -421,13 +428,13 @@ class _TenantIdentity extends StatelessWidget {
     return Row(
       children: [
         CircleAvatar(
-          backgroundColor: NyumbaColors.navyTint,
-          foregroundColor: NyumbaColors.midnightNavy,
+          backgroundColor: context.nyumba.navyTint,
+          foregroundColor: context.nyumba.midnightNavy,
           child: Text(
             initials,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: NyumbaColors.midnightNavy),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: context.nyumba.midnightNavy,
+            ),
           ),
         ),
         const SizedBox(width: 12),

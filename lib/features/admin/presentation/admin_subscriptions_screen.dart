@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import 'widgets/admin_components.dart';
@@ -30,29 +31,36 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
         value: _billingView,
         onChanged: (value) => setState(() => _billingView = value),
       ),
-      primaryAction: FilledButton.icon(
-        onPressed: _showBillingSettings,
-        icon: const Icon(Icons.settings_outlined),
-        label: const Text('Billing settings'),
+      primaryAction: ComingSoon(
+        message: 'Billing settings coming soon',
+        child: FilledButton.icon(
+          onPressed: null,
+          icon: Icon(Icons.settings_outlined),
+          label: Text('Billing settings'),
+        ),
       ),
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           decoration: BoxDecoration(
-            color: NyumbaColors.goldTint,
+            color: context.nyumba.goldTint,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFF0D5A7)),
+            border: Border.all(color: context.nyumba.goldBorder),
           ),
-          child: const Row(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.edit_note_rounded, color: NyumbaColors.terracottaDark),
+              Icon(
+                Icons.edit_note_rounded,
+                color: context.nyumba.terracottaDark,
+              ),
               SizedBox(width: 11),
               Expanded(
                 child: Text(
-                  'Plan prices and unit limits below are working drafts. '
-                  'Edits are local to this demo until final commercial terms '
-                  'are approved.',
+                  'Subscriptions apply to landlords and property managers only; '
+                  'tenant and prospective-client access is always free. Prices '
+                  'and limits below are working drafts — edits are local to '
+                  'this demo until final commercial terms are approved.',
                 ),
               ),
             ],
@@ -67,30 +75,30 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
               caption: '89.6% of verified landlords',
               trend: '+7.9%',
               icon: Icons.workspace_premium_outlined,
-              tone: NyumbaColors.midnightNavy,
+              tone: context.nyumba.midnightNavy,
             ),
-            const AdminMetricCard(
+            AdminMetricCard(
               label: 'Monthly recurring revenue',
-              value: 'KES 472,000',
+              value: 'UGX 295M',
               caption: 'Draft plan rates applied',
               trend: '+12.7%',
               icon: Icons.account_balance_wallet_outlined,
-              tone: NyumbaColors.sageDark,
+              tone: context.nyumba.sageDark,
             ),
-            const AdminMetricCard(
+            AdminMetricCard(
               label: 'Trial conversions',
               value: '68.4%',
               caption: 'Last 30 days',
               trend: '+3.2%',
               icon: Icons.trending_up_rounded,
-              tone: NyumbaColors.terracottaDark,
+              tone: context.nyumba.terracottaDark,
             ),
-            const AdminMetricCard(
+            AdminMetricCard(
               label: 'Payment attention',
               value: '14',
               caption: '8 retrying • 6 past due',
               icon: Icons.warning_amber_rounded,
-              tone: NyumbaColors.danger,
+              tone: context.nyumba.danger,
             ),
           ],
         ),
@@ -156,6 +164,8 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
           },
         ),
         const SizedBox(height: 20),
+        const _CommercialGuardrails(),
+        const SizedBox(height: 20),
         const _RecentSubscriptionActivity(),
       ],
     );
@@ -164,7 +174,6 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
   Future<void> _editPlan(_SubscriptionPlan plan) async {
     final unitController = TextEditingController(text: '${plan.unitLimit}');
     final priceController = TextEditingController(text: '${plan.monthlyPrice}');
-    var advertising = plan.advertising;
     var enabled = plan.enabled;
     final updated = await showDialog<_SubscriptionPlan>(
       context: context,
@@ -189,21 +198,11 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                   controller: priceController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Illustrative monthly price (KES)',
+                    labelText: 'Illustrative monthly price (UGX)',
                     prefixIcon: Icon(Icons.payments_outlined),
                   ),
                 ),
                 const SizedBox(height: 10),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Public listing advertising'),
-                  subtitle: const Text(
-                    'Allow subscribed landlords to advertise',
-                  ),
-                  value: advertising,
-                  onChanged: (value) =>
-                      setDialogState(() => advertising = value),
-                ),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Plan available'),
@@ -237,7 +236,6 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                   plan.copyWith(
                     unitLimit: limit,
                     monthlyPrice: price,
-                    advertising: advertising,
                     enabled: enabled,
                   ),
                 );
@@ -256,64 +254,6 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
     setState(() => _plans[index] = updated);
     showAdminMessage(context, '${plan.name} draft updated locally.');
   }
-
-  Future<void> _showBillingSettings() {
-    var retryFailedPayments = true;
-    var trialReminders = true;
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Billing settings'),
-          content: SizedBox(
-            width: 460,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: retryFailedPayments,
-                  title: const Text('Automatic payment retries'),
-                  subtitle: const Text('Retry failed renewals over seven days'),
-                  onChanged: (value) =>
-                      setDialogState(() => retryFailedPayments = value),
-                ),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: trialReminders,
-                  title: const Text('Trial expiry reminders'),
-                  subtitle: const Text(
-                    'Notify landlords three days before expiry',
-                  ),
-                  onChanged: (value) =>
-                      setDialogState(() => trialReminders = value),
-                ),
-                const ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.receipt_long_outlined),
-                  title: Text('Billing receipt prefix'),
-                  subtitle: Text('NYB-SUB-2026'),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                showAdminMessage(context, 'Billing preferences saved locally.');
-              },
-              child: const Text('Save settings'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _BillingViewSelector extends StatelessWidget {
@@ -327,8 +267,8 @@ class _BillingViewSelector extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: NyumbaColors.surface,
-        border: Border.all(color: NyumbaColors.outline),
+        color: context.nyumba.surface,
+        border: Border.all(color: context.nyumba.outline),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -368,8 +308,8 @@ class _PlanCard extends StatelessWidget {
         : plan.monthlyPrice;
     return NyumbaSurface(
       borderColor: plan.recommended
-          ? NyumbaColors.midnightNavy
-          : NyumbaColors.outline,
+          ? context.nyumba.midnightNavy
+          : context.nyumba.outline,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 310),
         child: Column(
@@ -398,6 +338,9 @@ class _PlanCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 17),
+            const SizedBox(height: 5),
+            Text(plan.tagline, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 14),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -405,7 +348,7 @@ class _PlanCard extends StatelessWidget {
                   child: Text(
                     plan.name == 'Enterprise'
                         ? 'Custom'
-                        : formatAdminKes(amount),
+                        : formatAdminUgx(amount),
                     style: Theme.of(
                       context,
                     ).textTheme.headlineSmall?.copyWith(color: plan.color),
@@ -427,21 +370,23 @@ class _PlanCard extends StatelessWidget {
                 'Illustrative 15% annual saving',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: NyumbaColors.sageDark),
+                ).textTheme.bodySmall?.copyWith(color: context.nyumba.sageDark),
               ),
             ],
             const SizedBox(height: 18),
             _PlanFeature(
               icon: Icons.apartment_outlined,
-              text: 'Up to ${plan.unitLimit} managed units',
+              text: plan.name == 'Enterprise'
+                  ? 'Custom unit limit, ${plan.unitLimit}+'
+                  : 'Up to ${plan.unitLimit} managed units',
             ),
             _PlanFeature(
-              icon: plan.advertising
-                  ? Icons.campaign_outlined
-                  : Icons.hide_source_outlined,
-              text: plan.advertising
-                  ? 'Public listing advertising'
-                  : 'Advertising not included',
+              icon: Icons.manage_accounts_outlined,
+              text: plan.staffLabel,
+            ),
+            _PlanFeature(
+              icon: Icons.campaign_outlined,
+              text: plan.listingsLabel,
             ),
             _PlanFeature(icon: Icons.support_agent_rounded, text: plan.support),
             const Spacer(),
@@ -485,7 +430,7 @@ class _PlanFeature extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: NyumbaColors.mutedInk),
+          Icon(icon, size: 18, color: context.nyumba.mutedInk),
           const SizedBox(width: 9),
           Expanded(
             child: Text(text, style: Theme.of(context).textTheme.bodySmall),
@@ -530,7 +475,7 @@ class _SubscriptionHealth extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AdminPanel(
+    return AdminPanel(
       title: 'Subscription health',
       subtitle: 'Renewals and trials requiring attention',
       child: Column(
@@ -539,28 +484,28 @@ class _SubscriptionHealth extends StatelessWidget {
             label: 'Renewing in 7 days',
             value: '83',
             icon: Icons.autorenew_rounded,
-            color: NyumbaColors.midnightNavy,
+            color: context.nyumba.midnightNavy,
           ),
           Divider(height: 25),
           _HealthLine(
             label: 'Trials ending this week',
             value: '26',
             icon: Icons.hourglass_bottom_rounded,
-            color: NyumbaColors.terracottaDark,
+            color: context.nyumba.terracottaDark,
           ),
           Divider(height: 25),
           _HealthLine(
             label: 'Payment retries queued',
             value: '8',
             icon: Icons.sync_problem_outlined,
-            color: NyumbaColors.danger,
+            color: context.nyumba.danger,
           ),
           Divider(height: 25),
           _HealthLine(
             label: 'Cancelled this month',
             value: '11',
             icon: Icons.cancel_outlined,
-            color: NyumbaColors.mutedInk,
+            color: context.nyumba.mutedInk,
           ),
         ],
       ),
@@ -607,6 +552,78 @@ class _HealthLine extends StatelessWidget {
   }
 }
 
+/// Commercial rules that hold across every tier; see
+/// docs/architecture/subscription-tiers.md.
+class _CommercialGuardrails extends StatelessWidget {
+  const _CommercialGuardrails();
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminPanel(
+      title: 'Commercial guardrails',
+      subtitle: 'These rules apply to every tier and cannot be paywalled',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _GuardrailLine(
+            icon: Icons.lock_open_rounded,
+            text:
+                'Security, tenant access, data export, offline reliability, '
+                'and server-side audit logging are never paywalled. Higher '
+                'tiers may add longer audit retention and advanced search.',
+          ),
+          Divider(height: 25),
+          const _GuardrailLine(
+            icon: Icons.cloud_done_outlined,
+            text:
+                'Unit limits and entitlements live in versioned server-owned '
+                'configuration — never hard-coded in the app. Unknown or '
+                'missing plans grant no entitlement.',
+          ),
+          Divider(height: 25),
+          const _GuardrailLine(
+            icon: Icons.trending_down_rounded,
+            text:
+                'Downgrades never delete units or block tenants: a grace '
+                'period applies, read access is preserved, and only creating '
+                'units or publishing new listings is held until the account '
+                'is back within its limit.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuardrailLine extends StatelessWidget {
+  const _GuardrailLine({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: context.nyumba.navyTint,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 20, color: context.nyumba.midnightNavy),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+        ),
+      ],
+    );
+  }
+}
+
 class _RecentSubscriptionActivity extends StatelessWidget {
   const _RecentSubscriptionActivity();
 
@@ -615,27 +632,29 @@ class _RecentSubscriptionActivity extends StatelessWidget {
     return AdminPanel(
       title: 'Recent subscription activity',
       subtitle: 'Latest upgrades, renewals, and payment events',
-      trailing: TextButton.icon(
-        onPressed: () =>
-            showAdminMessage(context, 'Subscription activity export prepared.'),
-        iconAlignment: IconAlignment.end,
-        icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-        label: const Text('View ledger'),
+      trailing: ComingSoon(
+        message: 'Subscription ledger coming soon',
+        child: TextButton.icon(
+          onPressed: null,
+          iconAlignment: IconAlignment.end,
+          icon: Icon(Icons.arrow_forward_rounded, size: 18),
+          label: Text('View ledger'),
+        ),
       ),
       child: const Column(
         children: [
           _SubscriptionEvent(
             business: 'Acacia Homes Ltd',
             event: 'Upgraded Pro to Premium',
-            amount: 'KES 7,500',
+            amount: 'UGX 700,000',
             time: '12 min ago',
             tone: BadgeTone.success,
           ),
           Divider(height: 25),
           _SubscriptionEvent(
-            business: 'Kilimani Property Co.',
+            business: 'Kololo Property Co.',
             event: 'Premium renewed',
-            amount: 'KES 7,500',
+            amount: 'UGX 700,000',
             time: '48 min ago',
             tone: BadgeTone.info,
           ),
@@ -643,7 +662,7 @@ class _RecentSubscriptionActivity extends StatelessWidget {
           _SubscriptionEvent(
             business: 'Coastline Lettings',
             event: 'Renewal payment retrying',
-            amount: 'KES 2,500',
+            amount: 'UGX 80,000',
             time: '2 hr ago',
             tone: BadgeTone.warning,
           ),
@@ -700,10 +719,12 @@ class _SubscriptionEvent extends StatelessWidget {
 class _SubscriptionPlan {
   const _SubscriptionPlan({
     required this.name,
+    required this.tagline,
     required this.monthlyPrice,
     required this.unitLimit,
+    required this.staffLabel,
+    required this.listingsLabel,
     required this.subscribers,
-    required this.advertising,
     required this.support,
     required this.color,
     required this.icon,
@@ -712,10 +733,12 @@ class _SubscriptionPlan {
   });
 
   final String name;
+  final String tagline;
   final int monthlyPrice;
   final int unitLimit;
+  final String staffLabel;
+  final String listingsLabel;
   final int subscribers;
-  final bool advertising;
   final String support;
   final Color color;
   final IconData icon;
@@ -725,15 +748,16 @@ class _SubscriptionPlan {
   _SubscriptionPlan copyWith({
     int? monthlyPrice,
     int? unitLimit,
-    bool? advertising,
     bool? enabled,
   }) {
     return _SubscriptionPlan(
       name: name,
+      tagline: tagline,
       monthlyPrice: monthlyPrice ?? this.monthlyPrice,
       unitLimit: unitLimit ?? this.unitLimit,
+      staffLabel: staffLabel,
+      listingsLabel: listingsLabel,
       subscribers: subscribers,
-      advertising: advertising ?? this.advertising,
       support: support,
       color: color,
       icon: icon,
@@ -743,45 +767,56 @@ class _SubscriptionPlan {
   }
 }
 
+/// Draft presentation of the tier structure in
+/// docs/architecture/subscription-tiers.md. Prices are illustrative; the
+/// server-owned plan catalog remains authoritative.
 const _seedPlans = [
   _SubscriptionPlan(
     name: 'Starter',
-    monthlyPrice: 1200,
+    tagline: 'Individual landlords and small portfolios',
+    monthlyPrice: 80000,
     unitLimit: 10,
+    staffLabel: '1 landlord account',
+    listingsLabel: 'Up to 3 active public listings',
     subscribers: 412,
-    advertising: false,
-    support: 'Standard email support',
+    support: 'Email and help centre',
     color: NyumbaColors.sageDark,
     icon: Icons.home_work_outlined,
   ),
   _SubscriptionPlan(
     name: 'Pro',
-    monthlyPrice: 2500,
-    unitLimit: 40,
+    tagline: 'Growing landlords and small teams',
+    monthlyPrice: 250000,
+    unitLimit: 50,
+    staffLabel: '3 staff accounts, standard roles',
+    listingsLabel: 'Up to 25 active public listings',
     subscribers: 476,
-    advertising: true,
-    support: 'Priority email support',
+    support: 'Priority support',
     color: NyumbaColors.midnightNavy,
     icon: Icons.rocket_launch_outlined,
     recommended: true,
   ),
   _SubscriptionPlan(
     name: 'Premium',
-    monthlyPrice: 7500,
-    unitLimit: 150,
+    tagline: 'Professional managers, larger portfolios',
+    monthlyPrice: 700000,
+    unitLimit: 200,
+    staffLabel: '10 staff accounts, custom roles',
+    listingsLabel: 'Advertise every eligible vacant unit',
     subscribers: 204,
-    advertising: true,
-    support: 'Priority phone support',
+    support: 'Priority onboarding and support',
     color: NyumbaColors.terracottaDark,
     icon: Icons.workspace_premium_outlined,
   ),
   _SubscriptionPlan(
     name: 'Enterprise',
+    tagline: 'Agencies and institutions',
     monthlyPrice: 0,
-    unitLimit: 1000,
+    unitLimit: 200,
+    staffLabel: 'Custom accounts and org-wide roles',
+    listingsLabel: 'Custom listing limits',
     subscribers: 44,
-    advertising: true,
-    support: 'Dedicated success manager',
+    support: 'Dedicated manager and SLA',
     color: NyumbaColors.navyDark,
     icon: Icons.domain_outlined,
   ),

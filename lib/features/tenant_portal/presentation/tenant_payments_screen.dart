@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import 'widgets/tenant_components.dart';
@@ -14,9 +15,9 @@ class TenantPaymentsScreen extends StatefulWidget {
 }
 
 class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
-  int _balance = 45000;
+  int _balance = 1200000;
   String _filter = 'All';
-  String _defaultMethod = 'M-PESA ••• 2841';
+  String _defaultMethod = 'MTN MoMo ••• 0841';
   final List<_TenantPayment> _payments = [..._seedPayments];
 
   List<_TenantPayment> get _filteredPayments {
@@ -35,13 +36,13 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
     return TenantPage(
       title: 'Payments',
       description: 'Manage rent, invoices, receipts, and your payment history.',
-      secondaryAction: OutlinedButton.icon(
-        onPressed: () => showTenantMessage(
-          context,
-          'Your 2026 rent statement is ready to print.',
+      secondaryAction: ComingSoon(
+        message: 'Statement printing coming soon',
+        child: OutlinedButton.icon(
+          onPressed: null,
+          icon: Icon(Icons.print_outlined),
+          label: Text('Print statement'),
         ),
-        icon: const Icon(Icons.print_outlined),
-        label: const Text('Print statement'),
       ),
       primaryAction: FilledButton.icon(
         onPressed: paid ? _showCurrentReceipt : _payRent,
@@ -62,25 +63,25 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
           children: [
             TenantMetricCard(
               label: 'Paid in 2026',
-              value: formatTenantKes(_paidThisYear),
+              value: formatTenantUgx(_paidThisYear),
               caption:
                   '${_payments.where((item) => item.status == 'Paid').length} confirmed payments',
               icon: Icons.savings_outlined,
-              color: NyumbaColors.sageDark,
+              color: context.nyumba.sageDark,
             ),
-            const TenantMetricCard(
+            TenantMetricCard(
               label: 'Monthly rent',
-              value: 'KES 45,000',
+              value: 'UGX 1,200,000',
               caption: 'Due on the 5th of each month',
               icon: Icons.calendar_month_outlined,
-              color: NyumbaColors.midnightNavy,
+              color: context.nyumba.midnightNavy,
             ),
             TenantMetricCard(
               label: 'Saved payment method',
               value: _defaultMethod,
               caption: 'Used only after confirmation',
               icon: Icons.account_balance_wallet_outlined,
-              color: NyumbaColors.terracottaDark,
+              color: context.nyumba.terracottaDark,
             ),
           ],
         ),
@@ -213,7 +214,7 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
                                   DataCell(Text(payment.date)),
                                   DataCell(Text(payment.method)),
                                   DataCell(
-                                    Text(formatTenantKes(payment.amount)),
+                                    Text(formatTenantUgx(payment.amount)),
                                   ),
                                   DataCell(
                                     TenantStatusBadge(status: payment.status),
@@ -245,7 +246,7 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
   }
 
   Future<void> _payRent() async {
-    var method = _defaultMethod.startsWith('M-PESA') ? 'M-PESA' : 'Bank';
+    var method = _defaultMethod.startsWith('MTN') ? 'MTN MoMo' : 'Card (Bank)';
     final paid = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -260,14 +261,14 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: NyumbaColors.navyTint,
+                    color: context.nyumba.navyTint,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
                       const Expanded(child: Text('Amount payable')),
                       Text(
-                        formatTenantKes(_balance),
+                        formatTenantUgx(_balance),
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ],
@@ -279,7 +280,12 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
                 const SizedBox(height: 8),
-                for (final item in const ['M-PESA', 'Bank', 'Card'])
+                for (final item in const [
+                  'Cash',
+                  'MTN MoMo',
+                  'Airtel Money',
+                  'Card (Bank)',
+                ])
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: InkWell(
@@ -290,27 +296,27 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
                         decoration: BoxDecoration(
                           border: Border.all(
                             color: method == item
-                                ? NyumbaColors.midnightNavy
-                                : NyumbaColors.outline,
+                                ? context.nyumba.midnightNavy
+                                : context.nyumba.outline,
                           ),
                           borderRadius: BorderRadius.circular(11),
                         ),
                         child: Row(
                           children: [
                             Icon(
-                              item == 'M-PESA'
-                                  ? Icons.phone_android_rounded
-                                  : item == 'Bank'
-                                  ? Icons.account_balance_outlined
-                                  : Icons.credit_card_outlined,
-                              color: NyumbaColors.midnightNavy,
+                              item == 'Cash'
+                                  ? Icons.payments_outlined
+                                  : item == 'Card (Bank)'
+                                  ? Icons.credit_card_outlined
+                                  : Icons.phone_android_rounded,
+                              color: context.nyumba.midnightNavy,
                             ),
                             const SizedBox(width: 11),
                             Expanded(child: Text(item)),
                             if (method == item)
-                              const Icon(
+                              Icon(
                                 Icons.check_circle_rounded,
-                                color: NyumbaColors.sageDark,
+                                color: context.nyumba.sageDark,
                               ),
                           ],
                         ),
@@ -350,12 +356,12 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
           reference: 'NYB-RCP-00896',
           date: DateFormat('d MMM 2026').format(now),
           method: method,
-          amount: 45000,
+          amount: 1200000,
           status: 'Paid',
         ),
       );
     });
-    showTenantMessage(context, 'Payment confirmed and receipt saved offline.');
+    showTenantMessage(context, 'Payment recorded locally and queued to sync.');
   }
 
   Future<void> _manageMethods() async {
@@ -371,18 +377,19 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 for (final item in const [
-                  'M-PESA ••• 2841',
-                  'KCB Bank ••• 7810',
+                  'MTN MoMo ••• 0841',
+                  'Airtel Money ••• 0522',
+                  'Stanbic Bank ••• 7810',
                 ])
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: CircleAvatar(
-                      backgroundColor: NyumbaColors.navyTint,
+                      backgroundColor: context.nyumba.navyTint,
                       child: Icon(
-                        item.startsWith('M-PESA')
-                            ? Icons.phone_android_rounded
-                            : Icons.account_balance_outlined,
-                        color: NyumbaColors.midnightNavy,
+                        item.startsWith('Stanbic')
+                            ? Icons.account_balance_outlined
+                            : Icons.phone_android_rounded,
+                        color: context.nyumba.midnightNavy,
                       ),
                     ),
                     title: Text(item),
@@ -390,9 +397,9 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
                       selected == item ? 'Default method' : 'Available method',
                     ),
                     trailing: selected == item
-                        ? const Icon(
+                        ? Icon(
                             Icons.check_circle_rounded,
-                            color: NyumbaColors.sageDark,
+                            color: context.nyumba.sageDark,
                           )
                         : null,
                     onTap: () => setDialogState(() => selected = item),
@@ -452,7 +459,7 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
               const SizedBox(height: 12),
               Center(
                 child: Text(
-                  formatTenantKes(payment.amount),
+                  formatTenantUgx(payment.amount),
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ),
@@ -483,16 +490,13 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
             child: const Text('Close'),
           ),
           if (payment.status == 'Paid')
-            FilledButton.icon(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                showTenantMessage(
-                  context,
-                  '${payment.reference} is ready to print.',
-                );
-              },
-              icon: const Icon(Icons.print_outlined),
-              label: const Text('Print receipt'),
+            ComingSoon(
+              message: 'Receipt printing coming soon',
+              child: FilledButton.icon(
+                onPressed: null,
+                icon: Icon(Icons.print_outlined),
+                label: Text('Print receipt'),
+              ),
             ),
         ],
       ),
@@ -515,15 +519,15 @@ class _InvoicePanel extends StatelessWidget {
       trailing: TenantStatusBadge(status: paid ? 'Paid' : 'Pending'),
       child: Column(
         children: [
-          const _InvoiceLine(label: 'Monthly rent', amount: 'KES 45,000'),
+          const _InvoiceLine(label: 'Monthly rent', amount: 'UGX 1,200,000'),
           const SizedBox(height: 10),
-          const _InvoiceLine(label: 'Service charges', amount: 'KES 0'),
+          const _InvoiceLine(label: 'Service charges', amount: 'UGX 0'),
           const SizedBox(height: 10),
-          const _InvoiceLine(label: 'Credits applied', amount: 'KES 0'),
+          const _InvoiceLine(label: 'Credits applied', amount: 'UGX 0'),
           const Divider(height: 27),
           _InvoiceLine(
             label: paid ? 'Amount paid' : 'Amount due',
-            amount: paid ? 'KES 45,000' : formatTenantKes(balance),
+            amount: paid ? 'UGX 1,200,000' : formatTenantUgx(balance),
             emphasized: true,
           ),
           const SizedBox(height: 16),
@@ -588,17 +592,17 @@ class _PaymentMethodsPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: NyumbaColors.sageTint,
+              color: context.nyumba.sageTint,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFCDE4D2)),
+              border: Border.all(color: context.nyumba.sageBorder),
             ),
             child: Row(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   backgroundColor: Colors.white,
                   child: Icon(
                     Icons.phone_android_rounded,
-                    color: NyumbaColors.sageDark,
+                    color: context.nyumba.sageDark,
                   ),
                 ),
                 const SizedBox(width: 11),
@@ -622,12 +626,12 @@ class _PaymentMethodsPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 13),
-          const Row(
+          Row(
             children: [
               Icon(
                 Icons.shield_outlined,
                 size: 19,
-                color: NyumbaColors.sageDark,
+                color: context.nyumba.sageDark,
               ),
               SizedBox(width: 8),
               Expanded(
@@ -668,8 +672,8 @@ class _PaymentCard extends StatelessWidget {
               height: 42,
               decoration: BoxDecoration(
                 color: payment.status == 'Paid'
-                    ? NyumbaColors.sageTint
-                    : NyumbaColors.goldTint,
+                    ? context.nyumba.sageTint
+                    : context.nyumba.goldTint,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -677,8 +681,8 @@ class _PaymentCard extends StatelessWidget {
                     ? Icons.check_rounded
                     : Icons.schedule_rounded,
                 color: payment.status == 'Paid'
-                    ? NyumbaColors.sageDark
-                    : NyumbaColors.terracottaDark,
+                    ? context.nyumba.sageDark
+                    : context.nyumba.terracottaDark,
               ),
             ),
             const SizedBox(width: 11),
@@ -704,7 +708,7 @@ class _PaymentCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  formatTenantKes(payment.amount),
+                  formatTenantUgx(payment.amount),
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
                 const SizedBox(height: 4),
@@ -744,56 +748,56 @@ const _seedPayments = [
     period: 'July 2026',
     reference: 'NYB-RCP-00842',
     date: '3 Jul 2026',
-    method: 'M-PESA',
-    amount: 45000,
+    method: 'MTN MoMo',
+    amount: 1200000,
     status: 'Paid',
   ),
   _TenantPayment(
     period: 'June 2026',
     reference: 'NYB-RCP-00791',
     date: '4 Jun 2026',
-    method: 'M-PESA',
-    amount: 45000,
+    method: 'MTN MoMo',
+    amount: 1200000,
     status: 'Paid',
   ),
   _TenantPayment(
     period: 'May 2026',
     reference: 'NYB-RCP-00744',
     date: '2 May 2026',
-    method: 'Bank',
-    amount: 45000,
+    method: 'Airtel Money',
+    amount: 1200000,
     status: 'Paid',
   ),
   _TenantPayment(
     period: 'April 2026',
     reference: 'NYB-RCP-00693',
     date: '5 Apr 2026',
-    method: 'M-PESA',
-    amount: 45000,
+    method: 'MTN MoMo',
+    amount: 1200000,
     status: 'Paid',
   ),
   _TenantPayment(
     period: 'March 2026',
     reference: 'NYB-RCP-00648',
     date: '3 Mar 2026',
-    method: 'Bank',
-    amount: 45000,
+    method: 'Card (Bank)',
+    amount: 1200000,
     status: 'Paid',
   ),
   _TenantPayment(
     period: 'February 2026',
     reference: 'NYB-RCP-00596',
     date: '4 Feb 2026',
-    method: 'M-PESA',
-    amount: 45000,
+    method: 'MTN MoMo',
+    amount: 1200000,
     status: 'Paid',
   ),
   _TenantPayment(
     period: 'January 2026',
     reference: 'NYB-RCP-00541',
     date: '5 Jan 2026',
-    method: 'M-PESA',
-    amount: 45000,
+    method: 'MTN MoMo',
+    amount: 1200000,
     status: 'Paid',
   ),
 ];

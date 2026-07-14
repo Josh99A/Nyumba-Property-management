@@ -3,86 +3,99 @@ import 'package:flutter/material.dart';
 import 'nyumba_colors.dart';
 
 abstract final class NyumbaTheme {
-  static ThemeData get light {
-    const colorScheme = ColorScheme.light(
-      primary: NyumbaColors.midnightNavy,
-      onPrimary: Colors.white,
-      primaryContainer: NyumbaColors.navyTint,
-      onPrimaryContainer: NyumbaColors.navyDark,
-      secondary: NyumbaColors.sageGreen,
-      onSecondary: Colors.white,
-      secondaryContainer: NyumbaColors.sageTint,
-      onSecondaryContainer: NyumbaColors.sageDark,
-      tertiary: NyumbaColors.terracottaGold,
-      onTertiary: Colors.white,
-      tertiaryContainer: NyumbaColors.goldTint,
-      onTertiaryContainer: NyumbaColors.terracottaDark,
-      error: NyumbaColors.danger,
-      onError: Colors.white,
-      errorContainer: NyumbaColors.dangerTint,
-      onErrorContainer: NyumbaColors.danger,
-      surface: NyumbaColors.surface,
-      onSurface: NyumbaColors.ink,
-      outline: NyumbaColors.outline,
-      outlineVariant: Color(0xFFEDE9E2),
-      shadow: Color(0x1A123A6F),
+  static ThemeData get light =>
+      _build(palette: NyumbaPalette.light, brightness: Brightness.light);
+
+  static ThemeData get dark =>
+      _build(palette: NyumbaPalette.dark, brightness: Brightness.dark);
+
+  static ThemeData _build({
+    required NyumbaPalette palette,
+    required Brightness brightness,
+  }) {
+    final isLight = brightness == Brightness.light;
+    final colorScheme = ColorScheme(
+      brightness: brightness,
+      primary: palette.midnightNavy,
+      onPrimary: isLight ? Colors.white : palette.navyDark,
+      primaryContainer: palette.navyTint,
+      onPrimaryContainer: isLight ? palette.navyDark : palette.midnightNavy,
+      secondary: isLight ? palette.sageGreen : palette.sageDark,
+      onSecondary: isLight ? Colors.white : const Color(0xFF12291A),
+      secondaryContainer: palette.sageTint,
+      onSecondaryContainer: palette.sageDark,
+      tertiary: palette.terracottaGold,
+      onTertiary: isLight ? Colors.white : const Color(0xFF2E2415),
+      tertiaryContainer: palette.goldTint,
+      onTertiaryContainer: palette.terracottaDark,
+      error: palette.danger,
+      onError: isLight ? Colors.white : const Color(0xFF321B14),
+      errorContainer: palette.dangerTint,
+      onErrorContainer: palette.danger,
+      surface: palette.surface,
+      onSurface: palette.ink,
+      onSurfaceVariant: palette.mutedInk,
+      outline: palette.outline,
+      outlineVariant: palette.divider,
+      shadow: isLight ? const Color(0x1A123A6F) : const Color(0x66000000),
     );
 
     final base = ThemeData(
       useMaterial3: true,
-      brightness: Brightness.light,
+      brightness: brightness,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: NyumbaColors.softIvory,
-      canvasColor: NyumbaColors.softIvory,
+      scaffoldBackgroundColor: palette.softIvory,
+      canvasColor: palette.softIvory,
       visualDensity: VisualDensity.standard,
     );
 
+    final headingColor = isLight ? palette.midnightNavy : palette.ink;
     final textTheme = base.textTheme.copyWith(
       displaySmall: base.textTheme.displaySmall?.copyWith(
-        color: NyumbaColors.midnightNavy,
+        color: headingColor,
         fontWeight: FontWeight.w700,
         letterSpacing: -1.1,
         height: 1.1,
       ),
       headlineLarge: base.textTheme.headlineLarge?.copyWith(
-        color: NyumbaColors.midnightNavy,
+        color: headingColor,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.7,
         height: 1.18,
       ),
       headlineMedium: base.textTheme.headlineMedium?.copyWith(
-        color: NyumbaColors.midnightNavy,
+        color: headingColor,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.45,
         height: 1.2,
       ),
       headlineSmall: base.textTheme.headlineSmall?.copyWith(
-        color: NyumbaColors.midnightNavy,
+        color: headingColor,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.2,
       ),
       titleLarge: base.textTheme.titleLarge?.copyWith(
-        color: NyumbaColors.midnightNavy,
+        color: headingColor,
         fontWeight: FontWeight.w700,
       ),
       titleMedium: base.textTheme.titleMedium?.copyWith(
-        color: NyumbaColors.ink,
+        color: palette.ink,
         fontWeight: FontWeight.w600,
       ),
       titleSmall: base.textTheme.titleSmall?.copyWith(
-        color: NyumbaColors.ink,
+        color: palette.ink,
         fontWeight: FontWeight.w600,
       ),
       bodyLarge: base.textTheme.bodyLarge?.copyWith(
-        color: NyumbaColors.ink,
+        color: palette.ink,
         height: 1.45,
       ),
       bodyMedium: base.textTheme.bodyMedium?.copyWith(
-        color: NyumbaColors.ink,
+        color: palette.ink,
         height: 1.45,
       ),
       bodySmall: base.textTheme.bodySmall?.copyWith(
-        color: NyumbaColors.mutedInk,
+        color: palette.mutedInk,
         height: 1.4,
       ),
       labelLarge: base.textTheme.labelLarge?.copyWith(
@@ -96,14 +109,17 @@ abstract final class NyumbaTheme {
     );
 
     const radius = BorderRadius.all(Radius.circular(12));
-    final outline = BorderSide(color: colorScheme.outline);
+    final outline = BorderSide(color: palette.outline);
+    final snackBackground = isLight
+        ? palette.navyDark
+        : const Color(0xFF2A3B55);
 
     return base.copyWith(
       textTheme: textTheme,
-      extensions: const [NyumbaSemanticColors.light],
-      dividerColor: colorScheme.outlineVariant,
-      dividerTheme: const DividerThemeData(
-        color: Color(0xFFEDE9E2),
+      extensions: [palette],
+      dividerColor: palette.divider,
+      dividerTheme: DividerThemeData(
+        color: palette.divider,
         thickness: 1,
         space: 1,
       ),
@@ -111,25 +127,22 @@ abstract final class NyumbaTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        backgroundColor: NyumbaColors.softIvory,
-        foregroundColor: NyumbaColors.ink,
+        backgroundColor: palette.softIvory,
+        foregroundColor: palette.ink,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: textTheme.titleLarge,
       ),
-      cardTheme: const CardThemeData(
+      cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
-        color: NyumbaColors.surface,
+        color: palette.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: radius,
-          side: BorderSide(color: NyumbaColors.outline),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: radius, side: outline),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: NyumbaColors.surface,
-        hintStyle: textTheme.bodyMedium?.copyWith(color: NyumbaColors.mutedInk),
+        fillColor: palette.surface,
+        hintStyle: textTheme.bodyMedium?.copyWith(color: palette.mutedInk),
         labelStyle: textTheme.bodyMedium,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -140,13 +153,13 @@ abstract final class NyumbaTheme {
           borderRadius: radius,
           borderSide: outline,
         ),
-        focusedBorder: const OutlineInputBorder(
+        focusedBorder: OutlineInputBorder(
           borderRadius: radius,
-          borderSide: BorderSide(color: NyumbaColors.midnightNavy, width: 1.5),
+          borderSide: BorderSide(color: palette.midnightNavy, width: 1.5),
         ),
-        errorBorder: const OutlineInputBorder(
+        errorBorder: OutlineInputBorder(
           borderRadius: radius,
-          borderSide: BorderSide(color: NyumbaColors.danger),
+          borderSide: BorderSide(color: palette.danger),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -174,9 +187,9 @@ abstract final class NyumbaTheme {
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
-        backgroundColor: NyumbaColors.surface,
-        selectedColor: NyumbaColors.navyTint,
-        disabledColor: NyumbaColors.surface,
+        backgroundColor: palette.surface,
+        selectedColor: palette.navyTint,
+        disabledColor: palette.surface,
         side: outline,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -184,17 +197,17 @@ abstract final class NyumbaTheme {
         labelStyle: textTheme.labelMedium,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       ),
-      dialogTheme: const DialogThemeData(
+      dialogTheme: DialogThemeData(
         elevation: 8,
-        backgroundColor: NyumbaColors.softIvory,
+        backgroundColor: palette.softIvory,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(18)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: NyumbaColors.navyDark,
+        backgroundColor: snackBackground,
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -203,13 +216,15 @@ abstract final class NyumbaTheme {
       navigationBarTheme: NavigationBarThemeData(
         height: 72,
         elevation: 0,
-        backgroundColor: NyumbaColors.surface,
+        backgroundColor: palette.surface,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: NyumbaColors.navyTint,
+        indicatorColor: palette.navyTint,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return textTheme.labelMedium?.copyWith(
-            color: selected ? NyumbaColors.midnightNavy : NyumbaColors.mutedInk,
+            color: selected
+                ? (isLight ? palette.midnightNavy : palette.ink)
+                : palette.mutedInk,
             fontSize: 11,
             height: 1.1,
           );
@@ -217,9 +232,9 @@ abstract final class NyumbaTheme {
       ),
       tooltipTheme: TooltipThemeData(
         textStyle: textTheme.bodySmall?.copyWith(color: Colors.white),
-        decoration: const BoxDecoration(
-          color: NyumbaColors.navyDark,
-          borderRadius: BorderRadius.all(Radius.circular(6)),
+        decoration: BoxDecoration(
+          color: snackBackground,
+          borderRadius: const BorderRadius.all(Radius.circular(6)),
         ),
       ),
     );

@@ -54,6 +54,8 @@ final class SembastListingRepository implements ListingRepository {
       monthlyRentMinor: input.monthlyRentMinor,
       currency: input.currency,
       status: ListingStatus.draft,
+      bedrooms: unit.bedrooms,
+      bathrooms: unit.bathrooms,
       availableFrom: input.availableFrom?.toUtc(),
       imageUrls: input.imageUrls.map((item) => item.trim()).toList(),
       contactPhone: _optional(input.contactPhone),

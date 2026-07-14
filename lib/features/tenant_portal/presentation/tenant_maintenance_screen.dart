@@ -66,16 +66,16 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
           decoration: BoxDecoration(
-            color: NyumbaColors.sageTint,
+            color: context.nyumba.sageTint,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFCDE4D2)),
+            border: Border.all(color: context.nyumba.sageBorder),
           ),
-          child: const Row(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 Icons.cloud_done_outlined,
-                color: NyumbaColors.sageDark,
+                color: context.nyumba.sageDark,
                 size: 20,
               ),
               SizedBox(width: 9),
@@ -96,7 +96,7 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
               value: '$openCount',
               caption: 'Waiting for action or in progress',
               icon: Icons.home_repair_service_outlined,
-              color: NyumbaColors.terracottaDark,
+              color: context.nyumba.terracottaDark,
             ),
             TenantMetricCard(
               label: 'Scheduled visits',
@@ -104,14 +104,14 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
                   '${_requests.where((item) => item.status == 'Scheduled').length}',
               caption: 'Next visit on 15 Jul',
               icon: Icons.event_available_outlined,
-              color: NyumbaColors.midnightNavy,
+              color: context.nyumba.midnightNavy,
             ),
             TenantMetricCard(
               label: 'Resolved this year',
               value: '$resolvedCount',
               caption: 'Average resolution: 3.2 days',
               icon: Icons.task_alt_rounded,
-              color: NyumbaColors.sageDark,
+              color: context.nyumba.sageDark,
             ),
           ],
         ),
@@ -301,13 +301,13 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
                     onChanged: (value) =>
                         setDialogState(() => allowAccess = value),
                   ),
-                  const Row(
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
                         Icons.offline_pin_outlined,
                         size: 18,
-                        color: NyumbaColors.sageDark,
+                        color: context.nyumba.sageDark,
                       ),
                       SizedBox(width: 8),
                       Expanded(
@@ -423,14 +423,14 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: NyumbaColors.navyTint,
+                      color: context.nyumba.navyTint,
                       borderRadius: BorderRadius.circular(11),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.event_available_outlined,
-                          color: NyumbaColors.midnightNavy,
+                          color: context.nyumba.midnightNavy,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -548,7 +548,7 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
               const SizedBox(height: 14),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: NyumbaColors.danger,
+                  backgroundColor: context.nyumba.danger,
                 ),
                 onPressed: () => showTenantMessage(
                   context,
@@ -583,10 +583,10 @@ class _RequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (request.status) {
-      'Resolved' => NyumbaColors.sageDark,
-      'Scheduled' => NyumbaColors.midnightNavy,
-      'Cancelled' => NyumbaColors.danger,
-      _ => NyumbaColors.terracottaDark,
+      'Resolved' => context.nyumba.sageDark,
+      'Scheduled' => context.nyumba.midnightNavy,
+      'Cancelled' => context.nyumba.danger,
+      _ => context.nyumba.terracottaDark,
     };
     return NyumbaSurface(
       onTap: onTap,
@@ -746,7 +746,7 @@ const _seedRequests = [
       ),
       _RequestUpdate(
         title: 'Manager reviewed',
-        detail: 'Wanjiku assigned Kamau Services',
+        detail: 'Sandra assigned Kato Services',
         complete: true,
       ),
       _RequestUpdate(
@@ -781,7 +781,7 @@ const _seedRequests = [
       ),
       _RequestUpdate(
         title: 'Electrician assigned',
-        detail: 'Nairobi Electrical Co. is sourcing a replacement',
+        detail: 'Kampala Electrical Co. is sourcing a replacement',
         complete: true,
       ),
       _RequestUpdate(

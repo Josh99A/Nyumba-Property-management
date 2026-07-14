@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/nyumba_colors.dart';
+import '../../../../core/config/market_config.dart';
 import '../../../../core/presentation/page_header.dart';
 import '../../../../core/presentation/responsive.dart';
 import '../../../../core/presentation/surface.dart';
 
 final NumberFormat _adminCurrency = NumberFormat.currency(
-  locale: 'en_KE',
-  symbol: 'KES ',
+  locale: NyumbaMarket.currencyLocale,
+  symbol: NyumbaMarket.currencySymbol,
   decimalDigits: 0,
 );
 
-String formatAdminKes(num amount) => _adminCurrency.format(amount);
+String formatAdminUgx(num amount) => _adminCurrency.format(amount);
 
 void showAdminMessage(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
@@ -29,6 +30,7 @@ class AdminPage extends StatelessWidget {
     this.primaryAction,
     this.secondaryAction,
     this.maxWidth = 1540,
+    this.showsDemoData = true,
   });
 
   final String title;
@@ -37,6 +39,10 @@ class AdminPage extends StatelessWidget {
   final Widget? secondaryAction;
   final List<Widget> children;
   final double maxWidth;
+
+  /// Admin metrics are locally seeded fixtures until the platform reporting
+  /// backend exists; the banner keeps that visible on every admin page.
+  final bool showsDemoData;
 
   @override
   Widget build(BuildContext context) {
@@ -59,11 +65,51 @@ class AdminPage extends StatelessWidget {
                 primaryAction: primaryAction,
                 secondaryAction: secondaryAction,
               ),
+              if (showsDemoData) ...[
+                const SizedBox(height: 14),
+                const AdminDemoDataBanner(),
+              ],
               const SizedBox(height: 22),
               ...children,
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class AdminDemoDataBanner extends StatelessWidget {
+  const AdminDemoDataBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: context.nyumba.goldTint,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.nyumba.goldBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.science_outlined,
+            size: 18,
+            color: context.nyumba.terracottaDark,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Demo data — the figures on this page are seeded examples, '
+              'not live platform metrics.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: context.nyumba.terracottaDark,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -150,13 +196,13 @@ class AdminMetricCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: NyumbaColors.sageTint,
+                      color: context.nyumba.sageTint,
                       borderRadius: BorderRadius.circular(7),
                     ),
                     child: Text(
                       trend!,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: NyumbaColors.sageDark,
+                        color: context.nyumba.sageDark,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -457,11 +503,11 @@ class AdminEmptyState extends StatelessWidget {
           Container(
             width: 58,
             height: 58,
-            decoration: const BoxDecoration(
-              color: NyumbaColors.navyTint,
+            decoration: BoxDecoration(
+              color: context.nyumba.navyTint,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: NyumbaColors.midnightNavy),
+            child: Icon(icon, color: context.nyumba.midnightNavy),
           ),
           const SizedBox(height: 14),
           Text(title, style: Theme.of(context).textTheme.titleMedium),

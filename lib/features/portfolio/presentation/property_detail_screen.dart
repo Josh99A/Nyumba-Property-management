@@ -249,7 +249,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: 'Monthly rent',
-                        prefixText: 'KES ',
+                        prefixText: 'UGX ',
                       ),
                       validator: (value) {
                         final amount = int.tryParse(
@@ -313,7 +313,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                       const SizedBox(height: 12),
                       Text(
                         error!,
-                        style: const TextStyle(color: NyumbaColors.danger),
+                        style: TextStyle(color: context.nyumba.danger),
                       ),
                     ],
                   ],
@@ -382,7 +382,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 'A well maintained ${unit.type.name} in ${property.city}.',
             monthlyRentMinor: unit.monthlyRentMinor,
             currency: unit.currency,
-            contactPhone: '+254 712 000 100',
+            contactPhone: '+256 772 000 100',
           ),
         );
     if (mounted) {
@@ -510,10 +510,7 @@ class _HeroContent extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
-          if (context.isCompact)
-            const SizedBox(height: 18)
-          else
-            const Spacer(),
+          if (context.isCompact) const SizedBox(height: 18) else const Spacer(),
           Wrap(
             spacing: 24,
             runSpacing: 10,
@@ -547,7 +544,7 @@ class _HeroMetric extends StatelessWidget {
           value,
           style: Theme.of(
             context,
-          ).textTheme.titleLarge?.copyWith(color: NyumbaColors.midnightNavy),
+          ).textTheme.titleLarge?.copyWith(color: context.nyumba.midnightNavy),
         ),
         Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],
@@ -569,8 +566,8 @@ class _UnitCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currency = NumberFormat.currency(
-      locale: 'en_KE',
-      symbol: 'KES ',
+      locale: 'en_UG',
+      symbol: 'UGX ',
       decimalDigits: 0,
     );
     final (statusLabel, tone) = switch (unit.status) {
@@ -590,12 +587,12 @@ class _UnitCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: NyumbaColors.navyTint,
+                  color: context.nyumba.navyTint,
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Icon(
                   _unitIcon(unit.type),
-                  color: NyumbaColors.midnightNavy,
+                  color: context.nyumba.midnightNavy,
                 ),
               ),
               const SizedBox(width: 11),
@@ -621,7 +618,11 @@ class _UnitCard extends StatelessWidget {
           const SizedBox(height: 13),
           Row(
             children: [
-              Icon(Icons.bed_outlined, size: 18, color: NyumbaColors.mutedInk),
+              Icon(
+                Icons.bed_outlined,
+                size: 18,
+                color: context.nyumba.mutedInk,
+              ),
               const SizedBox(width: 5),
               Text(
                 '${unit.bedrooms} bed',
@@ -631,7 +632,7 @@ class _UnitCard extends StatelessWidget {
               Icon(
                 Icons.bathtub_outlined,
                 size: 18,
-                color: NyumbaColors.mutedInk,
+                color: context.nyumba.mutedInk,
               ),
               const SizedBox(width: 5),
               Text(

@@ -2,19 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/nyumba_colors.dart';
+import '../../../../core/config/market_config.dart';
+import '../../../../core/presentation/coming_soon.dart';
+import '../../../../core/presentation/motion.dart';
 import '../../../../core/presentation/responsive.dart';
 import '../../../../core/presentation/status_badge.dart';
 import '../../../../core/presentation/surface.dart';
 import '../../application/dashboard_snapshot.dart';
 import 'dashboard_charts.dart';
 
-final _kes = NumberFormat.currency(
-  locale: 'en_KE',
-  symbol: 'KES ',
+final _ugx = NumberFormat.currency(
+  locale: NyumbaMarket.currencyLocale,
+  symbol: NyumbaMarket.currencySymbol,
   decimalDigits: 0,
 );
 
-String formatKes(int amountMinor) => _kes.format(amountMinor / 100);
+String formatUgx(int amountMinor) => _ugx.format(amountMinor / 100);
 
 String relativeTime(DateTime at) {
   final difference = DateTime.now().difference(at);
@@ -32,13 +35,17 @@ class KpiCard extends StatelessWidget {
     required this.icon,
     required this.tone,
     super.key,
+    this.format = _defaultFormat,
   });
 
   final String label;
-  final String value;
+  final num value;
+  final String Function(num value) format;
   final String caption;
   final IconData icon;
   final Color tone;
+
+  static String _defaultFormat(num value) => value.round().toString();
 
   @override
   Widget build(BuildContext context) {
@@ -69,8 +76,9 @@ class KpiCard extends StatelessWidget {
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
-                      child: Text(
-                        value,
+                      child: AnimatedCount(
+                        value: value,
+                        format: format,
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(
                               color: tone,
@@ -161,16 +169,16 @@ class _OccupancyLegend extends StatelessWidget {
       direction: Axis.vertical,
       children: [
         _LegendItem(
-          color: NyumbaColors.sageGreen,
+          color: context.nyumba.sageGreen,
           label: 'Occupied',
           value: '${snapshot.occupiedUnits} units',
-          valueColor: NyumbaColors.sageDark,
+          valueColor: context.nyumba.sageDark,
         ),
         _LegendItem(
-          color: const Color(0xFFE3E5E4),
+          color: context.nyumba.divider,
           label: 'Vacant',
           value: '${snapshot.totalUnits - snapshot.occupiedUnits} units',
-          valueColor: NyumbaColors.mutedInk,
+          valueColor: context.nyumba.mutedInk,
         ),
       ],
     );
@@ -243,13 +251,13 @@ class RentCollectionCard extends StatelessWidget {
             children: [
               _AmountSummary(
                 label: 'Collected',
-                amount: formatKes(snapshot.rentCollectedMinor),
-                color: NyumbaColors.sageDark,
+                amount: formatUgx(snapshot.rentCollectedMinor),
+                color: context.nyumba.sageDark,
               ),
               _AmountSummary(
                 label: 'Outstanding',
-                amount: formatKes(snapshot.rentOutstandingMinor),
-                color: NyumbaColors.terracottaDark,
+                amount: formatUgx(snapshot.rentOutstandingMinor),
+                color: context.nyumba.terracottaDark,
               ),
             ],
           ),
@@ -257,10 +265,10 @@ class RentCollectionCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _LineLegend(color: NyumbaColors.sageDark, label: 'Collected'),
+              _LineLegend(color: context.nyumba.sageDark, label: 'Collected'),
               const SizedBox(width: 18),
               _LineLegend(
-                color: NyumbaColors.terracottaGold,
+                color: context.nyumba.terracottaGold,
                 label: 'Outstanding',
                 dashed: true,
               ),
@@ -403,7 +411,7 @@ class RecentPaymentsCard extends StatelessWidget {
                             DataCell(Text(payment.tenant)),
                             DataCell(Text(payment.unit)),
                             DataCell(Text(payment.property)),
-                            DataCell(Text(formatKes(payment.amountMinor))),
+                            DataCell(Text(formatUgx(payment.amountMinor))),
                             DataCell(
                               Text(DateFormat('d MMM y').format(payment.date)),
                             ),
@@ -442,22 +450,22 @@ class _PaymentListRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFEDE9E2))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.nyumba.divider)),
       ),
       child: Row(
         children: [
           Container(
             width: 34,
             height: 34,
-            decoration: const BoxDecoration(
-              color: NyumbaColors.sageTint,
+            decoration: BoxDecoration(
+              color: context.nyumba.sageTint,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.check_rounded,
               size: 19,
-              color: NyumbaColors.sageDark,
+              color: context.nyumba.sageDark,
             ),
           ),
           const SizedBox(width: 11),
@@ -483,7 +491,7 @@ class _PaymentListRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                formatKes(payment.amountMinor),
+                formatUgx(payment.amountMinor),
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 3),
@@ -559,7 +567,7 @@ class MaintenanceCard extends StatelessWidget {
                 Text(
                   'Open (3)',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: NyumbaColors.midnightNavy,
+                    color: context.nyumba.midnightNavy,
                   ),
                 ),
               ],
@@ -583,8 +591,8 @@ class _MaintenanceRow extends StatelessWidget {
     final urgent = item.priority == MaintenancePriority.urgent;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFEDE9E2))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.nyumba.divider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,7 +602,7 @@ class _MaintenanceRow extends StatelessWidget {
             height: 8,
             margin: const EdgeInsets.only(top: 6),
             decoration: BoxDecoration(
-              color: urgent ? NyumbaColors.danger : NyumbaColors.warning,
+              color: urgent ? context.nyumba.danger : context.nyumba.warning,
               shape: BoxShape.circle,
             ),
           ),
@@ -648,8 +656,10 @@ class ActivityCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: Color(0xFFEDE9E2))),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: context.nyumba.divider),
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -693,11 +703,14 @@ class ActivityCard extends StatelessWidget {
             ),
           Padding(
             padding: const EdgeInsets.all(8),
-            child: TextButton.icon(
-              onPressed: () {},
-              iconAlignment: IconAlignment.end,
-              icon: const Icon(Icons.arrow_forward_rounded, size: 17),
-              label: const Text('View all activity'),
+            child: ComingSoon(
+              message: 'Activity history coming soon',
+              child: TextButton.icon(
+                onPressed: null,
+                iconAlignment: IconAlignment.end,
+                icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+                label: const Text('View all activity'),
+              ),
             ),
           ),
         ],

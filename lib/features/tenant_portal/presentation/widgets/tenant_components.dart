@@ -8,12 +8,12 @@ import '../../../../core/presentation/status_badge.dart';
 import '../../../../core/presentation/surface.dart';
 
 final NumberFormat _tenantCurrency = NumberFormat.currency(
-  locale: 'en_KE',
-  symbol: 'KES ',
+  locale: 'en_UG',
+  symbol: 'UGX ',
   decimalDigits: 0,
 );
 
-String formatTenantKes(num amount) => _tenantCurrency.format(amount);
+String formatTenantUgx(num amount) => _tenantCurrency.format(amount);
 
 void showTenantMessage(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
@@ -221,8 +221,8 @@ class TenantBalanceHero extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [NyumbaColors.navyDark, NyumbaColors.midnightNavy],
+        gradient: LinearGradient(
+          colors: [context.nyumba.navyDark, context.nyumba.midnightNavy],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -262,7 +262,7 @@ class TenantBalanceHero extends StatelessWidget {
                               ? Icons.check_circle_outline_rounded
                               : Icons.account_balance_wallet_outlined,
                           color: paid
-                              ? const Color(0xFFCDE4D2)
+                              ? context.nyumba.sageBorder
                               : const Color(0xFFFFD99D),
                           size: 20,
                         ),
@@ -278,7 +278,7 @@ class TenantBalanceHero extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      formatTenantKes(amount),
+                      formatTenantUgx(amount),
                       style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -296,8 +296,8 @@ class TenantBalanceHero extends StatelessWidget {
                 final action = FilledButton.icon(
                   style: FilledButton.styleFrom(
                     backgroundColor: paid
-                        ? NyumbaColors.sageGreen
-                        : NyumbaColors.terracottaGold,
+                        ? context.nyumba.sageGreen
+                        : context.nyumba.terracottaGold,
                     foregroundColor: Colors.white,
                   ),
                   onPressed: onPay,
@@ -391,10 +391,10 @@ class TenantQuickAction extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.arrow_forward_ios_rounded,
             size: 15,
-            color: NyumbaColors.mutedInk,
+            color: context.nyumba.mutedInk,
           ),
         ],
       ),
@@ -418,7 +418,7 @@ class TenantTimelineStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = complete ? NyumbaColors.sageDark : NyumbaColors.outline;
+    final color = complete ? context.nyumba.sageDark : context.nyumba.outline;
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,15 +431,15 @@ class TenantTimelineStep extends StatelessWidget {
                   width: 20,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: complete ? NyumbaColors.sageTint : Colors.white,
+                    color: complete ? context.nyumba.sageTint : Colors.white,
                     shape: BoxShape.circle,
                     border: Border.all(color: color, width: 2),
                   ),
                   child: complete
-                      ? const Icon(
+                      ? Icon(
                           Icons.check_rounded,
                           size: 13,
-                          color: NyumbaColors.sageDark,
+                          color: context.nyumba.sageDark,
                         )
                       : null,
                 ),
@@ -496,11 +496,11 @@ class TenantInfoRow extends StatelessWidget {
         Container(
           width: 38,
           height: 38,
-          decoration: const BoxDecoration(
-            color: NyumbaColors.navyTint,
+          decoration: BoxDecoration(
+            color: context.nyumba.navyTint,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 19, color: NyumbaColors.midnightNavy),
+          child: Icon(icon, size: 19, color: context.nyumba.midnightNavy),
         ),
         const SizedBox(width: 11),
         Expanded(
@@ -542,11 +542,11 @@ class TenantEmptyState extends StatelessWidget {
           Container(
             width: 58,
             height: 58,
-            decoration: const BoxDecoration(
-              color: NyumbaColors.sageTint,
+            decoration: BoxDecoration(
+              color: context.nyumba.sageTint,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: NyumbaColors.sageDark),
+            child: Icon(icon, color: context.nyumba.sageDark),
           ),
           const SizedBox(height: 14),
           Text(title, style: Theme.of(context).textTheme.titleMedium),

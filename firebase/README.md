@@ -11,16 +11,16 @@ This directory is environment-neutral and contains no project IDs or secrets.
 From this directory, validate with the Firebase Emulator Suite after selecting a non-production demo project:
 
 ```sh
-firebase emulators:start --config firebase.json --project TBD_NYUMBA_FIREBASE_DEV_PROJECT_ID
+firebase emulators:start --config firebase.json --project nyumba-property-management
 ```
 
 Before any deployment:
 
-1. Replace the local command's project placeholder through CI/environment configuration; do not commit a production `.firebaserc` by accident.
+1. Select the project through CI/environment configuration; do not commit a production `.firebaserc` by accident. The development project is `nyumba-property-management` (Blaze, region `europe-west1`).
 2. Add emulator tests for every permitted/denied actor and query shape.
 3. Register and enforce App Check for each Flutter platform.
-4. Review the provisional 10 MiB staging-upload ceiling. **TBD:** final per-document limits and retention.
+4. Upload limits are finalized: listing photos 5 MB (jpeg/png/webp, max 10 per listing), documents 10 MB (pdf/jpeg/png); staging paths enforce these in `storage.rules`.
 5. Implement and test callable commands; these rules intentionally deny direct client writes.
-6. Confirm **TBD** region, plan pricing/unit limits, payment provider, listing expiry, and retention policies.
+6. Finalized: region `europe-west1`, listing expiry 30 days renewable, retention (financial 7 years, deleted media purged after 90 days, maintenance media 2 years). Still **TBD:** plan pricing/unit limits and the payment provider.
 
 Deployment should use an explicit `--project` value and reviewed CI environment. Never put provider keys, webhook secrets, service-account JSON, or Flutter Firebase option values in these rules/configuration files.

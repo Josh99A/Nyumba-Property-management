@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'motion.dart';
 import 'responsive.dart';
 
 class PageHeader extends StatelessWidget {
@@ -41,27 +42,31 @@ class PageHeader extends StatelessWidget {
     );
 
     if (context.isCompact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          text,
-          if (primaryAction != null || secondaryAction != null) ...[
-            const SizedBox(height: 18),
-            Align(alignment: Alignment.centerLeft, child: actions),
+      return FadeSlideIn(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            text,
+            if (primaryAction != null || secondaryAction != null) ...[
+              const SizedBox(height: 18),
+              Align(alignment: Alignment.centerLeft, child: actions),
+            ],
           ],
-        ],
+        ),
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: text),
-        if (primaryAction != null || secondaryAction != null) ...[
-          const SizedBox(width: 24),
-          actions,
+    return FadeSlideIn(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: text),
+          if (primaryAction != null || secondaryAction != null) ...[
+            const SizedBox(width: 24),
+            actions,
+          ],
         ],
-      ],
+      ),
     );
   }
 }

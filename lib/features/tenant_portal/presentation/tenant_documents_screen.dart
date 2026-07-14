@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import 'widgets/tenant_components.dart';
@@ -62,14 +63,14 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
               value: '${_documents.length}',
               caption: 'From your landlord and property manager',
               icon: Icons.folder_copy_outlined,
-              color: NyumbaColors.midnightNavy,
+              color: context.nyumba.midnightNavy,
             ),
             TenantMetricCard(
               label: 'Available offline',
               value: '$offlineCount',
               caption: 'Ready without a network connection',
               icon: Icons.offline_pin_outlined,
-              color: NyumbaColors.sageDark,
+              color: context.nyumba.sageDark,
             ),
             TenantMetricCard(
               label: 'Receipts',
@@ -77,7 +78,7 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
                   '${_documents.where((item) => item.category == 'Receipts').length}',
               caption: 'Payment records for 2026',
               icon: Icons.receipt_long_outlined,
-              color: NyumbaColors.terracottaDark,
+              color: context.nyumba.terracottaDark,
             ),
             TenantMetricCard(
               label: 'Action required',
@@ -85,7 +86,7 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
                   '${_documents.where((item) => item.status == 'Signature needed').length}',
               caption: 'Documents waiting for you',
               icon: Icons.draw_outlined,
-              color: NyumbaColors.danger,
+              color: context.nyumba.danger,
             ),
           ],
         ),
@@ -288,12 +289,12 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Row(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.offline_pin_outlined,
-                      color: NyumbaColors.sageDark,
+                      color: context.nyumba.sageDark,
                       size: 18,
                     ),
                     SizedBox(width: 8),
@@ -412,25 +413,22 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: () => showTenantMessage(
-                        dialogContext,
-                        '${document.title} saved for offline access.',
+                    ComingSoon(
+                      message: 'Document download coming soon',
+                      child: OutlinedButton.icon(
+                        onPressed: null,
+                        icon: const Icon(Icons.download_outlined),
+                        label: const Text('Download'),
                       ),
-                      icon: const Icon(Icons.download_outlined),
-                      label: const Text('Download'),
                     ),
                     const SizedBox(width: 9),
-                    FilledButton.icon(
-                      onPressed: () {
-                        Navigator.pop(dialogContext);
-                        showTenantMessage(
-                          context,
-                          '${document.title} is ready to print.',
-                        );
-                      },
-                      icon: const Icon(Icons.print_outlined),
-                      label: const Text('Print'),
+                    ComingSoon(
+                      message: 'Document printing coming soon',
+                      child: FilledButton.icon(
+                        onPressed: null,
+                        icon: const Icon(Icons.print_outlined),
+                        label: const Text('Print'),
+                      ),
                     ),
                   ],
                 ),
@@ -454,8 +452,8 @@ class _PinnedLeaseCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [NyumbaColors.navyDark, NyumbaColors.midnightNavy],
+        gradient: LinearGradient(
+          colors: [context.nyumba.navyDark, context.nyumba.midnightNavy],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -510,7 +508,7 @@ class _PinnedLeaseCard extends StatelessWidget {
           );
           final action = FilledButton.icon(
             style: FilledButton.styleFrom(
-              backgroundColor: NyumbaColors.terracottaGold,
+              backgroundColor: context.nyumba.terracottaGold,
               foregroundColor: Colors.white,
             ),
             onPressed: onOpen,
@@ -572,12 +570,12 @@ class _DocumentCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 if (document.offline)
-                  const Tooltip(
+                  Tooltip(
                     message: 'Available offline',
                     child: Icon(
                       Icons.offline_pin_rounded,
                       size: 20,
-                      color: NyumbaColors.sageDark,
+                      color: context.nyumba.sageDark,
                     ),
                   ),
                 IconButton(
@@ -588,8 +586,8 @@ class _DocumentCard extends StatelessWidget {
                         ? Icons.star_rounded
                         : Icons.star_outline_rounded,
                     color: document.favorite
-                        ? NyumbaColors.terracottaGold
-                        : NyumbaColors.mutedInk,
+                        ? context.nyumba.terracottaGold
+                        : context.nyumba.mutedInk,
                   ),
                 ),
               ],
@@ -670,7 +668,7 @@ class _DocumentPreview extends StatelessWidget {
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: NyumbaColors.outline),
+        border: Border.all(color: context.nyumba.outline),
         borderRadius: BorderRadius.circular(8),
         boxShadow: const [BoxShadow(color: Color(0x12123A6F), blurRadius: 18)],
       ),
@@ -679,9 +677,9 @@ class _DocumentPreview extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.home_work_rounded,
-                color: NyumbaColors.midnightNavy,
+                color: context.nyumba.midnightNavy,
                 size: 32,
               ),
               const SizedBox(width: 10),
@@ -689,7 +687,7 @@ class _DocumentPreview extends StatelessWidget {
                 child: Text(
                   'NYUMBA PROPERTY MANAGEMENT',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: NyumbaColors.midnightNavy,
+                    color: context.nyumba.midnightNavy,
                     letterSpacing: .5,
                   ),
                 ),
@@ -714,7 +712,7 @@ class _DocumentPreview extends StatelessWidget {
           const TenantInfoRow(
             icon: Icons.person_outline_rounded,
             label: 'Tenant',
-            value: 'Brian Otieno',
+            value: 'Brian Okello',
           ),
           const SizedBox(height: 12),
           const TenantInfoRow(
@@ -729,7 +727,7 @@ class _DocumentPreview extends StatelessWidget {
             value: document.date,
           ),
           const SizedBox(height: 26),
-          Container(height: 1, color: NyumbaColors.outline),
+          Container(height: 1, color: context.nyumba.outline),
           const SizedBox(height: 13),
           Text(
             'Verified digital copy • ${document.reference}',
@@ -853,7 +851,7 @@ const _seedDocuments = [
     offline: true,
     favorite: true,
     description:
-        'Official receipt for KES 45,000 received via M-PESA for July 2026 rent.',
+        'Official receipt for UGX 1,200,000 received via MTN Mobile Money for July 2026 rent.',
   ),
   _TenantDocument(
     title: 'June rent receipt',
@@ -866,7 +864,7 @@ const _seedDocuments = [
     offline: true,
     favorite: false,
     description:
-        'Official receipt for KES 45,000 received via M-PESA for June 2026 rent.',
+        'Official receipt for UGX 1,200,000 received via MTN Mobile Money for June 2026 rent.',
   ),
   _TenantDocument(
     title: 'Water interruption notice',

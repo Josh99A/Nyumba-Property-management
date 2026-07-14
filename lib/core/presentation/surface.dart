@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/nyumba_colors.dart';
+import 'motion.dart';
 
-class NyumbaSurface extends StatelessWidget {
+class NyumbaSurface extends StatefulWidget {
   const NyumbaSurface({
     required this.child,
     super.key,
@@ -21,33 +22,61 @@ class NyumbaSurface extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final decoration = BoxDecoration(
-      color: backgroundColor ?? NyumbaColors.surface,
-      borderRadius: BorderRadius.circular(borderRadius),
-      border: Border.all(color: borderColor ?? NyumbaColors.outline),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x08123A6F),
-          blurRadius: 16,
-          offset: Offset(0, 5),
-        ),
-      ],
-    );
+  State<NyumbaSurface> createState() => _NyumbaSurfaceState();
+}
 
-    if (onTap == null) {
+class _NyumbaSurfaceState extends State<NyumbaSurface> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  BoxDecoration _decoration({required bool lifted}) => BoxDecoration(
+    color: widget.backgroundColor ?? context.nyumba.surface,
+    borderRadius: BorderRadius.circular(widget.borderRadius),
+    border: Border.all(
+      color: lifted
+          ? context.nyumba.navyBorder
+          : widget.borderColor ?? context.nyumba.outline,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: lifted ? const Color(0x14123A6F) : const Color(0x08123A6F),
+        blurRadius: lifted ? 22 : 16,
+        offset: Offset(0, lifted ? 8 : 5),
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.onTap == null) {
       return DecoratedBox(
-        decoration: decoration,
-        child: Padding(padding: padding, child: child),
+        decoration: _decoration(lifted: false),
+        child: Padding(padding: widget.padding, child: widget.child),
       );
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: Ink(padding: padding, decoration: decoration, child: child),
+    final animate = !NyumbaMotion.reducedMotion(context);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedScale(
+        scale: animate && _pressed ? .985 : 1,
+        duration: NyumbaMotion.fast,
+        curve: NyumbaMotion.easeOut,
+        child: AnimatedContainer(
+          duration: animate ? NyumbaMotion.medium : Duration.zero,
+          curve: NyumbaMotion.easeOut,
+          decoration: _decoration(lifted: _hovered && animate),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onTap,
+              onHighlightChanged: (value) => setState(() => _pressed = value),
+              borderRadius: BorderRadius.circular(widget.borderRadius),
+              child: Padding(padding: widget.padding, child: widget.child),
+            ),
+          ),
+        ),
       ),
     );
   }

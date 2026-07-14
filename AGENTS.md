@@ -130,10 +130,16 @@ commit API keys, service-account files, provider secrets, `.firebaserc` producti
 aliases, real project IDs, tokens, PII, or payment details. Use an explicit
 non-production `--project` when running Firebase commands.
 
-Pricing, unit limits, billing rules, provider choice, retention, listing lifetime,
-and Firebase environment IDs are still TBD. Keep them in versioned server-owned
-configuration and fail closed when required configuration is missing; do not
-hard-code guesses in Flutter or security rules.
+The subscription tier structure (Starter/Pro/Premium/Enterprise, landlord- and
+property-manager-only, free tenant and prospect access, non-paywall rules, and
+downgrade safety) is normative in `docs/architecture/subscription-tiers.md`.
+Finalized product configuration (market Uganda/UGX, region `europe-west1`,
+30-day renewable listing lifetime, upload limits, retention) lives in
+`docs/architecture/README.md` and `lib/core/config/market_config.dart`.
+Monetary prices, billing intervals, provider choice, and staging/production
+Firebase environment IDs are still TBD. Keep all entitlement
+values in versioned server-owned configuration and fail closed when required
+configuration is missing; do not hard-code guesses in Flutter or security rules.
 
 ## Flutter and UI conventions
 

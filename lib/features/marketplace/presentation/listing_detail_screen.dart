@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/config/market_config.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
@@ -21,10 +22,10 @@ class ListingDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final listings = ref.watch(publicListingsProvider);
     return Scaffold(
-      backgroundColor: NyumbaColors.softIvory,
+      backgroundColor: context.nyumba.softIvory,
       appBar: AppBar(
         toolbarHeight: 70,
-        backgroundColor: NyumbaColors.surface,
+        backgroundColor: context.nyumba.surface,
         leading: IconButton(
           tooltip: 'Back to available homes',
           onPressed: () => context.go('/explore'),
@@ -66,8 +67,8 @@ class _ListingDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currency = NumberFormat.currency(
-      locale: 'en_KE',
-      symbol: 'KES ',
+      locale: 'en_UG',
+      symbol: 'UGX ',
       decimalDigits: 0,
     );
     return SingleChildScrollView(
@@ -90,14 +91,17 @@ class _ListingDetails extends StatelessWidget {
                 label: const Text('Available homes'),
               ),
               const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: AspectRatio(
-                  aspectRatio: context.isCompact ? 4 / 3 : 2.45,
-                  child: Image.asset(
-                    listingAssetFor(listing),
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.high,
+              Hero(
+                tag: 'listing-image-${listing.id}',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: context.isCompact ? 4 / 3 : 2.45,
+                    child: Image.asset(
+                      listingAssetFor(listing),
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.high,
+                    ),
                   ),
                 ),
               ),
@@ -153,10 +157,10 @@ class _ListingDescription extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            const Icon(
+            Icon(
               Icons.location_on_outlined,
               size: 20,
-              color: NyumbaColors.mutedInk,
+              color: context.nyumba.mutedInk,
             ),
             const SizedBox(width: 5),
             Text(
@@ -168,19 +172,32 @@ class _ListingDescription extends StatelessWidget {
         const SizedBox(height: 18),
         Text(
           '$formattedRent / month',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(color: NyumbaColors.midnightNavy),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: context.nyumba.midnightNavy,
+          ),
         ),
         const SizedBox(height: 24),
-        const Wrap(
+        Wrap(
           spacing: 12,
           runSpacing: 12,
           children: [
-            _Fact(icon: Icons.bed_outlined, value: '2 bedrooms'),
-            _Fact(icon: Icons.bathtub_outlined, value: '2 bathrooms'),
-            _Fact(icon: Icons.local_parking_outlined, value: 'Secure parking'),
-            _Fact(icon: Icons.water_drop_outlined, value: 'Backup water'),
+            if (listing.bedrooms != null)
+              _Fact(
+                icon: Icons.bed_outlined,
+                value:
+                    '${listing.bedrooms} bedroom${listing.bedrooms == 1 ? '' : 's'}',
+              ),
+            if (listing.bathrooms != null)
+              _Fact(
+                icon: Icons.bathtub_outlined,
+                value:
+                    '${listing.bathrooms} bathroom${listing.bathrooms == 1 ? '' : 's'}',
+              ),
+            const _Fact(
+              icon: Icons.local_parking_outlined,
+              value: 'Secure parking',
+            ),
+            const _Fact(icon: Icons.water_drop_outlined, value: 'Backup water'),
           ],
         ),
         const SizedBox(height: 30),
@@ -240,11 +257,11 @@ class _ListingActions extends StatelessWidget {
           const SizedBox(height: 18),
           const Divider(),
           const SizedBox(height: 14),
-          const Row(
+          Row(
             children: [
               Icon(
                 Icons.verified_user_outlined,
-                color: NyumbaColors.sageDark,
+                color: context.nyumba.sageDark,
                 size: 20,
               ),
               SizedBox(width: 9),
@@ -252,11 +269,11 @@ class _ListingActions extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Row(
+          Row(
             children: [
               Icon(
                 Icons.offline_pin_outlined,
-                color: NyumbaColors.sageDark,
+                color: context.nyumba.sageDark,
                 size: 20,
               ),
               SizedBox(width: 9),
@@ -280,14 +297,14 @@ class _Fact extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
       decoration: BoxDecoration(
-        color: NyumbaColors.surface,
+        color: context.nyumba.surface,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: NyumbaColors.outline),
+        border: Border.all(color: context.nyumba.outline),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 19, color: NyumbaColors.midnightNavy),
+          Icon(icon, size: 19, color: context.nyumba.midnightNavy),
           const SizedBox(width: 7),
           Text(value),
         ],
@@ -307,9 +324,9 @@ class _Included extends StatelessWidget {
       width: 220,
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.check_circle_rounded,
-            color: NyumbaColors.sageDark,
+            color: context.nyumba.sageDark,
             size: 19,
           ),
           const SizedBox(width: 8),
@@ -333,10 +350,10 @@ class _ListingNotFound extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.home_work_outlined,
               size: 54,
-              color: NyumbaColors.mutedInk,
+              color: context.nyumba.mutedInk,
             ),
             const SizedBox(height: 16),
             Text(
@@ -358,7 +375,6 @@ class _ListingNotFound extends StatelessWidget {
 }
 
 Future<void> _showContact(BuildContext context, Listing listing) {
-  final messenger = ScaffoldMessenger.of(context);
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
@@ -381,20 +397,12 @@ Future<void> _showContact(BuildContext context, Listing listing) {
             const SizedBox(height: 18),
             ListTile(
               contentPadding: EdgeInsets.zero,
+              enabled: false,
               leading: const CircleAvatar(child: Icon(Icons.phone_outlined)),
-              title: Text(listing.contactPhone ?? '+254 712 000 100'),
-              subtitle: const Text('Call or WhatsApp'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () {
-                Navigator.pop(context);
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Contact handoff is ready for the device dialer.',
-                    ),
-                  ),
-                );
-              },
+              title: Text(listing.contactPhone ?? '+256 772 000 100'),
+              subtitle: const Text(
+                'Call or WhatsApp · in-app dialing coming soon',
+              ),
             ),
             if (listing.contactEmail != null)
               ListTile(
@@ -453,17 +461,17 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
     if (_submitted) {
       return AlertDialog(
         title: const Text('Application saved'),
-        content: const SizedBox(
+        content: SizedBox(
           width: 420,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundColor: NyumbaColors.sageTint,
+                backgroundColor: context.nyumba.sageTint,
                 child: Icon(
                   Icons.check_rounded,
-                  color: NyumbaColors.sageDark,
+                  color: context.nyumba.sageDark,
                   size: 32,
                 ),
               ),
@@ -524,8 +532,9 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(labelText: 'Phone number'),
                   textInputAction: TextInputAction.next,
-                  validator: (value) => (value?.trim().length ?? 0) < 7
-                      ? 'Enter a valid phone number'
+                  validator: (value) =>
+                      !NyumbaMarket.isValidPhone(value?.trim() ?? '')
+                      ? 'Enter a valid Ugandan phone number (+256…)'
                       : null,
                 ),
                 const SizedBox(height: 13),
@@ -556,10 +565,7 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  Text(
-                    _error!,
-                    style: const TextStyle(color: NyumbaColors.danger),
-                  ),
+                  Text(_error!, style: TextStyle(color: context.nyumba.danger)),
                 ],
               ],
             ),

@@ -1,12 +1,15 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app.dart';
 import 'app/bootstrap/app_dependencies.dart';
 import 'app/theme/nyumba_theme.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _initializeFirebase();
   try {
     final dependencies = await createAppDependencies();
     runApp(
@@ -27,6 +30,24 @@ Future<void> main() async {
   }
 }
 
+/// Firebase availability must never block the offline-first workspace: a
+/// failed initialization leaves sync pending rather than preventing launch.
+Future<void> _initializeFirebase() async {
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } on Object catch (error, stackTrace) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stackTrace,
+        library: 'Nyumba Firebase bootstrap',
+      ),
+    );
+  }
+}
+
 class _BootstrapFailureApp extends StatelessWidget {
   const _BootstrapFailureApp({required this.error});
 
@@ -37,6 +58,8 @@ class _BootstrapFailureApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: NyumbaTheme.light,
+      darkTheme: NyumbaTheme.dark,
+      themeMode: ThemeMode.system,
       home: Scaffold(
         body: Center(
           child: Padding(

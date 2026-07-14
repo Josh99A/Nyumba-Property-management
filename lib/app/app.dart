@@ -15,6 +15,8 @@ class NyumbaApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       restorationScopeId: 'nyumba',
       theme: NyumbaTheme.light,
+      darkTheme: NyumbaTheme.dark,
+      themeMode: ThemeMode.system,
       routerConfig: router,
     );
   }

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
@@ -33,16 +34,13 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
   Widget build(BuildContext context) {
     final listingsValue = ref.watch(publicListingsProvider);
     return Scaffold(
-      backgroundColor: NyumbaColors.softIvory,
+      backgroundColor: context.nyumba.softIvory,
       appBar: AppBar(
         toolbarHeight: 72,
-        backgroundColor: NyumbaColors.surface,
+        backgroundColor: context.nyumba.surface,
         titleSpacing: context.isCompact ? 16 : 32,
         title: const NyumbaLogo(height: 42),
         actions: [
-          if (!context.isCompact)
-            TextButton(onPressed: () {}, child: const Text('Available homes')),
-          const SizedBox(width: 8),
           Padding(
             padding: EdgeInsets.only(right: context.isCompact ? 12 : 30),
             child: OutlinedButton(
@@ -56,7 +54,13 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: Container(
-              color: NyumbaColors.midnightNavy,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [NyumbaColors.midnightNavy, NyumbaColors.navyDark],
+                ),
+              ),
               padding: EdgeInsets.fromLTRB(
                 context.pageGutter,
                 context.isCompact ? 42 : 58,
@@ -69,22 +73,27 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Find a place that feels like home.',
-                        style: Theme.of(context).textTheme.displaySmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontSize: context.isCompact ? 36 : 52,
-                            ),
+                      FadeSlideIn(
+                        child: Text(
+                          'Find a place that feels like home.',
+                          style: Theme.of(context).textTheme.displaySmall
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontSize: context.isCompact ? 36 : 52,
+                              ),
+                        ),
                       ),
                       const SizedBox(height: 14),
-                      Text(
-                        'Browse verified available units and contact landlords directly.',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: const Color(0xFFDCE7F4),
-                              fontWeight: FontWeight.w400,
-                            ),
+                      FadeSlideIn(
+                        delay: NyumbaMotion.stagger(1),
+                        child: Text(
+                          'Browse verified available units and contact landlords directly.',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: const Color(0xFFDCE7F4),
+                                fontWeight: FontWeight.w400,
+                              ),
+                        ),
                       ),
                       const SizedBox(height: 28),
                       ConstrainedBox(
@@ -99,6 +108,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                   ),
                                   const SizedBox(height: 10),
                                   _PriceFilter(
+                                    key: ValueKey(_priceFilter),
                                     value: _priceFilter,
                                     onChanged: (value) =>
                                         setState(() => _priceFilter = value),
@@ -117,6 +127,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                   SizedBox(
                                     width: 190,
                                     child: _PriceFilter(
+                                      key: ValueKey(_priceFilter),
                                       value: _priceFilter,
                                       onChanged: (value) =>
                                           setState(() => _priceFilter = value),
@@ -144,9 +155,9 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                   ),
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: NyumbaColors.sageTint,
+                      color: context.nyumba.sageTint,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFCDE4D2)),
+                      border: Border.all(color: context.nyumba.sageBorder),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -155,15 +166,15 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.offline_pin_outlined,
                             size: 19,
-                            color: NyumbaColors.sageDark,
+                            color: context.nyumba.sageDark,
                           ),
                           const SizedBox(width: 9),
                           Expanded(
                             child: Text(
-                              'These listings are cached for offline browsing · Updated just now',
+                              'These listings are saved on your device, so you can keep browsing offline.',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ),
@@ -196,9 +207,9 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                     listingLocationFor(listing).toLowerCase().contains(query);
                 final rent = listing.monthlyRentMinor ~/ 100;
                 final matchesPrice = switch (_priceFilter) {
-                  'Under KES 25k' => rent < 25000,
-                  'KES 25k–45k' => rent >= 25000 && rent <= 45000,
-                  'Above KES 45k' => rent > 45000,
+                  'Under UGX 1M' => rent < 1000000,
+                  'UGX 1M–1.4M' => rent >= 1000000 && rent <= 1400000,
+                  'Above UGX 1.4M' => rent > 1400000,
                   _ => true,
                 };
                 return matchesSearch && matchesPrice;
@@ -235,13 +246,44 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                           ),
                           const SizedBox(height: 18),
                           if (listings.isEmpty)
-                            const NyumbaSurface(
+                            NyumbaSurface(
                               child: Padding(
-                                padding: EdgeInsets.all(28),
-                                child: Center(
-                                  child: Text(
-                                    'No homes match those filters. Try a broader search.',
-                                  ),
+                                padding: const EdgeInsets.all(36),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.search_off_rounded,
+                                      size: 44,
+                                      color: context.nyumba.mutedInk,
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Text(
+                                      'No homes match those filters',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Try a broader search or a different price range.',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                    const SizedBox(height: 18),
+                                    OutlinedButton.icon(
+                                      onPressed: () => setState(() {
+                                        _searchController.clear();
+                                        _priceFilter = 'Any price';
+                                      }),
+                                      icon: const Icon(
+                                        Icons.filter_alt_off_outlined,
+                                        size: 18,
+                                      ),
+                                      label: const Text('Clear filters'),
+                                    ),
+                                  ],
                                 ),
                               ),
                             )
@@ -262,10 +304,14 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                   spacing: gap,
                                   runSpacing: gap,
                                   children: [
-                                    for (final listing in listings)
-                                      SizedBox(
-                                        width: width,
-                                        child: _ListingCard(listing: listing),
+                                    for (final (index, listing)
+                                        in listings.indexed)
+                                      FadeSlideIn(
+                                        delay: NyumbaMotion.stagger(index),
+                                        child: SizedBox(
+                                          width: width,
+                                          child: _ListingCard(listing: listing),
+                                        ),
                                       ),
                                   ],
                                 );
@@ -278,6 +324,32 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                 ),
               );
             },
+          ),
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+              decoration: BoxDecoration(
+                color: context.nyumba.surface,
+                border: Border(top: BorderSide(color: context.nyumba.outline)),
+              ),
+              child: Column(
+                children: [
+                  const NyumbaLogo(height: 34),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Nyumba Property Management · Kampala, Uganda',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Landlords list verified units; you contact them directly.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -305,7 +377,7 @@ class _SearchField extends StatelessWidget {
 }
 
 class _PriceFilter extends StatelessWidget {
-  const _PriceFilter({required this.value, required this.onChanged});
+  const _PriceFilter({required this.value, required this.onChanged, super.key});
 
   final String value;
   final ValueChanged<String> onChanged;
@@ -314,12 +386,16 @@ class _PriceFilter extends StatelessWidget {
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
       initialValue: value,
+      isExpanded: true,
       decoration: const InputDecoration(prefixIcon: Icon(Icons.tune_rounded)),
       items: const [
         DropdownMenuItem(value: 'Any price', child: Text('Any price')),
-        DropdownMenuItem(value: 'Under KES 25k', child: Text('Under KES 25k')),
-        DropdownMenuItem(value: 'KES 25k–45k', child: Text('KES 25k–45k')),
-        DropdownMenuItem(value: 'Above KES 45k', child: Text('Above KES 45k')),
+        DropdownMenuItem(value: 'Under UGX 1M', child: Text('Under UGX 1M')),
+        DropdownMenuItem(value: 'UGX 1M–1.4M', child: Text('UGX 1M–1.4M')),
+        DropdownMenuItem(
+          value: 'Above UGX 1.4M',
+          child: Text('Above UGX 1.4M'),
+        ),
       ],
       onChanged: (value) {
         if (value != null) onChanged(value);
@@ -336,8 +412,8 @@ class _ListingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currency = NumberFormat.currency(
-      locale: 'en_KE',
-      symbol: 'KES ',
+      locale: 'en_UG',
+      symbol: 'UGX ',
       decimalDigits: 0,
     );
     return NyumbaSurface(
@@ -346,14 +422,58 @@ class _ListingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-            child: AspectRatio(
-              aspectRatio: 3 / 2,
-              child: Image.asset(
-                listingAssetFor(listing),
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
+          Hero(
+            tag: 'listing-image-${listing.id}',
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(11),
+              ),
+              child: AspectRatio(
+                aspectRatio: 3 / 2,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      listingAssetFor(listing),
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.medium,
+                    ),
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: _PhotoChip(
+                        background: Colors.white,
+                        foreground: NyumbaColors.sageDark,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                color: NyumbaColors.sageDark,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text('Available now'),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 10,
+                      left: 10,
+                      child: _PhotoChip(
+                        background: const Color(0xE60B294F),
+                        foreground: Colors.white,
+                        child: Text(
+                          '${currency.format(listing.monthlyRentMinor / 100)} / mo',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -371,10 +491,10 @@ class _ListingCard extends StatelessWidget {
                 const SizedBox(height: 5),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.location_on_outlined,
                       size: 17,
-                      color: NyumbaColors.mutedInk,
+                      color: context.nyumba.mutedInk,
                     ),
                     const SizedBox(width: 4),
                     Expanded(
@@ -385,39 +505,65 @@ class _ListingCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 10),
                 Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        currency.format(listing.monthlyRentMinor / 100),
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: NyumbaColors.midnightNavy,
-                        ),
+                    if (listing.bedrooms != null) ...[
+                      _Feature(
+                        icon: Icons.bed_outlined,
+                        label:
+                            '${listing.bedrooms} bed${listing.bedrooms == 1 ? '' : 's'}',
                       ),
-                    ),
-                    Text(
-                      '/ month',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                const Divider(),
-                const SizedBox(height: 12),
-                const Row(
-                  children: [
-                    _Feature(icon: Icons.bed_outlined, label: '2 beds'),
-                    SizedBox(width: 16),
-                    _Feature(icon: Icons.bathtub_outlined, label: '2 baths'),
-                    Spacer(),
-                    Icon(Icons.arrow_forward_rounded, size: 19),
+                      const SizedBox(width: 16),
+                    ],
+                    if (listing.bathrooms != null)
+                      _Feature(
+                        icon: Icons.bathtub_outlined,
+                        label:
+                            '${listing.bathrooms} bath${listing.bathrooms == 1 ? '' : 's'}',
+                      ),
+                    const Spacer(),
+                    const Icon(Icons.arrow_forward_rounded, size: 19),
                   ],
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PhotoChip extends StatelessWidget {
+  const _PhotoChip({
+    required this.background,
+    required this.foreground,
+    required this.child,
+  });
+
+  final Color background;
+  final Color foreground;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DefaultTextStyle(
+        style:
+            Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: foreground,
+              fontWeight: FontWeight.w700,
+            ) ??
+            TextStyle(color: foreground),
+        child: child,
       ),
     );
   }
@@ -434,7 +580,7 @@ class _Feature extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: NyumbaColors.mutedInk),
+        Icon(icon, size: 18, color: context.nyumba.mutedInk),
         const SizedBox(width: 5),
         Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],

@@ -17,6 +17,8 @@ final class Listing {
     required this.createdAt,
     required this.updatedAt,
     required this.syncMetadata,
+    this.bedrooms,
+    this.bathrooms,
     this.availableFrom,
     List<String> imageUrls = const <String>[],
     this.contactPhone,
@@ -35,6 +37,11 @@ final class Listing {
   final int monthlyRentMinor;
   final String currency;
   final ListingStatus status;
+
+  /// Copied from the advertised unit when the draft is created; null on
+  /// records that predate this projection field.
+  final int? bedrooms;
+  final int? bathrooms;
   final DateTime? availableFrom;
   final List<String> imageUrls;
   final String? contactPhone;
@@ -136,6 +143,8 @@ final class Listing {
     monthlyRentMinor: monthlyRentMinor ?? this.monthlyRentMinor,
     currency: currency ?? this.currency,
     status: status ?? this.status,
+    bedrooms: bedrooms,
+    bathrooms: bathrooms,
     availableFrom: clearAvailableFrom
         ? null
         : (availableFrom ?? this.availableFrom),
@@ -161,7 +170,7 @@ final class CreateListingInput {
     required this.title,
     required this.description,
     required this.monthlyRentMinor,
-    this.currency = 'KES',
+    this.currency = 'UGX',
     this.availableFrom,
     this.imageUrls = const <String>[],
     this.contactPhone,

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
+import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../application/session_controller.dart';
 import '../domain/user_session.dart';
@@ -17,7 +19,7 @@ class SignInScreen extends ConsumerStatefulWidget {
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController(
-    text: 'joshua@demo.nyumba.co.ke',
+    text: 'joshua@demo.nyumba.ug',
   );
   final _passwordController = TextEditingController(text: 'password');
   bool _obscurePassword = true;
@@ -79,193 +81,204 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                       ),
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 460),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (!showBrand) ...[
-                              const Align(
-                                alignment: Alignment.centerLeft,
-                                child: NyumbaLogo(height: 48),
-                              ),
-                              const SizedBox(height: 46),
-                            ],
-                            Text(
-                              'Welcome back',
-                              style: Theme.of(context).textTheme.headlineLarge,
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Sign in to manage your Nyumba workspace.',
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(color: NyumbaColors.mutedInk),
-                            ),
-                            const SizedBox(height: 32),
-                            Form(
-                              key: _formKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(
-                                    'Email address',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.labelLarge,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  TextFormField(
-                                    controller: _emailController,
-                                    keyboardType: TextInputType.emailAddress,
-                                    autofillHints: const [AutofillHints.email],
-                                    textInputAction: TextInputAction.next,
-                                    decoration: const InputDecoration(
-                                      hintText: 'you@example.com',
-                                      prefixIcon: Icon(
-                                        Icons.mail_outline_rounded,
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      final email = value?.trim() ?? '';
-                                      if (email.isEmpty ||
-                                          !email.contains('@')) {
-                                        return 'Enter a valid email address';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Password',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.labelLarge,
-                                        ),
-                                      ),
-                                      TextButton(
-                                        onPressed: () =>
-                                            _showDemoMessage(context),
-                                        child: const Text('Forgot password?'),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  TextFormField(
-                                    controller: _passwordController,
-                                    obscureText: _obscurePassword,
-                                    autofillHints: const [
-                                      AutofillHints.password,
-                                    ],
-                                    textInputAction: TextInputAction.done,
-                                    onFieldSubmitted: (_) => _submit(),
-                                    decoration: InputDecoration(
-                                      hintText: 'Enter your password',
-                                      prefixIcon: const Icon(
-                                        Icons.lock_outline_rounded,
-                                      ),
-                                      suffixIcon: IconButton(
-                                        tooltip: _obscurePassword
-                                            ? 'Show password'
-                                            : 'Hide password',
-                                        onPressed: () => setState(
-                                          () => _obscurePassword =
-                                              !_obscurePassword,
-                                        ),
-                                        icon: Icon(
-                                          _obscurePassword
-                                              ? Icons.visibility_outlined
-                                              : Icons.visibility_off_outlined,
-                                        ),
-                                      ),
-                                    ),
-                                    validator: (value) =>
-                                        (value?.length ?? 0) < 6
-                                        ? 'Password must have at least 6 characters'
-                                        : null,
-                                  ),
-                                  const SizedBox(height: 24),
-                                  FilledButton(
-                                    onPressed: _isSubmitting ? null : _submit,
-                                    child: _isSubmitting
-                                        ? const SizedBox.square(
-                                            dimension: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Text('Sign in'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 28),
-                            const _DividerLabel(
-                              label: 'Explore the role demos',
-                            ),
-                            const SizedBox(height: 18),
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              children: [
-                                _DemoButton(
-                                  label: 'Landlord',
-                                  icon: Icons.home_work_outlined,
-                                  onPressed: () => _startDemo(AppRole.landlord),
+                        child: FadeSlideIn(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (!showBrand) ...[
+                                const Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: NyumbaLogo(height: 48),
                                 ),
-                                _DemoButton(
-                                  label: 'Tenant',
-                                  icon: Icons.person_outline_rounded,
-                                  onPressed: () => _startDemo(AppRole.tenant),
-                                ),
-                                _DemoButton(
-                                  label: 'Admin',
-                                  icon: Icons.admin_panel_settings_outlined,
-                                  onPressed: () => _startDemo(AppRole.admin),
-                                ),
+                                const SizedBox(height: 46),
                               ],
-                            ),
-                            const SizedBox(height: 28),
-                            DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: NyumbaColors.sageTint,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: const Color(0xFFCDE4D2),
-                                ),
+                              Text(
+                                'Welcome back',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineLarge,
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(14),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              const SizedBox(height: 10),
+                              Text(
+                                'Sign in to manage your Nyumba workspace.',
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(color: context.nyumba.mutedInk),
+                              ),
+                              const SizedBox(height: 32),
+                              Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
-                                    const Icon(
-                                      Icons.offline_bolt_outlined,
-                                      color: NyumbaColors.sageDark,
-                                      size: 20,
+                                    Text(
+                                      'Email address',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelLarge,
                                     ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        'Your workspace stays available offline after your first secure sign-in.',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodySmall,
+                                    const SizedBox(height: 8),
+                                    TextFormField(
+                                      controller: _emailController,
+                                      keyboardType: TextInputType.emailAddress,
+                                      autofillHints: const [
+                                        AutofillHints.email,
+                                      ],
+                                      textInputAction: TextInputAction.next,
+                                      decoration: const InputDecoration(
+                                        hintText: 'you@example.com',
+                                        prefixIcon: Icon(
+                                          Icons.mail_outline_rounded,
+                                        ),
                                       ),
+                                      validator: (value) {
+                                        final email = value?.trim() ?? '';
+                                        if (email.isEmpty ||
+                                            !email.contains('@')) {
+                                          return 'Enter a valid email address';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            'Password',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.labelLarge,
+                                          ),
+                                        ),
+                                        const ComingSoon(
+                                          message: 'Password reset coming soon',
+                                          child: TextButton(
+                                            onPressed: null,
+                                            child: Text('Forgot password?'),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    TextFormField(
+                                      controller: _passwordController,
+                                      obscureText: _obscurePassword,
+                                      autofillHints: const [
+                                        AutofillHints.password,
+                                      ],
+                                      textInputAction: TextInputAction.done,
+                                      onFieldSubmitted: (_) => _submit(),
+                                      decoration: InputDecoration(
+                                        hintText: 'Enter your password',
+                                        prefixIcon: const Icon(
+                                          Icons.lock_outline_rounded,
+                                        ),
+                                        suffixIcon: IconButton(
+                                          tooltip: _obscurePassword
+                                              ? 'Show password'
+                                              : 'Hide password',
+                                          onPressed: () => setState(
+                                            () => _obscurePassword =
+                                                !_obscurePassword,
+                                          ),
+                                          icon: Icon(
+                                            _obscurePassword
+                                                ? Icons.visibility_outlined
+                                                : Icons.visibility_off_outlined,
+                                          ),
+                                        ),
+                                      ),
+                                      validator: (value) =>
+                                          (value?.length ?? 0) < 6
+                                          ? 'Password must have at least 6 characters'
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 24),
+                                    FilledButton(
+                                      onPressed: _isSubmitting ? null : _submit,
+                                      child: _isSubmitting
+                                          ? const SizedBox.square(
+                                              dimension: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Text('Sign in'),
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
-                            if (!showBrand) ...[
-                              const SizedBox(height: 20),
-                              OutlinedButton(
-                                onPressed: () => context.go('/explore'),
-                                child: const Text('Browse available homes'),
+                              const SizedBox(height: 28),
+                              const _DividerLabel(
+                                label: 'Explore the role demos',
                               ),
+                              const SizedBox(height: 18),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: [
+                                  _DemoButton(
+                                    label: 'Landlord',
+                                    icon: Icons.home_work_outlined,
+                                    onPressed: () =>
+                                        _startDemo(AppRole.landlord),
+                                  ),
+                                  _DemoButton(
+                                    label: 'Tenant',
+                                    icon: Icons.person_outline_rounded,
+                                    onPressed: () => _startDemo(AppRole.tenant),
+                                  ),
+                                  _DemoButton(
+                                    label: 'Admin',
+                                    icon: Icons.admin_panel_settings_outlined,
+                                    onPressed: () => _startDemo(AppRole.admin),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 28),
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: context.nyumba.sageTint,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: context.nyumba.sageBorder,
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.offline_bolt_outlined,
+                                        color: context.nyumba.sageDark,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          'Your workspace stays available offline after your first secure sign-in.',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (!showBrand) ...[
+                                const SizedBox(height: 20),
+                                OutlinedButton(
+                                  onPressed: () => context.go('/explore'),
+                                  child: const Text('Browse available homes'),
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),
@@ -274,16 +287,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               ],
             );
           },
-        ),
-      ),
-    );
-  }
-
-  void _showDemoMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Password reset will connect to Firebase Authentication.',
         ),
       ),
     );
@@ -307,43 +310,52 @@ class _BrandPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: NyumbaColors.softIvory,
+              color: context.nyumba.softIvory,
               borderRadius: BorderRadius.circular(10),
             ),
             child: const NyumbaLogo(height: 44),
           ),
           const Spacer(),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 540),
-            child: Text(
-              'Every property, payment and request in one calm workspace.',
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                color: Colors.white,
-                fontSize: 46,
+          FadeSlideIn(
+            delay: NyumbaMotion.stagger(1),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 540),
+              child: Text(
+                'Every property, payment and request in one calm workspace.',
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  color: Colors.white,
+                  fontSize: 46,
+                ),
               ),
             ),
           ),
           const SizedBox(height: 22),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: Text(
-              'Built to keep landlords and tenants moving—even when the connection does not.',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFFDCE7F4),
-                fontWeight: FontWeight.w400,
-                height: 1.5,
+          FadeSlideIn(
+            delay: NyumbaMotion.stagger(2),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Text(
+                'Built to keep landlords and tenants moving—even when the connection does not.',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: const Color(0xFFDCE7F4),
+                  fontWeight: FontWeight.w400,
+                  height: 1.5,
+                ),
               ),
             ),
           ),
           const SizedBox(height: 34),
-          OutlinedButton.icon(
-            onPressed: onExplore,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Color(0xFF8FA9C8)),
+          FadeSlideIn(
+            delay: NyumbaMotion.stagger(3),
+            child: OutlinedButton.icon(
+              onPressed: onExplore,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFF8FA9C8)),
+              ),
+              icon: const Icon(Icons.apartment_outlined),
+              label: const Text('Browse available homes'),
             ),
-            icon: const Icon(Icons.apartment_outlined),
-            label: const Text('Browse available homes'),
           ),
           const Spacer(),
           Row(

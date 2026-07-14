@@ -59,40 +59,40 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     _DocumentRecord(
       type: 'Receipt',
       number: 'RCT-2026-0184',
-      recipient: 'Brian Otieno',
+      recipient: 'Brian Okello',
       property: 'Sunset Apartments',
       unit: 'B4',
-      amountMinor: 4500000,
+      amountMinor: 120000000,
       date: DateTime(2026, 7, 12),
       status: 'Paid',
     ),
     _DocumentRecord(
       type: 'Invoice',
       number: 'INV-2026-0226',
-      recipient: 'Peter Mwangi',
+      recipient: 'Peter Ssemwanga',
       property: 'Greenview Court',
       unit: 'A1',
-      amountMinor: 4000000,
+      amountMinor: 110000000,
       date: DateTime(2026, 7, 1),
       status: 'Due',
     ),
     _DocumentRecord(
       type: 'Receipt',
       number: 'RCT-2026-0183',
-      recipient: 'Grace Wanjiku',
+      recipient: 'Grace Namuli',
       property: 'Riverside Heights',
       unit: 'D1',
-      amountMinor: 5000000,
+      amountMinor: 140000000,
       date: DateTime(2026, 7, 11),
       status: 'Paid',
     ),
     _DocumentRecord(
       type: 'Invoice',
       number: 'INV-2026-0225',
-      recipient: 'Mary Muthoni',
+      recipient: 'Mary Nansubuga',
       property: 'Nyumbani Gardens',
       unit: 'C2',
-      amountMinor: 4750000,
+      amountMinor: 130000000,
       date: DateTime(2026, 7, 1),
       status: 'Part paid',
     ),
@@ -222,8 +222,8 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
-                    backgroundColor: NyumbaColors.navyTint,
-                    child: Icon(item.$1, color: NyumbaColors.midnightNavy),
+                    backgroundColor: context.nyumba.navyTint,
+                    child: Icon(item.$1, color: context.nyumba.midnightNavy),
                   ),
                   title: Text(item.$2),
                   trailing: const Icon(Icons.chevron_right_rounded),
@@ -261,8 +261,8 @@ class _DocumentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFEDE9E2))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.nyumba.divider)),
       ),
       child: Row(
         children: [
@@ -271,8 +271,8 @@ class _DocumentRow extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: document.type == 'Receipt'
-                  ? NyumbaColors.sageTint
-                  : NyumbaColors.navyTint,
+                  ? context.nyumba.sageTint
+                  : context.nyumba.navyTint,
               borderRadius: BorderRadius.circular(9),
             ),
             child: Icon(
@@ -280,8 +280,8 @@ class _DocumentRow extends StatelessWidget {
                   ? Icons.receipt_outlined
                   : Icons.description_outlined,
               color: document.type == 'Receipt'
-                  ? NyumbaColors.sageDark
-                  : NyumbaColors.midnightNavy,
+                  ? context.nyumba.sageDark
+                  : context.nyumba.midnightNavy,
             ),
           ),
           const SizedBox(width: 13),

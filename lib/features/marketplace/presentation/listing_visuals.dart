@@ -16,8 +16,8 @@ String listingAssetFor(Listing listing) {
 
 String listingLocationFor(Listing listing) {
   final title = listing.title.toLowerCase();
-  if (title.contains('sunset')) return 'Westlands, Nairobi';
-  if (title.contains('riverside')) return 'Riverside, Nairobi';
-  if (title.contains('nyumbani')) return 'Kiambu Road, Nairobi';
-  return 'Kilimani, Nairobi';
+  if (title.contains('sunset')) return 'Ntinda, Kampala';
+  if (title.contains('riverside')) return 'Riverside, Kampala';
+  if (title.contains('nyumbani')) return 'Ggaba Road, Kampala';
+  return 'Kololo, Kampala';
 }

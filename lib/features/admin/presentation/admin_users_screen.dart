@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import 'widgets/admin_components.dart';
@@ -47,13 +48,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     return AdminPage(
       title: 'Users & access',
       description: 'Review accounts, roles, verification, and platform access.',
-      secondaryAction: OutlinedButton.icon(
-        onPressed: () => showAdminMessage(
-          context,
-          'A CSV export for ${filtered.length} users was prepared.',
+      secondaryAction: ComingSoon(
+        message: 'User export coming soon',
+        child: OutlinedButton.icon(
+          onPressed: null,
+          icon: Icon(Icons.download_outlined),
+          label: Text('Export'),
         ),
-        icon: const Icon(Icons.download_outlined),
-        label: const Text('Export'),
       ),
       primaryAction: FilledButton.icon(
         onPressed: _inviteUser,
@@ -68,7 +69,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               value: '${_accounts.length}',
               caption: 'In this presentation workspace',
               icon: Icons.groups_2_outlined,
-              tone: NyumbaColors.midnightNavy,
+              tone: context.nyumba.midnightNavy,
             ),
             AdminMetricCard(
               label: 'Active',
@@ -76,7 +77,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               caption:
                   '${(_activeCount / _accounts.length * 100).round()}% of users',
               icon: Icons.verified_user_outlined,
-              tone: NyumbaColors.sageDark,
+              tone: context.nyumba.sageDark,
             ),
             AdminMetricCard(
               label: 'Invitations pending',
@@ -84,14 +85,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   '${_accounts.where((item) => item.status == _AccountStatus.invited).length}',
               caption: 'Resend from the account menu',
               icon: Icons.mark_email_unread_outlined,
-              tone: NyumbaColors.terracottaDark,
+              tone: context.nyumba.terracottaDark,
             ),
             AdminMetricCard(
               label: 'Suspended',
               value: '$_suspendedCount',
               caption: 'Access is currently blocked',
               icon: Icons.person_off_outlined,
-              tone: NyumbaColors.danger,
+              tone: context.nyumba.danger,
             ),
           ],
         ),
@@ -107,7 +108,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       : 320,
                   child: TextField(
                     decoration: const InputDecoration(
-                      hintText: 'Search name, email, or county',
+                      hintText: 'Search name, email, or district',
                       prefixIcon: Icon(Icons.search_rounded),
                     ),
                     onChanged: (value) => setState(() => _query = value),
@@ -316,13 +317,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   onChanged: (value) => setDialogState(() => role = value),
                 ),
                 const SizedBox(height: 14),
-                const Row(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.info_outline_rounded,
                       size: 18,
-                      color: NyumbaColors.midnightNavy,
+                      color: context.nyumba.midnightNavy,
                     ),
                     SizedBox(width: 8),
                     Expanded(
@@ -738,20 +739,20 @@ class _UserAccount {
 const _seedAccounts = [
   _UserAccount(
     id: 'USR-4082',
-    name: 'Wanjiku Mwangi',
-    email: 'wanjiku@acaciahomes.co.ke',
+    name: 'Sandra Nakato',
+    email: 'sandra@acaciahomes.ug',
     role: 'Landlord',
-    location: 'Nairobi',
+    location: 'Kampala',
     status: _AccountStatus.active,
     lastActive: '8 min ago',
     joined: '14 Feb 2025',
   ),
   _UserAccount(
     id: 'USR-4079',
-    name: 'Brian Otieno',
+    name: 'Brian Okello',
     email: 'brian.otieno@example.com',
     role: 'Tenant',
-    location: 'Nairobi',
+    location: 'Kampala',
     status: _AccountStatus.active,
     lastActive: '42 min ago',
     joined: '3 Jun 2025',
@@ -759,46 +760,46 @@ const _seedAccounts = [
   _UserAccount(
     id: 'USR-4058',
     name: 'Amina Noor',
-    email: 'amina@tuliahomes.co.ke',
+    email: 'amina@tuliahomes.ug',
     role: 'Landlord',
-    location: 'Mombasa',
+    location: 'Mbarara',
     status: _AccountStatus.invited,
     lastActive: 'Invitation pending',
     joined: '11 Jul 2026',
   ),
   _UserAccount(
     id: 'USR-4024',
-    name: 'Kevin Kiptoo',
+    name: 'Kevin Odongo',
     email: 'kevin.kiptoo@example.com',
     role: 'Tenant',
-    location: 'Nakuru',
+    location: 'Jinja',
     status: _AccountStatus.suspended,
     lastActive: '9 Jul 2026',
     joined: '22 Nov 2025',
   ),
   _UserAccount(
     id: 'USR-3998',
-    name: 'Faith Wambui',
+    name: 'Faith Nabirye',
     email: 'faith.wambui@example.com',
     role: 'Tenant',
-    location: 'Kiambu',
+    location: 'Wakiso',
     status: _AccountStatus.active,
     lastActive: 'Yesterday',
     joined: '6 Oct 2025',
   ),
   _UserAccount(
     id: 'USR-3951',
-    name: 'Sam Kilonzo',
-    email: 'sam@kilimaproperties.co.ke',
+    name: 'Sam Walusimbi',
+    email: 'sam@kilimaproperties.ug',
     role: 'Landlord',
-    location: 'Machakos',
+    location: 'Mukono',
     status: _AccountStatus.active,
     lastActive: 'Yesterday',
     joined: '18 Aug 2025',
   ),
   _UserAccount(
     id: 'USR-3905',
-    name: 'Mercy Chebet',
+    name: 'Mercy Atim',
     email: 'mercy.chebet@example.com',
     role: 'Tenant',
     location: 'Uasin Gishu',
@@ -808,10 +809,10 @@ const _seedAccounts = [
   ),
   _UserAccount(
     id: 'USR-3818',
-    name: 'Daniel Kamau',
-    email: 'daniel.kamau@nyumba.co.ke',
+    name: 'Daniel Musoke',
+    email: 'daniel.musoke@nyumba.ug',
     role: 'Admin',
-    location: 'Nairobi',
+    location: 'Kampala',
     status: _AccountStatus.active,
     lastActive: 'Just now',
     joined: '10 Jan 2025',

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -156,7 +157,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                         ),
                                       ),
                                       DataCell(
-                                        Text(formatKes(payment.amountMinor)),
+                                        Text(formatUgx(payment.amountMinor)),
                                       ),
                                       DataCell(
                                         Text(
@@ -165,7 +166,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                           ).format(payment.date),
                                         ),
                                       ),
-                                      const DataCell(Text('M-Pesa')),
+                                      const DataCell(Text('MTN MoMo')),
                                       DataCell(
                                         _FinancePaymentBadge(
                                           state: payment.state,
@@ -182,17 +183,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       padding: const EdgeInsets.all(12),
                       child: Align(
                         alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: () =>
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'CSV export queued for generation.',
-                                  ),
-                                ),
-                              ),
-                          icon: const Icon(Icons.download_outlined, size: 18),
-                          label: const Text('Export report'),
+                        child: ComingSoon(
+                          message: 'Report export coming soon',
+                          child: TextButton.icon(
+                            onPressed: null,
+                            icon: Icon(Icons.download_outlined, size: 18),
+                            label: Text('Export report'),
+                          ),
                         ),
                       ),
                     ),
@@ -217,30 +214,30 @@ class _FinanceSummary extends StatelessWidget {
     final summaries = [
       (
         'Collected this month',
-        formatKes(snapshot.rentCollectedMinor),
+        formatUgx(snapshot.rentCollectedMinor),
         Icons.trending_up_rounded,
-        NyumbaColors.sageDark,
+        context.nyumba.sageDark,
         '87.8% of rent due',
       ),
       (
         'Outstanding',
-        formatKes(snapshot.rentOutstandingMinor),
+        formatUgx(snapshot.rentOutstandingMinor),
         Icons.schedule_rounded,
-        NyumbaColors.terracottaDark,
+        context.nyumba.terracottaDark,
         '7 invoices open',
       ),
       (
         'Overdue',
-        'KES 62,500',
+        'UGX 1,650,000',
         Icons.error_outline_rounded,
-        NyumbaColors.danger,
+        context.nyumba.danger,
         '3 tenants require follow-up',
       ),
       (
         'Next payout',
-        'KES 294,000',
+        'UGX 7,800,000',
         Icons.account_balance_outlined,
-        NyumbaColors.midnightNavy,
+        context.nyumba.midnightNavy,
         'Expected 28 May',
       ),
     ];
@@ -310,18 +307,18 @@ class _CompactFinanceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFEDE9E2))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.nyumba.divider)),
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 18,
-            backgroundColor: NyumbaColors.sageTint,
+            backgroundColor: context.nyumba.sageTint,
             child: Icon(
               Icons.south_west_rounded,
               size: 18,
-              color: NyumbaColors.sageDark,
+              color: context.nyumba.sageDark,
             ),
           ),
           const SizedBox(width: 12),
@@ -344,7 +341,7 @@ class _CompactFinanceRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                formatKes(payment.amountMinor),
+                formatUgx(payment.amountMinor),
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 4),
@@ -416,7 +413,7 @@ Future<void> _showGenerateInvoices(BuildContext context) async {
               ),
               const SizedBox(height: 14),
               const StatusBadge(
-                label: '20 active leases · KES 960,000 total',
+                label: '20 active leases · UGX 26,400,000 total',
                 tone: BadgeTone.info,
               ),
             ],
@@ -461,16 +458,16 @@ Future<void> _showRecordPayment(BuildContext context) async {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                initialValue: 'Brian Otieno · B4',
+                initialValue: 'Brian Okello · B4',
                 decoration: const InputDecoration(labelText: 'Tenant and unit'),
                 items: const [
                   DropdownMenuItem(
-                    value: 'Brian Otieno · B4',
-                    child: Text('Brian Otieno · B4'),
+                    value: 'Brian Okello · B4',
+                    child: Text('Brian Okello · B4'),
                   ),
                   DropdownMenuItem(
-                    value: 'Grace Wanjiku · D1',
-                    child: Text('Grace Wanjiku · D1'),
+                    value: 'Grace Namuli · D1',
+                    child: Text('Grace Namuli · D1'),
                   ),
                 ],
                 onChanged: (_) {},
@@ -481,7 +478,7 @@ Future<void> _showRecordPayment(BuildContext context) async {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   labelText: 'Amount',
-                  prefixText: 'KES ',
+                  prefixText: 'UGX ',
                 ),
                 validator: (value) {
                   final parsed = int.tryParse(value?.replaceAll(',', '') ?? '');
@@ -492,15 +489,22 @@ Future<void> _showRecordPayment(BuildContext context) async {
               ),
               const SizedBox(height: 14),
               DropdownButtonFormField<String>(
-                initialValue: 'M-Pesa',
+                initialValue: 'MTN Mobile Money',
                 decoration: const InputDecoration(labelText: 'Payment method'),
                 items: const [
-                  DropdownMenuItem(value: 'M-Pesa', child: Text('M-Pesa')),
-                  DropdownMenuItem(
-                    value: 'Bank transfer',
-                    child: Text('Bank transfer'),
-                  ),
                   DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                  DropdownMenuItem(
+                    value: 'MTN Mobile Money',
+                    child: Text('MTN Mobile Money'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Airtel Money',
+                    child: Text('Airtel Money'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Card (Bank)',
+                    child: Text('Card (Bank)'),
+                  ),
                 ],
                 onChanged: (_) {},
               ),

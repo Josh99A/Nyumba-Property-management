@@ -59,8 +59,8 @@ class PdfDocumentService implements DocumentService {
     const ink = PdfColor.fromInt(0xFF17253A);
     const muted = PdfColor.fromInt(0xFF667085);
     final currency = NumberFormat.currency(
-      locale: 'en_KE',
-      symbol: 'KES ',
+      locale: 'en_UG',
+      symbol: 'UGX ',
       decimalDigits: 0,
     );
 

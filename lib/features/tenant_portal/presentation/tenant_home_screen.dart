@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/status_badge.dart';
 import 'widgets/tenant_components.dart';
 
@@ -12,7 +13,7 @@ class TenantHomeScreen extends StatefulWidget {
 }
 
 class _TenantHomeScreenState extends State<TenantHomeScreen> {
-  int _balance = 45000;
+  int _balance = 1200000;
   bool _maintenanceSubmitted = false;
 
   @override
@@ -56,7 +57,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                         ? 'Latest confirmed payment'
                         : 'Secure checkout',
                     icon: Icons.payments_outlined,
-                    color: NyumbaColors.sageDark,
+                    color: context.nyumba.sageDark,
                     onTap: paid ? _showLatestReceipt : _payRent,
                   ),
                 ),
@@ -66,7 +67,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                     label: 'Report a problem',
                     caption: 'Works while offline',
                     icon: Icons.home_repair_service_outlined,
-                    color: NyumbaColors.terracottaDark,
+                    color: context.nyumba.terracottaDark,
                     onTap: _reportProblem,
                   ),
                 ),
@@ -76,7 +77,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                     label: 'Rent statement',
                     caption: 'View or print',
                     icon: Icons.receipt_long_outlined,
-                    color: NyumbaColors.midnightNavy,
+                    color: context.nyumba.midnightNavy,
                     onTap: _showStatement,
                   ),
                 ),
@@ -86,7 +87,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                     label: 'Lease documents',
                     caption: '3 shared files',
                     icon: Icons.folder_copy_outlined,
-                    color: NyumbaColors.sageDark,
+                    color: context.nyumba.sageDark,
                     onTap: _showLeaseFiles,
                   ),
                 ),
@@ -145,16 +146,16 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
           decoration: BoxDecoration(
-            color: NyumbaColors.sageTint,
+            color: context.nyumba.sageTint,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFCDE4D2)),
+            border: Border.all(color: context.nyumba.sageBorder),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Icon(
                 Icons.offline_pin_outlined,
                 size: 20,
-                color: NyumbaColors.sageDark,
+                color: context.nyumba.sageDark,
               ),
               SizedBox(width: 9),
               Expanded(
@@ -171,7 +172,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   }
 
   Future<void> _payRent() async {
-    var method = 'M-PESA';
+    var method = 'MTN MoMo';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -186,7 +187,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: NyumbaColors.navyTint,
+                    color: context.nyumba.navyTint,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -198,7 +199,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        formatTenantKes(_balance),
+                        formatTenantUgx(_balance),
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 4),
@@ -216,17 +217,22 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final item in const ['M-PESA', 'Bank', 'Card'])
+                    for (final item in const [
+                      'Cash',
+                      'MTN MoMo',
+                      'Airtel Money',
+                      'Card (Bank)',
+                    ])
                       ChoiceChip(
                         label: Text(item),
                         selected: method == item,
                         showCheckmark: false,
                         avatar: Icon(
-                          item == 'M-PESA'
-                              ? Icons.phone_android_rounded
-                              : item == 'Bank'
-                              ? Icons.account_balance_outlined
-                              : Icons.credit_card_outlined,
+                          item == 'Cash'
+                              ? Icons.payments_outlined
+                              : item == 'Card (Bank)'
+                              ? Icons.credit_card_outlined
+                              : Icons.phone_android_rounded,
                           size: 18,
                         ),
                         onSelected: (_) => setDialogState(() => method = item),
@@ -234,13 +240,13 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 15),
-                const Row(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.lock_outline_rounded,
                       size: 18,
-                      color: NyumbaColors.sageDark,
+                      color: context.nyumba.sageDark,
                     ),
                     SizedBox(width: 8),
                     Expanded(
@@ -272,7 +278,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     setState(() => _balance = 0);
     showTenantMessage(
       context,
-      'Payment confirmed. Receipt NYB-RCP-00842 is ready.',
+      'Payment recorded locally — awaiting confirmation.',
     );
   }
 
@@ -374,21 +380,21 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
               _StatementRow(
                 month: 'July 2026',
                 reference: 'NYB-RCP-00842',
-                amount: 'KES 45,000',
+                amount: 'UGX 1,200,000',
                 status: 'Paid',
               ),
               Divider(height: 25),
               _StatementRow(
                 month: 'June 2026',
                 reference: 'NYB-RCP-00791',
-                amount: 'KES 45,000',
+                amount: 'UGX 1,200,000',
                 status: 'Paid',
               ),
               Divider(height: 25),
               _StatementRow(
                 month: 'May 2026',
                 reference: 'NYB-RCP-00744',
-                amount: 'KES 45,000',
+                amount: 'UGX 1,200,000',
                 status: 'Paid',
               ),
             ],
@@ -399,13 +405,13 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Close'),
           ),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              showTenantMessage(context, 'Printable rent statement prepared.');
-            },
-            icon: const Icon(Icons.print_outlined),
-            label: const Text('Print statement'),
+          ComingSoon(
+            message: 'Statement printing coming soon',
+            child: FilledButton.icon(
+              onPressed: null,
+              icon: Icon(Icons.print_outlined),
+              label: Text('Print statement'),
+            ),
           ),
         ],
       ),
@@ -417,7 +423,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Payment receipt'),
-        content: const SizedBox(
+        content: SizedBox(
           width: 440,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -426,10 +432,10 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
               Center(
                 child: CircleAvatar(
                   radius: 28,
-                  backgroundColor: NyumbaColors.sageTint,
+                  backgroundColor: context.nyumba.sageTint,
                   child: Icon(
                     Icons.check_rounded,
-                    color: NyumbaColors.sageDark,
+                    color: context.nyumba.sageDark,
                     size: 30,
                   ),
                 ),
@@ -437,9 +443,9 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
               SizedBox(height: 14),
               Center(
                 child: Text(
-                  'KES 45,000',
+                  'UGX 1,200,000',
                   style: TextStyle(
-                    color: NyumbaColors.midnightNavy,
+                    color: context.nyumba.midnightNavy,
                     fontWeight: FontWeight.w700,
                     fontSize: 25,
                   ),
@@ -461,7 +467,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
               TenantInfoRow(
                 icon: Icons.calendar_today_outlined,
                 label: 'Paid',
-                value: '3 Jul 2026 via M-PESA',
+                value: '3 Jul 2026 via MTN MoMo',
               ),
             ],
           ),
@@ -507,11 +513,11 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
               ])
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const CircleAvatar(
-                    backgroundColor: NyumbaColors.navyTint,
+                  leading: CircleAvatar(
+                    backgroundColor: context.nyumba.navyTint,
                     child: Icon(
                       Icons.description_outlined,
-                      color: NyumbaColors.midnightNavy,
+                      color: context.nyumba.midnightNavy,
                     ),
                   ),
                   title: Text(file.$1),
@@ -539,14 +545,14 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 28,
-                backgroundColor: NyumbaColors.navyTint,
+                backgroundColor: context.nyumba.navyTint,
                 child: Text('WM'),
               ),
               const SizedBox(height: 10),
               Text(
-                'Wanjiku Mwangi',
+                'Sandra Nakato',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const Text('Property manager • Acacia Heights'),
@@ -616,7 +622,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                     ),
                     TenantTimelineStep(
                       title: 'Plumber assigned',
-                      detail: 'Kamau Services • 8 Jul at 13:40',
+                      detail: 'Kato Services • 8 Jul at 13:40',
                       complete: true,
                     ),
                     TenantTimelineStep(
@@ -646,7 +652,7 @@ class _HomeAndLeasePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return const TenantPanel(
       title: 'Your home',
-      subtitle: 'Acacia Heights • Kilimani, Nairobi',
+      subtitle: 'Acacia Heights • Kololo, Kampala',
       trailing: TenantStatusBadge(status: 'Active'),
       child: Column(
         children: [
@@ -665,13 +671,13 @@ class _HomeAndLeasePanel extends StatelessWidget {
           TenantInfoRow(
             icon: Icons.payments_outlined,
             label: 'Monthly rent',
-            value: 'KES 45,000 • due on the 5th',
+            value: 'UGX 1,200,000 • due on the 5th',
           ),
           Divider(height: 25),
           TenantInfoRow(
             icon: Icons.person_outline_rounded,
             label: 'Property manager',
-            value: 'Wanjiku Mwangi',
+            value: 'Sandra Nakato',
           ),
         ],
       ),
@@ -702,7 +708,9 @@ class _MaintenanceSummaryPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: submitted ? NyumbaColors.goldTint : NyumbaColors.navyTint,
+              color: submitted
+                  ? context.nyumba.goldTint
+                  : context.nyumba.navyTint,
               borderRadius: BorderRadius.circular(11),
             ),
             child: Row(
@@ -712,8 +720,8 @@ class _MaintenanceSummaryPanel extends StatelessWidget {
                       ? Icons.cloud_upload_outlined
                       : Icons.plumbing_outlined,
                   color: submitted
-                      ? NyumbaColors.terracottaDark
-                      : NyumbaColors.midnightNavy,
+                      ? context.nyumba.terracottaDark
+                      : context.nyumba.midnightNavy,
                 ),
                 const SizedBox(width: 11),
                 Expanded(
@@ -771,14 +779,14 @@ class _NoticesPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const TenantPanel(
+    return TenantPanel(
       title: 'Notices from your property',
       subtitle: 'Important updates shared by your manager',
       child: Column(
         children: [
           _NoticeRow(
             icon: Icons.water_drop_outlined,
-            color: NyumbaColors.midnightNavy,
+            color: context.nyumba.midnightNavy,
             title: 'Planned water interruption',
             detail: 'Wednesday, 15 Jul • 09:00–14:00 for tank cleaning.',
             date: 'Today',
@@ -786,7 +794,7 @@ class _NoticesPanel extends StatelessWidget {
           Divider(height: 25),
           _NoticeRow(
             icon: Icons.security_outlined,
-            color: NyumbaColors.sageDark,
+            color: context.nyumba.sageDark,
             title: 'Visitor access update',
             detail: 'Please pre-register overnight guests with security.',
             date: '10 Jul',
@@ -857,11 +865,23 @@ class _RecentPaymentsPanel extends StatelessWidget {
       trailing: TextButton(onPressed: onReceipt, child: const Text('Receipt')),
       child: const Column(
         children: [
-          _PaymentRow(month: 'July 2026', date: '3 Jul', amount: 'KES 45,000'),
+          _PaymentRow(
+            month: 'July 2026',
+            date: '3 Jul',
+            amount: 'UGX 1,200,000',
+          ),
           Divider(height: 25),
-          _PaymentRow(month: 'June 2026', date: '4 Jun', amount: 'KES 45,000'),
+          _PaymentRow(
+            month: 'June 2026',
+            date: '4 Jun',
+            amount: 'UGX 1,200,000',
+          ),
           Divider(height: 25),
-          _PaymentRow(month: 'May 2026', date: '2 May', amount: 'KES 45,000'),
+          _PaymentRow(
+            month: 'May 2026',
+            date: '2 May',
+            amount: 'UGX 1,200,000',
+          ),
         ],
       ),
     );
@@ -883,13 +903,13 @@ class _PaymentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 18,
-          backgroundColor: NyumbaColors.sageTint,
+          backgroundColor: context.nyumba.sageTint,
           child: Icon(
             Icons.check_rounded,
             size: 19,
-            color: NyumbaColors.sageDark,
+            color: context.nyumba.sageDark,
           ),
         ),
         const SizedBox(width: 11),
@@ -925,9 +945,9 @@ class _StatementRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const CircleAvatar(
-          backgroundColor: NyumbaColors.sageTint,
-          child: Icon(Icons.check_rounded, color: NyumbaColors.sageDark),
+        CircleAvatar(
+          backgroundColor: context.nyumba.sageTint,
+          child: Icon(Icons.check_rounded, color: context.nyumba.sageDark),
         ),
         const SizedBox(width: 11),
         Expanded(

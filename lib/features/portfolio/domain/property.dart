@@ -72,7 +72,7 @@ final class CreatePropertyInput {
     required this.name,
     required this.addressLine,
     required this.city,
-    this.country = 'Kenya',
+    this.country = 'Uganda',
     this.description,
   });
 

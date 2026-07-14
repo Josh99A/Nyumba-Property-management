@@ -81,28 +81,39 @@ Do not trust a `uid`, `landlordId`, role, amount, status, unit count, or timesta
 
 - IDs are client-generated UUIDv7/ULID-style identifiers where offline creation is needed. A retry must reuse the same ID.
 - Money is `{amountMinor: integer, currency: ISO-4217}`; never store floating-point currency values.
-- Firestore timestamps are UTC server timestamps. `Africa/Nairobi` is a presentation/reporting timezone, not a storage format.
+- Firestore timestamps are UTC server timestamps. `Africa/Kampala` is a presentation/reporting timezone, not a storage format.
 - Mutable aggregates carry a monotonically increasing `version`, `createdAt`, `updatedAt`, and optional `deletedAt`.
 - Deletion is a server-written tombstone (`isDeleted: true`, `deletedAt`) until every supported sync horizon has elapsed. Hard deletion is a retention job.
 - Sensitive fields are omitted from projections rather than hidden only in the UI.
 
 ## Operational baseline
 
-- Separate Firebase projects for development, staging, and production. **TBD:** actual Firebase project IDs.
+- Separate Firebase projects for development, staging, and production. The connected development project is `nyumba-property-management` (Blaze plan); staging and production project IDs are **TBD**.
+- Regional deployment is finalized as **`europe-west1`** for Firestore, Cloud Functions, and Storage (full product availability with reliable latency to East Africa).
 - Enforce App Check for callable Functions, Firestore, and Storage after each platform is registered.
 - Use the Firebase Emulator Suite for rules and command integration tests.
 - Export audit logs and monitor rejected rules, command failures, duplicate provider callbacks, projection lag, outbox age, and notification failures.
 - Back up Firestore and define retention/deletion policies before collecting production data.
 - Clear user-scoped local data and Firebase persistence on sign-out/account switch. Mobile local storage containing private data should be encrypted with a key protected by the OS keystore; web storage should minimize retained PII.
 
+## Finalized product configuration
+
+Decided on 2026-07-14 (client mirror in `lib/core/config/market_config.dart`; the backend remains authoritative and must validate independently):
+
+- **Market:** Uganda only at launch. Currency is UGX (amounts stored in integer minor units), phone numbers are E.164 `+256` followed by nine digits, reporting timezone is `Africa/Kampala`. Payment rails are MTN Mobile Money, Airtel Money, bank transfer, and landlord-recorded cash. Uganda VAT (standard 18%) applies to platform subscription fees and is computed server-side only.
+- **Region:** `europe-west1` for Firestore, Cloud Functions, and Storage.
+- **Public listings:** a published listing expires 30 days after (re)publication; landlords can renew. Expiry is enforced by a backend projection job, never by the client.
+- **Upload limits:** listing photos max 10 per listing, 5 MB each (`image/jpeg`, `image/png`, `image/webp`); documents max 10 MB (`application/pdf`, `image/jpeg`, `image/png`). Enforced in `firebase/storage.rules`.
+- **Retention:** financial records (invoices, payments, receipts) 7 years; deleted listings and their media purged 90 days after deletion; maintenance media 2 years.
+
 ## Unresolved product configuration
 
 The following values must not be hard-coded in Flutter or security rules:
 
-- **TBD:** Firebase project IDs, application IDs, hosting domains, sender IDs, and regional deployment choice;
-- **TBD:** Starter, Pro, Premium, and Enterprise prices, billing intervals, unit limits, trials, grace periods, and feature entitlements;
-- **TBD:** payment provider, supported currencies, fees, reconciliation policy, and webhook contract;
-- **TBD:** public-listing lifetime, moderation policy, application retention, and contact-channel policy;
-- **TBD:** document retention, maximum upload sizes by document type, and local offline retention horizon.
+- **TBD:** staging/production Firebase project IDs, application IDs, hosting domains, and sender IDs;
+- Tier structure, capability matrix, suggested limits, free tenant/prospect access, non-paywall rules, and downgrade policy are defined in [subscription-tiers.md](subscription-tiers.md). **TBD:** monetary prices, billing intervals, trials, and exact grace-period lengths;
+- **TBD:** payment provider integration (MoMo/Airtel aggregator choice), fees, reconciliation policy, and webhook contract;
+- **TBD:** listing moderation policy, application retention, and contact-channel policy;
+- **TBD:** local offline retention horizon on device.
 
 Until finalized, backend configuration should fail closed: an unknown plan grants no publishing or unit-creation entitlement, and a missing payment configuration cannot mark a payment successful.

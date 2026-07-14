@@ -59,7 +59,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
       id: 'MNT-2048',
       title: 'Leaking tap in kitchen',
       location: 'Unit A2 · Greenview Court',
-      reporter: 'Alice Njeri',
+      reporter: 'Alice Namutebi',
       createdAt: DateTime.now().subtract(const Duration(hours: 1)),
       priority: WorkOrderPriority.urgent,
       status: WorkOrderStatus.open,
@@ -72,7 +72,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
       createdAt: DateTime.now().subtract(const Duration(hours: 3)),
       priority: WorkOrderPriority.high,
       status: WorkOrderStatus.inProgress,
-      assignee: 'Kamau Electricals',
+      assignee: 'Kato Electricals',
     ),
     _WorkOrder(
       id: 'MNT-2046',
@@ -87,7 +87,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
       id: 'MNT-2045',
       title: 'Bedroom door lock is loose',
       location: 'Unit C1 · Nyumbani Gardens',
-      reporter: 'David Kamau',
+      reporter: 'David Kato',
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
       priority: WorkOrderPriority.normal,
       status: WorkOrderStatus.resolved,
@@ -223,7 +223,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
         title: Text('Assign ${order.id}'),
         children: [
           for (final contractor in const [
-            'Kamau Electricals',
+            'Kato Electricals',
             'Jenga Fixers',
             'Maji Works',
           ])
@@ -385,7 +385,7 @@ class _MaintenanceSummary extends StatelessWidget {
         'Open',
         orders.where((item) => item.status == WorkOrderStatus.open).length,
         Icons.inbox_outlined,
-        NyumbaColors.midnightNavy,
+        context.nyumba.midnightNavy,
       ),
       (
         'In progress',
@@ -393,7 +393,7 @@ class _MaintenanceSummary extends StatelessWidget {
             .where((item) => item.status == WorkOrderStatus.inProgress)
             .length,
         Icons.engineering_outlined,
-        NyumbaColors.terracottaDark,
+        context.nyumba.terracottaDark,
       ),
       (
         'Urgent',
@@ -405,13 +405,13 @@ class _MaintenanceSummary extends StatelessWidget {
             )
             .length,
         Icons.priority_high_rounded,
-        NyumbaColors.danger,
+        context.nyumba.danger,
       ),
       (
         'Resolved',
         orders.where((item) => item.status == WorkOrderStatus.resolved).length,
         Icons.check_circle_outline_rounded,
-        NyumbaColors.sageDark,
+        context.nyumba.sageDark,
       ),
     ];
     return LayoutBuilder(
@@ -478,8 +478,8 @@ class _WorkOrderRow extends StatelessWidget {
     final compact = context.isCompact;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFEDE9E2))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.nyumba.divider)),
       ),
       child: compact
           ? Column(
