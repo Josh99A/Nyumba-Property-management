@@ -1,4 +1,4 @@
-enum AppRole { admin, landlord, tenant }
+enum AppRole { admin, landlord, tenant, client }
 
 enum AccountStatus { active, pendingApproval, suspended }
 
@@ -10,6 +10,9 @@ class UserSession {
     required this.role,
     this.phone = '+256772000100',
     this.accountStatus = AccountStatus.active,
+    this.emailVerified = true,
+    this.isAnonymous = false,
+    this.isDemo = false,
   });
 
   final String userId;
@@ -18,6 +21,9 @@ class UserSession {
   final AppRole role;
   final String phone;
   final AccountStatus accountStatus;
+  final bool emailVerified;
+  final bool isAnonymous;
+  final bool isDemo;
 
   String get firstName {
     final trimmed = displayName.trim();
@@ -33,5 +39,8 @@ class UserSession {
         phone: phone ?? this.phone,
         role: role,
         accountStatus: accountStatus,
+        emailVerified: emailVerified,
+        isAnonymous: isAnonymous,
+        isDemo: isDemo,
       );
 }

@@ -1,4 +1,4 @@
-enum EntitySyncState { synced, pending, failed }
+enum EntitySyncState { synced, pending, conflicted, failed }
 
 /// Sync information carried by every offline aggregate.
 ///
@@ -46,6 +46,14 @@ final class SyncMetadata {
     lastSyncedAt: lastSyncedAt,
     lastError: error,
   );
+
+  SyncMetadata markConflicted(String error, {String? remoteRevision}) =>
+      SyncMetadata(
+        state: EntitySyncState.conflicted,
+        serverRevision: remoteRevision ?? serverRevision,
+        lastSyncedAt: lastSyncedAt,
+        lastError: error,
+      );
 
   @override
   bool operator ==(Object other) =>

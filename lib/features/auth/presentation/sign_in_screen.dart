@@ -40,8 +40,44 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             email: _emailController.text,
             password: _passwordController.text,
           );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter your email address first.')),
+      );
+      return;
+    }
+    try {
+      await ref
+          .read(sessionControllerProvider.notifier)
+          .sendPasswordResetEmail(email);
+      if (!mounted) return;
+      await showNyumbaInfoDialog(
+        context,
+        title: 'Check your email',
+        message: 'A password-reset link was sent if that account exists.',
+        icon: Icons.lock_reset_rounded,
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
+      );
     }
   }
 
@@ -150,16 +186,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                           ),
                                         ),
                                         TextButton(
-                                          onPressed: () => showNyumbaInfoDialog(
-                                            context,
-                                            title: 'Password reset',
-                                            message:
-                                                'Demo accounts do not use real passwords. '
-                                                'For production accounts, Firebase must be '
-                                                'configured before a reset email can be sent. '
-                                                'No email has been sent from this demo.',
-                                            icon: Icons.lock_reset_rounded,
-                                          ),
+                                          onPressed: _resetPassword,
                                           child: const Text('Forgot password?'),
                                         ),
                                       ],

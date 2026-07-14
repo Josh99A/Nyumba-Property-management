@@ -142,6 +142,77 @@ void main() {
     expect(sync.serverRevision, 'revision-1');
     expect(await database.outboxCount(), 1);
   });
+
+  test('remote merge marks a pending divergent edit as conflicted', () async {
+    await database.mergeRemoteEntity(
+      entityType: OfflineEntityType.property,
+      entityId: 'property-1',
+      entity: <String, Object?>{
+        'id': 'property-1',
+        'name': 'Server v1',
+        'version': 1,
+      },
+    );
+    await database.putEntityAndEnqueue(
+      entityType: OfflineEntityType.property,
+      entityId: 'property-1',
+      entity: _entityJson(id: 'property-1', name: 'Local edit'),
+      mutationId: 'property-update',
+      operation: OutboxOperation.update,
+      createdAt: now,
+    );
+
+    final result = await database.mergeRemoteEntity(
+      entityType: OfflineEntityType.property,
+      entityId: 'property-1',
+      entity: <String, Object?>{
+        'id': 'property-1',
+        'name': 'Server v2',
+        'version': 2,
+      },
+    );
+
+    expect(result, RemoteMergeResult.conflicted);
+    final local = await database.readEntity(
+      OfflineEntityType.property,
+      'property-1',
+    );
+    expect(local?['name'], 'Local edit');
+    expect(
+      SyncMetadataMapper.fromJson(local?['syncMetadata']).state,
+      EntitySyncState.conflicted,
+    );
+  });
+
+  test(
+    'separate account database paths never expose each other records',
+    () async {
+      final first = await OfflineDatabase.open(
+        factory: databaseFactoryMemory,
+        path: 'account-one.db',
+      );
+      final second = await OfflineDatabase.open(
+        factory: databaseFactoryMemory,
+        path: 'account-two.db',
+      );
+      addTearDown(first.close);
+      addTearDown(second.close);
+      await first.putEntityAndEnqueue(
+        entityType: OfflineEntityType.property,
+        entityId: 'private-property',
+        entity: _entityJson(id: 'private-property', name: 'Private'),
+        mutationId: 'private-mutation',
+        operation: OutboxOperation.create,
+        createdAt: now,
+      );
+
+      expect(
+        await second.readEntity(OfflineEntityType.property, 'private-property'),
+        isNull,
+      );
+      expect(await second.outboxCount(), 0);
+    },
+  );
 }
 
 Map<String, Object?> _entityJson({required String id, required String name}) =>

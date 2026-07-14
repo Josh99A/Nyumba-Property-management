@@ -1,0 +1,27 @@
+{
+  "name": "nyumba-functions",
+  "private": true,
+  "description": "Nyumba callable command router, projections, and scheduled workers.",
+  "engines": {
+    "node": "22"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run test/unit",
+    "test:emulator": "firebase emulators:exec --config ../firebase.json --project demo-nyumba --only auth,firestore,storage \"vitest run test/emulator\"",
+    "serve": "npm run build && firebase emulators:start --config ../firebase.json --project demo-nyumba"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.0",
+    "firebase": "^11.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

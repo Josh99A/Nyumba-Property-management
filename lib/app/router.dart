@@ -248,6 +248,7 @@ String? _redirect(UserSession? session, String path) {
     AppRole.landlord => '/dashboard',
     AppRole.tenant => '/tenant',
     AppRole.admin => '/admin',
+    AppRole.client => '/explore',
   };
   if (path == '/sign-in') return home;
   if (publicPath) return null;
@@ -267,6 +268,7 @@ String? _redirect(UserSession? session, String path) {
       path == '/settings' || path == '/tenant' || path.startsWith('/tenant/'),
     AppRole.admin =>
       path == '/settings' || path == '/admin' || path.startsWith('/admin/'),
+    AppRole.client => false,
   };
   return allowed ? null : home;
 }

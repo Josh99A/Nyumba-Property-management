@@ -173,6 +173,7 @@ class NyumbaAppShell extends ConsumerWidget {
     AppRole.landlord => _landlordDestinations,
     AppRole.tenant => _tenantDestinations,
     AppRole.admin => _adminDestinations,
+    AppRole.client => const <AppDestination>[],
   };
 }
 

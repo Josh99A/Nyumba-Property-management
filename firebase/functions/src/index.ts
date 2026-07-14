@@ -1,0 +1,31 @@
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import * as functionsV1 from 'firebase-functions/v1';
+import { executeCommand } from './callable/execute-command';
+import { COLLECTIONS } from './shared/collections';
+import { REGION } from './shared/config';
+import { expirePublicListings } from './workers/listing-expiry';
+import { processBackendJob, sweepBackendJobs } from './workers/jobs';
+
+initializeApp();
+
+export { executeCommand, processBackendJob, sweepBackendJobs, expirePublicListings };
+
+export const onUserCreated = functionsV1
+  .region(REGION)
+  .auth.user()
+  .onCreate(async (user) => {
+    const now = Timestamp.now();
+    const ref = getFirestore().collection(COLLECTIONS.users).doc(user.uid);
+    await ref.create({
+      id: user.uid,
+      displayName: user.displayName ?? '',
+      email: user.email ?? null,
+      role: 'client',
+      status: 'active',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      isDeleted: false,
+    });
+  });

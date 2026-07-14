@@ -14,12 +14,12 @@ src/
   schemas/v1/*.ts
 ```
 
-Deployment placeholders:
+Deployment configuration:
 
-- `TBD_FIREBASE_REGION`
+- Region is finalized as `europe-west1`.
 - `TBD_NYUMBA_*_PROJECT_ID` for dev/staging/prod
 - `TBD_PAYMENT_PROVIDER` and Secret Manager secret names
 - `TBD_PLAN_PRICES`, `TBD_PLAN_UNIT_LIMITS`, trials, grace periods, and entitlements
-- `TBD_LISTING_LIFETIME`, upload limits, retry limits, and retention durations
+- Listing lifetime and upload limits are finalized in `docs/architecture/README.md`; retry and operational retention policies remain deployment-reviewed.
 
 Do not replace a placeholder with a guessed production value. Unknown plan/payment/publication configuration must fail closed.

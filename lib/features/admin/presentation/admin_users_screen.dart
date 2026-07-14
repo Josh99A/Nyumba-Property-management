@@ -1,27 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/offline/aggregate_sync_status.dart';
+import '../../../core/offline/offline_entity.dart';
+import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../../core/presentation/sync_state_badge.dart';
+import '../application/admin_providers.dart';
+import '../domain/admin_action.dart';
+import '../domain/managed_user.dart';
 import 'widgets/admin_components.dart';
 
-class AdminUsersScreen extends StatefulWidget {
+class AdminUsersScreen extends ConsumerStatefulWidget {
   const AdminUsersScreen({super.key});
 
   @override
-  State<AdminUsersScreen> createState() => _AdminUsersScreenState();
+  ConsumerState<AdminUsersScreen> createState() => _AdminUsersScreenState();
 }
 
-class _AdminUsersScreenState extends State<AdminUsersScreen> {
-  final List<_UserAccount> _accounts = [..._seedAccounts];
+class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   String _query = '';
   String _role = 'All roles';
   String _status = 'All statuses';
 
-  List<_UserAccount> get _filteredAccounts {
+  @override
+  Widget build(BuildContext context) {
+    final usersValue = ref.watch(managedUsersProvider);
+    final actions =
+        ref.watch(adminActionsProvider).value ?? const <AdminActionRecord>[];
+    final outbox =
+        ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
+    final accounts = usersValue.value ?? const <ManagedUser>[];
+
     final query = _query.trim().toLowerCase();
-    return _accounts.where((account) {
+    final filtered = accounts.where((account) {
       final matchesQuery =
           query.isEmpty ||
           account.name.toLowerCase().contains(query) ||
@@ -32,19 +49,21 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           _status == 'All statuses' || account.status.label == _status;
       return matchesQuery && matchesRole && matchesStatus;
     }).toList();
-  }
+    final activeCount = accounts
+        .where((account) => account.status == ManagedUserStatus.active)
+        .length;
+    final suspendedCount = accounts
+        .where((account) => account.status == ManagedUserStatus.suspended)
+        .length;
 
-  int get _activeCount => _accounts
-      .where((account) => account.status == _AccountStatus.active)
-      .length;
+    AggregateSyncStatus statusOf(ManagedUser account) =>
+        resolveAggregateSyncStatus(
+          entityType: OfflineEntityType.userProfile,
+          entityId: account.id,
+          outbox: outbox,
+          syncMetadata: account.syncMetadata,
+        );
 
-  int get _suspendedCount => _accounts
-      .where((account) => account.status == _AccountStatus.suspended)
-      .length;
-
-  @override
-  Widget build(BuildContext context) {
-    final filtered = _filteredAccounts;
     return AdminPage(
       title: 'Users & access',
       description: 'Review accounts, roles, verification, and platform access.',
@@ -63,30 +82,31 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           children: [
             AdminMetricCard(
               label: 'All accounts',
-              value: '${_accounts.length}',
+              value: '${accounts.length}',
               caption: 'In this presentation workspace',
               icon: Icons.groups_2_outlined,
               tone: context.nyumba.midnightNavy,
             ),
             AdminMetricCard(
               label: 'Active',
-              value: '$_activeCount',
-              caption:
-                  '${(_activeCount / _accounts.length * 100).round()}% of users',
+              value: '$activeCount',
+              caption: accounts.isEmpty
+                  ? 'No accounts yet'
+                  : '${(activeCount / accounts.length * 100).round()}% of users',
               icon: Icons.verified_user_outlined,
               tone: context.nyumba.sageDark,
             ),
             AdminMetricCard(
               label: 'Invitations pending',
               value:
-                  '${_accounts.where((item) => item.status == _AccountStatus.invited).length}',
+                  '${accounts.where((item) => item.status == ManagedUserStatus.invited).length}',
               caption: 'Resend from the account menu',
               icon: Icons.mark_email_unread_outlined,
               tone: context.nyumba.terracottaDark,
             ),
             AdminMetricCard(
               label: 'Suspended',
-              value: '$_suspendedCount',
+              value: '$suspendedCount',
               caption: 'Access is currently blocked',
               icon: Icons.person_off_outlined,
               tone: context.nyumba.danger,
@@ -152,134 +172,159 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        NyumbaSurface(
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${filtered.length} user${filtered.length == 1 ? '' : 's'}',
-                        style: Theme.of(context).textTheme.titleLarge,
+        if (usersValue.isLoading && accounts.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(40),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (usersValue.hasError && accounts.isEmpty)
+          NyumbaSurface(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Could not load accounts: ${usersValue.error}'),
+            ),
+          )
+        else
+          NyumbaSurface(
+            padding: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${filtered.length} user${filtered.length == 1 ? '' : 's'}',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                       ),
-                    ),
-                    const StatusBadge(
-                      label: 'Role-based access',
-                      tone: BadgeTone.info,
-                      icon: Icons.lock_outline_rounded,
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              if (filtered.isEmpty)
-                AdminEmptyState(
-                  title: 'No users match these filters',
-                  message: 'Try another name, role, or account status.',
-                  action: OutlinedButton(
-                    onPressed: _clearFilters,
-                    child: const Text('Clear filters'),
+                      const StatusBadge(
+                        label: 'Role-based access',
+                        tone: BadgeTone.info,
+                        icon: Icons.lock_outline_rounded,
+                      ),
+                    ],
                   ),
-                )
-              else
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (constraints.maxWidth < 860) {
-                      return Column(
-                        children: [
-                          for (
-                            var index = 0;
-                            index < filtered.length;
-                            index++
-                          ) ...[
-                            _UserCard(
-                              account: filtered[index],
-                              onAction: (action) =>
-                                  _handleAction(action, filtered[index]),
-                            ),
-                            if (index < filtered.length - 1) const Divider(),
-                          ],
-                        ],
-                      );
-                    }
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: constraints.maxWidth,
-                        ),
-                        child: DataTable(
-                          horizontalMargin: 20,
-                          columnSpacing: 30,
-                          headingRowHeight: 48,
-                          dataRowMinHeight: 66,
-                          dataRowMaxHeight: 74,
-                          columns: const [
-                            DataColumn(label: Text('User')),
-                            DataColumn(label: Text('Role')),
-                            DataColumn(label: Text('Location')),
-                            DataColumn(label: Text('Status')),
-                            DataColumn(label: Text('Last active')),
-                            DataColumn(label: Text('')),
-                          ],
-                          rows: [
-                            for (final account in filtered)
-                              DataRow(
-                                cells: [
-                                  DataCell(_UserIdentity(account: account)),
-                                  DataCell(Text(account.role)),
-                                  DataCell(Text(account.location)),
-                                  DataCell(_AccountStatusBadge(account.status)),
-                                  DataCell(Text(account.lastActive)),
-                                  DataCell(
-                                    _AccountMenu(
-                                      account: account,
-                                      onAction: (action) =>
-                                          _handleAction(action, account),
-                                    ),
-                                  ),
-                                ],
+                ),
+                const Divider(),
+                if (filtered.isEmpty)
+                  AdminEmptyState(
+                    title: 'No users match these filters',
+                    message: 'Try another name, role, or account status.',
+                    action: OutlinedButton(
+                      onPressed: _clearFilters,
+                      child: const Text('Clear filters'),
+                    ),
+                  )
+                else
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      if (constraints.maxWidth < 860) {
+                        return Column(
+                          children: [
+                            for (
+                              var index = 0;
+                              index < filtered.length;
+                              index++
+                            ) ...[
+                              _UserCard(
+                                account: filtered[index],
+                                syncStatus: statusOf(filtered[index]),
+                                onAction: (action) =>
+                                    _handleAction(action, filtered[index]),
                               ),
+                              if (index < filtered.length - 1) const Divider(),
+                            ],
                           ],
+                        );
+                      }
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: constraints.maxWidth,
+                          ),
+                          child: DataTable(
+                            horizontalMargin: 20,
+                            columnSpacing: 30,
+                            headingRowHeight: 48,
+                            dataRowMinHeight: 66,
+                            dataRowMaxHeight: 74,
+                            columns: const [
+                              DataColumn(label: Text('User')),
+                              DataColumn(label: Text('Role')),
+                              DataColumn(label: Text('Location')),
+                              DataColumn(label: Text('Status')),
+                              DataColumn(label: Text('Sync')),
+                              DataColumn(label: Text('Last active')),
+                              DataColumn(label: Text('')),
+                            ],
+                            rows: [
+                              for (final account in filtered)
+                                DataRow(
+                                  cells: [
+                                    DataCell(_UserIdentity(account: account)),
+                                    DataCell(Text(account.role)),
+                                    DataCell(Text(account.location)),
+                                    DataCell(
+                                      _AccountStatusBadge(account.status),
+                                    ),
+                                    DataCell(
+                                      SyncStateBadge(
+                                        status: statusOf(account),
+                                        compact: false,
+                                      ),
+                                    ),
+                                    DataCell(Text(account.lastActiveLabel)),
+                                    DataCell(
+                                      _AccountMenu(
+                                        account: account,
+                                        onAction: (action) =>
+                                            _handleAction(action, account),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    'Showing locally available account records • changes sync automatically',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                child: Text(
-                  'Showing locally available account records • changes sync automatically',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        const SizedBox(height: 20),
+        _AdminAuditPanel(actions: actions, outbox: outbox),
       ],
     );
   }
 
-  Future<void> _exportUsers(List<_UserAccount> accounts) async {
+  Future<void> _exportUsers(List<ManagedUser> accounts) async {
     final rows = <String>[
       'id,name,email,role,location,status,last_active,joined',
       for (final account in accounts)
         [
-          account.id,
+          account.reference,
           account.name,
           account.email,
           account.role,
           account.location,
           account.status.label,
-          account.lastActive,
-          account.joined,
+          account.lastActiveLabel,
+          account.joinedLabel,
         ].map(csvCell).join(','),
     ];
     try {
@@ -305,7 +350,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
     var role = 'Landlord';
-    final account = await showDialog<_UserAccount>(
+    final submitted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -348,8 +393,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       size: 18,
                       color: context.nyumba.midnightNavy,
                     ),
-                    SizedBox(width: 8),
-                    Expanded(
+                    const SizedBox(width: 8),
+                    const Expanded(
                       child: Text(
                         'The invitation can be queued offline and will send '
                         'when connectivity returns.',
@@ -376,19 +421,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   );
                   return;
                 }
-                Navigator.pop(
-                  dialogContext,
-                  _UserAccount(
-                    id: 'USR-${_accounts.length + 4100}',
-                    name: name,
-                    email: email,
-                    role: role,
-                    location: 'Not set',
-                    status: _AccountStatus.invited,
-                    lastActive: 'Invitation pending',
-                    joined: '13 Jul 2026',
-                  ),
-                );
+                Navigator.pop(dialogContext, true);
               },
               icon: const Icon(Icons.send_rounded),
               label: const Text('Send invite'),
@@ -397,26 +430,60 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         ),
       ),
     );
+    if (submitted == true && mounted) {
+      try {
+        final user = await ref.read(inviteUserProvider)(
+          InviteManagedUserInput(
+            name: nameController.text.trim(),
+            email: emailController.text.trim(),
+            role: role,
+          ),
+        );
+        if (mounted) {
+          showAdminMessage(context, 'Invitation queued for ${user.email}.');
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          showAdminMessage(context, 'Could not queue the invitation: $error');
+        }
+      }
+    }
     nameController.dispose();
     emailController.dispose();
-    if (account == null || !mounted) return;
-    setState(() => _accounts.insert(0, account));
-    showAdminMessage(context, 'Invitation queued for ${account.email}.');
   }
 
-  void _handleAction(String action, _UserAccount account) {
+  void _handleAction(String action, ManagedUser account) {
     switch (action) {
       case 'view':
         _showAccount(account);
       case 'status':
         _changeStatus(account);
       case 'resend':
-        showAdminMessage(context, 'Invitation resent to ${account.email}.');
+        _resendInvitation(account);
     }
   }
 
-  Future<void> _changeStatus(_UserAccount account) async {
-    final isSuspended = account.status == _AccountStatus.suspended;
+  Future<void> _resendInvitation(ManagedUser account) async {
+    try {
+      await ref.read(changeUserStatusProvider)(
+        userId: account.id,
+        status: ManagedUserStatus.invited,
+      );
+      if (mounted) {
+        showAdminMessage(
+          context,
+          'Invitation for ${account.email} queued to resend.',
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        showAdminMessage(context, 'Could not resend the invitation: $error');
+      }
+    }
+  }
+
+  Future<void> _changeStatus(ManagedUser account) async {
+    final isSuspended = account.status == ManagedUserStatus.suspended;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -440,22 +507,29 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    final index = _accounts.indexOf(account);
-    if (index < 0) return;
-    setState(() {
-      _accounts[index] = account.copyWith(
-        status: isSuspended ? _AccountStatus.active : _AccountStatus.suspended,
+    try {
+      await ref.read(changeUserStatusProvider)(
+        userId: account.id,
+        status: isSuspended
+            ? ManagedUserStatus.active
+            : ManagedUserStatus.suspended,
       );
-    });
-    showAdminMessage(
-      context,
-      isSuspended
-          ? 'Access restored for ${account.name}.'
-          : '${account.name} has been suspended.',
-    );
+      if (mounted) {
+        showAdminMessage(
+          context,
+          isSuspended
+              ? 'Access restore for ${account.name} queued to sync.'
+              : 'Suspension of ${account.name} queued to sync.',
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        showAdminMessage(context, 'Could not update the account: $error');
+      }
+    }
   }
 
-  Future<void> _showAccount(_UserAccount account) {
+  Future<void> _showAccount(ManagedUser account) {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -489,11 +563,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 ],
               ),
               const SizedBox(height: 22),
-              _AccountFact(label: 'User ID', value: account.id),
+              _AccountFact(label: 'User ID', value: account.reference),
               _AccountFact(label: 'Role', value: account.role),
               _AccountFact(label: 'Location', value: account.location),
-              _AccountFact(label: 'Joined', value: account.joined),
-              _AccountFact(label: 'Last active', value: account.lastActive),
+              _AccountFact(label: 'Joined', value: account.joinedLabel),
+              _AccountFact(
+                label: 'Last active',
+                value: account.lastActiveLabel,
+              ),
             ],
           ),
         ),
@@ -504,6 +581,71 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Local view of the append-only admin audit trail, including whether each
+/// record has reached the server yet.
+class _AdminAuditPanel extends StatelessWidget {
+  const _AdminAuditPanel({required this.actions, required this.outbox});
+
+  final List<AdminActionRecord> actions;
+  final List<OutboxEntry> outbox;
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminPanel(
+      title: 'Recent admin activity',
+      subtitle: 'Append-only audit trail of account operations',
+      child: actions.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('No administrative actions recorded yet.'),
+            )
+          : Column(
+              children: [
+                for (
+                  var index = 0;
+                  index < actions.length && index < 6;
+                  index++
+                ) ...[
+                  Row(
+                    children: [
+                      AdminAvatar(name: actions[index].targetName),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${actions[index].action} · ${actions[index].targetName}',
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                            Text(
+                              '${actions[index].reference} · by '
+                              '${actions[index].performedBy} · '
+                              '${DateFormat('d MMM, HH:mm').format(actions[index].performedAt.toLocal())}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      SyncStateBadge(
+                        status: resolveAggregateSyncStatus(
+                          entityType: OfflineEntityType.adminAction,
+                          entityId: actions[index].id,
+                          outbox: outbox,
+                          syncMetadata: actions[index].syncMetadata,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (index < actions.length - 1 && index < 5)
+                    const Divider(height: 24),
+                ],
+              ],
+            ),
     );
   }
 }
@@ -546,7 +688,7 @@ class _FilterDropdown extends StatelessWidget {
 class _UserIdentity extends StatelessWidget {
   const _UserIdentity({required this.account});
 
-  final _UserAccount account;
+  final ManagedUser account;
 
   @override
   Widget build(BuildContext context) {
@@ -569,9 +711,14 @@ class _UserIdentity extends StatelessWidget {
 }
 
 class _UserCard extends StatelessWidget {
-  const _UserCard({required this.account, required this.onAction});
+  const _UserCard({
+    required this.account,
+    required this.syncStatus,
+    required this.onAction,
+  });
 
-  final _UserAccount account;
+  final ManagedUser account;
+  final AggregateSyncStatus syncStatus;
   final ValueChanged<String> onAction;
 
   @override
@@ -603,6 +750,7 @@ class _UserCard extends StatelessWidget {
                   children: [
                     StatusBadge(label: account.role, tone: BadgeTone.info),
                     _AccountStatusBadge(account.status),
+                    SyncStateBadge(status: syncStatus),
                     Text(
                       account.location,
                       style: Theme.of(context).textTheme.bodySmall,
@@ -622,7 +770,7 @@ class _UserCard extends StatelessWidget {
 class _AccountMenu extends StatelessWidget {
   const _AccountMenu({required this.account, required this.onAction});
 
-  final _UserAccount account;
+  final ManagedUser account;
   final ValueChanged<String> onAction;
 
   @override
@@ -639,7 +787,7 @@ class _AccountMenu extends StatelessWidget {
             title: Text('View account'),
           ),
         ),
-        if (account.status == _AccountStatus.invited)
+        if (account.status == ManagedUserStatus.invited)
           const PopupMenuItem(
             value: 'resend',
             child: ListTile(
@@ -654,12 +802,12 @@ class _AccountMenu extends StatelessWidget {
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(
-                account.status == _AccountStatus.suspended
+                account.status == ManagedUserStatus.suspended
                     ? Icons.lock_open_outlined
                     : Icons.person_off_outlined,
               ),
               title: Text(
-                account.status == _AccountStatus.suspended
+                account.status == ManagedUserStatus.suspended
                     ? 'Restore access'
                     : 'Suspend access',
               ),
@@ -674,16 +822,16 @@ class _AccountMenu extends StatelessWidget {
 class _AccountStatusBadge extends StatelessWidget {
   const _AccountStatusBadge(this.status);
 
-  final _AccountStatus status;
+  final ManagedUserStatus status;
 
   @override
   Widget build(BuildContext context) {
     return StatusBadge(
       label: status.label,
       tone: switch (status) {
-        _AccountStatus.active => BadgeTone.success,
-        _AccountStatus.invited => BadgeTone.warning,
-        _AccountStatus.suspended => BadgeTone.danger,
+        ManagedUserStatus.active => BadgeTone.success,
+        ManagedUserStatus.invited => BadgeTone.warning,
+        ManagedUserStatus.suspended => BadgeTone.danger,
       },
     );
   }
@@ -713,131 +861,3 @@ class _AccountFact extends StatelessWidget {
     );
   }
 }
-
-enum _AccountStatus {
-  active('Active'),
-  invited('Invited'),
-  suspended('Suspended');
-
-  const _AccountStatus(this.label);
-
-  final String label;
-}
-
-class _UserAccount {
-  const _UserAccount({
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.role,
-    required this.location,
-    required this.status,
-    required this.lastActive,
-    required this.joined,
-  });
-
-  final String id;
-  final String name;
-  final String email;
-  final String role;
-  final String location;
-  final _AccountStatus status;
-  final String lastActive;
-  final String joined;
-
-  _UserAccount copyWith({_AccountStatus? status}) {
-    return _UserAccount(
-      id: id,
-      name: name,
-      email: email,
-      role: role,
-      location: location,
-      status: status ?? this.status,
-      lastActive: lastActive,
-      joined: joined,
-    );
-  }
-}
-
-const _seedAccounts = [
-  _UserAccount(
-    id: 'USR-4082',
-    name: 'Sandra Nakato',
-    email: 'sandra@acaciahomes.ug',
-    role: 'Landlord',
-    location: 'Kampala',
-    status: _AccountStatus.active,
-    lastActive: '8 min ago',
-    joined: '14 Feb 2025',
-  ),
-  _UserAccount(
-    id: 'USR-4079',
-    name: 'Brian Okello',
-    email: 'brian.otieno@example.com',
-    role: 'Tenant',
-    location: 'Kampala',
-    status: _AccountStatus.active,
-    lastActive: '42 min ago',
-    joined: '3 Jun 2025',
-  ),
-  _UserAccount(
-    id: 'USR-4058',
-    name: 'Amina Noor',
-    email: 'amina@tuliahomes.ug',
-    role: 'Landlord',
-    location: 'Mbarara',
-    status: _AccountStatus.invited,
-    lastActive: 'Invitation pending',
-    joined: '11 Jul 2026',
-  ),
-  _UserAccount(
-    id: 'USR-4024',
-    name: 'Kevin Odongo',
-    email: 'kevin.kiptoo@example.com',
-    role: 'Tenant',
-    location: 'Jinja',
-    status: _AccountStatus.suspended,
-    lastActive: '9 Jul 2026',
-    joined: '22 Nov 2025',
-  ),
-  _UserAccount(
-    id: 'USR-3998',
-    name: 'Faith Nabirye',
-    email: 'faith.wambui@example.com',
-    role: 'Tenant',
-    location: 'Wakiso',
-    status: _AccountStatus.active,
-    lastActive: 'Yesterday',
-    joined: '6 Oct 2025',
-  ),
-  _UserAccount(
-    id: 'USR-3951',
-    name: 'Sam Walusimbi',
-    email: 'sam@kilimaproperties.ug',
-    role: 'Landlord',
-    location: 'Mukono',
-    status: _AccountStatus.active,
-    lastActive: 'Yesterday',
-    joined: '18 Aug 2025',
-  ),
-  _UserAccount(
-    id: 'USR-3905',
-    name: 'Mercy Atim',
-    email: 'mercy.chebet@example.com',
-    role: 'Tenant',
-    location: 'Uasin Gishu',
-    status: _AccountStatus.active,
-    lastActive: '2 days ago',
-    joined: '2 Jul 2025',
-  ),
-  _UserAccount(
-    id: 'USR-3818',
-    name: 'Daniel Musoke',
-    email: 'daniel.musoke@nyumba.ug',
-    role: 'Admin',
-    location: 'Kampala',
-    status: _AccountStatus.active,
-    lastActive: 'Just now',
-    joined: '10 Jan 2025',
-  ),
-];

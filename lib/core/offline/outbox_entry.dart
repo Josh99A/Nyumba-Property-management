@@ -47,6 +47,7 @@ final class OutboxEntry {
       AggregateReference(type: entityType, id: entityId);
 
   OutboxEntry copyWith({
+    Map<String, Object?>? payload,
     OutboxState? state,
     int? attemptCount,
     List<String>? dependencyIds,
@@ -61,7 +62,7 @@ final class OutboxEntry {
     entityType: entityType,
     entityId: entityId,
     operation: operation,
-    payload: payload,
+    payload: payload ?? this.payload,
     createdAt: createdAt,
     state: state ?? this.state,
     attemptCount: attemptCount ?? this.attemptCount,

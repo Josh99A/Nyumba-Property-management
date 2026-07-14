@@ -28,8 +28,9 @@ final class OfflineDatabase {
   static Future<OfflineDatabase> open({
     required DatabaseFactory factory,
     required String path,
+    SembastCodec? codec,
   }) async {
-    final database = await factory.openDatabase(path);
+    final database = await factory.openDatabase(path, codec: codec);
     final result = OfflineDatabase(database);
     await result.initialize();
     return result;
@@ -169,6 +170,63 @@ final class OfflineDatabase {
     return true;
   });
 
+  /// Merges a listener record without ever overwriting an optimistic edit.
+  /// Listener replays at or below the locally known server version are ignored.
+  Future<RemoteMergeResult> mergeRemoteEntity({
+    required OfflineEntityType entityType,
+    required String entityId,
+    required Map<String, Object?> entity,
+  }) => database.transaction((transaction) async {
+    final outbox = await _outboxStore.find(transaction);
+    final hasLocalMutation = outbox.any((snapshot) {
+      final entry = OutboxEntry.fromJson(snapshot.value);
+      return entry.entityType == entityType && entry.entityId == entityId;
+    });
+    final entityRecord = _entityStore(entityType).record(entityId);
+    final local = await entityRecord.get(transaction);
+    final remoteVersion = _remoteVersion(entity);
+    if (hasLocalMutation) {
+      if (local != null) {
+        final sync = SyncMetadataMapper.fromJson(local['syncMetadata']);
+        final localVersion = int.tryParse(sync.serverRevision ?? '');
+        if (remoteVersion != null && remoteVersion != localVersion) {
+          await entityRecord.put(transaction, <String, Object?>{
+            ...local,
+            'syncMetadata': SyncMetadataMapper.toJson(
+              sync.markConflicted(
+                'Remote version changed while local edits are pending.',
+                remoteRevision: remoteVersion.toString(),
+              ),
+            ),
+          });
+          return RemoteMergeResult.conflicted;
+        }
+      }
+      return RemoteMergeResult.ignored;
+    }
+    if (local != null && remoteVersion != null) {
+      final sync = SyncMetadataMapper.fromJson(local['syncMetadata']);
+      final localVersion = int.tryParse(sync.serverRevision ?? '');
+      if (localVersion != null && remoteVersion <= localVersion) {
+        return RemoteMergeResult.ignored;
+      }
+    }
+    final merged = Map<String, Object?>.from(entity);
+    merged['syncMetadata'] = SyncMetadataMapper.toJson(
+      SyncMetadata.synced(
+        serverRevision: remoteVersion?.toString(),
+        lastSyncedAt: DateTime.now().toUtc(),
+      ),
+    );
+    await _entityStore(entityType).record(entityId).put(transaction, merged);
+    return RemoteMergeResult.applied;
+  });
+
+  static int? _remoteVersion(Map<String, Object?> entity) {
+    final value = entity['version'] ?? entity['projectionVersion'];
+    return value is int ? value : int.tryParse(value?.toString() ?? '');
+  }
+
   Future<List<OutboxEntry>> readOutbox() async {
     final snapshots = await _outboxStore.find(database);
     final entries = snapshots
@@ -265,7 +323,24 @@ final class OfflineDatabase {
       }
       if (remainingDependencies.isNotEmpty) continue;
 
+      final payload = Map<String, Object?>.from(entry.payload);
+      if (!payload.containsKey('_expectedVersion')) {
+        if (entry.operation == OutboxOperation.create ||
+            entry.operation == OutboxOperation.apply) {
+          payload['_expectedVersion'] = 0;
+        } else {
+          final entity = await _entityStore(
+            entry.entityType,
+          ).record(entry.entityId).get(transaction);
+          if (entity != null) {
+            final sync = SyncMetadataMapper.fromJson(entity['syncMetadata']);
+            final revision = int.tryParse(sync.serverRevision ?? '');
+            if (revision != null) payload['_expectedVersion'] = revision;
+          }
+        }
+      }
       final claimed = entry.copyWith(
+        payload: payload,
         state: OutboxState.processing,
         claimedAt: now.toUtc(),
         clearNextAttemptAt: true,
@@ -398,3 +473,5 @@ final class OfflineDatabase {
     return left.id.compareTo(right.id);
   }
 }
+
+enum RemoteMergeResult { applied, ignored, conflicted }

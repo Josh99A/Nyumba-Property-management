@@ -1,28 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/offline/aggregate_sync_status.dart';
+import '../../../core/offline/offline_entity.dart';
+import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../../core/presentation/sync_state_badge.dart';
+import '../../subscriptions/application/subscription_providers.dart';
+import '../../subscriptions/domain/subscription_plan_draft.dart';
 import 'widgets/admin_components.dart';
 
-class AdminSubscriptionsScreen extends StatefulWidget {
+(Color, IconData) _tierVisual(BuildContext context, String tier) =>
+    switch (tier) {
+      'Starter' => (context.nyumba.sageDark, Icons.home_work_outlined),
+      'Pro' => (context.nyumba.midnightNavy, Icons.rocket_launch_outlined),
+      'Premium' => (
+        context.nyumba.terracottaDark,
+        Icons.workspace_premium_outlined,
+      ),
+      _ => (context.nyumba.navyDark, Icons.domain_outlined),
+    };
+
+class AdminSubscriptionsScreen extends ConsumerStatefulWidget {
   const AdminSubscriptionsScreen({super.key});
 
   @override
-  State<AdminSubscriptionsScreen> createState() =>
+  ConsumerState<AdminSubscriptionsScreen> createState() =>
       _AdminSubscriptionsScreenState();
 }
 
-class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
-  final List<_SubscriptionPlan> _plans = [..._seedPlans];
+class _AdminSubscriptionsScreenState
+    extends ConsumerState<AdminSubscriptionsScreen> {
   String _billingView = 'Monthly';
-
-  int get _subscriberTotal =>
-      _plans.fold(0, (total, plan) => total + plan.subscribers);
 
   @override
   Widget build(BuildContext context) {
+    final plansValue = ref.watch(subscriptionPlansProvider);
+    final outbox =
+        ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
+    final plans = plansValue.value ?? const <SubscriptionPlanDraft>[];
+    final subscriberTotal = plans.fold<int>(
+      0,
+      (total, plan) => total + plan.subscribers,
+    );
     return AdminPage(
       title: 'Subscriptions',
       description:
@@ -76,7 +100,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
           children: [
             AdminMetricCard(
               label: 'Active subscriptions',
-              value: '$_subscriberTotal',
+              value: '$subscriberTotal',
               caption: '89.6% of verified landlords',
               trend: '+7.9%',
               icon: Icons.workspace_premium_outlined,
@@ -120,37 +144,56 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 1180
-                ? 4
-                : constraints.maxWidth >= 650
-                ? 2
-                : 1;
-            const spacing = 14.0;
-            final width =
-                (constraints.maxWidth - spacing * (columns - 1)) / columns;
-            return Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                for (final plan in _plans)
-                  SizedBox(
-                    width: width,
-                    child: _PlanCard(
-                      plan: plan,
-                      annual: _billingView == 'Annual',
-                      onEdit: () => _editPlan(plan),
+        if (plansValue.isLoading && plans.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(40),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (plansValue.hasError && plans.isEmpty)
+          NyumbaSurface(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Could not load plan drafts: ${plansValue.error}'),
+            ),
+          )
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 1180
+                  ? 4
+                  : constraints.maxWidth >= 650
+                  ? 2
+                  : 1;
+              const spacing = 14.0;
+              final width =
+                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  for (final plan in plans)
+                    SizedBox(
+                      width: width,
+                      child: _PlanCard(
+                        plan: plan,
+                        annual: _billingView == 'Annual',
+                        syncStatus: resolveAggregateSyncStatus(
+                          entityType: OfflineEntityType.subscriptionPlan,
+                          entityId: plan.id,
+                          outbox: outbox,
+                          syncMetadata: plan.syncMetadata,
+                        ),
+                        onEdit: () => _editPlan(plan),
+                      ),
                     ),
-                  ),
-              ],
-            );
-          },
-        ),
+                ],
+              );
+            },
+          ),
         const SizedBox(height: 20),
         LayoutBuilder(
           builder: (context, constraints) {
-            final mix = _RevenueMix(plans: _plans);
+            final mix = _RevenueMix(plans: plans);
             const health = _SubscriptionHealth();
             if (constraints.maxWidth < 960) {
               return Column(
@@ -176,15 +219,17 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
     );
   }
 
-  Future<void> _editPlan(_SubscriptionPlan plan) async {
+  Future<void> _editPlan(SubscriptionPlanDraft plan) async {
     final unitController = TextEditingController(text: '${plan.unitLimit}');
-    final priceController = TextEditingController(text: '${plan.monthlyPrice}');
+    final priceController = TextEditingController(
+      text: '${plan.monthlyPriceMinor ~/ 100}',
+    );
     var enabled = plan.enabled;
-    final updated = await showDialog<_SubscriptionPlan>(
+    final saved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Edit ${plan.name} draft'),
+          title: Text('Edit ${plan.tier} draft'),
           content: SizedBox(
             width: 450,
             child: Column(
@@ -228,7 +273,9 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
             FilledButton(
               onPressed: () {
                 final limit = int.tryParse(unitController.text.trim());
-                final price = int.tryParse(priceController.text.trim());
+                final price = int.tryParse(
+                  priceController.text.replaceAll(',', '').trim(),
+                );
                 if (limit == null || limit < 1 || price == null || price < 0) {
                   showAdminMessage(
                     dialogContext,
@@ -236,14 +283,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                   );
                   return;
                 }
-                Navigator.pop(
-                  dialogContext,
-                  plan.copyWith(
-                    unitLimit: limit,
-                    monthlyPrice: price,
-                    enabled: enabled,
-                  ),
-                );
+                Navigator.pop(dialogContext, true);
               },
               child: const Text('Save draft'),
             ),
@@ -251,13 +291,32 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
         ),
       ),
     );
+    if (saved == true && mounted) {
+      try {
+        await ref.read(updatePlanDraftProvider)(
+          UpdatePlanDraftInput(
+            planId: plan.id,
+            unitLimit: int.parse(unitController.text.trim()),
+            monthlyPriceMinor:
+                int.parse(priceController.text.replaceAll(',', '').trim()) *
+                100,
+            enabled: enabled,
+          ),
+        );
+        if (mounted) {
+          showAdminMessage(
+            context,
+            '${plan.tier} draft saved locally and queued to sync.',
+          );
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          showAdminMessage(context, 'Could not save the draft: $error');
+        }
+      }
+    }
     unitController.dispose();
     priceController.dispose();
-    if (updated == null || !mounted) return;
-    final index = _plans.indexOf(plan);
-    if (index < 0) return;
-    setState(() => _plans[index] = updated);
-    showAdminMessage(context, '${plan.name} draft updated locally.');
   }
 }
 
@@ -299,18 +358,21 @@ class _PlanCard extends StatelessWidget {
   const _PlanCard({
     required this.plan,
     required this.annual,
+    required this.syncStatus,
     required this.onEdit,
   });
 
-  final _SubscriptionPlan plan;
+  final SubscriptionPlanDraft plan;
   final bool annual;
+  final AggregateSyncStatus syncStatus;
   final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
-    final amount = annual
-        ? (plan.monthlyPrice * 10.2).round()
-        : plan.monthlyPrice;
+    final (color, icon) = _tierVisual(context, plan.tier);
+    final custom = plan.monthlyPriceMinor == 0;
+    final monthlyWhole = plan.monthlyPriceMinor ~/ 100;
+    final amount = annual ? (monthlyWhole * 10.2).round() : monthlyWhole;
     return NyumbaSurface(
       borderColor: plan.recommended
           ? context.nyumba.midnightNavy
@@ -326,15 +388,15 @@ class _PlanCard extends StatelessWidget {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: plan.color.withValues(alpha: .12),
+                    color: color.withValues(alpha: .12),
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(plan.icon, color: plan.color),
+                  child: Icon(icon, color: color),
                 ),
                 const SizedBox(width: 11),
                 Expanded(
                   child: Text(
-                    plan.name,
+                    plan.tier,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
@@ -351,15 +413,13 @@ class _PlanCard extends StatelessWidget {
               children: [
                 Flexible(
                   child: Text(
-                    plan.name == 'Enterprise'
-                        ? 'Custom'
-                        : formatAdminUgx(amount),
+                    custom ? 'Custom' : formatAdminUgx(amount),
                     style: Theme.of(
                       context,
-                    ).textTheme.headlineSmall?.copyWith(color: plan.color),
+                    ).textTheme.headlineSmall?.copyWith(color: color),
                   ),
                 ),
-                if (plan.name != 'Enterprise')
+                if (!custom)
                   Padding(
                     padding: const EdgeInsets.only(left: 5, bottom: 3),
                     child: Text(
@@ -369,7 +429,7 @@ class _PlanCard extends StatelessWidget {
                   ),
               ],
             ),
-            if (annual && plan.name != 'Enterprise') ...[
+            if (annual && !custom) ...[
               const SizedBox(height: 4),
               Text(
                 'Illustrative 15% annual saving',
@@ -381,7 +441,7 @@ class _PlanCard extends StatelessWidget {
             const SizedBox(height: 18),
             _PlanFeature(
               icon: Icons.apartment_outlined,
-              text: plan.name == 'Enterprise'
+              text: plan.tier == 'Enterprise'
                   ? 'Custom rental-space limit, ${plan.unitLimit}+'
                   : 'Up to ${plan.unitLimit} managed rental spaces',
             ),
@@ -404,6 +464,8 @@ class _PlanCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
+                SyncStateBadge(status: syncStatus),
+                const SizedBox(width: 6),
                 StatusBadge(
                   label: plan.enabled ? 'Available' : 'Hidden',
                   tone: plan.enabled ? BadgeTone.success : BadgeTone.neutral,
@@ -449,7 +511,7 @@ class _PlanFeature extends StatelessWidget {
 class _RevenueMix extends StatelessWidget {
   const _RevenueMix({required this.plans});
 
-  final List<_SubscriptionPlan> plans;
+  final List<SubscriptionPlanDraft> plans;
 
   @override
   Widget build(BuildContext context) {
@@ -457,20 +519,25 @@ class _RevenueMix extends StatelessWidget {
     return AdminPanel(
       title: 'Subscriber mix',
       subtitle: 'Share of active subscriptions by tier',
-      child: Column(
-        children: [
-          for (var index = 0; index < plans.length; index++) ...[
-            AdminProgressRow(
-              label: plans[index].name,
-              value: plans[index].subscribers / total,
-              trailing:
-                  '${plans[index].subscribers} • ${(plans[index].subscribers / total * 100).round()}%',
-              color: plans[index].color,
+      child: total == 0
+          ? const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('No subscription data yet.'),
+            )
+          : Column(
+              children: [
+                for (var index = 0; index < plans.length; index++) ...[
+                  AdminProgressRow(
+                    label: plans[index].tier,
+                    value: plans[index].subscribers / total,
+                    trailing:
+                        '${plans[index].subscribers} • ${(plans[index].subscribers / total * 100).round()}%',
+                    color: _tierVisual(context, plans[index].tier).$1,
+                  ),
+                  if (index < plans.length - 1) const SizedBox(height: 18),
+                ],
+              ],
             ),
-            if (index < plans.length - 1) const SizedBox(height: 18),
-          ],
-        ],
-      ),
     );
   }
 }
@@ -725,109 +792,3 @@ class _SubscriptionEvent extends StatelessWidget {
     );
   }
 }
-
-class _SubscriptionPlan {
-  const _SubscriptionPlan({
-    required this.name,
-    required this.tagline,
-    required this.monthlyPrice,
-    required this.unitLimit,
-    required this.staffLabel,
-    required this.listingsLabel,
-    required this.subscribers,
-    required this.support,
-    required this.color,
-    required this.icon,
-    this.recommended = false,
-    this.enabled = true,
-  });
-
-  final String name;
-  final String tagline;
-  final int monthlyPrice;
-  final int unitLimit;
-  final String staffLabel;
-  final String listingsLabel;
-  final int subscribers;
-  final String support;
-  final Color color;
-  final IconData icon;
-  final bool recommended;
-  final bool enabled;
-
-  _SubscriptionPlan copyWith({
-    int? monthlyPrice,
-    int? unitLimit,
-    bool? enabled,
-  }) {
-    return _SubscriptionPlan(
-      name: name,
-      tagline: tagline,
-      monthlyPrice: monthlyPrice ?? this.monthlyPrice,
-      unitLimit: unitLimit ?? this.unitLimit,
-      staffLabel: staffLabel,
-      listingsLabel: listingsLabel,
-      subscribers: subscribers,
-      support: support,
-      color: color,
-      icon: icon,
-      recommended: recommended,
-      enabled: enabled ?? this.enabled,
-    );
-  }
-}
-
-/// Draft presentation of the tier structure in
-/// docs/architecture/subscription-tiers.md. Prices are illustrative; the
-/// server-owned plan catalog remains authoritative.
-const _seedPlans = [
-  _SubscriptionPlan(
-    name: 'Starter',
-    tagline: 'Individual landlords and small portfolios',
-    monthlyPrice: 80000,
-    unitLimit: 10,
-    staffLabel: '1 landlord account',
-    listingsLabel: 'Up to 3 active public listings',
-    subscribers: 412,
-    support: 'Email and help centre',
-    color: NyumbaColors.sageDark,
-    icon: Icons.home_work_outlined,
-  ),
-  _SubscriptionPlan(
-    name: 'Pro',
-    tagline: 'Growing landlords and small teams',
-    monthlyPrice: 250000,
-    unitLimit: 50,
-    staffLabel: '3 staff accounts, standard roles',
-    listingsLabel: 'Up to 25 active public listings',
-    subscribers: 476,
-    support: 'Priority support',
-    color: NyumbaColors.midnightNavy,
-    icon: Icons.rocket_launch_outlined,
-    recommended: true,
-  ),
-  _SubscriptionPlan(
-    name: 'Premium',
-    tagline: 'Professional managers, larger portfolios',
-    monthlyPrice: 700000,
-    unitLimit: 200,
-    staffLabel: '10 staff accounts, custom roles',
-    listingsLabel: 'Advertise every eligible vacant rental space',
-    subscribers: 204,
-    support: 'Priority onboarding and support',
-    color: NyumbaColors.terracottaDark,
-    icon: Icons.workspace_premium_outlined,
-  ),
-  _SubscriptionPlan(
-    name: 'Enterprise',
-    tagline: 'Agencies and institutions',
-    monthlyPrice: 0,
-    unitLimit: 200,
-    staffLabel: 'Custom accounts and org-wide roles',
-    listingsLabel: 'Custom listing limits',
-    subscribers: 44,
-    support: 'Dedicated manager and SLA',
-    color: NyumbaColors.navyDark,
-    icon: Icons.domain_outlined,
-  ),
-];

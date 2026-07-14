@@ -110,6 +110,13 @@ Every mutable canonical aggregate has an integer `version`. Commands that edit e
 - If they differ, the server returns `VERSION_CONFLICT` plus a safe current snapshot/version.
 - The client stores both local intent and server state, marks `conflicted`, and presents a feature-specific resolution.
 
+The listener merge is version-aware and transactional in Sembast. A remote
+record whose version is not newer than the locally known synced revision is
+ignored. If an aggregate has any durable outbox item, the listener never
+overwrites it; a different remote version changes only the local sync metadata
+to `conflicted`. The original local record and outbox intent remain available
+for an explicit feature-level rebase or discard flow.
+
 Automatic last-write-wins is allowed only for explicitly designated low-risk fields such as a personal display preference or unpublished draft description. It is forbidden for amounts, invoice/payment state, leases, occupancy, approval, subscriptions, entitlements, maintenance status, and listing publication. Append-only items (comments, events, attachments) use their own stable IDs and are naturally mergeable.
 
 If a command is rejected, do not blindly restore an old local snapshot because later commands may depend on it. Rebase later commands on the returned canonical version when the feature policy allows; otherwise mark the chain for user resolution.
@@ -133,6 +140,15 @@ temporary non-production bridge: the Firebase adapter must replace it with the
 attachment-intent flow above (including checksum and missing-file recovery)
 before photo publication is enabled. Local image data must never be copied into
 `publicListings` or treated as an acknowledged upload.
+
+On Android and iOS, each account-scoped Sembast database uses AES-256-GCM with
+a distinct random key stored through Keychain/Keystore-backed secure storage.
+Web IndexedDB remains unencrypted because browser JavaScript cannot provide an
+equivalent device-keystore boundary; public/browser workspaces must therefore
+minimize retained PII. Desktop builds are development-only and currently share
+that unencrypted limitation. Account switching closes the previous database
+before opening the next account-specific path, so records and outbox commands
+are quarantined rather than read across identities.
 
 ## Operation policy
 

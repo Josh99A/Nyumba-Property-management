@@ -1,0 +1,286 @@
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:uuid/uuid.dart';
+
+import 'client_platform.dart';
+import 'offline_entity.dart';
+import 'outbox_entry.dart';
+import 'remote_sync_gateway.dart';
+
+typedef CommandInvoker =
+    Future<Map<String, Object?>> Function(Map<String, Object?> envelope);
+
+final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
+  FirebaseRemoteSyncGateway({
+    required this.invoke,
+    required this.installationId,
+    required this.appVersion,
+    required this.platform,
+  });
+
+  static const _installationKey = 'nyumba.installation-id.v1';
+  final CommandInvoker invoke;
+  final String installationId;
+  final String appVersion;
+  final String platform;
+
+  static Future<FirebaseRemoteSyncGateway> create() async {
+    const storage = FlutterSecureStorage();
+    var installationId = await storage.read(key: _installationKey);
+    if (installationId == null || installationId.isEmpty) {
+      installationId = const Uuid().v7().replaceAll('-', '_');
+      await storage.write(key: _installationKey, value: installationId);
+    }
+    final package = await PackageInfo.fromPlatform();
+    final callable = FirebaseFunctions.instanceFor(
+      region: 'europe-west1',
+    ).httpsCallable('executeCommand');
+    return FirebaseRemoteSyncGateway(
+      installationId: installationId,
+      appVersion: package.version,
+      platform: currentClientPlatform,
+      invoke: (envelope) async {
+        final result = await callable.call<Object?>(envelope);
+        return _stringMap(result.data);
+      },
+    );
+  }
+
+  Map<String, Object?> buildEnvelope(RemoteMutation mutation) {
+    final command = _commandFor(mutation);
+    final expectedVersion = _expectedVersion(mutation, command.type);
+    return <String, Object?>{
+      'commandId': mutation.idempotencyKey,
+      'type': command.type,
+      'schemaVersion': 1,
+      'aggregateId': mutation.entityId,
+      'expectedVersion': expectedVersion,
+      'payload': command.payload,
+      'client': <String, Object?>{
+        'installationId': installationId,
+        'appVersion': appVersion,
+        'platform': platform,
+      },
+    };
+  }
+
+  @override
+  Future<RemoteWriteResult> push(RemoteMutation mutation) async {
+    try {
+      final response = await invoke(buildEnvelope(mutation));
+      final status = response['status'];
+      if (status == 'rejected') {
+        final error = _optionalStringMap(response['error']);
+        throw RemoteSyncException(
+          error?['code']?.toString() ?? 'VALIDATION_FAILED',
+          retryable: false,
+        );
+      }
+      if (status != 'applied' && status != 'accepted') {
+        throw const RemoteSyncException('Malformed command response.');
+      }
+      final committedAt = DateTime.tryParse(
+        response['serverUpdatedAt']?.toString() ?? '',
+      );
+      if (committedAt == null) {
+        throw const RemoteSyncException('Missing serverUpdatedAt.');
+      }
+      return RemoteWriteResult(
+        committedAt: committedAt.toUtc(),
+        serverRevision: response['serverVersion']?.toString(),
+        wasAlreadyApplied: response['wasAlreadyApplied'] == true,
+      );
+    } on RemoteSyncException {
+      rethrow;
+    } on FirebaseFunctionsException catch (error) {
+      final details = _optionalStringMap(error.details);
+      final domainCode = details?['code']?.toString();
+      final idempotencyReuse =
+          (error.code == 'invalid-argument' ||
+              error.code == 'failed-precondition') &&
+          domainCode == 'IDEMPOTENCY_KEY_REUSED';
+      throw RemoteSyncException(
+        domainCode ?? error.code,
+        retryable: !idempotencyReuse,
+        cause: error,
+      );
+    } on Object catch (error) {
+      throw RemoteSyncException('Callable command failed.', cause: error);
+    }
+  }
+
+  static int _expectedVersion(RemoteMutation mutation, String commandType) {
+    if (mutation.operation == OutboxOperation.create ||
+        mutation.operation == OutboxOperation.apply) {
+      return 0;
+    }
+    final raw = mutation.payload['_expectedVersion'];
+    final version = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
+    if (version == null || version < 1) {
+      throw RemoteSyncException(
+        '$commandType requires a server version from a prior acknowledgement.',
+        retryable: false,
+      );
+    }
+    return version;
+  }
+
+  static _RemoteCommand _commandFor(RemoteMutation mutation) {
+    final payload = mutation.payload;
+    Map<String, Object?> pick(List<String> names) => <String, Object?>{
+      for (final name in names)
+        if (payload[name] != null) name: payload[name],
+    };
+
+    return switch ((mutation.entityType, mutation.operation)) {
+      (OfflineEntityType.userProfile, OutboxOperation.update) => _RemoteCommand(
+        'profile.update',
+        <String, Object?>{
+          ...pick(['displayName', 'phone']),
+          'notifications': <String, Object?>{
+            'email': payload['emailNotifications'] ?? true,
+            'push': payload['pushNotifications'] ?? true,
+          },
+        },
+      ),
+      (OfflineEntityType.property, OutboxOperation.create) => _RemoteCommand(
+        'property.create',
+        pick(['name', 'addressLine', 'city', 'district', 'description']),
+      ),
+      (OfflineEntityType.property, OutboxOperation.update) => _RemoteCommand(
+        'property.update',
+        pick(['name', 'addressLine', 'city', 'district', 'description']),
+      ),
+      (OfflineEntityType.property, OutboxOperation.delete) =>
+        const _RemoteCommand('property.archive', <String, Object?>{}),
+      (OfflineEntityType.unit, OutboxOperation.create) => _RemoteCommand(
+        'unit.create',
+        pick([
+          'propertyId',
+          'label',
+          'type',
+          'monthlyRentMinor',
+          'bedrooms',
+          'bathrooms',
+          'amenities',
+        ]),
+      ),
+      (OfflineEntityType.unit, OutboxOperation.update) => _RemoteCommand(
+        'unit.update',
+        pick([
+          'label',
+          'type',
+          'monthlyRentMinor',
+          'bedrooms',
+          'bathrooms',
+          'amenities',
+        ]),
+      ),
+      (OfflineEntityType.unit, OutboxOperation.delete) => const _RemoteCommand(
+        'unit.archive',
+        <String, Object?>{},
+      ),
+      (OfflineEntityType.listing, OutboxOperation.create) ||
+      (OfflineEntityType.listing, OutboxOperation.update) => _RemoteCommand(
+        'listing.saveDraft',
+        <String, Object?>{
+          ...pick([
+            'unitId',
+            'title',
+            'description',
+            'monthlyRentMinor',
+            'unitType',
+            'city',
+            'neighborhood',
+            'district',
+            'bedrooms',
+            'bathrooms',
+            'amenities',
+          ]),
+          if (payload['approximateLatitude'] != null &&
+              payload['approximateLongitude'] != null)
+            'approximateLocation': <String, Object?>{
+              'lat': payload['approximateLatitude'],
+              'lng': payload['approximateLongitude'],
+            },
+          'stagedImagePaths': _stringList(
+            payload['stagedImagePaths'] ?? payload['imageUrls'],
+          ).where((path) => path.startsWith('uploads/')).toList(),
+        },
+      ),
+      (OfflineEntityType.listing, OutboxOperation.publish) =>
+        const _RemoteCommand('listing.publish', <String, Object?>{}),
+      (OfflineEntityType.listing, OutboxOperation.delete) =>
+        const _RemoteCommand('listing.unpublish', <String, Object?>{}),
+      (OfflineEntityType.application, OutboxOperation.apply) ||
+      (OfflineEntityType.application, OutboxOperation.create) => _RemoteCommand(
+        'application.submit',
+        <String, Object?>{
+          'listingId': payload['listingId'],
+          'displayName': payload['applicantName'],
+          'email': payload['applicantEmail'],
+          'phone': payload['applicantPhone'],
+          'message':
+              payload['message'] ?? 'Application submitted through Nyumba.',
+          'answers': <String, Object?>{
+            if (payload['desiredMoveIn'] != null)
+              'desiredMoveIn': payload['desiredMoveIn'],
+          },
+        },
+      ),
+      (OfflineEntityType.maintenanceRequest, OutboxOperation.create) =>
+        _RemoteCommand('maintenance.create', <String, Object?>{
+          ...pick(['unitId', 'title', 'description', 'category', 'priority']),
+          if (payload['leaseId'] != null) 'leaseId': payload['leaseId'],
+          'stagedAttachmentPaths': _stringList(
+            payload['stagedAttachmentPaths'],
+          ),
+        }),
+      (OfflineEntityType.maintenanceRequest, OutboxOperation.update) =>
+        _RemoteCommand('maintenance.updateStatus', <String, Object?>{
+          'status': _snakeCase(payload['status']?.toString() ?? ''),
+          if (payload['statusNote'] != null) 'note': payload['statusNote'],
+        }),
+      (OfflineEntityType.notice, OutboxOperation.create) =>
+        _RemoteCommand('notice.publish', <String, Object?>{
+          'title': payload['title'],
+          'body': payload['body'],
+          'audience': 'all_active_tenants',
+        }),
+      _ => throw RemoteSyncException(
+        'No production command mapping for '
+        '${mutation.entityType.name}.${mutation.operation.name}.',
+        retryable: false,
+      ),
+    };
+  }
+}
+
+final class _RemoteCommand {
+  const _RemoteCommand(this.type, this.payload);
+
+  final String type;
+  final Map<String, Object?> payload;
+}
+
+Map<String, Object?> _stringMap(Object? value) {
+  if (value is! Map) {
+    throw const RemoteSyncException('Callable result must be an object.');
+  }
+  return <String, Object?>{
+    for (final entry in value.entries) entry.key.toString(): entry.value,
+  };
+}
+
+Map<String, Object?>? _optionalStringMap(Object? value) =>
+    value is Map ? _stringMap(value) : null;
+
+List<String> _stringList(Object? value) => value is List
+    ? value.whereType<String>().toList(growable: false)
+    : const <String>[];
+
+String _snakeCase(String value) => value.replaceAllMapped(
+  RegExp(r'[A-Z]'),
+  (match) => '_${match.group(0)!.toLowerCase()}',
+);

@@ -63,11 +63,7 @@ AggregateSyncStatus resolveAggregateSyncStatus({
   if (syncMetadata.state == EntitySyncState.failed) {
     return AggregateSyncStatus.rejected;
   }
-  // A failed remote application over a local edit surfaces through the
-  // entity's metadata once remote pulls exist; until then only local
-  // outcomes can produce this state.
-  if (syncMetadata.lastError != null &&
-      syncMetadata.state == EntitySyncState.pending) {
+  if (syncMetadata.state == EntitySyncState.conflicted) {
     return AggregateSyncStatus.conflicted;
   }
   return AggregateSyncStatus.synced;

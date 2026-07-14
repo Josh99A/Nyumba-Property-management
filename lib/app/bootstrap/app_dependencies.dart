@@ -1,10 +1,18 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/documents/nyumba_document_service.dart';
 import '../../core/offline/offline_database.dart';
-import '../../core/offline/remote_sync_gateway.dart';
+import '../../core/offline/demo_remote_sync_gateway.dart';
+import '../../core/offline/firebase_remote_sync_gateway.dart';
+import '../../core/offline/offline_entity.dart';
+import '../../core/offline/remote_pull_gateway.dart';
 import '../../core/offline/sync_engine.dart';
+import '../../features/admin/data/sembast_admin_repository.dart';
+import '../../features/admin/domain/admin_repository.dart';
+import '../../features/admin/domain/managed_user.dart';
 import '../../features/auth/application/session_controller.dart';
+import '../../features/auth/domain/user_session.dart';
 import '../../features/documents/data/sembast_lease_document_repository.dart';
 import '../../features/documents/domain/lease_document.dart';
 import '../../features/documents/domain/lease_document_repository.dart';
@@ -34,6 +42,9 @@ import '../../features/portfolio/domain/property.dart';
 import '../../features/portfolio/domain/property_repository.dart';
 import '../../features/portfolio/domain/unit.dart';
 import '../../features/portfolio/domain/unit_repository.dart';
+import '../../features/subscriptions/data/sembast_subscription_plan_repository.dart';
+import '../../features/subscriptions/domain/subscription_plan_draft.dart';
+import '../../features/subscriptions/domain/subscription_plan_repository.dart';
 import '../../features/profile/data/sembast_user_settings_repository.dart';
 import '../../features/profile/domain/user_settings.dart';
 import '../../features/profile/domain/user_settings_repository.dart';
@@ -54,6 +65,10 @@ class AppDependencies {
     required this.payments,
     required this.leaseDocuments,
     required this.notices,
+    required this.subscriptionPlans,
+    required this.managedUsers,
+    required this.adminActions,
+    this.remotePullCoordinator,
   });
 
   final OfflineDatabase database;
@@ -69,10 +84,17 @@ class AppDependencies {
   final RentPaymentRepository payments;
   final LeaseDocumentRepository leaseDocuments;
   final NoticeRepository notices;
+  final SubscriptionPlanRepository subscriptionPlans;
+  final ManagedUserRepository managedUsers;
+  final AdminActionRepository adminActions;
+  final RemotePullCoordinator? remotePullCoordinator;
 
   /// Closing quarantines the workspace: the database file and its unsynced
   /// outbox stay on disk untouched for the next sign-in of this account.
-  Future<void> close() => database.close();
+  Future<void> close() async {
+    await remotePullCoordinator?.close();
+    await database.close();
+  }
 }
 
 /// Serializes workspace shutdown so a scope that is re-opened immediately
@@ -93,7 +115,10 @@ class AppDependenciesController extends AsyncNotifier<AppDependencies> {
   Future<AppDependencies> build() async {
     final session = ref.watch(sessionControllerProvider);
     final scope = session == null ? 'anonymous' : 'account-${session.userId}';
-    final dependencies = await createAppDependencies(scope: scope);
+    final dependencies = await createAppDependencies(
+      scope: scope,
+      session: session,
+    );
     ref.onDispose(() {
       _previousWorkspaceClosed = dependencies.close();
     });
@@ -160,6 +185,7 @@ class ManualSync {
 
 Future<AppDependencies> createAppDependencies({
   String scope = 'anonymous',
+  UserSession? session,
 }) async {
   await _previousWorkspaceClosed;
   final database = await openScopedOfflineDatabase('workspace_v3_$scope');
@@ -177,22 +203,55 @@ Future<AppDependencies> createAppDependencies({
   final payments = SembastRentPaymentRepository(database: database);
   final leaseDocuments = SembastLeaseDocumentRepository(database: database);
   final notices = SembastNoticeRepository(database: database);
-  final gateway = _DemoRemoteSyncGateway();
-  final syncEngine = SyncEngine(database: database, gateway: gateway);
-
-  await _seedPortfolioIfNeeded(
-    properties: properties,
-    units: units,
-    listings: listings,
+  final subscriptionPlans = SembastSubscriptionPlanRepository(
+    database: database,
   );
-  await _seedMaintenanceIfNeeded(maintenance);
-  await _seedTenanciesIfNeeded(tenancies);
-  await _seedPaymentsIfNeeded(tenancies: tenancies, payments: payments);
-  await _seedDocumentsIfNeeded(leaseDocuments);
-  await _seedNoticesIfNeeded(notices);
-  // The demo gateway behaves like an idempotent callable backend. Real Firebase
-  // composition replaces only this boundary; feature repositories stay local.
-  await syncEngine.syncPending(maxMutations: 200);
+  final managedUsers = SembastManagedUserRepository(database: database);
+  final adminActions = SembastAdminActionRepository(database: database);
+  final usesFirebase =
+      session != null && !session.isDemo && Firebase.apps.isNotEmpty;
+  final gateway = usesFirebase
+      ? await FirebaseRemoteSyncGateway.create()
+      : DemoRemoteSyncGateway();
+  final syncEngine = SyncEngine(database: database, gateway: gateway);
+  RemotePullCoordinator? remotePullCoordinator;
+
+  if (!usesFirebase) {
+    await _seedPortfolioIfNeeded(
+      properties: properties,
+      units: units,
+      listings: listings,
+    );
+    await _seedMaintenanceIfNeeded(maintenance);
+    await _seedTenanciesIfNeeded(tenancies);
+    await _seedPaymentsIfNeeded(tenancies: tenancies, payments: payments);
+    await _seedDocumentsIfNeeded(leaseDocuments);
+    await _seedNoticesIfNeeded(notices);
+    await _seedSubscriptionPlansIfNeeded(subscriptionPlans);
+    await _seedManagedUsersIfNeeded(managedUsers);
+    await syncEngine.syncPending(maxMutations: 200);
+  } else {
+    remotePullCoordinator = RemotePullCoordinator(
+      database: database,
+      gateway: FirestoreRemotePullGateway(),
+    );
+    remotePullCoordinator.watch(OfflineEntityType.listing, publicOnly: true);
+    if (session.role == AppRole.landlord) {
+      for (final type in const [
+        OfflineEntityType.property,
+        OfflineEntityType.unit,
+        OfflineEntityType.listing,
+      ]) {
+        remotePullCoordinator.watch(type, landlordId: session.userId);
+      }
+    } else if (session.role == AppRole.client) {
+      remotePullCoordinator.watch(
+        OfflineEntityType.application,
+        clientUid: session.userId,
+      );
+    }
+    await syncEngine.syncPending(maxMutations: 200);
+  }
 
   return AppDependencies(
     database: database,
@@ -208,7 +267,124 @@ Future<AppDependencies> createAppDependencies({
     payments: payments,
     leaseDocuments: leaseDocuments,
     notices: notices,
+    subscriptionPlans: subscriptionPlans,
+    managedUsers: managedUsers,
+    adminActions: adminActions,
+    remotePullCoordinator: remotePullCoordinator,
   );
+}
+
+Future<void> _seedSubscriptionPlansIfNeeded(
+  SubscriptionPlanRepository plans,
+) async {
+  final existing = await plans.getAll();
+  if (existing.isNotEmpty) return;
+
+  const seeds = <CreatePlanDraftInput>[
+    CreatePlanDraftInput(
+      tier: 'Starter',
+      tagline: 'Individual landlords and small portfolios',
+      monthlyPriceMinor: 8000000,
+      unitLimit: 10,
+      staffLabel: '1 landlord account',
+      listingsLabel: 'Up to 3 active public listings',
+      support: 'Email and help centre',
+      subscribers: 412,
+    ),
+    CreatePlanDraftInput(
+      tier: 'Pro',
+      tagline: 'Growing landlords and small teams',
+      monthlyPriceMinor: 25000000,
+      unitLimit: 50,
+      staffLabel: '3 staff accounts, standard roles',
+      listingsLabel: 'Up to 25 active public listings',
+      support: 'Priority support',
+      subscribers: 476,
+      recommended: true,
+    ),
+    CreatePlanDraftInput(
+      tier: 'Premium',
+      tagline: 'Professional managers, larger portfolios',
+      monthlyPriceMinor: 70000000,
+      unitLimit: 200,
+      staffLabel: '10 staff accounts, custom roles',
+      listingsLabel: 'Advertise every eligible vacant rental',
+      support: 'Priority onboarding and support',
+      subscribers: 204,
+    ),
+    CreatePlanDraftInput(
+      tier: 'Enterprise',
+      tagline: 'Agencies and institutions',
+      monthlyPriceMinor: 0,
+      unitLimit: 200,
+      staffLabel: 'Custom accounts and org-wide roles',
+      listingsLabel: 'Custom listing limits',
+      support: 'Dedicated manager and SLA',
+      subscribers: 44,
+    ),
+  ];
+  for (final seed in seeds) {
+    await plans.create(seed);
+  }
+}
+
+Future<void> _seedManagedUsersIfNeeded(ManagedUserRepository users) async {
+  final existing = await users.getAll();
+  if (existing.isNotEmpty) return;
+
+  const seeds = <InviteManagedUserInput>[
+    InviteManagedUserInput(
+      name: 'Sandra Nakato',
+      email: 'sandra@acaciahomes.ug',
+      role: 'Landlord',
+      location: 'Kampala',
+    ),
+    InviteManagedUserInput(
+      name: 'Brian Okello',
+      email: 'brian.okello@example.com',
+      role: 'Tenant',
+      location: 'Kampala',
+    ),
+    InviteManagedUserInput(
+      name: 'Amina Noor',
+      email: 'amina@tuliahomes.ug',
+      role: 'Landlord',
+      location: 'Mbarara',
+    ),
+    InviteManagedUserInput(
+      name: 'Kevin Odongo',
+      email: 'kevin.odongo@example.com',
+      role: 'Tenant',
+      location: 'Jinja',
+    ),
+    InviteManagedUserInput(
+      name: 'Faith Nabirye',
+      email: 'faith.nabirye@example.com',
+      role: 'Tenant',
+      location: 'Wakiso',
+    ),
+    InviteManagedUserInput(
+      name: 'Sam Walusimbi',
+      email: 'sam@kilimaproperties.ug',
+      role: 'Landlord',
+      location: 'Mukono',
+    ),
+  ];
+  final created = <ManagedUser>[];
+  for (final seed in seeds) {
+    created.add(await users.invite(seed));
+  }
+  // Most demo accounts are long-standing members; one stays invited and one
+  // is suspended so every account state is visible.
+  for (final user in created) {
+    if (user.name == 'Amina Noor') continue;
+    await users.changeStatus(
+      userId: user.id,
+      status: user.name == 'Kevin Odongo'
+          ? ManagedUserStatus.suspended
+          : ManagedUserStatus.active,
+    );
+  }
 }
 
 Future<void> _seedDocumentsIfNeeded(LeaseDocumentRepository documents) async {
@@ -585,21 +761,6 @@ Future<void> _seedPortfolioIfNeeded({
       );
       await listings.publish(draft.id);
     }
-  }
-}
-
-class _DemoRemoteSyncGateway implements RemoteSyncGateway {
-  final Set<String> _applied = <String>{};
-
-  @override
-  Future<RemoteWriteResult> push(RemoteMutation mutation) async {
-    await Future<void>.delayed(const Duration(milliseconds: 8));
-    final duplicate = !_applied.add(mutation.idempotencyKey);
-    return RemoteWriteResult(
-      committedAt: DateTime.now().toUtc(),
-      serverRevision: 'demo-${mutation.mutationId}',
-      wasAlreadyApplied: duplicate,
-    );
   }
 }
 
