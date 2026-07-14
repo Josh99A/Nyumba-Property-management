@@ -97,8 +97,8 @@ class _ListingDetails extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   child: AspectRatio(
                     aspectRatio: context.isCompact ? 4 / 3 : 2.45,
-                    child: Image.asset(
-                      listingAssetFor(listing),
+                    child: listingImage(
+                      listing,
                       fit: BoxFit.cover,
                       filterQuality: FilterQuality.high,
                     ),
@@ -150,6 +150,11 @@ class _ListingDescription extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final money = NumberFormat.currency(
+      locale: 'en_UG',
+      symbol: '${listing.currency} ',
+      decimalDigits: 0,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -193,11 +198,32 @@ class _ListingDescription extends StatelessWidget {
                 value:
                     '${listing.bathrooms} bathroom${listing.bathrooms == 1 ? '' : 's'}',
               ),
-            const _Fact(
-              icon: Icons.local_parking_outlined,
-              value: 'Secure parking',
+            if (listing.unitType != null)
+              _Fact(
+                icon: Icons.apartment_outlined,
+                value: _displayEnum(listing.unitType!),
+              ),
+            if (listing.floorAreaSquareMetres != null)
+              _Fact(
+                icon: Icons.square_foot_outlined,
+                value: '${listing.floorAreaSquareMetres} m²',
+              ),
+            _Fact(
+              icon: Icons.chair_outlined,
+              value: listing.furnished ? 'Furnished' : 'Unfurnished',
             ),
-            const _Fact(icon: Icons.water_drop_outlined, value: 'Backup water'),
+            if (listing.parkingSpaces != null)
+              _Fact(
+                icon: Icons.local_parking_outlined,
+                value:
+                    '${listing.parkingSpaces} parking space${listing.parkingSpaces == 1 ? '' : 's'}',
+              ),
+            if (listing.availableFrom != null)
+              _Fact(
+                icon: Icons.event_available_outlined,
+                value:
+                    'Available ${DateFormat('d MMM y').format(listing.availableFrom!)}',
+              ),
           ],
         ),
         const SizedBox(height: 30),
@@ -205,18 +231,83 @@ class _ListingDescription extends StatelessWidget {
         const SizedBox(height: 10),
         Text(listing.description, style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: 28),
-        Text('What is included', style: Theme.of(context).textTheme.titleLarge),
+        if (listing.amenities.isNotEmpty) ...[
+          Text('Amenities', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 24,
+            runSpacing: 14,
+            children: [
+              for (final amenity in listing.amenities)
+                _Included(label: amenity),
+            ],
+          ),
+          const SizedBox(height: 28),
+        ],
+        if (listing.utilitiesIncluded.isNotEmpty) ...[
+          Text(
+            'Utilities included',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 24,
+            runSpacing: 14,
+            children: [
+              for (final utility in listing.utilitiesIncluded)
+                _Included(label: utility),
+            ],
+          ),
+          const SizedBox(height: 28),
+        ],
+        if (listing.accessibilityFeatures.isNotEmpty) ...[
+          Text('Accessibility', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 24,
+            runSpacing: 14,
+            children: [
+              for (final feature in listing.accessibilityFeatures)
+                _Included(label: feature),
+            ],
+          ),
+          const SizedBox(height: 28),
+        ],
+        Text('Costs and terms', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
-        const Wrap(
-          spacing: 24,
-          runSpacing: 14,
-          children: [
-            _Included(label: '24-hour security'),
-            _Included(label: 'Reliable water supply'),
-            _Included(label: 'On-site parking'),
-            _Included(label: 'Professional management'),
-          ],
-        ),
+        _DetailRow(label: 'Monthly rent', value: formattedRent),
+        if (listing.securityDepositMinor != null)
+          _DetailRow(
+            label: 'Security deposit',
+            value: money.format(listing.securityDepositMinor! / 100),
+          ),
+        if (listing.serviceChargeMinor != null)
+          _DetailRow(
+            label: 'Monthly service charge',
+            value: money.format(listing.serviceChargeMinor! / 100),
+          ),
+        if (listing.minimumLeaseMonths != null)
+          _DetailRow(
+            label: 'Minimum lease',
+            value: '${listing.minimumLeaseMonths} months',
+          ),
+        if (listing.petsPolicy?.trim().isNotEmpty ?? false)
+          _DetailRow(label: 'Pets', value: listing.petsPolicy!),
+        if (listing.smokingPolicy?.trim().isNotEmpty ?? false)
+          _DetailRow(label: 'Smoking', value: listing.smokingPolicy!),
+        if (listing.viewingInstructions?.trim().isNotEmpty ?? false) ...[
+          const SizedBox(height: 22),
+          Text('Viewing', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(listing.viewingInstructions!),
+        ],
+        if (listing.expiresAt != null) ...[
+          const SizedBox(height: 22),
+          Text(
+            'Listing active until ${DateFormat('d MMM y').format(listing.expiresAt!)}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
       ],
     );
   }
@@ -337,6 +428,45 @@ class _Included extends StatelessWidget {
   }
 }
 
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 170,
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: context.nyumba.mutedInk),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+}
+
+String _displayEnum(String value) {
+  final spaced = value.replaceAllMapped(
+    RegExp(r'([a-z])([A-Z])'),
+    (match) => '${match.group(1)} ${match.group(2)}',
+  );
+  return spaced.isEmpty
+      ? value
+      : '${spaced[0].toUpperCase()}${spaced.substring(1)}';
+}
+
 class _ListingNotFound extends StatelessWidget {
   const _ListingNotFound({required this.onBack});
 
@@ -391,28 +521,18 @@ Future<void> _showContact(BuildContext context, Listing listing) {
             ),
             const SizedBox(height: 8),
             Text(
-              'Ask about ${listing.title}.',
+              'Ask about ${listing.title}. Nyumba routes enquiries without exposing private landlord contact details.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 18),
-            ListTile(
+            const ListTile(
               contentPadding: EdgeInsets.zero,
-              enabled: false,
-              leading: const CircleAvatar(child: Icon(Icons.phone_outlined)),
-              title: Text(listing.contactPhone ?? '+256 772 000 100'),
-              subtitle: const Text(
-                'Call or WhatsApp · in-app dialing coming soon',
+              leading: CircleAvatar(child: Icon(Icons.shield_outlined)),
+              title: Text('Private, routed contact'),
+              subtitle: Text(
+                'Use the application form to send your details securely. Direct contact is not part of the public listing.',
               ),
             ),
-            if (listing.contactEmail != null)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const CircleAvatar(
-                  child: Icon(Icons.mail_outline_rounded),
-                ),
-                title: Text(listing.contactEmail!),
-                subtitle: const Text('Send an email'),
-              ),
           ],
         ),
       ),

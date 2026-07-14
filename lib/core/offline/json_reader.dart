@@ -34,6 +34,20 @@ final class JsonReader {
     return value;
   }
 
+  double? optionalDouble(String key) {
+    final value = json[key];
+    if (value == null) return null;
+    if (value is! num) throw FormatException('$key must be a number.');
+    return value.toDouble();
+  }
+
+  bool optionalBool(String key, {bool fallback = false}) {
+    final value = json[key];
+    if (value == null) return fallback;
+    if (value is! bool) throw FormatException('$key must be a boolean.');
+    return value;
+  }
+
   DateTime requiredDate(String key) {
     final value = requiredString(key);
     try {

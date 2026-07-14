@@ -18,6 +18,7 @@ import '../features/marketplace/presentation/listing_detail_screen.dart';
 import '../features/marketplace/presentation/public_listings_screen.dart';
 import '../features/portfolio/presentation/properties_screen.dart';
 import '../features/portfolio/presentation/property_detail_screen.dart';
+import '../features/profile/presentation/profile_settings_screen.dart';
 import '../features/tenant_portal/presentation/tenant_documents_screen.dart';
 import '../features/tenant_portal/presentation/tenant_home_screen.dart';
 import '../features/tenant_portal/presentation/tenant_maintenance_screen.dart';
@@ -159,6 +160,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 _transitionPage(state: state, child: const DocumentsScreen()),
           ),
           GoRoute(
+            path: '/settings',
+            pageBuilder: (context, state) => _transitionPage(
+              state: state,
+              child: const ProfileSettingsScreen(),
+            ),
+          ),
+          GoRoute(
             path: '/tenant',
             pageBuilder: (context, state) =>
                 _transitionPage(state: state, child: const TenantHomeScreen()),
@@ -246,7 +254,8 @@ String? _redirect(UserSession? session, String path) {
 
   final allowed = switch (session.role) {
     AppRole.landlord =>
-      path == '/dashboard' ||
+      path == '/settings' ||
+          path == '/dashboard' ||
           path == '/properties' ||
           path.startsWith('/properties/') ||
           path == '/tenants' ||
@@ -254,8 +263,10 @@ String? _redirect(UserSession? session, String path) {
           path == '/maintenance' ||
           path == '/listings' ||
           path == '/documents',
-    AppRole.tenant => path == '/tenant' || path.startsWith('/tenant/'),
-    AppRole.admin => path == '/admin' || path.startsWith('/admin/'),
+    AppRole.tenant =>
+      path == '/settings' || path == '/tenant' || path.startsWith('/tenant/'),
+    AppRole.admin =>
+      path == '/settings' || path == '/admin' || path.startsWith('/admin/'),
   };
   return allowed ? null : home;
 }

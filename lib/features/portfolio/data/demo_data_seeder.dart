@@ -113,6 +113,11 @@ final class DemoDataSeeder {
                 'A well maintained ${unit.type.name} in ${property.city}.',
             monthlyRentMinor: unit.monthlyRentMinor,
             currency: unit.currency,
+            city: property.city,
+            neighborhood: 'Kampala Central',
+            minimumLeaseMonths: 12,
+            securityDepositMinor: unit.monthlyRentMinor,
+            parkingSpaces: 1,
             contactPhone: '+256 700 000 000',
           ),
         );

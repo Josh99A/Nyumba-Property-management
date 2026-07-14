@@ -382,6 +382,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 'A well maintained ${unit.type.name} in ${property.city}.',
             monthlyRentMinor: unit.monthlyRentMinor,
             currency: unit.currency,
+            city: property.city,
+            neighborhood: property.city,
             contactPhone: '+256 772 000 100',
           ),
         );

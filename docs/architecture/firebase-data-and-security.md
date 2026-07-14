@@ -81,15 +81,25 @@ Projection rules are UID-path based and all projection writes are denied to clie
 `publicListings/{listingId}` is a deliberate, denormalized whitelist. It may contain:
 
 - listing ID and opaque landlord/public contact token;
-- title, description, property/unit type, amenities, bedroom/bathroom counts;
+- title, description, property/unit type, amenities, accessibility features,
+  bedroom/bathroom counts, floor, approximate floor area, furnishing, and
+  parking capacity;
 - district/city/neighborhood and an intentionally approximate map location;
 - monthly rent in integer minor units and currency;
+- server-validated deposit/service-charge amounts, included utilities,
+  availability, minimum lease term, and concise pet/smoking/viewing policies;
 - server-approved public image paths;
 - `status`, `publishedAt`, `expiresAt`, and projection version.
 
 It must not contain the exact address, private unit label, landlord email/phone unless product policy explicitly opts in, tenant/occupancy identity, internal notes, provider IDs, document paths, or private property/unit snapshots. Contact flows reference the listing ID and let the server route the message without revealing private contact data.
 
 Public reads require `status == 'published'` and `expiresAt > request.time`. Browse queries must include those constraints and a page limit of at most 50; the composite index is provided in `firebase/firestore.indexes.json`. Publication images live under a separate public Storage prefix and are server-copied only after validation.
+
+Private listing drafts may also retain direct phone/email routing data and local
+upload intents. Those fields never enter the public projection. Older local
+listing records that predate the structured public fields are read with safe
+display defaults; landlords must complete the required unit type and public
+neighborhood/district fields before a new publication request is accepted.
 
 ## Server-authoritative invariants
 

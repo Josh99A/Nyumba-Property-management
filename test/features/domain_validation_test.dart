@@ -86,6 +86,9 @@ void main() {
         monthlyRentMinor: 4500000,
         currency: 'UGX',
         status: ListingStatus.published,
+        unitType: 'apartment',
+        city: 'Kampala',
+        neighborhood: 'Ntinda',
         contactPhone: '+256700000000',
         createdAt: now,
         updatedAt: now,
@@ -112,9 +115,63 @@ void main() {
           monthlyRentMinor: 4500000,
           currency: 'UGX',
           status: ListingStatus.published,
+          unitType: 'apartment',
+          city: 'Kampala',
+          neighborhood: 'Ntinda',
           createdAt: now,
           updatedAt: now,
           publishedAt: now,
+          syncMetadata: const SyncMetadata.pending(),
+        ),
+        throwsA(isA<DomainValidationException>()),
+      );
+    });
+
+    test('published listing requires a public-safe location', () {
+      expect(
+        () => Listing(
+          id: 'listing-id',
+          unitId: 'unit-id',
+          propertyId: 'property-id',
+          landlordId: 'landlord-id',
+          title: 'Apartment A1',
+          description: 'A bright two-bedroom apartment.',
+          monthlyRentMinor: 4500000,
+          currency: 'UGX',
+          status: ListingStatus.published,
+          unitType: 'apartment',
+          city: 'Kampala',
+          contactPhone: '+256700000000',
+          createdAt: now,
+          updatedAt: now,
+          publishedAt: now,
+          syncMetadata: const SyncMetadata.pending(),
+        ),
+        throwsA(isA<DomainValidationException>()),
+      );
+    });
+
+    test('listing limits public photo references to ten', () {
+      expect(
+        () => Listing(
+          id: 'listing-id',
+          unitId: 'unit-id',
+          propertyId: 'property-id',
+          landlordId: 'landlord-id',
+          title: 'Apartment A1',
+          description: 'A bright two-bedroom apartment.',
+          monthlyRentMinor: 4500000,
+          currency: 'UGX',
+          status: ListingStatus.draft,
+          unitType: 'apartment',
+          city: 'Kampala',
+          neighborhood: 'Ntinda',
+          imageUrls: List<String>.generate(
+            11,
+            (index) => 'https://example.com/$index.webp',
+          ),
+          createdAt: now,
+          updatedAt: now,
           syncMetadata: const SyncMetadata.pending(),
         ),
         throwsA(isA<DomainValidationException>()),
@@ -132,6 +189,9 @@ void main() {
         monthlyRentMinor: 4500000,
         currency: 'UGX',
         status: ListingStatus.draft,
+        unitType: 'apartment',
+        city: 'Kampala',
+        neighborhood: 'Ntinda',
         contactPhone: '+256700000000',
         createdAt: now,
         updatedAt: now,

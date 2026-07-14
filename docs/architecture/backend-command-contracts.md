@@ -159,6 +159,8 @@ read private listing, unit, property, landlord account, subscription, entitlemen
 require owner, approved, active/trialing, advertising entitlement
 require unit is vacant/available and no other active public listing for the unit
 validate public text/media and moderation policy
+validate structured public location (never exact address), unit facts,
+amenities/accessibility, availability, disclosed charges/lease terms, and policies
 construct a new public document from an explicit field allowlist
 update private publication state + write public projection atomically
 schedule expiry and public-media projection jobs

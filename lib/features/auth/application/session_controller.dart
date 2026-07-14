@@ -44,5 +44,19 @@ class SessionController extends Notifier<UserSession?> {
     );
   }
 
+  void updateProfile({
+    required String displayName,
+    required String email,
+    required String phone,
+  }) {
+    final current = state;
+    if (current == null) return;
+    state = current.copyWith(
+      displayName: displayName,
+      email: email,
+      phone: phone,
+    );
+  }
+
   void signOut() => state = null;
 }

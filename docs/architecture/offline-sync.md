@@ -23,7 +23,22 @@ The local database also contains:
 - `session_scope`: current UID, roles, access generation, and active projection scopes;
 - optional attachment staging metadata; binary files are stored outside Sembast.
 
+The additive `user_profiles` local store holds editable display/contact fields
+and per-user appearance/notification preferences. A profile save writes the
+record and a `profile.update`-compatible outbox intent atomically. The active
+session may render the optimistic display name immediately, but the UI must
+describe the change as pending until a server acknowledgement is available.
+Theme selection is a low-risk personal display preference and may take effect
+from the local record while that acknowledgement is pending.
+
 Schema migrations are explicit and forward-only. A failed migration must not silently drop outbox records.
+
+The additive local listing schema includes structured public-safe location,
+unit facts, amenities/accessibility, availability, lease/cost disclosures,
+policies, media references, and optional server projection metadata. Readers
+provide safe defaults for records created before these fields existed; no
+outbox command is rewritten or discarded. A new publication still validates
+the completed structured fields before enqueueing `listing.publish`.
 
 ## Local write transaction
 

@@ -462,15 +462,26 @@ class _SidebarProfile extends StatelessWidget {
     return PopupMenuButton<String>(
       tooltip: 'Account menu',
       onSelected: (value) {
+        if (value == 'profile') context.go('/settings');
         if (value == 'sign-out') onSignOut();
       },
       itemBuilder: (context) => const [
         PopupMenuItem(
           value: 'profile',
-          enabled: false,
-          child: Text('Profile settings (coming soon)'),
+          child: ListTile(
+            leading: Icon(Icons.manage_accounts_outlined),
+            title: Text('Profile settings'),
+            contentPadding: EdgeInsets.zero,
+          ),
         ),
-        PopupMenuItem(value: 'sign-out', child: Text('Sign out')),
+        PopupMenuItem(
+          value: 'sign-out',
+          child: ListTile(
+            leading: Icon(Icons.logout_rounded),
+            title: Text('Sign out'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
       ],
       child: Container(
         height: 52,
@@ -610,6 +621,7 @@ class _MobileShell extends ConsumerWidget {
           PopupMenuButton<String>(
             tooltip: 'Account menu',
             onSelected: (value) {
+              if (value == 'profile') context.go('/settings');
               if (value == 'sign-out') {
                 ref.read(sessionControllerProvider.notifier).signOut();
               }
@@ -617,10 +629,20 @@ class _MobileShell extends ConsumerWidget {
             itemBuilder: (context) => const [
               PopupMenuItem(
                 value: 'profile',
-                enabled: false,
-                child: Text('Profile settings (coming soon)'),
+                child: ListTile(
+                  leading: Icon(Icons.manage_accounts_outlined),
+                  title: Text('Profile settings'),
+                  contentPadding: EdgeInsets.zero,
+                ),
               ),
-              PopupMenuItem(value: 'sign-out', child: Text('Sign out')),
+              PopupMenuItem(
+                value: 'sign-out',
+                child: ListTile(
+                  leading: Icon(Icons.logout_rounded),
+                  title: Text('Sign out'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
             ],
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14),

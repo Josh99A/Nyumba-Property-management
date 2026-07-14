@@ -11,20 +11,24 @@ import 'package:nyumba_property_management/core/offline/uuid_id_generator.dart';
 import 'package:nyumba_property_management/features/marketplace/data/mappers/listing_mapper.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing_repository.dart';
+import 'package:nyumba_property_management/features/portfolio/domain/property_repository.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/unit_repository.dart';
 
 final class SembastListingRepository implements ListingRepository {
   SembastListingRepository({
     required OfflineDatabase database,
+    required PropertyRepository properties,
     required UnitRepository units,
     IdGenerator? idGenerator,
     Clock clock = const SystemClock(),
   }) : _database = database,
+       _properties = properties,
        _units = units,
        _idGenerator = idGenerator ?? UuidIdGenerator(),
        _clock = clock;
 
   final OfflineDatabase _database;
+  final PropertyRepository _properties;
   final UnitRepository _units;
   final IdGenerator _idGenerator;
   final Clock _clock;
@@ -34,12 +38,19 @@ final class SembastListingRepository implements ListingRepository {
     input.validate();
     final unit = await _units.getById(input.unitId);
     if (unit == null) throw EntityNotFoundException('unit', input.unitId);
+    final property = await _properties.getById(input.propertyId);
+    if (property == null) {
+      throw EntityNotFoundException('property', input.propertyId);
+    }
     final errors = <String, String>{};
     if (unit.propertyId != input.propertyId) {
       errors['propertyId'] = 'must match the referenced unit';
     }
     if (unit.landlordId != input.landlordId) {
       errors['landlordId'] = 'must own the referenced unit';
+    }
+    if (property.landlordId != input.landlordId) {
+      errors['landlordId'] = 'must own the referenced property';
     }
     if (errors.isNotEmpty) throw DomainValidationException(errors);
 
@@ -56,8 +67,32 @@ final class SembastListingRepository implements ListingRepository {
       status: ListingStatus.draft,
       bedrooms: unit.bedrooms,
       bathrooms: unit.bathrooms,
+      unitType: unit.type.name,
+      floor: unit.floor,
+      floorAreaSquareMetres: input.floorAreaSquareMetres,
+      furnished: input.furnished,
+      parkingSpaces: input.parkingSpaces,
+      amenities: unit.amenities.map((item) => item.trim()).toList(),
+      accessibilityFeatures: input.accessibilityFeatures
+          .map((item) => item.trim())
+          .toList(),
+      city: input.city.trim(),
+      district: _optional(input.district),
+      neighborhood: _optional(input.neighborhood),
+      approximateLatitude: input.approximateLatitude,
+      approximateLongitude: input.approximateLongitude,
       availableFrom: input.availableFrom?.toUtc(),
+      minimumLeaseMonths: input.minimumLeaseMonths,
+      securityDepositMinor: input.securityDepositMinor,
+      serviceChargeMinor: input.serviceChargeMinor,
+      utilitiesIncluded: input.utilitiesIncluded
+          .map((item) => item.trim())
+          .toList(),
+      petsPolicy: _optional(input.petsPolicy),
+      smokingPolicy: _optional(input.smokingPolicy),
+      viewingInstructions: _optional(input.viewingInstructions),
       imageUrls: input.imageUrls.map((item) => item.trim()).toList(),
+      videoUrl: _optional(input.videoUrl),
       contactPhone: _optional(input.contactPhone),
       contactEmail: _optional(input.contactEmail),
       createdAt: now,
@@ -131,13 +166,42 @@ final class SembastListingRepository implements ListingRepository {
       monthlyRentMinor: listing.monthlyRentMinor,
       currency: listing.currency,
       status: current.status,
+      bedrooms: current.bedrooms,
+      bathrooms: current.bathrooms,
+      unitType: listing.unitType,
+      floor: listing.floor,
+      floorAreaSquareMetres: listing.floorAreaSquareMetres,
+      furnished: listing.furnished,
+      parkingSpaces: listing.parkingSpaces,
+      amenities: listing.amenities.map((item) => item.trim()).toList(),
+      accessibilityFeatures: listing.accessibilityFeatures
+          .map((item) => item.trim())
+          .toList(),
+      city: listing.city.trim(),
+      district: _optional(listing.district),
+      neighborhood: _optional(listing.neighborhood),
+      approximateLatitude: listing.approximateLatitude,
+      approximateLongitude: listing.approximateLongitude,
       availableFrom: listing.availableFrom?.toUtc(),
+      minimumLeaseMonths: listing.minimumLeaseMonths,
+      securityDepositMinor: listing.securityDepositMinor,
+      serviceChargeMinor: listing.serviceChargeMinor,
+      utilitiesIncluded: listing.utilitiesIncluded
+          .map((item) => item.trim())
+          .toList(),
+      petsPolicy: _optional(listing.petsPolicy),
+      smokingPolicy: _optional(listing.smokingPolicy),
+      viewingInstructions: _optional(listing.viewingInstructions),
       imageUrls: listing.imageUrls.map((item) => item.trim()).toList(),
+      videoUrl: _optional(listing.videoUrl),
       contactPhone: _optional(listing.contactPhone),
       contactEmail: _optional(listing.contactEmail),
+      publicContactToken: current.publicContactToken,
       createdAt: current.createdAt,
       updatedAt: now,
       publishedAt: current.publishedAt,
+      expiresAt: current.expiresAt,
+      projectionVersion: current.projectionVersion,
       syncMetadata: current.syncMetadata.markPending(),
     );
     await _persist(updated, operation: OutboxOperation.update);

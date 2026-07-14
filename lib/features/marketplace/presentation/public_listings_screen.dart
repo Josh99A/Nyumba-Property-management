@@ -433,8 +433,8 @@ class _ListingCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.asset(
-                      listingAssetFor(listing),
+                    listingImage(
+                      listing,
                       fit: BoxFit.cover,
                       filterQuality: FilterQuality.medium,
                     ),
@@ -456,7 +456,11 @@ class _ListingCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            const Text('Available now'),
+                            Text(
+                              listing.availableFrom == null
+                                  ? 'Available now'
+                                  : 'Available ${DateFormat('d MMM').format(listing.availableFrom!)}',
+                            ),
                           ],
                         ),
                       ),

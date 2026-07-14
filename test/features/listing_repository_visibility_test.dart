@@ -6,6 +6,7 @@ import 'package:nyumba_property_management/features/marketplace/data/mappers/lis
 import 'package:nyumba_property_management/features/marketplace/data/sembast_listing_repository.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
 import 'package:nyumba_property_management/features/portfolio/data/sembast_unit_repository.dart';
+import 'package:nyumba_property_management/features/portfolio/data/sembast_property_repository.dart';
 import 'package:sembast/sembast_memory.dart';
 
 void main() {
@@ -35,6 +36,7 @@ void main() {
     }
     final repository = SembastListingRepository(
       database: database,
+      properties: SembastPropertyRepository(database: database),
       units: SembastUnitRepository(database: database),
     );
 
@@ -60,6 +62,9 @@ Listing _publishedListing({
   monthlyRentMinor: 4500000,
   currency: 'UGX',
   status: ListingStatus.published,
+  unitType: 'apartment',
+  city: 'Kampala',
+  neighborhood: 'Ntinda',
   contactPhone: '+256700000000',
   createdAt: now,
   updatedAt: now,

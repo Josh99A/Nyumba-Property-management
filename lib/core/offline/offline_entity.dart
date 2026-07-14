@@ -1,4 +1,5 @@
 enum OfflineEntityType {
+  userProfile('user_profiles', 5),
   property('properties', 10),
   unit('units', 20),
   listing('listings', 30),

@@ -17,6 +17,9 @@ import '../../features/portfolio/domain/property.dart';
 import '../../features/portfolio/domain/property_repository.dart';
 import '../../features/portfolio/domain/unit.dart';
 import '../../features/portfolio/domain/unit_repository.dart';
+import '../../features/profile/data/sembast_user_settings_repository.dart';
+import '../../features/profile/domain/user_settings.dart';
+import '../../features/profile/domain/user_settings_repository.dart';
 import '../bootstrap/local_database_opener.dart';
 
 class AppDependencies {
@@ -28,6 +31,7 @@ class AppDependencies {
     required this.applications,
     required this.syncEngine,
     required this.documents,
+    required this.userSettings,
   });
 
   final OfflineDatabase database;
@@ -37,6 +41,7 @@ class AppDependencies {
   final ApplicationRepository applications;
   final SyncEngine syncEngine;
   final DocumentService documents;
+  final UserSettingsRepository userSettings;
 }
 
 final appDependenciesProvider = Provider<AppDependencies>((ref) {
@@ -69,12 +74,24 @@ final outboxEntriesProvider = StreamProvider((ref) {
   return ref.watch(appDependenciesProvider).database.watchOutbox();
 });
 
+final userSettingsProvider = StreamProvider.family<UserSettings?, String>((
+  ref,
+  userId,
+) {
+  return ref.watch(appDependenciesProvider).userSettings.watchByUserId(userId);
+});
+
 Future<AppDependencies> createAppDependencies() async {
   final database = await openScopedOfflineDatabase('workspace_v2');
   final properties = SembastPropertyRepository(database: database);
   final units = SembastUnitRepository(database: database);
-  final listings = SembastListingRepository(database: database, units: units);
+  final listings = SembastListingRepository(
+    database: database,
+    properties: properties,
+    units: units,
+  );
   final applications = SembastApplicationRepository(database: database);
+  final userSettings = SembastUserSettingsRepository(database: database);
   final gateway = _DemoRemoteSyncGateway();
   final syncEngine = SyncEngine(database: database, gateway: gateway);
 
@@ -95,6 +112,7 @@ Future<AppDependencies> createAppDependencies() async {
     applications: applications,
     syncEngine: syncEngine,
     documents: const PdfDocumentService(),
+    userSettings: userSettings,
   );
 }
 
@@ -202,6 +220,17 @@ Future<void> _seedPortfolioIfNeeded({
           title: '${unit.label} at ${property.name}',
           description: '${seed.description} Available now in ${seed.city}.',
           monthlyRentMinor: unit.monthlyRentMinor,
+          city: property.city,
+          neighborhood: seed.name.startsWith('Sunset')
+              ? 'Ntinda'
+              : seed.name.startsWith('Riverside')
+              ? 'Riverside'
+              : 'Ggaba',
+          minimumLeaseMonths: 12,
+          securityDepositMinor: unit.monthlyRentMinor,
+          utilitiesIncluded: const ['Water'],
+          parkingSpaces: 1,
+          viewingInstructions: 'Request a viewing through Nyumba.',
           contactPhone: '+256 772 000 100',
         ),
       );
