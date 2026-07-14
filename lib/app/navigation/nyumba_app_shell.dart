@@ -568,7 +568,14 @@ class _DesktopTopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          _Avatar(session: session),
+          Tooltip(
+            message: 'Profile settings',
+            child: InkWell(
+              onTap: () => context.go('/settings'),
+              customBorder: const CircleBorder(),
+              child: _Avatar(session: session),
+            ),
+          ),
         ],
       ),
     );

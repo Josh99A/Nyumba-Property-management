@@ -68,7 +68,7 @@ Names are versioned contracts. Payload schemas should live beside Functions and 
 
 | Domain | Commands | Authority notes |
 | --- | --- | --- |
-| Identity | `profile.update`, `landlord.onboard` | server controls role/status fields |
+| Identity | `profile.update`, `landlord.onboard` | `profile.update` accepts validated display/contact and personal notification preferences only; server controls identity, role, and status fields |
 | Admin | `landlord.approve`, `landlord.suspend`, `landlord.reinstate` | platform-admin claim; mandatory reason and audit |
 | Portfolio | `property.create/update/archive`, `unit.create/update/archive/restore` | owning landlord; account/entitlement checks; unit counter transaction |
 | Tenancy | `tenant.invite/update`, `lease.create/activate/end` | owning landlord; activation checks unit occupancy; tenant acceptance policy **TBD** |

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../app/theme/theme_mode_controller.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
@@ -31,6 +32,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   bool _maintenanceUpdates = true;
   bool _loading = true;
   bool _saving = false;
+  bool _savingAppearance = false;
+  String? _appearanceMessage;
 
   @override
   void initState() {
@@ -41,23 +44,38 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   Future<void> _load() async {
     final session = ref.read(sessionControllerProvider);
     if (session == null) return;
-    final saved = await ref
-        .read(appDependenciesProvider)
-        .userSettings
-        .getByUserId(session.userId);
+    UserSettings? saved;
+    Object? loadError;
+    try {
+      saved = await ref
+          .read(appDependenciesProvider)
+          .userSettings
+          .getByUserId(session.userId);
+    } on Object catch (error) {
+      loadError = error;
+    }
     if (!mounted) return;
-    final settings = saved;
     setState(() {
-      _nameController.text = settings?.displayName ?? session.displayName;
-      _emailController.text = settings?.email ?? session.email;
-      _phoneController.text = settings?.phone ?? session.phone;
-      _themePreference = settings?.themePreference ?? ThemePreference.system;
-      _emailNotifications = settings?.emailNotifications ?? true;
-      _pushNotifications = settings?.pushNotifications ?? true;
-      _rentReminders = settings?.rentReminders ?? true;
-      _maintenanceUpdates = settings?.maintenanceUpdates ?? true;
+      _nameController.text = saved?.displayName ?? session.displayName;
+      _emailController.text = saved?.email ?? session.email;
+      _phoneController.text = saved?.phone ?? session.phone;
+      _themePreference = saved?.themePreference ?? ThemePreference.system;
+      _emailNotifications = saved?.emailNotifications ?? true;
+      _pushNotifications = saved?.pushNotifications ?? true;
+      _rentReminders = saved?.rentReminders ?? true;
+      _maintenanceUpdates = saved?.maintenanceUpdates ?? true;
       _loading = false;
     });
+    ref
+        .read(themePreferenceProvider.notifier)
+        .load(saved?.themePreference ?? ThemePreference.system);
+    if (loadError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Saved settings could not be loaded on this device.'),
+        ),
+      );
+    }
   }
 
   @override
@@ -112,8 +130,69 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.message)));
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Settings could not be saved. Your edits are intact.'),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _selectAppearance(ThemePreference preference) async {
+    if (_themePreference == preference) return;
+    final previous = _themePreference;
+    setState(() {
+      _themePreference = preference;
+      _savingAppearance = true;
+      _appearanceMessage = 'Saving on this device…';
+    });
+    ref.read(themePreferenceProvider.notifier).select(preference);
+
+    final session = ref.read(sessionControllerProvider);
+    if (session == null) return;
+    try {
+      final repository = ref.read(appDependenciesProvider).userSettings;
+      final current = await repository.getByUserId(session.userId);
+      await repository.save(
+        UserSettings(
+          userId: session.userId,
+          displayName: current?.displayName ?? session.displayName,
+          email: current?.email ?? session.email,
+          phone: current?.phone ?? session.phone,
+          themePreference: preference,
+          emailNotifications:
+              current?.emailNotifications ?? _emailNotifications,
+          pushNotifications: current?.pushNotifications ?? _pushNotifications,
+          rentReminders: current?.rentReminders ?? _rentReminders,
+          maintenanceUpdates:
+              current?.maintenanceUpdates ?? _maintenanceUpdates,
+          updatedAt: DateTime.now().toUtc(),
+          syncMetadata: const SyncMetadata.pending(),
+        ),
+      );
+      if (!mounted || _themePreference != preference) return;
+      ref.read(themePreferenceProvider.notifier).load(preference);
+      setState(() {
+        _savingAppearance = false;
+        _appearanceMessage = 'Applied and saved on this device.';
+      });
+    } on Object {
+      if (!mounted || _themePreference != preference) return;
+      ref.read(themePreferenceProvider.notifier).load(previous);
+      setState(() {
+        _themePreference = previous;
+        _savingAppearance = false;
+        _appearanceMessage = 'Could not save this appearance setting.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Appearance could not be saved. Please try again.'),
+        ),
+      );
     }
   }
 
@@ -292,6 +371,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
             ),
             const SizedBox(height: 18),
             SegmentedButton<ThemePreference>(
+              expandedInsets: EdgeInsets.zero,
               showSelectedIcon: false,
               segments: const [
                 ButtonSegment(
@@ -311,9 +391,37 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 ),
               ],
               selected: {_themePreference},
-              onSelectionChanged: (value) =>
-                  setState(() => _themePreference = value.single),
+              onSelectionChanged: (value) => _selectAppearance(value.single),
             ),
+            if (_appearanceMessage != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (_savingAppearance)
+                    const SizedBox.square(
+                      dimension: 15,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    Icon(
+                      _appearanceMessage!.startsWith('Applied')
+                          ? Icons.check_circle_outline_rounded
+                          : Icons.error_outline_rounded,
+                      size: 17,
+                      color: _appearanceMessage!.startsWith('Applied')
+                          ? context.nyumba.sageDark
+                          : context.nyumba.danger,
+                    ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _appearanceMessage!,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
