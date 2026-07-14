@@ -125,6 +125,15 @@ Uploads are two-phase:
 
 The application must tolerate local files disappearing before upload and surface a recoverable `LOCAL_ATTACHMENT_MISSING` state. Public listing images are never public merely because they were uploaded; only the server-owned public projection/path is readable publicly.
 
+The checked-in demo baseline has no configured Storage uploader. Its listing
+picker therefore keeps bounded image data references only inside an unpublished
+local draft so the selection survives a local repository reload. Publication
+validation fails closed while any such local reference remains. This is a
+temporary non-production bridge: the Firebase adapter must replace it with the
+attachment-intent flow above (including checksum and missing-file recovery)
+before photo publication is enabled. Local image data must never be copied into
+`publicListings` or treated as an acknowledged upload.
+
 ## Operation policy
 
 | Operation | Offline behavior |

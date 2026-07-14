@@ -87,7 +87,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                       FadeSlideIn(
                         delay: NyumbaMotion.stagger(1),
                         child: Text(
-                          'Browse verified available units and contact landlords directly.',
+                          'Browse verified available rental spaces and contact landlords directly.',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 color: const Color(0xFFDCE7F4),
@@ -343,7 +343,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Landlords list verified units; you contact them directly.',
+                    'Landlords list verified rental spaces; you contact them directly.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),

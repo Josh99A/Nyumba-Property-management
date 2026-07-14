@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/presentation/coming_soon.dart';
+import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
@@ -17,15 +17,19 @@ import 'widgets/tenant_components.dart';
 const _demoTenantId = 'demo-tenant-001';
 
 class TenantDocumentsScreen extends ConsumerStatefulWidget {
-  const TenantDocumentsScreen({super.key});
+  const TenantDocumentsScreen({
+    super.key,
+    this.documentService = const PdfDocumentService(),
+  });
+
+  final DocumentService documentService;
 
   @override
   ConsumerState<TenantDocumentsScreen> createState() =>
       _TenantDocumentsScreenState();
 }
 
-class _TenantDocumentsScreenState
-    extends ConsumerState<TenantDocumentsScreen> {
+class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
   /// Locally raised document requests, newest first. These are view records
   /// until a document-request aggregate exists server-side.
   final List<_TenantDocument> _localRequests = [];
@@ -64,13 +68,28 @@ class _TenantDocumentsScreenState
         category: category,
         date: DateFormat('d MMM y').format(document.issuedAt.toLocal()),
         size: '—',
-        status: document.statusLabel == 'Signed' ? 'Ready' : document.statusLabel,
+        status: document.statusLabel == 'Signed'
+            ? 'Ready'
+            : document.statusLabel,
         format: 'PDF',
         offline: true,
         favorite: document.type == LeaseDocumentType.lease,
         description:
             '${document.type.label} for ${document.unitLabel}, '
             '${document.propertyName}.',
+        recipient: document.recipient,
+        propertyName: document.propertyName,
+        unitLabel: document.unitLabel,
+        printable: PrintableDocumentData(
+          title: document.type.label,
+          number: document.number,
+          recipient: document.recipient,
+          property: document.propertyName,
+          unit: document.unitLabel,
+          amountMinor: document.amountMinor,
+          date: document.issuedAt,
+          status: document.statusLabel,
+        ),
       ),
     );
   }
@@ -91,6 +110,19 @@ class _TenantDocumentsScreenState
             'Official receipt for '
             '${formatTenantUgx(payment.amountMinor ~/ 100)} received via '
             '${payment.method} for ${payment.period} rent.',
+        recipient: payment.tenantName,
+        propertyName: payment.propertyName,
+        unitLabel: payment.unitLabel,
+        printable: PrintableDocumentData(
+          title: 'Receipt',
+          number: payment.receiptNumber,
+          recipient: payment.tenantName,
+          property: payment.propertyName,
+          unit: payment.unitLabel,
+          amountMinor: payment.amountMinor,
+          date: payment.paidOn,
+          status: 'Received',
+        ),
       ),
     );
   }
@@ -122,9 +154,7 @@ class _TenantDocumentsScreenState
       final matchesFavorite = !_favoritesOnly || document.favorite;
       return matchesQuery && matchesCategory && matchesFavorite;
     }).toList();
-    final offlineCount = documents
-        .where((document) => document.offline)
-        .length;
+    final offlineCount = documents.where((document) => document.offline).length;
     final pinned = documents.isEmpty
         ? null
         : documents.firstWhere(
@@ -216,6 +246,7 @@ class _TenantDocumentsScreenState
                     'Lease',
                     'Receipts',
                     'Notices',
+                    'Statements',
                     'Reports',
                   ])
                     ChoiceChip(
@@ -430,6 +461,9 @@ class _TenantDocumentsScreenState
           favorite: false,
           description:
               'Your property manager will prepare this document and share it here.',
+          recipient: 'Current tenant',
+          propertyName: 'Current tenancy',
+          unitLabel: '—',
         ),
       );
       _category = 'All';
@@ -503,22 +537,20 @@ class _TenantDocumentsScreenState
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    ComingSoon(
-                      message: 'Document download coming soon',
-                      child: OutlinedButton.icon(
-                        onPressed: null,
-                        icon: const Icon(Icons.download_outlined),
-                        label: const Text('Download'),
-                      ),
+                    OutlinedButton.icon(
+                      onPressed: document.printable == null
+                          ? null
+                          : () => _shareDocument(document),
+                      icon: const Icon(Icons.download_outlined),
+                      label: const Text('Download / share'),
                     ),
                     const SizedBox(width: 9),
-                    ComingSoon(
-                      message: 'Document printing coming soon',
-                      child: FilledButton.icon(
-                        onPressed: null,
-                        icon: const Icon(Icons.print_outlined),
-                        label: const Text('Print'),
-                      ),
+                    FilledButton.icon(
+                      onPressed: document.printable == null
+                          ? null
+                          : () => _printDocument(document),
+                      icon: const Icon(Icons.print_outlined),
+                      label: const Text('Print'),
                     ),
                   ],
                 ),
@@ -528,6 +560,26 @@ class _TenantDocumentsScreenState
         ),
       ),
     );
+  }
+
+  Future<void> _shareDocument(_TenantDocument document) async {
+    try {
+      await widget.documentService.share(document.printable!);
+    } on Object catch (error) {
+      if (mounted) {
+        showTenantMessage(context, 'Could not share the document: $error');
+      }
+    }
+  }
+
+  Future<void> _printDocument(_TenantDocument document) async {
+    try {
+      await widget.documentService.print(document.printable!);
+    } on Object catch (error) {
+      if (mounted) {
+        showTenantMessage(context, 'Could not print the document: $error');
+      }
+    }
   }
 }
 
@@ -579,7 +631,7 @@ class _PinnedLeaseCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Acacia Heights • Unit A-12',
+                      'Acacia Heights • Apartment A-12',
                       style: Theme.of(
                         context,
                       ).textTheme.titleLarge?.copyWith(color: Colors.white),
@@ -704,8 +756,7 @@ class _DocumentCard extends StatelessWidget {
                   TenantStatusBadge(status: document.status),
               ],
             ),
-            const Spacer(),
-            const SizedBox(height: 14),
+            const SizedBox(height: 28),
             Row(
               children: [
                 Text(
@@ -799,16 +850,16 @@ class _DocumentPreview extends StatelessWidget {
           const SizedBox(height: 28),
           Text(document.description),
           const SizedBox(height: 18),
-          const TenantInfoRow(
+          TenantInfoRow(
             icon: Icons.person_outline_rounded,
             label: 'Tenant',
-            value: 'Brian Okello',
+            value: document.recipient,
           ),
           const SizedBox(height: 12),
-          const TenantInfoRow(
+          TenantInfoRow(
             icon: Icons.home_outlined,
             label: 'Property',
-            value: 'Acacia Heights • Unit A-12',
+            value: '${document.propertyName} · ${document.unitLabel}',
           ),
           const SizedBox(height: 12),
           TenantInfoRow(
@@ -872,6 +923,10 @@ class _TenantDocument {
     required this.offline,
     required this.favorite,
     required this.description,
+    required this.recipient,
+    required this.propertyName,
+    required this.unitLabel,
+    this.printable,
   });
 
   final String title;
@@ -884,6 +939,10 @@ class _TenantDocument {
   final bool offline;
   final bool favorite;
   final String description;
+  final String recipient;
+  final String propertyName;
+  final String unitLabel;
+  final PrintableDocumentData? printable;
 
   _TenantDocument copyWith({bool? offline, bool? favorite}) {
     return _TenantDocument(
@@ -897,6 +956,10 @@ class _TenantDocument {
       offline: offline ?? this.offline,
       favorite: favorite ?? this.favorite,
       description: description,
+      recipient: recipient,
+      propertyName: propertyName,
+      unitLabel: unitLabel,
+      printable: printable,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../domain/listing.dart';
+import 'listing_photo_picker.dart';
 
 String listingAssetFor(Listing listing) {
   final title = listing.title.toLowerCase();
@@ -36,6 +37,19 @@ Widget listingImage(
   FilterQuality filterQuality = FilterQuality.medium,
 }) {
   final firstImage = listing.imageUrls.isEmpty ? null : listing.imageUrls.first;
+  final localBytes = firstImage == null ? null : listingPhotoBytes(firstImage);
+  if (localBytes != null) {
+    return Image.memory(
+      localBytes,
+      fit: fit,
+      filterQuality: filterQuality,
+      errorBuilder: (context, error, stackTrace) => Image.asset(
+        listingAssetFor(listing),
+        fit: fit,
+        filterQuality: filterQuality,
+      ),
+    );
+  }
   final uri = firstImage == null ? null : Uri.tryParse(firstImage);
   if (uri != null && (uri.scheme == 'https' || uri.scheme == 'http')) {
     return Image.network(

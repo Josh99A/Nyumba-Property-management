@@ -76,7 +76,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               tone: context.nyumba.midnightNavy,
             ),
             AdminMetricCard(
-              label: 'Managed units',
+              label: 'Managed rental spaces',
               value: '${metrics.units}',
               caption: '89.6% currently occupied',
               trend: metrics.unitTrend,
@@ -165,7 +165,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
         title: const Text('Approve landlord?'),
         content: Text(
           '${approval.name} will be able to activate a subscription and '
-          'advertise available units.',
+          'advertise available rental spaces.',
         ),
         actions: [
           TextButton(
@@ -296,7 +296,7 @@ class _PlatformInsights extends StatelessWidget {
     };
     return AdminPanel(
       title: 'Platform growth',
-      subtitle: 'New managed units and subscription revenue',
+      subtitle: 'New rental spaces and subscription revenue',
       trailing: const StatusBadge(
         label: 'Healthy growth',
         tone: BadgeTone.success,
@@ -309,7 +309,10 @@ class _PlatformInsights extends StatelessWidget {
             spacing: 22,
             runSpacing: 10,
             children: [
-              _Legend(color: context.nyumba.midnightNavy, label: 'New units'),
+              _Legend(
+                color: context.nyumba.midnightNavy,
+                label: 'New rental spaces',
+              ),
               _Legend(
                 color: context.nyumba.terracottaGold,
                 label: 'Revenue index',

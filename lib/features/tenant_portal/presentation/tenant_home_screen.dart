@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/presentation/coming_soon.dart';
+import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/presentation/status_badge.dart';
 import 'widgets/tenant_components.dart';
 
@@ -405,17 +405,35 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Close'),
           ),
-          ComingSoon(
-            message: 'Statement printing coming soon',
-            child: FilledButton.icon(
-              onPressed: null,
-              icon: Icon(Icons.print_outlined),
-              label: Text('Print statement'),
-            ),
+          FilledButton.icon(
+            onPressed: _printHomeStatement,
+            icon: const Icon(Icons.print_outlined),
+            label: const Text('Print statement'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _printHomeStatement() async {
+    try {
+      await const PdfDocumentService().print(
+        PrintableDocumentData(
+          title: 'Rent statement',
+          number: 'STM-2026-BRIAN',
+          recipient: 'Brian Okello',
+          property: 'Acacia Heights',
+          unit: 'A-12',
+          amountMinor: 360000000,
+          date: DateTime.now(),
+          status: '3 recorded payments',
+        ),
+      );
+    } on Object catch (error) {
+      if (mounted) {
+        showTenantMessage(context, 'Could not print statement: $error');
+      }
+    }
   }
 
   Future<void> _showLatestReceipt() {
@@ -461,7 +479,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
               TenantInfoRow(
                 icon: Icons.home_outlined,
                 label: 'For',
-                value: 'July 2026 rent • Unit A-12',
+                value: 'July 2026 rent • Apartment A-12',
               ),
               SizedBox(height: 12),
               TenantInfoRow(
@@ -658,7 +676,7 @@ class _HomeAndLeasePanel extends StatelessWidget {
         children: [
           TenantInfoRow(
             icon: Icons.meeting_room_outlined,
-            label: 'Unit',
+            label: 'Rental space',
             value: 'A-12 • 2 bedroom apartment',
           ),
           Divider(height: 25),

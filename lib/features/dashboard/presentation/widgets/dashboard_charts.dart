@@ -18,7 +18,7 @@ class OccupancyRing extends StatelessWidget {
     final percentage = (rate * 100).round();
     final palette = context.nyumba;
     return Semantics(
-      label: '$percentage percent of units are occupied',
+      label: '$percentage percent of rental spaces are occupied',
       child: TweenAnimationBuilder<double>(
         tween: Tween(
           begin: NyumbaMotion.reducedMotion(context) ? rate : 0,

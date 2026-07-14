@@ -12,6 +12,7 @@ import '../../../core/presentation/surface.dart';
 import '../../marketplace/application/marketplace_use_cases.dart';
 import '../../marketplace/domain/listing.dart';
 import '../application/portfolio_use_cases.dart';
+import '../application/rental_space_labels.dart';
 import '../domain/property.dart';
 import '../domain/unit.dart';
 import 'portfolio_visuals.dart';
@@ -102,14 +103,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Units',
+                      'Rental spaces',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
                   FilledButton.icon(
                     onPressed: _showAddUnit,
                     icon: const Icon(Icons.add_rounded),
-                    label: const Text('Add unit'),
+                    label: const Text('Add rental space'),
                   ),
                 ],
               ),
@@ -144,8 +145,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     child: Center(
                       child: Text(
                         allUnits.isEmpty
-                            ? 'Add the first rentable unit in this property.'
-                            : 'No units match this filter.',
+                            ? 'Add the first rental space in this property.'
+                            : 'No rental spaces match this filter.',
                       ),
                     ),
                   ),
@@ -204,7 +205,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Add unit to ${property.name}'),
+          title: Text('Add rental space to ${property.name}'),
           content: SizedBox(
             width: 520,
             child: Form(
@@ -217,16 +218,18 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                       controller: label,
                       autofocus: true,
                       decoration: const InputDecoration(
-                        labelText: 'Unit name or number',
+                        labelText: 'Rental space name or number',
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? 'Enter a unit name or number'
+                          ? 'Enter a rental space name or number'
                           : null,
                     ),
                     const SizedBox(height: 14),
                     DropdownButtonFormField<UnitType>(
                       initialValue: type,
-                      decoration: const InputDecoration(labelText: 'Unit type'),
+                      decoration: const InputDecoration(
+                        labelText: 'Rental space type',
+                      ),
                       items: [
                         for (final item in UnitType.values)
                           DropdownMenuItem(
@@ -343,7 +346,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   setDialogState(() => error = caught.toString());
                 }
               },
-              child: const Text('Save unit'),
+              child: const Text('Save rental space'),
             ),
           ],
         ),
@@ -355,7 +358,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     bathrooms.dispose();
     if (created == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unit saved locally and queued to sync.')),
+        const SnackBar(
+          content: Text('Rental space saved locally and queued to sync.'),
+        ),
       );
     }
   }
@@ -366,8 +371,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         unitId: unit.id,
         propertyId: property.id,
         landlordId: property.landlordId,
-        title: '${unit.label} at ${property.name}',
-        description: 'A well maintained ${unit.type.name} in ${property.city}.',
+        title: '${unit.displayName} at ${property.name}',
+        description:
+            'A well maintained ${unit.type.displayLabel.toLowerCase()} in ${property.city}.',
         monthlyRentMinor: unit.monthlyRentMinor,
         currency: unit.currency,
         city: property.city,
@@ -505,7 +511,7 @@ class _HeroContent extends StatelessWidget {
             spacing: 24,
             runSpacing: 10,
             children: [
-              _HeroMetric(label: 'Total units', value: '${units.length}'),
+              _HeroMetric(label: 'Rental spaces', value: '${units.length}'),
               _HeroMetric(label: 'Occupied', value: '$occupied'),
               _HeroMetric(
                 label: 'Available',
@@ -588,7 +594,7 @@ class _UnitCard extends StatelessWidget {
               const SizedBox(width: 11),
               Expanded(
                 child: Text(
-                  unit.label,
+                  unit.displayName,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -596,10 +602,6 @@ class _UnitCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            _titleCase(unit.type.name),
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
           const SizedBox(height: 4),
           Text(
             currency.format(unit.monthlyRentMinor / 100),

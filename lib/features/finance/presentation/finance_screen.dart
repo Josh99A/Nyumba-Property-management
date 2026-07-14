@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -7,7 +8,7 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
-import '../../../core/presentation/coming_soon.dart';
+import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
@@ -61,17 +62,14 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 description:
                     'Track rent, record receipts, and keep every balance honest.',
                 primaryAction: FilledButton.icon(
-                  onPressed: () => _showRecordPayment(context),
+                  onPressed: () => _showRecordPayment(context, tenancies),
                   icon: const Icon(Icons.add_card_outlined),
                   label: const Text('Record payment'),
                 ),
-                secondaryAction: ComingSoon(
-                  message: 'Recurring invoices coming soon',
-                  child: OutlinedButton.icon(
-                    onPressed: null,
-                    icon: Icon(Icons.receipt_long_outlined),
-                    label: Text('Generate invoices'),
-                  ),
+                secondaryAction: OutlinedButton.icon(
+                  onPressed: () => context.go('/documents'),
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: const Text('Generate invoices'),
                 ),
               ),
               const SizedBox(height: 24),
@@ -154,8 +152,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                             prefixIcon: Icon(Icons.search_rounded),
                             isDense: true,
                           ),
-                          onChanged: (value) =>
-                              setState(() => _query = value),
+                          onChanged: (value) => setState(() => _query = value),
                         ),
                       ),
                   ],
@@ -203,7 +200,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       columns: const [
                         DataColumn(label: Text('Receipt')),
                         DataColumn(label: Text('Tenant')),
-                        DataColumn(label: Text('Unit')),
+                        DataColumn(label: Text('Rental space')),
                         DataColumn(label: Text('Amount')),
                         DataColumn(label: Text('Date')),
                         DataColumn(label: Text('Method')),
@@ -248,13 +245,10 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 padding: const EdgeInsets.all(12),
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: ComingSoon(
-                    message: 'Report export coming soon',
-                    child: TextButton.icon(
-                      onPressed: null,
-                      icon: Icon(Icons.download_outlined, size: 18),
-                      label: Text('Export report'),
-                    ),
+                  child: TextButton.icon(
+                    onPressed: () => _exportPayments(payments),
+                    icon: const Icon(Icons.download_outlined, size: 18),
+                    label: const Text('Export report'),
                   ),
                 ),
               ),
@@ -265,8 +259,43 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
     );
   }
 
-  Future<void> _showRecordPayment(BuildContext context) async {
-    final tenancies = ref.read(tenanciesProvider).value ?? const <Tenancy>[];
+  Future<void> _exportPayments(List<RentPayment> payments) async {
+    final rows = <String>[
+      'receipt,tenant,unit,property,amount_minor,date,method',
+      for (final payment in payments)
+        [
+          payment.receiptNumber,
+          payment.tenantName,
+          payment.unitLabel,
+          payment.propertyName,
+          payment.amountMinor,
+          payment.paidOn.toUtc().toIso8601String(),
+          payment.method,
+        ].map(csvCell).join(','),
+    ];
+    try {
+      final saved = await exportTextFile(
+        fileName: 'nyumba-payments.csv',
+        contents: rows.join('\n'),
+      );
+      if (mounted && saved) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Payment report exported.')),
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not export report: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showRecordPayment(
+    BuildContext context,
+    List<Tenancy> tenancies,
+  ) async {
     if (tenancies.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -294,7 +323,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   DropdownButtonFormField<String>(
                     initialValue: selected.id,
                     decoration: const InputDecoration(
-                      labelText: 'Tenant and unit',
+                      labelText: 'Tenant and rental space',
                     ),
                     items: [
                       for (final tenancy in tenancies)

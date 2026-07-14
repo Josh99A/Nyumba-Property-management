@@ -60,6 +60,7 @@ void main() {
         city: property.city,
         neighborhood: 'Ntinda',
         contactPhone: '+256 772 000 100',
+        imageUrls: const ['data:image/png;base64,AA=='],
       ),
     );
 
@@ -74,6 +75,12 @@ void main() {
     expect(reloaded?.bedrooms, 3);
     expect(reloaded?.bathrooms, 2);
     expect(reloaded?.amenities, draft.amenities);
+    expect(reloaded?.imageUrls, draft.imageUrls);
+    final queued = await database.readOutbox();
+    final draftCommand = queued.singleWhere(
+      (entry) => entry.entityId == draft.id,
+    );
+    expect(draftCommand.payload['imageUrls'], draft.imageUrls);
   });
 
   test('public projection includes only public-safe listing details', () {

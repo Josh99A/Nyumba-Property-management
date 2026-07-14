@@ -123,7 +123,7 @@ class PdfDocumentService implements DocumentService {
                 pw.Expanded(
                   child: _pdfLabelValue(
                     'Property',
-                    '${data.property}\nUnit ${data.unit}',
+                    '${data.property}\n${data.unit}',
                     muted,
                     ink,
                   ),
@@ -216,7 +216,7 @@ class PdfDocumentService implements DocumentService {
                 ),
                 pw.TableRow(
                   children: [
-                    _pdfCell('Monthly rent · Unit ${data.unit}'),
+                    _pdfCell('Monthly rent · ${data.unit}'),
                     _pdfCell(DateFormat('MMMM y').format(data.date)),
                     _pdfCell(
                       currency.format(data.amountMinor / 100),

@@ -179,7 +179,7 @@ final class Listing {
         maxLength: 40,
       ),
       'imageUrls': imageUrls.any((url) => url.trim().isEmpty)
-          ? 'must not contain empty URLs'
+          ? 'must not contain empty image references'
           : imageUrls.length > 10
           ? 'must contain at most 10 images'
           : null,
@@ -221,6 +221,10 @@ final class Listing {
           (contactPhone == null || contactPhone!.trim().isEmpty) &&
               (contactEmail == null || contactEmail!.trim().isEmpty)
           ? 'a phone number or email address is required'
+          : null,
+      'imageUrls':
+          imageUrls.any((reference) => reference.startsWith('data:image/'))
+          ? 'locally selected photos must finish uploading before publication'
           : null,
       'status': status == ListingStatus.closed
           ? 'closed listings cannot be published'

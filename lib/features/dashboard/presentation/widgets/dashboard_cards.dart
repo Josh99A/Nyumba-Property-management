@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/theme/nyumba_colors.dart';
 import '../../../../core/config/market_config.dart';
-import '../../../../core/presentation/coming_soon.dart';
 import '../../../../core/presentation/motion.dart';
 import '../../../../core/presentation/responsive.dart';
 import '../../../../core/presentation/status_badge.dart';
@@ -171,13 +170,14 @@ class _OccupancyLegend extends StatelessWidget {
         _LegendItem(
           color: context.nyumba.sageGreen,
           label: 'Occupied',
-          value: '${snapshot.occupiedUnits} units',
+          value: '${snapshot.occupiedUnits} rental spaces',
           valueColor: context.nyumba.sageDark,
         ),
         _LegendItem(
           color: context.nyumba.divider,
           label: 'Vacant',
-          value: '${snapshot.totalUnits - snapshot.occupiedUnits} units',
+          value:
+              '${snapshot.totalUnits - snapshot.occupiedUnits} rental spaces',
           valueColor: context.nyumba.mutedInk,
         ),
       ],
@@ -398,7 +398,7 @@ class RecentPaymentsCard extends StatelessWidget {
                   columnSpacing: 30,
                   columns: const [
                     DataColumn(label: Text('Tenant')),
-                    DataColumn(label: Text('Unit')),
+                    DataColumn(label: Text('Rental space')),
                     DataColumn(label: Text('Property')),
                     DataColumn(label: Text('Amount')),
                     DataColumn(label: Text('Date')),
@@ -703,14 +703,41 @@ class ActivityCard extends StatelessWidget {
             ),
           Padding(
             padding: const EdgeInsets.all(8),
-            child: ComingSoon(
-              message: 'Activity history coming soon',
-              child: TextButton.icon(
-                onPressed: null,
-                iconAlignment: IconAlignment.end,
-                icon: const Icon(Icons.arrow_forward_rounded, size: 17),
-                label: const Text('View all activity'),
+            child: TextButton.icon(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Activity history'),
+                  content: SizedBox(
+                    width: 480,
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: activity.length,
+                      separatorBuilder: (_, _) => const Divider(),
+                      itemBuilder: (context, index) {
+                        final item = activity[index];
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(item.icon, color: item.tone),
+                          title: Text(item.title),
+                          subtitle: Text(
+                            '${item.detail}\n${relativeTime(item.at)}',
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  actions: [
+                    FilledButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
               ),
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+              label: const Text('View all activity'),
             ),
           ),
         ],

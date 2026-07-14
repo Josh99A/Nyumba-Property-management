@@ -61,7 +61,8 @@ final class DemoDataSeeder {
         name: _demoPropertyName,
         addressLine: 'Argwings Kodhek Road',
         city: 'Kampala',
-        description: 'A secure mixed-unit property close to local amenities.',
+        description:
+            'A secure property with varied rental spaces close to local amenities.',
       ),
     );
     changed = currentProperties.every((item) => item.id != property!.id);
@@ -108,7 +109,7 @@ final class DemoDataSeeder {
             unitId: unit.id,
             propertyId: property.id,
             landlordId: landlordId,
-            title: '${unit.label} at ${property.name}',
+            title: '${_typeLabel(unit.type)} ${unit.label} at ${property.name}',
             description:
                 'A well maintained ${unit.type.name} in ${property.city}.',
             monthlyRentMinor: unit.monthlyRentMinor,
@@ -175,6 +176,11 @@ final class DemoDataSeeder {
           amenities: <String>['Street frontage'],
         ),
       ];
+}
+
+String _typeLabel(UnitType type) {
+  final name = type == UnitType.other ? 'rental space' : type.name;
+  return '${name[0].toUpperCase()}${name.substring(1)}';
 }
 
 final class _DemoUnitSpecification {

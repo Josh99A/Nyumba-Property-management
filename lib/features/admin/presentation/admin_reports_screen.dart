@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/presentation/coming_soon.dart';
+import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import 'widgets/admin_components.dart';
@@ -19,6 +19,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   String _reportView = 'Platform';
   String _district = 'All districts';
   final List<_GeneratedReport> _generated = [..._seedGeneratedReports];
+  int _scheduledReports = 0;
 
   _ReportMetrics get _metrics {
     final multiplier = switch (_period) {
@@ -42,12 +43,13 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     return AdminPage(
       title: 'Reports & insights',
       description: 'Explore operational trends and generate auditable exports.',
-      secondaryAction: ComingSoon(
-        message: 'Scheduled reports coming soon',
-        child: OutlinedButton.icon(
-          onPressed: null,
-          icon: Icon(Icons.schedule_send_outlined),
-          label: Text('Schedule report'),
+      secondaryAction: OutlinedButton.icon(
+        onPressed: _scheduleReport,
+        icon: const Icon(Icons.schedule_send_outlined),
+        label: Text(
+          _scheduledReports == 0
+              ? 'Schedule report'
+              : 'Scheduled: $_scheduledReports',
         ),
       ),
       primaryAction: FilledButton.icon(
@@ -136,7 +138,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               tone: context.nyumba.sageDark,
             ),
             AdminMetricCard(
-              label: 'New managed units',
+              label: 'New managed rental spaces',
               value: '${metrics.newUnits}',
               caption: 'Added in the selected period',
               trend: '+6.2%',
@@ -239,6 +241,47 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         _GeneratedReportsPanel(reports: _generated),
       ],
     );
+  }
+
+  Future<void> _scheduleReport() async {
+    var cadence = 'Monthly';
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Schedule report'),
+          content: DropdownButtonFormField<String>(
+            initialValue: cadence,
+            decoration: const InputDecoration(labelText: 'Cadence'),
+            items: const [
+              DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
+              DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
+              DropdownMenuItem(value: 'Quarterly', child: Text('Quarterly')),
+            ],
+            onChanged: (value) {
+              if (value != null) setDialogState(() => cadence = value);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Save schedule'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (saved == true && mounted) {
+      setState(() => _scheduledReports++);
+      showAdminMessage(
+        context,
+        '$cadence schedule saved locally; delivery awaits backend configuration.',
+      );
+    }
   }
 
   Future<void> _generateReport(_ReportTemplate template) async {
@@ -473,17 +516,17 @@ class _DistrictFootprint extends StatelessWidget {
   Widget build(BuildContext context) {
     final districts = selectedDistrict == 'All districts'
         ? const [
-            ('Kampala', .78, '7,840 units'),
-            ('Wakiso', .56, '3,420 units'),
-            ('Mbarara', .41, '2,160 units'),
-            ('Gulu', .31, '1,470 units'),
-            ('Jinja', .24, '1,105 units'),
+            ('Kampala', .78, '7,840 rental spaces'),
+            ('Wakiso', .56, '3,420 rental spaces'),
+            ('Mbarara', .41, '2,160 rental spaces'),
+            ('Gulu', .31, '1,470 rental spaces'),
+            ('Jinja', .24, '1,105 rental spaces'),
           ]
         : [(selectedDistrict, .72, 'Selected district detail')];
     return AdminPanel(
-      title: 'Managed-unit footprint',
+      title: 'Rental-space footprint',
       subtitle: selectedDistrict == 'All districts'
-          ? 'Top districts by active unit count'
+          ? 'Top districts by active rental-space count'
           : 'Filtered to $selectedDistrict',
       child: Column(
         children: [
@@ -624,15 +667,39 @@ class _GeneratedReportRow extends StatelessWidget {
         const SizedBox(width: 10),
         StatusBadge(label: report.format, tone: BadgeTone.neutral),
         const SizedBox(width: 6),
-        const ComingSoon(
-          message: 'Re-download coming soon',
-          child: IconButton(
-            onPressed: null,
-            icon: Icon(Icons.download_rounded),
-          ),
+        IconButton(
+          tooltip: 'Download report',
+          onPressed: () => _downloadReport(context, report),
+          icon: const Icon(Icons.download_rounded),
         ),
       ],
     );
+  }
+}
+
+Future<void> _downloadReport(
+  BuildContext context,
+  _GeneratedReport report,
+) async {
+  try {
+    final safeName = report.name.toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9]+'),
+      '-',
+    );
+    final saved = await exportTextFile(
+      fileName:
+          '$safeName.${report.format.toLowerCase() == 'csv' ? 'csv' : 'txt'}',
+      extension: report.format.toLowerCase() == 'csv' ? 'csv' : 'txt',
+      contents:
+          '${report.name}\nGenerated by: ${report.generatedBy}\nGenerated at: ${report.generatedAt}\nFormat: ${report.format}',
+    );
+    if (context.mounted && saved) {
+      showAdminMessage(context, '${report.name} downloaded.');
+    }
+  } on Object catch (error) {
+    if (context.mounted) {
+      showAdminMessage(context, 'Could not download report: $error');
+    }
   }
 }
 
@@ -684,7 +751,7 @@ const _reportTemplates = [
   _ReportTemplate(
     title: 'Platform performance',
     description:
-        'Users, units, occupancy, payment volume, and listing adoption.',
+        'Users, rental spaces, occupancy, payment volume, and listing adoption.',
     format: 'PDF / CSV',
     icon: Icons.monitor_heart_outlined,
     color: NyumbaColors.midnightNavy,
@@ -719,7 +786,8 @@ const _reportTemplates = [
   ),
   _ReportTemplate(
     title: 'Marketplace activity',
-    description: 'Published units, views, applications, and landlord contacts.',
+    description:
+        'Published rental spaces, views, applications, and landlord contacts.',
     format: 'PDF / CSV',
     icon: Icons.storefront_outlined,
     color: NyumbaColors.midnightNavy,

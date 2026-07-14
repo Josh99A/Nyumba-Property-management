@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
+import '../../../core/presentation/operational_actions.dart';
 import '../application/session_controller.dart';
 import '../domain/user_session.dart';
 
@@ -149,12 +149,18 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                             ).textTheme.labelLarge,
                                           ),
                                         ),
-                                        const ComingSoon(
-                                          message: 'Password reset coming soon',
-                                          child: TextButton(
-                                            onPressed: null,
-                                            child: Text('Forgot password?'),
+                                        TextButton(
+                                          onPressed: () => showNyumbaInfoDialog(
+                                            context,
+                                            title: 'Password reset',
+                                            message:
+                                                'Demo accounts do not use real passwords. '
+                                                'For production accounts, Firebase must be '
+                                                'configured before a reset email can be sent. '
+                                                'No email has been sent from this demo.',
+                                            icon: Icons.lock_reset_rounded,
                                           ),
+                                          child: const Text('Forgot password?'),
                                         ),
                                       ],
                                     ),

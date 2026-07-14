@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/presentation/coming_soon.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/config/market_config.dart';
 import '../../../core/presentation/page_header.dart';
@@ -13,10 +13,12 @@ import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import '../../portfolio/domain/property.dart';
 import '../../portfolio/domain/unit.dart';
+import '../../portfolio/application/rental_space_labels.dart';
 import '../domain/application.dart';
 import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
 import 'listing_visuals.dart';
+import 'listing_photo_picker.dart';
 
 class LandlordListingsScreen extends ConsumerStatefulWidget {
   const LandlordListingsScreen({super.key});
@@ -57,7 +59,7 @@ class _LandlordListingsScreenState
               PageHeader(
                 title: 'Listings',
                 description:
-                    'Advertise vacant units and review incoming applications.',
+                    'Advertise vacant rental spaces and review incoming applications.',
                 primaryAction: FilledButton.icon(
                   onPressed:
                       unitsValue.value == null || propertiesValue.value == null
@@ -256,7 +258,7 @@ class _LandlordListingsScreenState
     if (vacant.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Add a vacant unit before creating a listing.'),
+          content: Text('Add a vacant rental space before creating a listing.'),
         ),
       );
       return;
@@ -268,7 +270,7 @@ class _LandlordListingsScreenState
     };
     final title = TextEditingController(
       text:
-          '${selectedUnit.label} at ${propertyById[selectedUnit.propertyId]?.name ?? 'My property'}',
+          '${selectedUnit.displayName} at ${propertyById[selectedUnit.propertyId]?.name ?? 'My property'}',
     );
     final description = TextEditingController(
       text: 'A well maintained home in a convenient Kampala location.',
@@ -291,7 +293,7 @@ class _LandlordListingsScreenState
     final viewingInstructions = TextEditingController(
       text: 'Request a viewing through Nyumba.',
     );
-    final imageUrls = TextEditingController();
+    final selectedPhotos = <PickedListingPhoto>[];
     final videoUrl = TextEditingController();
     DateTime? availableFrom;
     bool furnished = false;
@@ -311,14 +313,14 @@ class _LandlordListingsScreenState
                     DropdownButtonFormField<Unit>(
                       initialValue: selectedUnit,
                       decoration: const InputDecoration(
-                        labelText: 'Vacant unit',
+                        labelText: 'Vacant rental space',
                       ),
                       items: [
                         for (final unit in vacant)
                           DropdownMenuItem(
                             value: unit,
                             child: Text(
-                              '${unit.label} · ${propertyById[unit.propertyId]?.name ?? ''}',
+                              '${unit.displayName} · ${propertyById[unit.propertyId]?.name ?? ''}',
                             ),
                           ),
                       ],
@@ -550,18 +552,82 @@ class _LandlordListingsScreenState
                       ),
                     ),
                     const SizedBox(height: 14),
-                    TextFormField(
-                      controller: imageUrls,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Photo URLs',
-                        helperText:
-                            'One per line, maximum 10; server validation is still required',
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Listing photos',
+                        style: Theme.of(context).textTheme.labelLarge,
                       ),
-                      validator: (value) => _splitLines(value).length > 10
-                          ? 'Add at most 10 photos'
-                          : null,
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: selectedPhotos.length >= listingPhotoLimit
+                            ? null
+                            : () async {
+                                final result = await pickListingPhotos(
+                                  remainingSlots:
+                                      listingPhotoLimit - selectedPhotos.length,
+                                );
+                                if (!context.mounted) return;
+                                setDialogState(
+                                  () => selectedPhotos.addAll(result.photos),
+                                );
+                                if (result.rejectedMessages.isNotEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        result.rejectedMessages.join('\n'),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                        icon: const Icon(Icons.add_photo_alternate_outlined),
+                        label: Text(
+                          selectedPhotos.isEmpty
+                              ? 'Choose photos'
+                              : 'Add more (${selectedPhotos.length}/$listingPhotoLimit)',
+                        ),
+                      ),
+                    ),
+                    if (selectedPhotos.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final photo in selectedPhotos)
+                            InputChip(
+                              avatar: CircleAvatar(
+                                backgroundImage: MemoryImage(photo.bytes),
+                              ),
+                              label: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 150,
+                                ),
+                                child: Text(
+                                  photo.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              onDeleted: () => setDialogState(
+                                () => selectedPhotos.remove(photo),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'JPEG, PNG, or WebP; up to 5 MB each and 10 photos. '
+                        'Selections stay in this local draft. Publishing stays '
+                        'blocked until the production upload service replaces '
+                        'them with server-owned media references.',
+                      ),
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
@@ -662,7 +728,7 @@ class _LandlordListingsScreenState
           petsPolicy: petsPolicy.text.trim(),
           smokingPolicy: smokingPolicy.text.trim(),
           viewingInstructions: viewingInstructions.text.trim(),
-          imageUrls: _splitLines(imageUrls.text),
+          imageUrls: selectedPhotos.map((photo) => photo.dataUri).toList(),
           videoUrl: videoUrl.text.trim(),
           contactPhone: phone.text.trim(),
           contactEmail: email.text.trim(),
@@ -696,7 +762,6 @@ class _LandlordListingsScreenState
     petsPolicy.dispose();
     smokingPolicy.dispose();
     viewingInstructions.dispose();
-    imageUrls.dispose();
     videoUrl.dispose();
   }
 }
@@ -718,12 +783,6 @@ int? _optionalMoneyMinor(String value) {
 
 List<String> _splitCommaSeparated(String value) => value
     .split(',')
-    .map((item) => item.trim())
-    .where((item) => item.isNotEmpty)
-    .toList(growable: false);
-
-List<String> _splitLines(String? value) => (value ?? '')
-    .split(RegExp(r'[\r\n]+'))
     .map((item) => item.trim())
     .where((item) => item.isNotEmpty)
     .toList(growable: false);
@@ -852,12 +911,42 @@ class _LandlordListingCard extends StatelessWidget {
                         child: const Text('Publish'),
                       )
                     else
-                      const ComingSoon(
-                        message: 'Listing actions coming soon',
-                        child: IconButton(
-                          onPressed: null,
-                          icon: Icon(Icons.more_horiz_rounded),
-                        ),
+                      PopupMenuButton<String>(
+                        tooltip: 'Listing actions',
+                        onSelected: (value) {
+                          if (value == 'view') {
+                            context.go('/listing/${listing.id}');
+                          } else if (value == 'details') {
+                            showDialog<void>(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                title: Text(listing.title),
+                                content: Text(
+                                  '${listingLocationFor(listing)}\n\n'
+                                  '$applicationCount application${applicationCount == 1 ? '' : 's'}\n'
+                                  '${listing.isPublic ? 'Server-confirmed public listing.' : 'Awaiting server acknowledgement.'}',
+                                ),
+                                actions: [
+                                  FilledButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext),
+                                    child: const Text('Close'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'view',
+                            child: Text('View public listing'),
+                          ),
+                          PopupMenuItem(
+                            value: 'details',
+                            child: Text('Listing details'),
+                          ),
+                        ],
                       ),
                   ],
                 ),

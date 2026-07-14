@@ -14,6 +14,7 @@ import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../portfolio/domain/property.dart';
 import '../../portfolio/domain/unit.dart';
+import '../../portfolio/application/rental_space_labels.dart';
 import '../application/maintenance_providers.dart';
 import '../domain/maintenance_request.dart';
 
@@ -30,6 +31,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
   @override
   Widget build(BuildContext context) {
     final requestsValue = ref.watch(maintenanceRequestsProvider);
+    final units = ref.watch(portfolioUnitsProvider).value ?? const <Unit>[];
+    final properties =
+        ref.watch(portfolioPropertiesProvider).value ?? const <Property>[];
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
     return SingleChildScrollView(
@@ -50,7 +54,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                 description:
                     'Triage tenant requests and keep every repair moving.',
                 primaryAction: FilledButton.icon(
-                  onPressed: () => _showNewRequest(context),
+                  onPressed: () => _showNewRequest(context, units, properties),
                   icon: const Icon(Icons.add_rounded),
                   label: const Text('New request'),
                 ),
@@ -233,10 +237,11 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     }
   }
 
-  Future<void> _showNewRequest(BuildContext context) async {
-    final units = ref.read(portfolioUnitsProvider).value ?? const <Unit>[];
-    final properties =
-        ref.read(portfolioPropertiesProvider).value ?? const <Property>[];
+  Future<void> _showNewRequest(
+    BuildContext context,
+    List<Unit> units,
+    List<Property> properties,
+  ) async {
     final propertyNames = <String, String>{
       for (final property in properties) property.id: property.name,
     };
@@ -245,13 +250,15 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
         (
           unit: unit,
           label:
-              'Unit ${unit.label} · ${propertyNames[unit.propertyId] ?? 'Property'}',
+              '${unit.displayName} · ${propertyNames[unit.propertyId] ?? 'Property'}',
         ),
     ];
     if (options.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Add a property and unit before logging a request.'),
+          content: Text(
+            'Add a property and rental space before logging a request.',
+          ),
         ),
       );
       return;
@@ -278,7 +285,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                   children: [
                     DropdownButtonFormField<String>(
                       initialValue: selected.unit.id,
-                      decoration: const InputDecoration(labelText: 'Unit'),
+                      decoration: const InputDecoration(
+                        labelText: 'Rental space',
+                      ),
                       items: [
                         for (final option in options)
                           DropdownMenuItem(

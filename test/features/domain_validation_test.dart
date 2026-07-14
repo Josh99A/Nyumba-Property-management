@@ -178,6 +178,32 @@ void main() {
       );
     });
 
+    test('locally selected photos cannot be published as public media', () {
+      expect(
+        () => Listing(
+          id: 'listing-local-photo',
+          unitId: 'unit-id',
+          propertyId: 'property-id',
+          landlordId: 'landlord-id',
+          title: 'Apartment A1',
+          description: 'A bright two-bedroom apartment.',
+          monthlyRentMinor: 4500000,
+          currency: 'UGX',
+          status: ListingStatus.published,
+          unitType: 'apartment',
+          city: 'Kampala',
+          neighborhood: 'Ntinda',
+          contactPhone: '+256700000000',
+          imageUrls: const ['data:image/png;base64,AA=='],
+          createdAt: now,
+          updatedAt: now,
+          publishedAt: now,
+          syncMetadata: const SyncMetadata.pending(),
+        ),
+        throwsA(isA<DomainValidationException>()),
+      );
+    });
+
     test('listing mapper validates listing status', () {
       final draft = Listing(
         id: 'listing-id',

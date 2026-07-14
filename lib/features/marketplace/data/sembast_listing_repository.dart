@@ -136,7 +136,7 @@ final class SembastListingRepository implements ListingRepository {
     if (unit == null) throw EntityNotFoundException('unit', current.unitId);
     if (!unit.canBeAdvertised) {
       throw DomainValidationException(<String, String>{
-        'unit.status': 'only vacant units can be advertised',
+        'unit.status': 'only vacant rental spaces can be advertised',
       });
     }
 

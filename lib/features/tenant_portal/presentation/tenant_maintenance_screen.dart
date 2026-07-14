@@ -17,7 +17,7 @@ import 'widgets/tenant_components.dart';
 
 const _demoTenantId = 'demo-tenant-001';
 const _demoLandlordId = 'demo-landlord-001';
-const _demoTenantUnitLabel = 'Unit B4 · Sunset Apartments';
+const _demoTenantUnitLabel = 'Apartment B4 · Sunset Apartments';
 
 String tenantStatusLabel(MaintenanceStatus status) => switch (status) {
   MaintenanceStatus.submitted => 'Reported',
@@ -767,8 +767,7 @@ class _RequestCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const Spacer(),
-            const SizedBox(height: 15),
+            const SizedBox(height: 29),
             Row(
               children: [
                 Expanded(

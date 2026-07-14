@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/presentation/coming_soon.dart';
+import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import 'widgets/admin_components.dart';
@@ -48,13 +48,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     return AdminPage(
       title: 'Users & access',
       description: 'Review accounts, roles, verification, and platform access.',
-      secondaryAction: ComingSoon(
-        message: 'User export coming soon',
-        child: OutlinedButton.icon(
-          onPressed: null,
-          icon: Icon(Icons.download_outlined),
-          label: Text('Export'),
-        ),
+      secondaryAction: OutlinedButton.icon(
+        onPressed: () => _exportUsers(filtered),
+        icon: const Icon(Icons.download_outlined),
+        label: const Text('Export'),
       ),
       primaryAction: FilledButton.icon(
         onPressed: _inviteUser,
@@ -268,6 +265,32 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _exportUsers(List<_UserAccount> accounts) async {
+    final rows = <String>[
+      'id,name,email,role,location,status,last_active,joined',
+      for (final account in accounts)
+        [
+          account.id,
+          account.name,
+          account.email,
+          account.role,
+          account.location,
+          account.status.label,
+          account.lastActive,
+          account.joined,
+        ].map(csvCell).join(','),
+    ];
+    try {
+      final saved = await exportTextFile(
+        fileName: 'nyumba-users.csv',
+        contents: rows.join('\n'),
+      );
+      if (mounted && saved) showAdminMessage(context, 'User export saved.');
+    } on Object catch (error) {
+      if (mounted) showAdminMessage(context, 'Could not export users: $error');
+    }
   }
 
   void _clearFilters() {

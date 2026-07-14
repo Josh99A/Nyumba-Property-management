@@ -338,7 +338,9 @@ class _ListingActions extends StatelessWidget {
           FilledButton.icon(
             onPressed: () => _showApplication(context, listing),
             icon: const Icon(Icons.description_outlined),
-            label: const Text('Apply for this unit'),
+            label: Text(
+              'Apply for this ${listing.unitType == null ? 'rental space' : _displayEnum(listing.unitType!).toLowerCase()}',
+            ),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
@@ -614,7 +616,9 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
     }
 
     return AlertDialog(
-      title: const Text('Apply for this unit'),
+      title: Text(
+        'Apply for this ${widget.listing.unitType == null ? 'rental space' : _displayEnum(widget.listing.unitType!).toLowerCase()}',
+      ),
       content: SizedBox(
         width: 500,
         child: Form(

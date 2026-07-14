@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/presentation/coming_soon.dart';
+import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import 'widgets/admin_components.dart';
@@ -31,13 +31,18 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
         value: _billingView,
         onChanged: (value) => setState(() => _billingView = value),
       ),
-      primaryAction: ComingSoon(
-        message: 'Billing settings coming soon',
-        child: FilledButton.icon(
-          onPressed: null,
-          icon: Icon(Icons.settings_outlined),
-          label: Text('Billing settings'),
+      primaryAction: FilledButton.icon(
+        onPressed: () => showNyumbaInfoDialog(
+          context,
+          title: 'Billing settings',
+          message:
+              'Plan drafts can be edited on this screen. Provider credentials, '
+              'prices, tax calculation, and billing intervals remain '
+              'server-owned and are not configured in this demo.',
+          icon: Icons.settings_outlined,
         ),
+        icon: const Icon(Icons.settings_outlined),
+        label: const Text('Billing settings'),
       ),
       children: [
         Container(
@@ -189,7 +194,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                   controller: unitController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Manageable unit limit',
+                    labelText: 'Manageable rental-space limit',
                     prefixIcon: Icon(Icons.apartment_outlined),
                   ),
                 ),
@@ -227,7 +232,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                 if (limit == null || limit < 1 || price == null || price < 0) {
                   showAdminMessage(
                     dialogContext,
-                    'Enter a valid unit limit and monthly price.',
+                    'Enter a valid rental-space limit and monthly price.',
                   );
                   return;
                 }
@@ -377,8 +382,8 @@ class _PlanCard extends StatelessWidget {
             _PlanFeature(
               icon: Icons.apartment_outlined,
               text: plan.name == 'Enterprise'
-                  ? 'Custom unit limit, ${plan.unitLimit}+'
-                  : 'Up to ${plan.unitLimit} managed units',
+                  ? 'Custom rental-space limit, ${plan.unitLimit}+'
+                  : 'Up to ${plan.unitLimit} managed rental spaces',
             ),
             _PlanFeature(
               icon: Icons.manage_accounts_outlined,
@@ -576,7 +581,7 @@ class _CommercialGuardrails extends StatelessWidget {
           const _GuardrailLine(
             icon: Icons.cloud_done_outlined,
             text:
-                'Unit limits and entitlements live in versioned server-owned '
+                'Rental-space limits and entitlements live in versioned server-owned '
                 'configuration — never hard-coded in the app. Unknown or '
                 'missing plans grant no entitlement.',
           ),
@@ -584,9 +589,9 @@ class _CommercialGuardrails extends StatelessWidget {
           const _GuardrailLine(
             icon: Icons.trending_down_rounded,
             text:
-                'Downgrades never delete units or block tenants: a grace '
+                'Downgrades never delete rental spaces or block tenants: a grace '
                 'period applies, read access is preserved, and only creating '
-                'units or publishing new listings is held until the account '
+                'rental spaces or publishing new listings is held until the account '
                 'is back within its limit.',
           ),
         ],
@@ -632,14 +637,19 @@ class _RecentSubscriptionActivity extends StatelessWidget {
     return AdminPanel(
       title: 'Recent subscription activity',
       subtitle: 'Latest upgrades, renewals, and payment events',
-      trailing: ComingSoon(
-        message: 'Subscription ledger coming soon',
-        child: TextButton.icon(
-          onPressed: null,
-          iconAlignment: IconAlignment.end,
-          icon: Icon(Icons.arrow_forward_rounded, size: 18),
-          label: Text('View ledger'),
+      trailing: TextButton.icon(
+        onPressed: () => showNyumbaInfoDialog(
+          context,
+          title: 'Subscription ledger',
+          message:
+              'Acacia Homes Ltd — upgraded to Premium — 12 min ago\n'
+              'Kololo Property Co. — renewal recorded — 1 h ago\n'
+              'Lakeview Estates — payment awaiting confirmation — 3 h ago',
+          icon: Icons.receipt_long_outlined,
         ),
+        iconAlignment: IconAlignment.end,
+        icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+        label: const Text('View ledger'),
       ),
       child: const Column(
         children: [
@@ -802,7 +812,7 @@ const _seedPlans = [
     monthlyPrice: 700000,
     unitLimit: 200,
     staffLabel: '10 staff accounts, custom roles',
-    listingsLabel: 'Advertise every eligible vacant unit',
+    listingsLabel: 'Advertise every eligible vacant rental space',
     subscribers: 204,
     support: 'Priority onboarding and support',
     color: NyumbaColors.terracottaDark,

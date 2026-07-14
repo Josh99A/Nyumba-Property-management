@@ -94,7 +94,7 @@ class _KpiGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final cards = [
       KpiCard(
-        label: 'Total units',
+        label: 'Rental spaces',
         value: snapshot.totalUnits,
         caption: 'All properties',
         icon: Icons.apartment_outlined,

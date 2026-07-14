@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme/nyumba_colors.dart';
 import '../../core/offline/outbox_entry.dart';
-import '../../core/presentation/coming_soon.dart';
 import '../../core/presentation/motion.dart';
 import '../../core/presentation/nyumba_logo.dart';
 import '../../core/presentation/responsive.dart';
@@ -160,7 +159,7 @@ class NyumbaAppShell extends ConsumerWidget {
           Expanded(
             child: Column(
               children: [
-                _DesktopTopBar(session: session),
+                _DesktopTopBar(session: session, destinations: destinations),
                 Expanded(child: child),
               ],
             ),
@@ -523,9 +522,10 @@ class _SidebarProfile extends StatelessWidget {
 }
 
 class _DesktopTopBar extends StatelessWidget {
-  const _DesktopTopBar({required this.session});
+  const _DesktopTopBar({required this.session, required this.destinations});
 
   final UserSession session;
+  final List<AppDestination> destinations;
 
   @override
   Widget build(BuildContext context) {
@@ -545,27 +545,38 @@ class _DesktopTopBar extends StatelessWidget {
             ),
           ),
           if (MediaQuery.sizeOf(context).width >= 1040)
-            const SizedBox(
+            SizedBox(
               width: 300,
-              child: ComingSoon(
-                message: 'Workspace search coming soon',
-                child: TextField(
-                  enabled: false,
-                  decoration: InputDecoration(
-                    hintText: 'Search (coming soon)',
-                    prefixIcon: Icon(Icons.search_rounded),
-                    isDense: true,
-                  ),
+              child: TextField(
+                textInputAction: TextInputAction.search,
+                onSubmitted: (value) {
+                  final query = value.trim().toLowerCase();
+                  if (query.isEmpty) return;
+                  final matches = destinations.where(
+                    (item) => item.label.toLowerCase().contains(query),
+                  );
+                  if (matches.isNotEmpty) {
+                    context.go(matches.first.path);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('No workspace page matches "$value".'),
+                      ),
+                    );
+                  }
+                },
+                decoration: const InputDecoration(
+                  hintText: 'Search workspace',
+                  prefixIcon: Icon(Icons.search_rounded),
+                  isDense: true,
                 ),
               ),
             ),
           const SizedBox(width: 14),
-          const ComingSoon(
-            message: 'Notifications coming soon',
-            child: IconButton(
-              onPressed: null,
-              icon: Icon(Icons.notifications_none_rounded),
-            ),
+          IconButton(
+            tooltip: 'Notifications',
+            onPressed: () => _showNotifications(context),
+            icon: const Icon(Icons.notifications_none_rounded),
           ),
           const SizedBox(width: 12),
           Tooltip(
@@ -618,12 +629,10 @@ class _MobileShell extends ConsumerWidget {
         titleSpacing: 16,
         title: const NyumbaLogo(height: 38),
         actions: [
-          const ComingSoon(
-            message: 'Notifications coming soon',
-            child: IconButton(
-              onPressed: null,
-              icon: Icon(Icons.notifications_none_rounded),
-            ),
+          IconButton(
+            tooltip: 'Notifications',
+            onPressed: () => _showNotifications(context),
+            icon: const Icon(Icons.notifications_none_rounded),
           ),
           PopupMenuButton<String>(
             tooltip: 'Account menu',
@@ -726,6 +735,49 @@ String _greeting() {
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
+}
+
+Future<void> _showNotifications(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Notifications',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            const ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(child: Icon(Icons.sync_rounded)),
+              title: Text('Sync status is available in the workspace'),
+              subtitle: Text(
+                'Pending, rejected, and confirmed changes are shown locally.',
+              ),
+            ),
+            const ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                child: Icon(Icons.notifications_none_rounded),
+              ),
+              title: Text('No unread notifications'),
+              subtitle: Text('New local alerts will appear here.'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(sheetContext),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 bool _isSelected(String currentPath, String destinationPath) {

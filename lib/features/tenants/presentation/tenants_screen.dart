@@ -7,7 +7,6 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
-import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -15,6 +14,7 @@ import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../portfolio/domain/property.dart';
 import '../../portfolio/domain/unit.dart';
+import '../../portfolio/application/rental_space_labels.dart';
 import '../application/tenancy_providers.dart';
 import '../domain/tenancy.dart';
 
@@ -43,6 +43,9 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
   @override
   Widget build(BuildContext context) {
     final tenanciesValue = ref.watch(tenanciesProvider);
+    final units = ref.watch(portfolioUnitsProvider).value ?? const <Unit>[];
+    final properties =
+        ref.watch(portfolioPropertiesProvider).value ?? const <Property>[];
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
     return SingleChildScrollView(
@@ -63,7 +66,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                 description:
                     'Manage tenant records, leases, balances, and contact details.',
                 primaryAction: FilledButton.icon(
-                  onPressed: () => _showAddTenant(context),
+                  onPressed: () => _showAddTenant(context, units, properties),
                   icon: const Icon(Icons.person_add_alt_1_rounded),
                   label: const Text('Add tenant'),
                 ),
@@ -209,10 +212,11 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
     );
   }
 
-  Future<void> _showAddTenant(BuildContext context) async {
-    final units = ref.read(portfolioUnitsProvider).value ?? const <Unit>[];
-    final properties =
-        ref.read(portfolioPropertiesProvider).value ?? const <Property>[];
+  Future<void> _showAddTenant(
+    BuildContext context,
+    List<Unit> units,
+    List<Property> properties,
+  ) async {
     final propertyById = <String, Property>{
       for (final property in properties) property.id: property,
     };
@@ -222,7 +226,9 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
     if (vacantUnits.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No vacant units are available for a new tenancy.'),
+          content: Text(
+            'No vacant rental spaces are available for a new tenancy.',
+          ),
         ),
       );
       return;
@@ -274,13 +280,15 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
                     initialValue: selectedUnit.id,
-                    decoration: const InputDecoration(labelText: 'Vacant unit'),
+                    decoration: const InputDecoration(
+                      labelText: 'Vacant rental space',
+                    ),
                     items: [
                       for (final unit in vacantUnits)
                         DropdownMenuItem(
                           value: unit.id,
                           child: Text(
-                            '${unit.label} · '
+                            '${unit.displayName} · '
                             '${propertyById[unit.propertyId]?.name ?? 'Property'}',
                           ),
                         ),
@@ -328,7 +336,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                 : phone.text.trim(),
             unitId: selectedUnit.id,
             propertyId: selectedUnit.propertyId,
-            unitLabel: selectedUnit.label,
+            unitLabel: selectedUnit.displayName,
             propertyName:
                 propertyById[selectedUnit.propertyId]?.name ?? 'Property',
             monthlyRentMinor: selectedUnit.monthlyRentMinor,
@@ -431,12 +439,10 @@ class _TenantRow extends StatelessWidget {
                     const SizedBox(width: 8),
                     SyncStateBadge(status: syncStatus),
                     const Spacer(),
-                    const ComingSoon(
-                      message: 'Tenant details coming soon',
-                      child: IconButton(
-                        onPressed: null,
-                        icon: Icon(Icons.chevron_right_rounded),
-                      ),
+                    IconButton(
+                      tooltip: 'View tenant details',
+                      onPressed: () => _showTenantDetails(context, tenancy),
+                      icon: const Icon(Icons.chevron_right_rounded),
                     ),
                   ],
                 ),
@@ -447,9 +453,7 @@ class _TenantRow extends StatelessWidget {
                 Expanded(flex: 4, child: _TenantIdentity(tenancy: tenancy)),
                 Expanded(
                   flex: 3,
-                  child: Text(
-                    '${tenancy.unitLabel} · ${tenancy.propertyName}',
-                  ),
+                  child: Text('${tenancy.unitLabel} · ${tenancy.propertyName}'),
                 ),
                 Expanded(
                   flex: 2,
@@ -465,17 +469,60 @@ class _TenantRow extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 110, child: SyncStateBadge(status: syncStatus)),
-                const ComingSoon(
-                  message: 'Tenant details coming soon',
-                  child: IconButton(
-                    onPressed: null,
-                    icon: Icon(Icons.more_horiz_rounded),
-                  ),
+                IconButton(
+                  tooltip: 'View tenant details',
+                  onPressed: () => _showTenantDetails(context, tenancy),
+                  icon: const Icon(Icons.more_horiz_rounded),
                 ),
               ],
             ),
     );
   }
+}
+
+Future<void> _showTenantDetails(BuildContext context, Tenancy tenancy) {
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(tenancy.tenantName),
+      content: SizedBox(
+        width: 440,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.home_outlined),
+              title: Text('${tenancy.unitLabel} · ${tenancy.propertyName}'),
+              subtitle: Text(
+                '${DateFormat('d MMM y').format(tenancy.leaseStart.toLocal())} – '
+                '${DateFormat('d MMM y').format(tenancy.leaseEnd.toLocal())}',
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.email_outlined),
+              title: Text(tenancy.email),
+              subtitle: Text(tenancy.phone),
+            ),
+            ListTile(
+              leading: const Icon(Icons.account_balance_wallet_outlined),
+              title: Text(_ugx.format(tenancy.monthlyRentMinor / 100)),
+              subtitle: Text(
+                tenancy.balanceDue
+                    ? '${_ugx.format(tenancy.balanceMinor / 100)} awaiting payment'
+                    : 'Balance up to date',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _TenantIdentity extends StatelessWidget {

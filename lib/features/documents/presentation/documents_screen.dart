@@ -7,7 +7,6 @@ import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
-import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -15,6 +14,9 @@ import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../notices/application/notice_providers.dart';
 import '../../notices/domain/notice.dart';
+import '../../auth/application/session_controller.dart';
+import '../../tenants/application/tenancy_providers.dart';
+import '../../tenants/domain/tenancy.dart';
 import '../application/document_providers.dart';
 import '../domain/lease_document.dart';
 
@@ -66,9 +68,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   String _filter = 'All';
   String? _busyDocument;
 
+  String get _landlordId =>
+      ref.read(sessionControllerProvider)?.userId ?? _demoLandlordId;
+
   @override
   Widget build(BuildContext context) {
     final documentsValue = ref.watch(leaseDocumentsProvider);
+    final tenancies = ref.watch(tenanciesProvider).value ?? const <Tenancy>[];
     final notices = ref.watch(noticesProvider).value ?? const <Notice>[];
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
@@ -91,7 +97,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 description:
                     'Print and share invoices, receipts, leases, and notices.',
                 primaryAction: FilledButton.icon(
-                  onPressed: () => _createDocument(context),
+                  onPressed: () => _createDocument(context, tenancies),
                   icon: const Icon(Icons.note_add_outlined),
                   label: const Text('Create document'),
                 ),
@@ -135,9 +141,11 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               '${document.recipient} · ${document.unitLabel} '
               '${document.propertyName}',
           statusLabel: document.statusLabel,
-          statusTone: document.statusLabel == 'Paid'
-              ? BadgeTone.success
-              : BadgeTone.warning,
+          statusTone: switch (document.statusLabel.toLowerCase()) {
+            'paid' || 'signed' => BadgeTone.success,
+            final value when value.contains('awaiting') => BadgeTone.info,
+            _ => BadgeTone.warning,
+          },
           issuedAt: document.issuedAt,
           printable: PrintableDocumentData(
             title: document.type.label,
@@ -250,6 +258,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     setState(() => _busyDocument = entry.number);
     try {
       await widget.documentService.print(entry.printable);
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not print ${entry.number}: $error')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busyDocument = null);
     }
@@ -259,12 +273,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     setState(() => _busyDocument = entry.number);
     try {
       await widget.documentService.share(entry.printable);
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not share ${entry.number}: $error')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busyDocument = null);
     }
   }
 
-  void _createDocument(BuildContext context) {
+  void _createDocument(BuildContext context, List<Tenancy> tenancies) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -280,25 +300,37 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
-              const ComingSoon(
-                message: 'Recurring invoices coming soon',
-                child: ListTile(
-                  enabled: false,
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    child: Icon(Icons.receipt_long_outlined),
-                  ),
-                  title: Text('Rent invoice (coming soon)'),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(
+                  child: Icon(Icons.receipt_long_outlined),
                 ),
+                title: const Text('Rent invoice'),
+                subtitle: const Text('Create a local draft awaiting sync'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.pop(context);
+                  _createGeneratedDocument(
+                    type: LeaseDocumentType.invoice,
+                    tenancies: tenancies,
+                  );
+                },
               ),
-              const ComingSoon(
-                message: 'Lease templates coming soon',
-                child: ListTile(
-                  enabled: false,
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(child: Icon(Icons.handshake_outlined)),
-                  title: Text('Lease agreement (coming soon)'),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(
+                  child: Icon(Icons.handshake_outlined),
                 ),
+                title: const Text('Lease agreement'),
+                subtitle: const Text('Generate an unsigned local draft'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.pop(context);
+                  _createGeneratedDocument(
+                    type: LeaseDocumentType.lease,
+                    tenancies: tenancies,
+                  );
+                },
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -321,6 +353,142 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _createGeneratedDocument({
+    required LeaseDocumentType type,
+    required List<Tenancy> tenancies,
+  }) async {
+    if (tenancies.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add a tenancy before creating a tenant document.'),
+        ),
+      );
+      return;
+    }
+    final formKey = GlobalKey<FormState>();
+    var selected = tenancies.first;
+    final amount = TextEditingController(
+      text: type == LeaseDocumentType.invoice
+          ? (selected.monthlyRentMinor ~/ 100).toString()
+          : '',
+    );
+    final created = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Create ${type.label.toLowerCase()} draft'),
+          content: SizedBox(
+            width: 470,
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<Tenancy>(
+                    initialValue: selected,
+                    decoration: const InputDecoration(labelText: 'Tenancy'),
+                    items: [
+                      for (final tenancy in tenancies)
+                        DropdownMenuItem(
+                          value: tenancy,
+                          child: Text(
+                            '${tenancy.tenantName} · ${tenancy.unitLabel}, '
+                            '${tenancy.propertyName}',
+                          ),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setDialogState(() {
+                        selected = value;
+                        if (type == LeaseDocumentType.invoice) {
+                          amount.text = (value.monthlyRentMinor ~/ 100)
+                              .toString();
+                        }
+                      });
+                    },
+                  ),
+                  if (type == LeaseDocumentType.invoice) ...[
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: amount,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Invoice amount (UGX)',
+                      ),
+                      validator: (value) {
+                        final parsed = int.tryParse(
+                          (value ?? '').replaceAll(',', '').trim(),
+                        );
+                        return parsed == null || parsed <= 0
+                            ? 'Enter a valid amount'
+                            : null;
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  const Text(
+                    'This creates a local draft and queues it for server '
+                    'confirmation. It is not yet issued or signed.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(dialogContext, true);
+                }
+              },
+              child: const Text('Save draft'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (created == true) {
+      try {
+        final amountMajor = type == LeaseDocumentType.invoice
+            ? int.parse(amount.text.replaceAll(',', '').trim())
+            : 0;
+        await ref.read(createLeaseDocumentProvider)(
+          CreateLeaseDocumentInput(
+            landlordId: _landlordId,
+            tenantId: selected.tenantUserId,
+            type: type,
+            recipient: selected.tenantName,
+            propertyName: selected.propertyName,
+            unitLabel: selected.unitLabel,
+            amountMinor: amountMajor * 100,
+            statusLabel: 'Draft · awaiting confirmation',
+          ),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '${type.label} draft saved locally and queued to sync.',
+              ),
+            ),
+          );
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not create the document: $error')),
+          );
+        }
+      }
+    }
+    amount.dispose();
   }
 
   Future<void> _createNotice() async {
@@ -414,7 +582,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       try {
         await ref.read(createNoticeProvider)(
           CreateNoticeInput(
-            landlordId: _demoLandlordId,
+            landlordId: _landlordId,
             title: title.text.trim(),
             body: body.text.trim(),
             audience: audience,
@@ -486,7 +654,10 @@ class _DocumentRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(entry.title, style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  entry.title,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 Text(
                   entry.subtitle,
                   maxLines: 1,
@@ -510,7 +681,10 @@ class _DocumentRow extends StatelessWidget {
                 '${entry.issuedAt.toLocal().year}',
               ),
             ),
-            SizedBox(width: 110, child: SyncStateBadge(status: entry.syncStatus)),
+            SizedBox(
+              width: 110,
+              child: SyncStateBadge(status: entry.syncStatus),
+            ),
           ],
           if (busy)
             const Padding(

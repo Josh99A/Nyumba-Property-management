@@ -87,11 +87,14 @@ void main() {
         MaterialApp(
           home: MediaQuery(
             data: const MediaQueryData(disableAnimations: true),
-            child: AnimatedCount(value: 24, format: (value) => '$value units'),
+            child: AnimatedCount(
+              value: 24,
+              format: (value) => '$value rental spaces',
+            ),
           ),
         ),
       );
-      expect(find.text('24 units'), findsOneWidget);
+      expect(find.text('24 rental spaces'), findsOneWidget);
       expect(find.byType(TweenAnimationBuilder<double>), findsNothing);
     });
   });

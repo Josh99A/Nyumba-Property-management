@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/presentation/coming_soon.dart';
+import '../../../core/presentation/operational_actions.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
@@ -63,7 +63,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PageHeader(
-                title: 'Properties and units',
+                title: 'Properties and rental spaces',
                 description:
                     'Every rentable space has its own rent, occupancy, lease, and maintenance history.',
                 primaryAction: FilledButton.icon(
@@ -326,7 +326,7 @@ class _PortfolioUsage extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${units.length} of $limit units',
+                      '${units.length} of $limit rental spaces',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -344,9 +344,17 @@ class _PortfolioUsage extends StatelessWidget {
           ),
           if (!context.isCompact) ...[
             const SizedBox(width: 18),
-            const ComingSoon(
-              message: 'Plan management coming soon',
-              child: TextButton(onPressed: null, child: Text('View plan')),
+            TextButton(
+              onPressed: () => showNyumbaInfoDialog(
+                context,
+                title: 'Pro plan usage',
+                message:
+                    '${units.length} of $limit rental spaces are currently in use. '
+                    'Plan changes require server-owned billing configuration; '
+                    'this workspace will never change entitlements locally.',
+                icon: Icons.workspace_premium_outlined,
+              ),
+              child: const Text('View plan'),
             ),
           ],
         ],
@@ -431,7 +439,7 @@ class _PropertyCard extends StatelessWidget {
                     Expanded(
                       child: _PropertyFact(
                         value: '${units.length}',
-                        label: 'Units',
+                        label: 'Rental spaces',
                       ),
                     ),
                     Expanded(

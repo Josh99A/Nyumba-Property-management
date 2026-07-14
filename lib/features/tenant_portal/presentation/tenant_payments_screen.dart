@@ -4,10 +4,10 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
-import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
@@ -81,7 +81,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                     title: 'No tenancy on this device yet',
                     message:
                         'Your lease details will appear after your landlord '
-                        'links this account to a unit.',
+                        'links this account to a rental space.',
                     icon: Icons.home_outlined,
                   ),
                 ),
@@ -117,20 +117,19 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
       };
     }).toList();
     final paidThisYear = payments
-        .where((payment) => payment.paidOn.toLocal().year == DateTime.now().year)
+        .where(
+          (payment) => payment.paidOn.toLocal().year == DateTime.now().year,
+        )
         .fold<int>(0, (sum, payment) => sum + payment.amountMinor);
     final now = DateTime.now();
 
     return TenantPage(
       title: 'Payments',
       description: 'Manage rent, invoices, receipts, and your payment history.',
-      secondaryAction: ComingSoon(
-        message: 'Statement printing coming soon',
-        child: OutlinedButton.icon(
-          onPressed: null,
-          icon: Icon(Icons.print_outlined),
-          label: Text('Print statement'),
-        ),
+      secondaryAction: OutlinedButton.icon(
+        onPressed: () => _printStatement(tenancy, payments),
+        icon: const Icon(Icons.print_outlined),
+        label: const Text('Print statement'),
       ),
       primaryAction: FilledButton.icon(
         onPressed: paid
@@ -365,9 +364,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            'Pay ${DateFormat('MMMM').format(DateTime.now())} rent',
-          ),
+          title: Text('Pay ${DateFormat('MMMM').format(DateTime.now())} rent'),
           content: SizedBox(
             width: 460,
             child: Column(
@@ -612,17 +609,61 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
             child: const Text('Close'),
           ),
           if (status == 'Paid')
-            ComingSoon(
-              message: 'Receipt printing coming soon',
-              child: FilledButton.icon(
-                onPressed: null,
-                icon: Icon(Icons.print_outlined),
-                label: Text('Print receipt'),
-              ),
+            FilledButton.icon(
+              onPressed: () => _printReceipt(payment),
+              icon: const Icon(Icons.print_outlined),
+              label: const Text('Print receipt'),
             ),
         ],
       ),
     );
+  }
+
+  Future<void> _printStatement(
+    Tenancy tenancy,
+    List<RentPayment> payments,
+  ) async {
+    final total = payments.fold<int>(0, (sum, item) => sum + item.amountMinor);
+    try {
+      await const PdfDocumentService().print(
+        PrintableDocumentData(
+          title: 'Rent statement',
+          number: 'STM-${DateTime.now().year}-${tenancy.id.substring(0, 6)}',
+          recipient: tenancy.tenantName,
+          property: tenancy.propertyName,
+          unit: tenancy.unitLabel,
+          amountMinor: total,
+          date: DateTime.now(),
+          status:
+              '${payments.length} recorded payment${payments.length == 1 ? '' : 's'}',
+        ),
+      );
+    } on Object catch (error) {
+      if (mounted) {
+        showTenantMessage(context, 'Could not print statement: $error');
+      }
+    }
+  }
+
+  Future<void> _printReceipt(RentPayment payment) async {
+    try {
+      await const PdfDocumentService().print(
+        PrintableDocumentData(
+          title: 'Receipt',
+          number: payment.receiptNumber,
+          recipient: payment.tenantName,
+          property: payment.propertyName,
+          unit: payment.unitLabel,
+          amountMinor: payment.amountMinor,
+          date: payment.paidOn,
+          status: 'Paid',
+        ),
+      );
+    } on Object catch (error) {
+      if (mounted) {
+        showTenantMessage(context, 'Could not print receipt: $error');
+      }
+    }
   }
 }
 
