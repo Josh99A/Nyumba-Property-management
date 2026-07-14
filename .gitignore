@@ -52,6 +52,7 @@ ios/Runner/GoogleService-Info.plist
 macos/Runner/GoogleService-Info.plist
 firebase_app_id_file.json
 .firebaserc
+.firebase/
 
 # Service accounts and other secrets — never commit
 *service-account*.json

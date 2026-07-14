@@ -1,1 +1,59 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"nyumba-property-management","appId":"1:1005783166542:android:16cf86e88afe8dca481d1f","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"nyumba-property-management","configurations":{"android":"1:1005783166542:android:16cf86e88afe8dca481d1f","ios":"1:1005783166542:ios:8a174f1abcd1ddaf481d1f","web":"1:1005783166542:web:84c779fd90a0fded481d1f"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "nyumba-property-management",
+          "appId": "1:1005783166542:android:16cf86e88afe8dca481d1f",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "nyumba-property-management",
+          "configurations": {
+            "android": "1:1005783166542:android:16cf86e88afe8dca481d1f",
+            "ios": "1:1005783166542:ios:8a174f1abcd1ddaf481d1f",
+            "web": "1:1005783166542:web:84c779fd90a0fded481d1f"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/index.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      },
+      {
+        "source": "/flutter_service_worker.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      },
+      {
+        "source": "/assets/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "/canvaskit/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      }
+    ]
+  }
+}
