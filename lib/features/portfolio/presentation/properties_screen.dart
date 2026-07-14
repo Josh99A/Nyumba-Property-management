@@ -11,6 +11,7 @@ import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../application/portfolio_use_cases.dart';
 import '../domain/property.dart';
 import '../domain/unit.dart';
 import 'portfolio_visuals.dart';
@@ -256,18 +257,15 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 try {
-                  final created = await ref
-                      .read(appDependenciesProvider)
-                      .properties
-                      .create(
-                        CreatePropertyInput(
-                          landlordId: 'demo-landlord-001',
-                          name: name.text.trim(),
-                          addressLine: address.text.trim(),
-                          city: city.text.trim(),
-                          description: description.text.trim(),
-                        ),
-                      );
+                  final created = await ref.read(createPropertyProvider)(
+                    CreatePropertyInput(
+                      landlordId: 'demo-landlord-001',
+                      name: name.text.trim(),
+                      addressLine: address.text.trim(),
+                      city: city.text.trim(),
+                      description: description.text.trim(),
+                    ),
+                  );
                   if (context.mounted) Navigator.pop(context, created);
                 } on Object catch (caught) {
                   setDialogState(() => error = caught.toString());

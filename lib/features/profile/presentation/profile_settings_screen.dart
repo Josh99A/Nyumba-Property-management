@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../app/theme/theme_mode_controller.dart';
 import '../../../core/domain/sync_metadata.dart';
@@ -9,6 +8,7 @@ import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
+import '../application/profile_use_cases.dart';
 import '../domain/user_settings.dart';
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
@@ -47,10 +47,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     UserSettings? saved;
     Object? loadError;
     try {
-      saved = await ref
-          .read(appDependenciesProvider)
-          .userSettings
-          .getByUserId(session.userId);
+      saved = await ref.read(loadUserSettingsProvider)(session.userId);
     } on Object catch (error) {
       loadError = error;
     }
@@ -92,24 +89,21 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     if (session == null) return;
     setState(() => _saving = true);
     try {
-      final saved = await ref
-          .read(appDependenciesProvider)
-          .userSettings
-          .save(
-            UserSettings(
-              userId: session.userId,
-              displayName: _nameController.text,
-              email: _emailController.text,
-              phone: _phoneController.text,
-              themePreference: _themePreference,
-              emailNotifications: _emailNotifications,
-              pushNotifications: _pushNotifications,
-              rentReminders: _rentReminders,
-              maintenanceUpdates: _maintenanceUpdates,
-              updatedAt: DateTime.now().toUtc(),
-              syncMetadata: const SyncMetadata.pending(),
-            ),
-          );
+      final saved = await ref.read(saveUserSettingsProvider)(
+        UserSettings(
+          userId: session.userId,
+          displayName: _nameController.text,
+          email: _emailController.text,
+          phone: _phoneController.text,
+          themePreference: _themePreference,
+          emailNotifications: _emailNotifications,
+          pushNotifications: _pushNotifications,
+          rentReminders: _rentReminders,
+          maintenanceUpdates: _maintenanceUpdates,
+          updatedAt: DateTime.now().toUtc(),
+          syncMetadata: const SyncMetadata.pending(),
+        ),
+      );
       ref
           .read(sessionControllerProvider.notifier)
           .updateProfile(
@@ -155,9 +149,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     final session = ref.read(sessionControllerProvider);
     if (session == null) return;
     try {
-      final repository = ref.read(appDependenciesProvider).userSettings;
-      final current = await repository.getByUserId(session.userId);
-      await repository.save(
+      final current = await ref.read(loadUserSettingsProvider)(session.userId);
+      await ref.read(saveUserSettingsProvider)(
         UserSettings(
           userId: session.userId,
           displayName: current?.displayName ?? session.displayName,

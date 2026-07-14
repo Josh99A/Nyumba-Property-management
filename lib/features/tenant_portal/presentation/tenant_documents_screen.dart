@@ -1,27 +1,118 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
+import '../../documents/application/document_providers.dart';
+import '../../documents/domain/lease_document.dart';
+import '../../finance/application/billing_providers.dart';
+import '../../finance/domain/rent_payment.dart';
+import '../../tenants/application/tenancy_providers.dart';
 import 'widgets/tenant_components.dart';
 
-class TenantDocumentsScreen extends StatefulWidget {
+const _demoTenantId = 'demo-tenant-001';
+
+class TenantDocumentsScreen extends ConsumerStatefulWidget {
   const TenantDocumentsScreen({super.key});
 
   @override
-  State<TenantDocumentsScreen> createState() => _TenantDocumentsScreenState();
+  ConsumerState<TenantDocumentsScreen> createState() =>
+      _TenantDocumentsScreenState();
 }
 
-class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
-  final List<_TenantDocument> _documents = [..._seedDocuments];
+class _TenantDocumentsScreenState
+    extends ConsumerState<TenantDocumentsScreen> {
+  /// Locally raised document requests, newest first. These are view records
+  /// until a document-request aggregate exists server-side.
+  final List<_TenantDocument> _localRequests = [];
+
+  /// Per-user view preferences keyed by document reference.
+  final Map<String, bool> _favoriteOverrides = {};
+  final Map<String, bool> _offlineOverrides = {};
+
   String _query = '';
   String _category = 'All';
   bool _favoritesOnly = false;
 
-  List<_TenantDocument> get _filteredDocuments {
+  String get _tenantId =>
+      ref.read(sessionControllerProvider)?.userId ?? _demoTenantId;
+
+  _TenantDocument _applyOverrides(_TenantDocument document) {
+    return document.copyWith(
+      favorite: _favoriteOverrides[document.reference],
+      offline: _offlineOverrides[document.reference],
+    );
+  }
+
+  _TenantDocument _fromLeaseDocument(LeaseDocument document) {
+    final category = switch (document.type) {
+      LeaseDocumentType.lease => 'Lease',
+      LeaseDocumentType.receipt => 'Receipts',
+      LeaseDocumentType.notice => 'Notices',
+      LeaseDocumentType.invoice => 'Statements',
+    };
+    return _applyOverrides(
+      _TenantDocument(
+        title: document.type == LeaseDocumentType.lease
+            ? 'Signed tenancy agreement'
+            : '${document.type.label} ${document.number}',
+        reference: document.number,
+        category: category,
+        date: DateFormat('d MMM y').format(document.issuedAt.toLocal()),
+        size: '—',
+        status: document.statusLabel == 'Signed' ? 'Ready' : document.statusLabel,
+        format: 'PDF',
+        offline: true,
+        favorite: document.type == LeaseDocumentType.lease,
+        description:
+            '${document.type.label} for ${document.unitLabel}, '
+            '${document.propertyName}.',
+      ),
+    );
+  }
+
+  _TenantDocument _fromPayment(RentPayment payment) {
+    return _applyOverrides(
+      _TenantDocument(
+        title: 'Rent receipt — ${payment.period}',
+        reference: payment.receiptNumber,
+        category: 'Receipts',
+        date: DateFormat('d MMM y').format(payment.paidOn.toLocal()),
+        size: '—',
+        status: 'Ready',
+        format: 'PDF',
+        offline: true,
+        favorite: false,
+        description:
+            'Official receipt for '
+            '${formatTenantUgx(payment.amountMinor ~/ 100)} received via '
+            '${payment.method} for ${payment.period} rent.',
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final leaseDocuments =
+        ref.watch(tenantLeaseDocumentsProvider(_tenantId)).value ??
+        const <LeaseDocument>[];
+    final tenancy = ref.watch(myTenancyProvider(_tenantId)).value;
+    final payments = tenancy == null
+        ? const <RentPayment>[]
+        : ref.watch(tenancyPaymentsProvider(tenancy.id)).value ??
+              const <RentPayment>[];
+    final documents = <_TenantDocument>[
+      ..._localRequests.map(_applyOverrides),
+      ...leaseDocuments.map(_fromLeaseDocument),
+      ...payments.map(_fromPayment),
+    ];
+
     final query = _query.trim().toLowerCase();
-    return _documents.where((document) {
+    final filtered = documents.where((document) {
       final matchesQuery =
           query.isEmpty ||
           document.title.toLowerCase().contains(query) ||
@@ -31,14 +122,15 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
       final matchesFavorite = !_favoritesOnly || document.favorite;
       return matchesQuery && matchesCategory && matchesFavorite;
     }).toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final filtered = _filteredDocuments;
-    final offlineCount = _documents
+    final offlineCount = documents
         .where((document) => document.offline)
         .length;
+    final pinned = documents.isEmpty
+        ? null
+        : documents.firstWhere(
+            (document) => document.category == 'Lease',
+            orElse: () => documents.first,
+          );
     return TenantPage(
       title: 'Documents',
       description: 'View, print, and keep important tenancy records together.',
@@ -60,7 +152,7 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
           children: [
             TenantMetricCard(
               label: 'Shared documents',
-              value: '${_documents.length}',
+              value: '${documents.length}',
               caption: 'From your landlord and property manager',
               icon: Icons.folder_copy_outlined,
               color: context.nyumba.midnightNavy,
@@ -75,15 +167,15 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
             TenantMetricCard(
               label: 'Receipts',
               value:
-                  '${_documents.where((item) => item.category == 'Receipts').length}',
-              caption: 'Payment records for 2026',
+                  '${documents.where((item) => item.category == 'Receipts').length}',
+              caption: 'Payment records for ${DateTime.now().year}',
               icon: Icons.receipt_long_outlined,
               color: context.nyumba.terracottaDark,
             ),
             TenantMetricCard(
               label: 'Action required',
               value:
-                  '${_documents.where((item) => item.status == 'Signature needed').length}',
+                  '${documents.where((item) => item.status == 'Signature needed').length}',
               caption: 'Documents waiting for you',
               icon: Icons.draw_outlined,
               color: context.nyumba.danger,
@@ -91,11 +183,13 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
           ],
         ),
         const SizedBox(height: 20),
-        _PinnedLeaseCard(
-          document: _documents.first,
-          onOpen: () => _showDocument(_documents.first),
-        ),
-        const SizedBox(height: 20),
+        if (pinned != null) ...[
+          _PinnedLeaseCard(
+            document: pinned,
+            onOpen: () => _showDocument(pinned),
+          ),
+          const SizedBox(height: 20),
+        ],
         NyumbaSurface(
           padding: const EdgeInsets.all(16),
           child: LayoutBuilder(
@@ -213,10 +307,8 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
   }
 
   void _toggleFavorite(_TenantDocument document) {
-    final index = _documents.indexOf(document);
-    if (index < 0) return;
     setState(() {
-      _documents[index] = document.copyWith(favorite: !document.favorite);
+      _favoriteOverrides[document.reference] = !document.favorite;
     });
     showTenantMessage(
       context,
@@ -227,10 +319,8 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
   }
 
   void _toggleOffline(_TenantDocument document) {
-    final index = _documents.indexOf(document);
-    if (index < 0) return;
     setState(() {
-      _documents[index] = document.copyWith(offline: !document.offline);
+      _offlineOverrides[document.reference] = !document.offline;
     });
     showTenantMessage(
       context,
@@ -326,11 +416,11 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
     noteController.dispose();
     if (requested != true || !mounted) return;
     setState(() {
-      _documents.insert(
+      _localRequests.insert(
         0,
         _TenantDocument(
           title: '$type request',
-          reference: 'DOC-REQ-${_documents.length + 108}',
+          reference: 'DOC-REQ-${_localRequests.length + 108}',
           category: 'Reports',
           date: 'Requested just now',
           size: 'Pending',
@@ -344,7 +434,7 @@ class _TenantDocumentsScreenState extends State<TenantDocumentsScreen> {
       );
       _category = 'All';
     });
-    showTenantMessage(context, '$type request saved and queued to sync.');
+    showTenantMessage(context, '$type request saved on this device.');
   }
 
   Future<void> _showDocument(_TenantDocument document) {
@@ -810,102 +900,3 @@ class _TenantDocument {
     );
   }
 }
-
-const _seedDocuments = [
-  _TenantDocument(
-    title: 'Signed tenancy agreement',
-    reference: 'LEASE-A12-2026',
-    category: 'Lease',
-    date: '1 Jan 2026',
-    size: '1.8 MB',
-    status: 'Ready',
-    format: 'PDF',
-    offline: true,
-    favorite: true,
-    description:
-        'Signed tenancy agreement for Acacia Heights, Unit A-12, covering '
-        'the period from 1 January to 31 December 2026.',
-  ),
-  _TenantDocument(
-    title: 'Move-in inspection report',
-    reference: 'INS-A12-010126',
-    category: 'Reports',
-    date: '1 Jan 2026',
-    size: '860 KB',
-    status: 'Ready',
-    format: 'PDF',
-    offline: true,
-    favorite: false,
-    description:
-        'Condition report completed at handover, including room notes, '
-        'meter readings, and the agreed photographic record.',
-  ),
-  _TenantDocument(
-    title: 'July rent receipt',
-    reference: 'NYB-RCP-00842',
-    category: 'Receipts',
-    date: '3 Jul 2026',
-    size: '184 KB',
-    status: 'Ready',
-    format: 'PDF',
-    offline: true,
-    favorite: true,
-    description:
-        'Official receipt for UGX 1,200,000 received via MTN Mobile Money for July 2026 rent.',
-  ),
-  _TenantDocument(
-    title: 'June rent receipt',
-    reference: 'NYB-RCP-00791',
-    category: 'Receipts',
-    date: '4 Jun 2026',
-    size: '182 KB',
-    status: 'Ready',
-    format: 'PDF',
-    offline: true,
-    favorite: false,
-    description:
-        'Official receipt for UGX 1,200,000 received via MTN Mobile Money for June 2026 rent.',
-  ),
-  _TenantDocument(
-    title: 'Water interruption notice',
-    reference: 'NOTICE-AC-0713',
-    category: 'Notices',
-    date: '13 Jul 2026',
-    size: '220 KB',
-    status: 'Ready',
-    format: 'PDF',
-    offline: false,
-    favorite: false,
-    description:
-        'Notice of a planned water interruption on 15 July from 09:00 to '
-        '14:00 while the property water tanks are cleaned.',
-  ),
-  _TenantDocument(
-    title: 'House rules acknowledgement',
-    reference: 'RULES-A12-2026',
-    category: 'Lease',
-    date: '10 Jul 2026',
-    size: '320 KB',
-    status: 'Signature needed',
-    format: 'PDF',
-    offline: true,
-    favorite: false,
-    description:
-        'Updated property guidelines for visitors, quiet hours, shared '
-        'facilities, waste collection, and security access.',
-  ),
-  _TenantDocument(
-    title: '2026 rent statement',
-    reference: 'STMT-A12-2026',
-    category: 'Reports',
-    date: '13 Jul 2026',
-    size: '410 KB',
-    status: 'Ready',
-    format: 'PDF',
-    offline: false,
-    favorite: false,
-    description:
-        'Running statement of monthly rent invoices, payments, credits, and '
-        'confirmed balances for the 2026 tenancy year.',
-  ),
-];

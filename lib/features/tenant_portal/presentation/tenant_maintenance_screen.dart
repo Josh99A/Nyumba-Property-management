@@ -1,36 +1,62 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/offline/aggregate_sync_status.dart';
+import '../../../core/offline/offline_entity.dart';
+import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../../core/presentation/sync_state_badge.dart';
+import '../../auth/application/session_controller.dart';
+import '../../maintenance/application/maintenance_providers.dart';
+import '../../maintenance/domain/maintenance_request.dart';
 import 'widgets/tenant_components.dart';
 
-class TenantMaintenanceScreen extends StatefulWidget {
+const _demoTenantId = 'demo-tenant-001';
+const _demoLandlordId = 'demo-landlord-001';
+const _demoTenantUnitLabel = 'Unit B4 · Sunset Apartments';
+
+String tenantStatusLabel(MaintenanceStatus status) => switch (status) {
+  MaintenanceStatus.submitted => 'Reported',
+  MaintenanceStatus.scheduled => 'Scheduled',
+  MaintenanceStatus.inProgress => 'In progress',
+  MaintenanceStatus.resolved => 'Resolved',
+  MaintenanceStatus.cancelled => 'Cancelled',
+};
+
+class TenantMaintenanceScreen extends ConsumerStatefulWidget {
   const TenantMaintenanceScreen({super.key});
 
   @override
-  State<TenantMaintenanceScreen> createState() =>
+  ConsumerState<TenantMaintenanceScreen> createState() =>
       _TenantMaintenanceScreenState();
 }
 
-class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
-  final List<_MaintenanceRequest> _requests = [..._seedRequests];
+class _TenantMaintenanceScreenState
+    extends ConsumerState<TenantMaintenanceScreen> {
   String _filter = 'All';
   String _query = '';
 
-  List<_MaintenanceRequest> get _filteredRequests {
+  String get _tenantId =>
+      ref.read(sessionControllerProvider)?.userId ?? _demoTenantId;
+
+  List<MaintenanceRequest> _applyFilters(List<MaintenanceRequest> requests) {
     final query = _query.trim().toLowerCase();
-    return _requests.where((request) {
+    return requests.where((request) {
       final matchesQuery =
           query.isEmpty ||
           request.title.toLowerCase().contains(query) ||
           request.category.toLowerCase().contains(query) ||
-          request.id.toLowerCase().contains(query);
+          request.reference.toLowerCase().contains(query);
       final matchesFilter = switch (_filter) {
         'Open' =>
-          request.status == 'Reported' || request.status == 'In progress',
-        'Scheduled' => request.status == 'Scheduled',
-        'Resolved' => request.status == 'Resolved',
+          request.status == MaintenanceStatus.submitted ||
+              request.status == MaintenanceStatus.inProgress,
+        'Scheduled' => request.status == MaintenanceStatus.scheduled,
+        'Resolved' => request.status == MaintenanceStatus.resolved,
         _ => true,
       };
       return matchesQuery && matchesFilter;
@@ -39,15 +65,11 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filteredRequests;
-    final openCount = _requests
-        .where(
-          (item) => item.status == 'Reported' || item.status == 'In progress',
-        )
-        .length;
-    final resolvedCount = _requests
-        .where((item) => item.status == 'Resolved')
-        .length;
+    final requestsValue = ref.watch(
+      tenantMaintenanceRequestsProvider(_tenantId),
+    );
+    final outbox =
+        ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
     return TenantPage(
       title: 'Maintenance',
       description:
@@ -78,8 +100,8 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
                 color: context.nyumba.sageDark,
                 size: 20,
               ),
-              SizedBox(width: 9),
-              Expanded(
+              const SizedBox(width: 9),
+              const Expanded(
                 child: Text(
                   'New requests, notes, and photos save on this device first. '
                   'They sync automatically when connectivity is available.',
@@ -89,6 +111,45 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
           ),
         ),
         const SizedBox(height: 18),
+        requestsValue.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(48),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stack) => NyumbaSurface(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Could not load your requests: $error'),
+            ),
+          ),
+          data: (requests) => _buildLoaded(context, requests, outbox),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoaded(
+    BuildContext context,
+    List<MaintenanceRequest> requests,
+    List<OutboxEntry> outbox,
+  ) {
+    final filtered = _applyFilters(requests);
+    final openCount = requests
+        .where(
+          (item) =>
+              item.status == MaintenanceStatus.submitted ||
+              item.status == MaintenanceStatus.inProgress,
+        )
+        .length;
+    final scheduled = requests
+        .where((item) => item.status == MaintenanceStatus.scheduled)
+        .toList();
+    final resolvedCount = requests
+        .where((item) => item.status == MaintenanceStatus.resolved)
+        .length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         TenantMetricGrid(
           children: [
             TenantMetricCard(
@@ -100,16 +161,17 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
             ),
             TenantMetricCard(
               label: 'Scheduled visits',
-              value:
-                  '${_requests.where((item) => item.status == 'Scheduled').length}',
-              caption: 'Next visit on 15 Jul',
+              value: '${scheduled.length}',
+              caption: scheduled.isEmpty
+                  ? 'No visits booked yet'
+                  : scheduled.first.appointment ?? 'Visit booked',
               icon: Icons.event_available_outlined,
               color: context.nyumba.midnightNavy,
             ),
             TenantMetricCard(
-              label: 'Resolved this year',
+              label: 'Resolved',
               value: '$resolvedCount',
-              caption: 'Average resolution: 3.2 days',
+              caption: 'Across this tenancy',
               icon: Icons.task_alt_rounded,
               color: context.nyumba.sageDark,
             ),
@@ -187,6 +249,12 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
                       width: width,
                       child: _RequestCard(
                         request: request,
+                        syncStatus: resolveAggregateSyncStatus(
+                          entityType: OfflineEntityType.maintenanceRequest,
+                          entityId: request.id,
+                          outbox: outbox,
+                          syncMetadata: request.syncMetadata,
+                        ),
                         onTap: () => _showRequest(request),
                       ),
                     ),
@@ -199,13 +267,14 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
   }
 
   Future<void> _createRequest() async {
+    final session = ref.read(sessionControllerProvider);
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     var category = 'Plumbing';
-    var priority = 'Normal';
+    var priority = MaintenancePriority.normal;
     var allowAccess = false;
     var photoCount = 0;
-    final request = await showDialog<_MaintenanceRequest>(
+    final submitted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -271,13 +340,16 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
                   Wrap(
                     spacing: 8,
                     children: [
-                      for (final item in const ['Normal', 'Urgent'])
+                      for (final item in const [
+                        (MaintenancePriority.normal, 'Normal'),
+                        (MaintenancePriority.urgent, 'Urgent'),
+                      ])
                         ChoiceChip(
-                          label: Text(item),
-                          selected: priority == item,
+                          label: Text(item.$2),
+                          selected: priority == item.$1,
                           showCheckmark: false,
                           onSelected: (_) =>
-                              setDialogState(() => priority = item),
+                              setDialogState(() => priority = item.$1),
                         ),
                     ],
                   ),
@@ -309,8 +381,8 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
                         size: 18,
                         color: context.nyumba.sageDark,
                       ),
-                      SizedBox(width: 8),
-                      Expanded(
+                      const SizedBox(width: 8),
+                      const Expanded(
                         child: Text(
                           'This request can be saved without a connection and '
                           'will show as awaiting sync.',
@@ -338,29 +410,7 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
                   );
                   return;
                 }
-                Navigator.pop(
-                  dialogContext,
-                  _MaintenanceRequest(
-                    id: 'MNT-${1060 + _requests.length}',
-                    title: title,
-                    category: category,
-                    description: description,
-                    status: 'Reported',
-                    priority: priority,
-                    reported: 'Just now • awaiting sync',
-                    appointment: null,
-                    photoCount: photoCount,
-                    allowAccess: allowAccess,
-                    updates: const [
-                      _RequestUpdate(
-                        title: 'Saved on this device',
-                        detail:
-                            'Waiting for a connection to notify the manager',
-                        complete: true,
-                      ),
-                    ],
-                  ),
-                );
+                Navigator.pop(dialogContext, true);
               },
               icon: const Icon(Icons.send_rounded),
               label: const Text('Submit request'),
@@ -369,24 +419,48 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
         ),
       ),
     );
+    if (submitted == true) {
+      try {
+        final request = await ref.read(createMaintenanceRequestProvider)(
+          CreateMaintenanceRequestInput(
+            landlordId: _demoLandlordId,
+            tenantId: _tenantId,
+            title: titleController.text.trim(),
+            description: descriptionController.text.trim(),
+            location: _demoTenantUnitLabel,
+            reporterName: session?.displayName ?? 'Tenant',
+            category: category,
+            priority: priority,
+            allowAccess: allowAccess,
+            photoCount: photoCount,
+          ),
+        );
+        if (mounted) {
+          setState(() => _filter = 'All');
+          showTenantMessage(
+            context,
+            '${request.reference} saved and queued to sync.',
+          );
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          showTenantMessage(context, 'Could not save the request: $error');
+        }
+      }
+    }
     titleController.dispose();
     descriptionController.dispose();
-    if (request == null || !mounted) return;
-    setState(() {
-      _requests.insert(0, request);
-      _filter = 'All';
-    });
-    showTenantMessage(context, '${request.id} saved and queued to sync.');
   }
 
-  Future<void> _showRequest(_MaintenanceRequest request) async {
+  Future<void> _showRequest(MaintenanceRequest request) async {
+    final updates = _timelineFor(request);
     final action = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Row(
           children: [
             Expanded(child: Text(request.title)),
-            TenantStatusBadge(status: request.status),
+            TenantStatusBadge(status: tenantStatusLabel(request.status)),
           ],
         ),
         content: SizedBox(
@@ -402,8 +476,10 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
                   children: [
                     StatusBadge(label: request.category, tone: BadgeTone.info),
                     StatusBadge(
-                      label: request.priority,
-                      tone: request.priority == 'Urgent'
+                      label: request.priority == MaintenancePriority.urgent
+                          ? 'Urgent'
+                          : 'Normal',
+                      tone: request.priority == MaintenancePriority.urgent
                           ? BadgeTone.danger
                           : BadgeTone.neutral,
                     ),
@@ -455,19 +531,19 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 13),
-                for (var index = 0; index < request.updates.length; index++)
+                for (var index = 0; index < updates.length; index++)
                   TenantTimelineStep(
-                    title: request.updates[index].title,
-                    detail: request.updates[index].detail,
-                    complete: request.updates[index].complete,
-                    last: index == request.updates.length - 1,
+                    title: updates[index].$1,
+                    detail: updates[index].$2,
+                    complete: updates[index].$3,
+                    last: index == updates.length - 1,
                   ),
               ],
             ),
           ),
         ),
         actions: [
-          if (request.status == 'Reported')
+          if (request.status == MaintenanceStatus.submitted)
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, 'cancel'),
               child: const Text('Cancel request'),
@@ -488,14 +564,53 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
     if (action == 'message') {
       showTenantMessage(
         context,
-        'A message draft for ${request.id} was opened.',
+        'A message draft for ${request.reference} was opened.',
       );
     } else if (action == 'cancel') {
       await _cancelRequest(request);
     }
   }
 
-  Future<void> _cancelRequest(_MaintenanceRequest request) async {
+  List<(String, String, bool)> _timelineFor(MaintenanceRequest request) {
+    final formatter = DateFormat('d MMM • HH:mm');
+    final reviewed =
+        request.assignee != null ||
+        request.status != MaintenanceStatus.submitted;
+    return [
+      (
+        'Request submitted',
+        formatter.format(request.reportedAt.toLocal()),
+        true,
+      ),
+      (
+        'Manager reviewed',
+        request.assignee != null
+            ? 'Assigned to ${request.assignee}'
+            : reviewed
+            ? 'Reviewed by the manager'
+            : 'Waiting for review',
+        reviewed,
+      ),
+      (
+        'Contractor visit scheduled',
+        request.appointment ?? 'Not yet scheduled',
+        request.appointment != null ||
+            request.status == MaintenanceStatus.inProgress ||
+            request.status == MaintenanceStatus.resolved,
+      ),
+      (
+        'Issue resolved',
+        request.resolvedAt != null
+            ? formatter.format(request.resolvedAt!.toLocal())
+            : request.status == MaintenanceStatus.cancelled
+            ? 'Request cancelled'
+            : 'Waiting for completion',
+        request.status == MaintenanceStatus.resolved,
+      ),
+    ];
+  }
+
+  Future<void> _cancelRequest(MaintenanceRequest request) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -517,12 +632,24 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    final index = _requests.indexOf(request);
-    if (index < 0) return;
-    setState(() {
-      _requests[index] = request.copyWith(status: 'Cancelled');
-    });
-    showTenantMessage(context, '${request.id} cancellation queued to sync.');
+    try {
+      await ref.read(transitionMaintenanceRequestProvider)(
+        TransitionMaintenanceInput(
+          requestId: request.id,
+          status: MaintenanceStatus.cancelled,
+        ),
+      );
+      if (mounted) {
+        showTenantMessage(
+          context,
+          '${request.reference} cancellation queued to sync.',
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        showTenantMessage(context, 'Could not cancel the request: $error');
+      }
+    }
   }
 
   Future<void> _showEmergencyHelp() {
@@ -575,17 +702,22 @@ class _TenantMaintenanceScreenState extends State<TenantMaintenanceScreen> {
 }
 
 class _RequestCard extends StatelessWidget {
-  const _RequestCard({required this.request, required this.onTap});
+  const _RequestCard({
+    required this.request,
+    required this.syncStatus,
+    required this.onTap,
+  });
 
-  final _MaintenanceRequest request;
+  final MaintenanceRequest request;
+  final AggregateSyncStatus syncStatus;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = switch (request.status) {
-      'Resolved' => context.nyumba.sageDark,
-      'Scheduled' => context.nyumba.midnightNavy,
-      'Cancelled' => context.nyumba.danger,
+      MaintenanceStatus.resolved => context.nyumba.sageDark,
+      MaintenanceStatus.scheduled => context.nyumba.midnightNavy,
+      MaintenanceStatus.cancelled => context.nyumba.danger,
       _ => context.nyumba.terracottaDark,
     };
     return NyumbaSurface(
@@ -618,14 +750,14 @@ class _RequestCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '${request.id} • ${request.category}',
+                        '${request.reference} • ${request.category}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                TenantStatusBadge(status: request.status),
+                TenantStatusBadge(status: tenantStatusLabel(request.status)),
               ],
             ),
             const SizedBox(height: 14),
@@ -641,16 +773,19 @@ class _RequestCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    request.appointment ?? request.reported,
+                    request.appointment ??
+                        'Reported ${DateFormat('d MMM').format(request.reportedAt.toLocal())}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
-                if (request.priority == 'Urgent') ...[
+                if (request.priority == MaintenancePriority.urgent) ...[
                   const SizedBox(width: 8),
                   const StatusBadge(label: 'Urgent', tone: BadgeTone.danger),
                 ],
+                const SizedBox(width: 8),
+                SyncStateBadge(status: syncStatus),
                 const SizedBox(width: 5),
                 const Icon(Icons.chevron_right_rounded, size: 20),
               ],
@@ -668,186 +803,3 @@ class _RequestCard extends StatelessWidget {
     _ => Icons.home_repair_service_outlined,
   };
 }
-
-class _MaintenanceRequest {
-  const _MaintenanceRequest({
-    required this.id,
-    required this.title,
-    required this.category,
-    required this.description,
-    required this.status,
-    required this.priority,
-    required this.reported,
-    required this.appointment,
-    required this.photoCount,
-    required this.allowAccess,
-    required this.updates,
-  });
-
-  final String id;
-  final String title;
-  final String category;
-  final String description;
-  final String status;
-  final String priority;
-  final String reported;
-  final String? appointment;
-  final int photoCount;
-  final bool allowAccess;
-  final List<_RequestUpdate> updates;
-
-  _MaintenanceRequest copyWith({String? status}) {
-    return _MaintenanceRequest(
-      id: id,
-      title: title,
-      category: category,
-      description: description,
-      status: status ?? this.status,
-      priority: priority,
-      reported: reported,
-      appointment: appointment,
-      photoCount: photoCount,
-      allowAccess: allowAccess,
-      updates: updates,
-    );
-  }
-}
-
-class _RequestUpdate {
-  const _RequestUpdate({
-    required this.title,
-    required this.detail,
-    required this.complete,
-  });
-
-  final String title;
-  final String detail;
-  final bool complete;
-}
-
-const _seedRequests = [
-  _MaintenanceRequest(
-    id: 'MNT-1058',
-    title: 'Kitchen tap leak',
-    category: 'Plumbing',
-    description:
-        'The kitchen mixer tap drips continuously, even when fully closed.',
-    status: 'Scheduled',
-    priority: 'Normal',
-    reported: 'Reported 8 Jul 2026',
-    appointment: '15 Jul 2026 • 10:00–12:00',
-    photoCount: 2,
-    allowAccess: false,
-    updates: [
-      _RequestUpdate(
-        title: 'Request submitted',
-        detail: '8 Jul at 09:14',
-        complete: true,
-      ),
-      _RequestUpdate(
-        title: 'Manager reviewed',
-        detail: 'Sandra assigned Kato Services',
-        complete: true,
-      ),
-      _RequestUpdate(
-        title: 'Contractor visit scheduled',
-        detail: '15 Jul • 10:00–12:00',
-        complete: true,
-      ),
-      _RequestUpdate(
-        title: 'Issue resolved',
-        detail: 'Waiting for contractor visit',
-        complete: false,
-      ),
-    ],
-  ),
-  _MaintenanceRequest(
-    id: 'MNT-1037',
-    title: 'Bedroom power socket',
-    category: 'Electrical',
-    description:
-        'The socket near the wardrobe has stopped powering any devices.',
-    status: 'In progress',
-    priority: 'Normal',
-    reported: 'Reported 29 Jun 2026',
-    appointment: null,
-    photoCount: 1,
-    allowAccess: true,
-    updates: [
-      _RequestUpdate(
-        title: 'Request submitted',
-        detail: '29 Jun at 18:22',
-        complete: true,
-      ),
-      _RequestUpdate(
-        title: 'Electrician assigned',
-        detail: 'Kampala Electrical Co. is sourcing a replacement',
-        complete: true,
-      ),
-      _RequestUpdate(
-        title: 'Repair completed',
-        detail: 'Update expected by 16 Jul',
-        complete: false,
-      ),
-    ],
-  ),
-  _MaintenanceRequest(
-    id: 'MNT-0994',
-    title: 'Loose wardrobe hinge',
-    category: 'Building',
-    description: 'The upper wardrobe door hinge had loosened from the frame.',
-    status: 'Resolved',
-    priority: 'Normal',
-    reported: 'Resolved 12 Jun 2026',
-    appointment: null,
-    photoCount: 1,
-    allowAccess: true,
-    updates: [
-      _RequestUpdate(
-        title: 'Request submitted',
-        detail: '9 Jun at 08:40',
-        complete: true,
-      ),
-      _RequestUpdate(
-        title: 'Carpenter assigned',
-        detail: 'Visit completed 12 Jun',
-        complete: true,
-      ),
-      _RequestUpdate(
-        title: 'Resolved',
-        detail: 'Hinge and mounting plate replaced',
-        complete: true,
-      ),
-    ],
-  ),
-  _MaintenanceRequest(
-    id: 'MNT-0962',
-    title: 'Fridge door seal',
-    category: 'Appliance',
-    description:
-        'The supplied refrigerator was not sealing along the top edge.',
-    status: 'Resolved',
-    priority: 'Normal',
-    reported: 'Resolved 20 May 2026',
-    appointment: null,
-    photoCount: 2,
-    allowAccess: false,
-    updates: [
-      _RequestUpdate(
-        title: 'Request submitted',
-        detail: '16 May at 14:10',
-        complete: true,
-      ),
-      _RequestUpdate(
-        title: 'Technician visited',
-        detail: '20 May at 10:30',
-        complete: true,
-      ),
-      _RequestUpdate(
-        title: 'Resolved',
-        detail: 'Door seal replaced and tested',
-        complete: true,
-      ),
-    ],
-  ),
-];

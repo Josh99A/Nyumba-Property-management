@@ -18,9 +18,7 @@ class SignInScreen extends ConsumerStatefulWidget {
 
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(
-    text: 'joshua@demo.nyumba.ug',
-  );
+  final _emailController = TextEditingController(text: 'joshua@demo.nyumba.ug');
   final _passwordController = TextEditingController(text: 'password');
   bool _obscurePassword = true;
   bool _isSubmitting = false;

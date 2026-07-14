@@ -2,8 +2,16 @@ enum OfflineEntityType {
   userProfile('user_profiles', 5),
   property('properties', 10),
   unit('units', 20),
+  tenancy('tenancies', 25),
   listing('listings', 30),
-  application('applications', 40);
+  application('applications', 40),
+  invoice('invoices', 45),
+  payment('payments', 50),
+  maintenanceRequest('maintenance_requests', 60),
+  document('documents', 70),
+  notice('notices', 80),
+  subscriptionPlan('subscription_plans', 90),
+  adminAction('admin_actions', 95);
 
   const OfflineEntityType(this.storeName, this.syncPriority);
 

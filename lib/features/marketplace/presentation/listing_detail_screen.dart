@@ -10,6 +10,7 @@ import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
 import '../domain/application.dart';
+import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
 import 'listing_visuals.dart';
 
@@ -720,20 +721,17 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
       _error = null;
     });
     try {
-      await ref
-          .read(appDependenciesProvider)
-          .applications
-          .apply(
-            ApplyForUnitInput(
-              listingId: widget.listing.id,
-              applicantId: 'anonymous-${_email.text.trim().toLowerCase()}',
-              applicantName: _name.text.trim(),
-              applicantEmail: _email.text.trim(),
-              applicantPhone: _phone.text.trim(),
-              message: _message.text.trim(),
-              desiredMoveIn: _moveIn,
-            ),
-          );
+      await ref.read(submitRentalApplicationProvider)(
+        ApplyForUnitInput(
+          listingId: widget.listing.id,
+          applicantId: 'anonymous-${_email.text.trim().toLowerCase()}',
+          applicantName: _name.text.trim(),
+          applicantEmail: _email.text.trim(),
+          applicantPhone: _phone.text.trim(),
+          message: _message.text.trim(),
+          desiredMoveIn: _moveIn,
+        ),
+      );
       if (mounted) setState(() => _submitted = true);
     } on Object catch (error) {
       if (mounted) setState(() => _error = error.toString());

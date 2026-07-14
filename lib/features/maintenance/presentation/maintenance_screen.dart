@@ -1,112 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/offline/aggregate_sync_status.dart';
+import '../../../core/offline/offline_entity.dart';
+import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../../core/presentation/sync_state_badge.dart';
+import '../../portfolio/domain/property.dart';
+import '../../portfolio/domain/unit.dart';
+import '../application/maintenance_providers.dart';
+import '../domain/maintenance_request.dart';
 
-enum WorkOrderStatus { open, inProgress, resolved }
-
-enum WorkOrderPriority { normal, high, urgent }
-
-class _WorkOrder {
-  const _WorkOrder({
-    required this.id,
-    required this.title,
-    required this.location,
-    required this.reporter,
-    required this.createdAt,
-    required this.priority,
-    required this.status,
-    this.assignee,
-  });
-
-  final String id;
-  final String title;
-  final String location;
-  final String reporter;
-  final DateTime createdAt;
-  final WorkOrderPriority priority;
-  final WorkOrderStatus status;
-  final String? assignee;
-
-  _WorkOrder copyWith({WorkOrderStatus? status, String? assignee}) =>
-      _WorkOrder(
-        id: id,
-        title: title,
-        location: location,
-        reporter: reporter,
-        createdAt: createdAt,
-        priority: priority,
-        status: status ?? this.status,
-        assignee: assignee ?? this.assignee,
-      );
-}
-
-class MaintenanceScreen extends StatefulWidget {
+class MaintenanceScreen extends ConsumerStatefulWidget {
   const MaintenanceScreen({super.key});
 
   @override
-  State<MaintenanceScreen> createState() => _MaintenanceScreenState();
+  ConsumerState<MaintenanceScreen> createState() => _MaintenanceScreenState();
 }
 
-class _MaintenanceScreenState extends State<MaintenanceScreen> {
+class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
   String _filter = 'All';
-  final List<_WorkOrder> _orders = [
-    _WorkOrder(
-      id: 'MNT-2048',
-      title: 'Leaking tap in kitchen',
-      location: 'Unit A2 · Greenview Court',
-      reporter: 'Alice Namutebi',
-      createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-      priority: WorkOrderPriority.urgent,
-      status: WorkOrderStatus.open,
-    ),
-    _WorkOrder(
-      id: 'MNT-2047',
-      title: 'No power in the living room',
-      location: 'Unit D3 · Riverside Heights',
-      reporter: 'John M.',
-      createdAt: DateTime.now().subtract(const Duration(hours: 3)),
-      priority: WorkOrderPriority.high,
-      status: WorkOrderStatus.inProgress,
-      assignee: 'Kato Electricals',
-    ),
-    _WorkOrder(
-      id: 'MNT-2046',
-      title: 'Water not draining in bathroom',
-      location: 'Unit B1 · Sunset Apartments',
-      reporter: 'Sarah W.',
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-      priority: WorkOrderPriority.high,
-      status: WorkOrderStatus.open,
-    ),
-    _WorkOrder(
-      id: 'MNT-2045',
-      title: 'Bedroom door lock is loose',
-      location: 'Unit C1 · Nyumbani Gardens',
-      reporter: 'David Kato',
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      priority: WorkOrderPriority.normal,
-      status: WorkOrderStatus.resolved,
-      assignee: 'Jenga Fixers',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _orders.where((order) {
-      return switch (_filter) {
-        'Open' => order.status == WorkOrderStatus.open,
-        'In progress' => order.status == WorkOrderStatus.inProgress,
-        'Resolved' => order.status == WorkOrderStatus.resolved,
-        'Urgent' => order.priority == WorkOrderPriority.urgent,
-        _ => true,
-      };
-    }).toList();
-
+    final requestsValue = ref.watch(maintenanceRequestsProvider);
+    final outbox =
+        ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         context.pageGutter,
@@ -131,62 +56,18 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              _MaintenanceSummary(orders: _orders),
-              const SizedBox(height: 22),
-              NyumbaSurface(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Work orders',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 14),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final filter in const [
-                                'All',
-                                'Open',
-                                'In progress',
-                                'Resolved',
-                                'Urgent',
-                              ])
-                                ChoiceChip(
-                                  label: Text(filter),
-                                  selected: _filter == filter,
-                                  onSelected: (_) =>
-                                      setState(() => _filter = filter),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(),
-                    if (filtered.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(36),
-                        child: Center(
-                          child: Text('No work orders match this filter.'),
-                        ),
-                      )
-                    else
-                      for (final order in filtered)
-                        _WorkOrderRow(
-                          order: order,
-                          onAdvance: () => _advance(order),
-                          onAssign: () => _assign(context, order),
-                        ),
-                  ],
+              requestsValue.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(48),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
+                error: (error, stack) => NyumbaSurface(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text('Could not load maintenance requests: $error'),
+                  ),
+                ),
+                data: (requests) => _buildLoaded(context, requests, outbox),
               ),
             ],
           ),
@@ -195,32 +76,130 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     );
   }
 
-  void _advance(_WorkOrder order) {
-    final next = switch (order.status) {
-      WorkOrderStatus.open => WorkOrderStatus.inProgress,
-      WorkOrderStatus.inProgress => WorkOrderStatus.resolved,
-      WorkOrderStatus.resolved => WorkOrderStatus.resolved,
-    };
-    setState(() {
-      final index = _orders.indexWhere((item) => item.id == order.id);
-      _orders[index] = order.copyWith(status: next);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          next == WorkOrderStatus.resolved
-              ? '${order.id} marked resolved and queued to sync.'
-              : '${order.id} moved to in progress.',
+  Widget _buildLoaded(
+    BuildContext context,
+    List<MaintenanceRequest> requests,
+    List<OutboxEntry> outbox,
+  ) {
+    final filtered = requests.where((request) {
+      return switch (_filter) {
+        'Open' => request.status.isOpen,
+        'In progress' => request.status == MaintenanceStatus.inProgress,
+        'Resolved' => request.status == MaintenanceStatus.resolved,
+        'Urgent' =>
+          request.priority == MaintenancePriority.urgent &&
+              !request.status.isTerminal,
+        _ => true,
+      };
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _MaintenanceSummary(requests: requests),
+        const SizedBox(height: 22),
+        NyumbaSurface(
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Work orders',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final filter in const [
+                          'All',
+                          'Open',
+                          'In progress',
+                          'Resolved',
+                          'Urgent',
+                        ])
+                          ChoiceChip(
+                            label: Text(filter),
+                            selected: _filter == filter,
+                            onSelected: (_) => setState(() => _filter = filter),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              if (filtered.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(36),
+                  child: Center(
+                    child: Text('No work orders match this filter.'),
+                  ),
+                )
+              else
+                for (final request in filtered)
+                  _WorkOrderRow(
+                    request: request,
+                    syncStatus: resolveAggregateSyncStatus(
+                      entityType: OfflineEntityType.maintenanceRequest,
+                      entityId: request.id,
+                      outbox: outbox,
+                      syncMetadata: request.syncMetadata,
+                    ),
+                    onAdvance: () => _advance(request),
+                    onAssign: () => _assign(context, request),
+                  ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  Future<void> _assign(BuildContext context, _WorkOrder order) async {
+  Future<void> _advance(MaintenanceRequest request) async {
+    final next = switch (request.status) {
+      MaintenanceStatus.submitted ||
+      MaintenanceStatus.scheduled => MaintenanceStatus.inProgress,
+      MaintenanceStatus.inProgress => MaintenanceStatus.resolved,
+      MaintenanceStatus.resolved ||
+      MaintenanceStatus.cancelled => request.status,
+    };
+    if (next == request.status) return;
+    try {
+      await ref.read(transitionMaintenanceRequestProvider)(
+        TransitionMaintenanceInput(requestId: request.id, status: next),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              next == MaintenanceStatus.resolved
+                  ? '${request.reference} marked resolved locally — awaiting sync.'
+                  : '${request.reference} moved to in progress — awaiting sync.',
+            ),
+          ),
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not update: $error')));
+      }
+    }
+  }
+
+  Future<void> _assign(BuildContext context, MaintenanceRequest request) async {
     final assignee = await showDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: Text('Assign ${order.id}'),
+        title: Text('Assign ${request.reference}'),
         children: [
           for (final contractor in const [
             'Kato Electricals',
@@ -235,22 +214,55 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
       ),
     );
     if (assignee == null) return;
-    setState(() {
-      final index = _orders.indexWhere((item) => item.id == order.id);
-      _orders[index] = order.copyWith(
-        assignee: assignee,
-        status: order.status == WorkOrderStatus.open
-            ? WorkOrderStatus.inProgress
-            : order.status,
+    try {
+      await ref.read(transitionMaintenanceRequestProvider)(
+        TransitionMaintenanceInput(
+          requestId: request.id,
+          status: request.status == MaintenanceStatus.submitted
+              ? MaintenanceStatus.inProgress
+              : request.status,
+          assignee: assignee,
+        ),
       );
-    });
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          this.context,
+        ).showSnackBar(SnackBar(content: Text('Could not assign: $error')));
+      }
+    }
   }
 
   Future<void> _showNewRequest(BuildContext context) async {
+    final units = ref.read(portfolioUnitsProvider).value ?? const <Unit>[];
+    final properties =
+        ref.read(portfolioPropertiesProvider).value ?? const <Property>[];
+    final propertyNames = <String, String>{
+      for (final property in properties) property.id: property.name,
+    };
+    final options = [
+      for (final unit in units)
+        (
+          unit: unit,
+          label:
+              'Unit ${unit.label} · ${propertyNames[unit.propertyId] ?? 'Property'}',
+        ),
+    ];
+    if (options.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add a property and unit before logging a request.'),
+        ),
+      );
+      return;
+    }
+
     final formKey = GlobalKey<FormState>();
     final title = TextEditingController();
+    final description = TextEditingController();
     final reporter = TextEditingController();
-    var priority = WorkOrderPriority.normal;
+    var priority = MaintenancePriority.normal;
+    var selected = options.first;
     final created = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -265,19 +277,23 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      initialValue: 'Unit A1 · Greenview Court',
+                      initialValue: selected.unit.id,
                       decoration: const InputDecoration(labelText: 'Unit'),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Unit A1 · Greenview Court',
-                          child: Text('Unit A1 · Greenview Court'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Unit B4 · Sunset Apartments',
-                          child: Text('Unit B4 · Sunset Apartments'),
-                        ),
+                      items: [
+                        for (final option in options)
+                          DropdownMenuItem(
+                            value: option.unit.id,
+                            child: Text(option.label),
+                          ),
                       ],
-                      onChanged: (_) {},
+                      onChanged: (value) {
+                        final match = options.where(
+                          (option) => option.unit.id == value,
+                        );
+                        if (match.isNotEmpty) {
+                          setDialogState(() => selected = match.first);
+                        }
+                      },
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
@@ -291,6 +307,15 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
+                      controller: description,
+                      maxLines: 3,
+                      decoration: const InputDecoration(labelText: 'Details'),
+                      validator: (value) => (value?.trim().length ?? 0) < 5
+                          ? 'Add a short description'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
                       controller: reporter,
                       decoration: const InputDecoration(
                         labelText: 'Reported by',
@@ -300,20 +325,20 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                           : null,
                     ),
                     const SizedBox(height: 14),
-                    DropdownButtonFormField<WorkOrderPriority>(
+                    DropdownButtonFormField<MaintenancePriority>(
                       initialValue: priority,
                       decoration: const InputDecoration(labelText: 'Priority'),
                       items: const [
                         DropdownMenuItem(
-                          value: WorkOrderPriority.normal,
+                          value: MaintenancePriority.normal,
                           child: Text('Normal'),
                         ),
                         DropdownMenuItem(
-                          value: WorkOrderPriority.high,
+                          value: MaintenancePriority.high,
                           child: Text('High'),
                         ),
                         DropdownMenuItem(
-                          value: WorkOrderPriority.urgent,
+                          value: MaintenancePriority.urgent,
                           child: Text('Urgent'),
                         ),
                       ],
@@ -346,62 +371,71 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
       ),
     );
     if (created == true) {
-      setState(() {
-        _orders.insert(
-          0,
-          _WorkOrder(
-            id: 'MNT-${2049 + _orders.length}',
+      try {
+        await ref.read(createMaintenanceRequestProvider)(
+          CreateMaintenanceRequestInput(
+            landlordId: selected.unit.landlordId,
+            propertyId: selected.unit.propertyId,
+            unitId: selected.unit.id,
             title: title.text.trim(),
-            location: 'Unit A1 · Greenview Court',
-            reporter: reporter.text.trim(),
-            createdAt: DateTime.now(),
+            description: description.text.trim(),
+            location: selected.label,
+            reporterName: reporter.text.trim(),
             priority: priority,
-            status: WorkOrderStatus.open,
           ),
         );
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          const SnackBar(
-            content: Text('Request saved locally and added to the sync queue.'),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(this.context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Request saved locally and added to the sync queue.',
+              ),
+            ),
+          );
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(this.context).showSnackBar(
+            SnackBar(content: Text('Could not save the request: $error')),
+          );
+        }
       }
     }
     title.dispose();
+    description.dispose();
     reporter.dispose();
   }
 }
 
 class _MaintenanceSummary extends StatelessWidget {
-  const _MaintenanceSummary({required this.orders});
+  const _MaintenanceSummary({required this.requests});
 
-  final List<_WorkOrder> orders;
+  final List<MaintenanceRequest> requests;
 
   @override
   Widget build(BuildContext context) {
     final items = [
       (
         'Open',
-        orders.where((item) => item.status == WorkOrderStatus.open).length,
+        requests.where((item) => item.status.isOpen).length,
         Icons.inbox_outlined,
         context.nyumba.midnightNavy,
       ),
       (
         'In progress',
-        orders
-            .where((item) => item.status == WorkOrderStatus.inProgress)
+        requests
+            .where((item) => item.status == MaintenanceStatus.inProgress)
             .length,
         Icons.engineering_outlined,
         context.nyumba.terracottaDark,
       ),
       (
         'Urgent',
-        orders
+        requests
             .where(
               (item) =>
-                  item.priority == WorkOrderPriority.urgent &&
-                  item.status != WorkOrderStatus.resolved,
+                  item.priority == MaintenancePriority.urgent &&
+                  !item.status.isTerminal,
             )
             .length,
         Icons.priority_high_rounded,
@@ -409,7 +443,9 @@ class _MaintenanceSummary extends StatelessWidget {
       ),
       (
         'Resolved',
-        orders.where((item) => item.status == WorkOrderStatus.resolved).length,
+        requests
+            .where((item) => item.status == MaintenanceStatus.resolved)
+            .length,
         Icons.check_circle_outline_rounded,
         context.nyumba.sageDark,
       ),
@@ -464,18 +500,32 @@ class _MaintenanceSummary extends StatelessWidget {
 
 class _WorkOrderRow extends StatelessWidget {
   const _WorkOrderRow({
-    required this.order,
+    required this.request,
+    required this.syncStatus,
     required this.onAdvance,
     required this.onAssign,
   });
 
-  final _WorkOrder order;
+  final MaintenanceRequest request;
+  final AggregateSyncStatus syncStatus;
   final VoidCallback onAdvance;
   final VoidCallback onAssign;
 
   @override
   Widget build(BuildContext context) {
     final compact = context.isCompact;
+    final actions = PopupMenuButton<String>(
+      tooltip: 'Work order actions',
+      onSelected: (value) => value == 'assign' ? onAssign() : onAdvance(),
+      itemBuilder: (_) => [
+        const PopupMenuItem(value: 'assign', child: Text('Assign contractor')),
+        if (!request.status.isTerminal)
+          PopupMenuItem(
+            value: 'advance',
+            child: Text(request.status.isOpen ? 'Start work' : 'Mark resolved'),
+          ),
+      ],
+    );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
@@ -485,73 +535,41 @@ class _WorkOrderRow extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _WorkOrderDetails(order: order),
+                _WorkOrderDetails(request: request),
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    _PriorityBadge(priority: order.priority),
+                    _PriorityBadge(priority: request.priority),
                     const SizedBox(width: 8),
-                    _StatusBadge(status: order.status),
+                    _WorkStatusBadge(status: request.status),
+                    const SizedBox(width: 8),
+                    SyncStateBadge(status: syncStatus),
                     const Spacer(),
-                    PopupMenuButton<String>(
-                      tooltip: 'Work order actions',
-                      onSelected: (value) =>
-                          value == 'assign' ? onAssign() : onAdvance(),
-                      itemBuilder: (_) => [
-                        const PopupMenuItem(
-                          value: 'assign',
-                          child: Text('Assign contractor'),
-                        ),
-                        if (order.status != WorkOrderStatus.resolved)
-                          PopupMenuItem(
-                            value: 'advance',
-                            child: Text(
-                              order.status == WorkOrderStatus.open
-                                  ? 'Start work'
-                                  : 'Mark resolved',
-                            ),
-                          ),
-                      ],
-                    ),
+                    actions,
                   ],
                 ),
               ],
             )
           : Row(
               children: [
-                Expanded(flex: 5, child: _WorkOrderDetails(order: order)),
+                Expanded(flex: 5, child: _WorkOrderDetails(request: request)),
                 Expanded(
                   flex: 2,
-                  child: _PriorityBadge(priority: order.priority),
+                  child: _PriorityBadge(priority: request.priority),
                 ),
-                Expanded(flex: 2, child: _StatusBadge(status: order.status)),
+                Expanded(
+                  flex: 2,
+                  child: _WorkStatusBadge(status: request.status),
+                ),
                 Expanded(
                   flex: 3,
                   child: Text(
-                    order.assignee ?? 'Unassigned',
+                    request.assignee ?? 'Unassigned',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
-                PopupMenuButton<String>(
-                  tooltip: 'Work order actions',
-                  onSelected: (value) =>
-                      value == 'assign' ? onAssign() : onAdvance(),
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(
-                      value: 'assign',
-                      child: Text('Assign contractor'),
-                    ),
-                    if (order.status != WorkOrderStatus.resolved)
-                      PopupMenuItem(
-                        value: 'advance',
-                        child: Text(
-                          order.status == WorkOrderStatus.open
-                              ? 'Start work'
-                              : 'Mark resolved',
-                        ),
-                      ),
-                  ],
-                ),
+                SizedBox(width: 110, child: SyncStateBadge(status: syncStatus)),
+                actions,
               ],
             ),
     );
@@ -559,20 +577,21 @@ class _WorkOrderRow extends StatelessWidget {
 }
 
 class _WorkOrderDetails extends StatelessWidget {
-  const _WorkOrderDetails({required this.order});
+  const _WorkOrderDetails({required this.request});
 
-  final _WorkOrder order;
+  final MaintenanceRequest request;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(order.title, style: Theme.of(context).textTheme.titleSmall),
+        Text(request.title, style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 3),
-        Text(order.location, style: Theme.of(context).textTheme.bodySmall),
+        Text(request.location, style: Theme.of(context).textTheme.bodySmall),
         Text(
-          '${order.id} · ${order.reporter} · ${DateFormat('d MMM, HH:mm').format(order.createdAt)}',
+          '${request.reference} · ${request.reporterName} · '
+          '${DateFormat('d MMM, HH:mm').format(request.reportedAt.toLocal())}',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
@@ -583,40 +602,45 @@ class _WorkOrderDetails extends StatelessWidget {
 class _PriorityBadge extends StatelessWidget {
   const _PriorityBadge({required this.priority});
 
-  final WorkOrderPriority priority;
+  final MaintenancePriority priority;
 
   @override
   Widget build(BuildContext context) => switch (priority) {
-    WorkOrderPriority.urgent => const StatusBadge(
+    MaintenancePriority.urgent => const StatusBadge(
       label: 'Urgent',
       tone: BadgeTone.danger,
     ),
-    WorkOrderPriority.high => const StatusBadge(
+    MaintenancePriority.high => const StatusBadge(
       label: 'High',
       tone: BadgeTone.warning,
     ),
-    WorkOrderPriority.normal => const StatusBadge(label: 'Normal'),
+    MaintenancePriority.normal => const StatusBadge(label: 'Normal'),
   };
 }
 
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
+class _WorkStatusBadge extends StatelessWidget {
+  const _WorkStatusBadge({required this.status});
 
-  final WorkOrderStatus status;
+  final MaintenanceStatus status;
 
   @override
   Widget build(BuildContext context) => switch (status) {
-    WorkOrderStatus.open => const StatusBadge(
+    MaintenanceStatus.submitted => const StatusBadge(
       label: 'Open',
       tone: BadgeTone.info,
     ),
-    WorkOrderStatus.inProgress => const StatusBadge(
+    MaintenanceStatus.scheduled => const StatusBadge(
+      label: 'Scheduled',
+      tone: BadgeTone.info,
+    ),
+    MaintenanceStatus.inProgress => const StatusBadge(
       label: 'In progress',
       tone: BadgeTone.warning,
     ),
-    WorkOrderStatus.resolved => const StatusBadge(
+    MaintenanceStatus.resolved => const StatusBadge(
       label: 'Resolved',
       tone: BadgeTone.success,
     ),
+    MaintenanceStatus.cancelled => const StatusBadge(label: 'Cancelled'),
   };
 }

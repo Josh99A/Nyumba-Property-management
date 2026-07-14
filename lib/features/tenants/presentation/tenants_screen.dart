@@ -1,79 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/offline/aggregate_sync_status.dart';
+import '../../../core/offline/offline_entity.dart';
+import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../../core/presentation/sync_state_badge.dart';
+import '../../portfolio/domain/property.dart';
+import '../../portfolio/domain/unit.dart';
+import '../application/tenancy_providers.dart';
+import '../domain/tenancy.dart';
 
-class _TenantRecord {
-  const _TenantRecord({
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.unit,
-    required this.property,
-    required this.balanceMinor,
-    required this.leaseEnd,
-  });
+final _ugx = NumberFormat.currency(
+  locale: 'en_UG',
+  symbol: 'UGX ',
+  decimalDigits: 0,
+);
 
-  final String name;
-  final String email;
-  final String phone;
-  final String unit;
-  final String property;
-  final int balanceMinor;
-  final DateTime leaseEnd;
-}
-
-class TenantsScreen extends StatefulWidget {
+class TenantsScreen extends ConsumerStatefulWidget {
   const TenantsScreen({super.key});
 
   @override
-  State<TenantsScreen> createState() => _TenantsScreenState();
+  ConsumerState<TenantsScreen> createState() => _TenantsScreenState();
 }
 
-class _TenantsScreenState extends State<TenantsScreen> {
+class _TenantsScreenState extends ConsumerState<TenantsScreen> {
   final _searchController = TextEditingController();
-  final List<_TenantRecord> _tenants = [
-    _TenantRecord(
-      name: 'Brian Okello',
-      email: 'brian.otieno@example.com',
-      phone: '+256 772 345 678',
-      unit: 'B4',
-      property: 'Sunset Apartments',
-      balanceMinor: 0,
-      leaseEnd: DateTime(2027, 2, 28),
-    ),
-    _TenantRecord(
-      name: 'Grace Namuli',
-      email: 'grace.sandra@example.com',
-      phone: '+256 704 113 886',
-      unit: 'D1',
-      property: 'Riverside Heights',
-      balanceMinor: 0,
-      leaseEnd: DateTime(2026, 11, 30),
-    ),
-    _TenantRecord(
-      name: 'Peter Ssemwanga',
-      email: 'peter.mwangi@example.com',
-      phone: '+256 753 902 118',
-      unit: 'A1',
-      property: 'Greenview Court',
-      balanceMinor: 110000000,
-      leaseEnd: DateTime(2026, 12, 31),
-    ),
-    _TenantRecord(
-      name: 'Mary Nansubuga',
-      email: 'mary.muthoni@example.com',
-      phone: '+256 771 822 470',
-      unit: 'C2',
-      property: 'Nyumbani Gardens',
-      balanceMinor: 35000000,
-      leaseEnd: DateTime(2027, 4, 30),
-    ),
-  ];
 
   @override
   void dispose() {
@@ -83,14 +42,9 @@ class _TenantsScreenState extends State<TenantsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final query = _searchController.text.trim().toLowerCase();
-    final tenants = _tenants.where((tenant) {
-      return query.isEmpty ||
-          tenant.name.toLowerCase().contains(query) ||
-          tenant.property.toLowerCase().contains(query) ||
-          tenant.unit.toLowerCase().contains(query);
-    }).toList();
-
+    final tenanciesValue = ref.watch(tenanciesProvider);
+    final outbox =
+        ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         context.pageGutter,
@@ -115,87 +69,18 @@ class _TenantsScreenState extends State<TenantsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = (constraints.maxWidth - 28) / 3;
-                  return Wrap(
-                    spacing: 14,
-                    runSpacing: 14,
-                    children: [
-                      SizedBox(
-                        width: context.isCompact ? constraints.maxWidth : width,
-                        child: _TenantMetric(
-                          label: 'Active tenants',
-                          value: '20',
-                          icon: Icons.people_outline_rounded,
-                          tone: context.nyumba.midnightNavy,
-                        ),
-                      ),
-                      SizedBox(
-                        width: context.isCompact ? constraints.maxWidth : width,
-                        child: _TenantMetric(
-                          label: 'Balances up to date',
-                          value: '17',
-                          icon: Icons.verified_outlined,
-                          tone: context.nyumba.sageDark,
-                        ),
-                      ),
-                      SizedBox(
-                        width: context.isCompact ? constraints.maxWidth : width,
-                        child: _TenantMetric(
-                          label: 'Leases ending soon',
-                          value: '3',
-                          icon: Icons.event_outlined,
-                          tone: context.nyumba.terracottaDark,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 22),
-              NyumbaSurface(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Tenant directory',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                          ),
-                          SizedBox(
-                            width: context.isCompact ? 190 : 300,
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (_) => setState(() {}),
-                              decoration: const InputDecoration(
-                                hintText: 'Search tenants',
-                                prefixIcon: Icon(Icons.search_rounded),
-                                isDense: true,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(),
-                    if (tenants.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(36),
-                        child: Center(
-                          child: Text('No tenants match your search.'),
-                        ),
-                      )
-                    else
-                      for (final tenant in tenants) _TenantRow(tenant: tenant),
-                  ],
+              tenanciesValue.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(48),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
+                error: (error, stack) => NyumbaSurface(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text('Could not load tenants: $error'),
+                  ),
+                ),
+                data: (tenancies) => _buildLoaded(context, tenancies, outbox),
               ),
             ],
           ),
@@ -204,99 +89,273 @@ class _TenantsScreenState extends State<TenantsScreen> {
     );
   }
 
+  Widget _buildLoaded(
+    BuildContext context,
+    List<Tenancy> tenancies,
+    List<OutboxEntry> outbox,
+  ) {
+    final query = _searchController.text.trim().toLowerCase();
+    final filtered = tenancies.where((tenancy) {
+      return query.isEmpty ||
+          tenancy.tenantName.toLowerCase().contains(query) ||
+          tenancy.propertyName.toLowerCase().contains(query) ||
+          tenancy.unitLabel.toLowerCase().contains(query);
+    }).toList();
+    final active = tenancies
+        .where((item) => item.status == TenancyStatus.active)
+        .length;
+    final upToDate = tenancies.where((item) => !item.balanceDue).length;
+    final endingSoon = tenancies
+        .where(
+          (item) =>
+              item.status == TenancyStatus.active &&
+              item.leaseEnd.difference(DateTime.now()).inDays <= 90,
+        )
+        .length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = (constraints.maxWidth - 28) / 3;
+            return Wrap(
+              spacing: 14,
+              runSpacing: 14,
+              children: [
+                SizedBox(
+                  width: context.isCompact ? constraints.maxWidth : width,
+                  child: _TenantMetric(
+                    label: 'Active tenants',
+                    value: '$active',
+                    icon: Icons.people_outline_rounded,
+                    tone: context.nyumba.midnightNavy,
+                  ),
+                ),
+                SizedBox(
+                  width: context.isCompact ? constraints.maxWidth : width,
+                  child: _TenantMetric(
+                    label: 'Balances up to date',
+                    value: '$upToDate',
+                    icon: Icons.verified_outlined,
+                    tone: context.nyumba.sageDark,
+                  ),
+                ),
+                SizedBox(
+                  width: context.isCompact ? constraints.maxWidth : width,
+                  child: _TenantMetric(
+                    label: 'Leases ending soon',
+                    value: '$endingSoon',
+                    icon: Icons.event_outlined,
+                    tone: context.nyumba.terracottaDark,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 22),
+        NyumbaSurface(
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Tenant directory',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    SizedBox(
+                      width: context.isCompact ? 190 : 300,
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (_) => setState(() {}),
+                        decoration: const InputDecoration(
+                          hintText: 'Search tenants',
+                          prefixIcon: Icon(Icons.search_rounded),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              if (filtered.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(36),
+                  child: Center(child: Text('No tenants match your search.')),
+                )
+              else
+                for (final tenancy in filtered)
+                  _TenantRow(
+                    tenancy: tenancy,
+                    syncStatus: resolveAggregateSyncStatus(
+                      entityType: OfflineEntityType.tenancy,
+                      entityId: tenancy.id,
+                      outbox: outbox,
+                      syncMetadata: tenancy.syncMetadata,
+                    ),
+                  ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _showAddTenant(BuildContext context) async {
+    final units = ref.read(portfolioUnitsProvider).value ?? const <Unit>[];
+    final properties =
+        ref.read(portfolioPropertiesProvider).value ?? const <Property>[];
+    final propertyById = <String, Property>{
+      for (final property in properties) property.id: property,
+    };
+    final vacantUnits = units
+        .where((unit) => unit.status == UnitStatus.vacant)
+        .toList();
+    if (vacantUnits.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No vacant units are available for a new tenancy.'),
+        ),
+      );
+      return;
+    }
+
     final formKey = GlobalKey<FormState>();
     final name = TextEditingController();
     final email = TextEditingController();
+    final phone = TextEditingController();
+    var selectedUnit = vacantUnits.first;
     final created = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add tenant'),
-        content: SizedBox(
-          width: 460,
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: 'Full name'),
-                  validator: (value) => (value?.trim().isEmpty ?? true)
-                      ? 'Enter the tenant name'
-                      : null,
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email address'),
-                  validator: (value) => !(value?.contains('@') ?? false)
-                      ? 'Enter a valid email'
-                      : null,
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  initialValue: 'A3 · Greenview Court',
-                  decoration: const InputDecoration(labelText: 'Vacant unit'),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'A3 · Greenview Court',
-                      child: Text('A3 · Greenview Court'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add tenant'),
+          content: SizedBox(
+            width: 460,
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: name,
+                    decoration: const InputDecoration(labelText: 'Full name'),
+                    validator: (value) => (value?.trim().isEmpty ?? true)
+                        ? 'Enter the tenant name'
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email address',
                     ),
-                    DropdownMenuItem(
-                      value: 'B5 · Sunset Apartments',
-                      child: Text('B5 · Sunset Apartments'),
+                    validator: (value) => !(value?.contains('@') ?? false)
+                        ? 'Enter a valid email'
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone (optional)',
                     ),
-                  ],
-                  onChanged: (_) {},
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedUnit.id,
+                    decoration: const InputDecoration(labelText: 'Vacant unit'),
+                    items: [
+                      for (final unit in vacantUnits)
+                        DropdownMenuItem(
+                          value: unit.id,
+                          child: Text(
+                            '${unit.label} · '
+                            '${propertyById[unit.propertyId]?.name ?? 'Property'}',
+                          ),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      final match = vacantUnits.where(
+                        (unit) => unit.id == value,
+                      );
+                      if (match.isNotEmpty) {
+                        setDialogState(() => selectedUnit = match.first);
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(context, true);
+                }
+              },
+              child: const Text('Create tenant'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(context, true);
-              }
-            },
-            child: const Text('Create tenant'),
-          ),
-        ],
       ),
     );
     if (created == true) {
-      setState(() {
-        _tenants.add(
-          _TenantRecord(
-            name: name.text.trim(),
+      try {
+        final now = DateTime.now();
+        await ref.read(createTenancyProvider)(
+          CreateTenancyInput(
+            landlordId: selectedUnit.landlordId,
+            tenantName: name.text.trim(),
             email: email.text.trim(),
-            phone: 'Not provided',
-            unit: 'A3',
-            property: 'Greenview Court',
-            balanceMinor: 0,
-            leaseEnd: DateTime.now().add(const Duration(days: 365)),
+            phone: phone.text.trim().isEmpty
+                ? 'Not provided'
+                : phone.text.trim(),
+            unitId: selectedUnit.id,
+            propertyId: selectedUnit.propertyId,
+            unitLabel: selectedUnit.label,
+            propertyName:
+                propertyById[selectedUnit.propertyId]?.name ?? 'Property',
+            monthlyRentMinor: selectedUnit.monthlyRentMinor,
+            leaseStart: now,
+            leaseEnd: DateTime(now.year + 1, now.month, now.day),
           ),
         );
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Tenant saved locally. Invitation will send when online.',
+        if (mounted) {
+          ScaffoldMessenger.of(this.context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Tenant saved locally. Invitation will send when online.',
+              ),
             ),
-          ),
-        );
+          );
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(this.context).showSnackBar(
+            SnackBar(content: Text('Could not create the tenancy: $error')),
+          );
+        }
       }
     }
     name.dispose();
     email.dispose();
+    phone.dispose();
   }
 }
 
@@ -342,13 +401,14 @@ class _TenantMetric extends StatelessWidget {
 }
 
 class _TenantRow extends StatelessWidget {
-  const _TenantRow({required this.tenant});
+  const _TenantRow({required this.tenancy, required this.syncStatus});
 
-  final _TenantRecord tenant;
+  final Tenancy tenancy;
+  final AggregateSyncStatus syncStatus;
 
   @override
   Widget build(BuildContext context) {
-    final balanceDue = tenant.balanceMinor > 0;
+    final balanceDue = tenancy.balanceDue;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
@@ -358,16 +418,18 @@ class _TenantRow extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _TenantIdentity(tenant: tenant),
+                _TenantIdentity(tenancy: tenancy),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     StatusBadge(
                       label: balanceDue
-                          ? 'UGX ${tenant.balanceMinor ~/ 100} due'
+                          ? '${_ugx.format(tenancy.balanceMinor / 100)} due'
                           : 'Up to date',
                       tone: balanceDue ? BadgeTone.warning : BadgeTone.success,
                     ),
+                    const SizedBox(width: 8),
+                    SyncStateBadge(status: syncStatus),
                     const Spacer(),
                     const ComingSoon(
                       message: 'Tenant details coming soon',
@@ -382,10 +444,12 @@ class _TenantRow extends StatelessWidget {
             )
           : Row(
               children: [
-                Expanded(flex: 4, child: _TenantIdentity(tenant: tenant)),
+                Expanded(flex: 4, child: _TenantIdentity(tenancy: tenancy)),
                 Expanded(
                   flex: 3,
-                  child: Text('${tenant.unit} · ${tenant.property}'),
+                  child: Text(
+                    '${tenancy.unitLabel} · ${tenancy.propertyName}',
+                  ),
                 ),
                 Expanded(
                   flex: 2,
@@ -397,9 +461,10 @@ class _TenantRow extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    'Ends ${tenant.leaseEnd.day}/${tenant.leaseEnd.month}/${tenant.leaseEnd.year}',
+                    'Ends ${DateFormat('d MMM y').format(tenancy.leaseEnd.toLocal())}',
                   ),
                 ),
+                SizedBox(width: 110, child: SyncStateBadge(status: syncStatus)),
                 const ComingSoon(
                   message: 'Tenant details coming soon',
                   child: IconButton(
@@ -414,17 +479,19 @@ class _TenantRow extends StatelessWidget {
 }
 
 class _TenantIdentity extends StatelessWidget {
-  const _TenantIdentity({required this.tenant});
+  const _TenantIdentity({required this.tenancy});
 
-  final _TenantRecord tenant;
+  final Tenancy tenancy;
 
   @override
   Widget build(BuildContext context) {
-    final initials = tenant.name
-        .split(' ')
-        .take(2)
-        .map((part) => part[0])
-        .join();
+    final parts = tenancy.tenantName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty);
+    final initials = parts.isEmpty
+        ? '?'
+        : parts.take(2).map((part) => part[0]).join().toUpperCase();
     return Row(
       children: [
         CircleAvatar(
@@ -442,9 +509,12 @@ class _TenantIdentity extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(tenant.name, style: Theme.of(context).textTheme.titleSmall),
               Text(
-                tenant.email,
+                tenancy.tenantName,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              Text(
+                tenancy.email,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,

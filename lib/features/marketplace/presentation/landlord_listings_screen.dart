@@ -14,6 +14,7 @@ import '../../../core/presentation/surface.dart';
 import '../../portfolio/domain/property.dart';
 import '../../portfolio/domain/unit.dart';
 import '../domain/application.dart';
+import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
 import 'listing_visuals.dart';
 
@@ -207,7 +208,7 @@ class _LandlordListingsScreenState
 
   Future<void> _publish(Listing listing) async {
     try {
-      await ref.read(appDependenciesProvider).listings.publish(listing.id);
+      await ref.read(publishListingProvider)(listing.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -229,10 +230,7 @@ class _LandlordListingsScreenState
   Future<void> _sync() async {
     setState(() => _syncing = true);
     try {
-      final report = await ref
-          .read(appDependenciesProvider)
-          .syncEngine
-          .syncPending();
+      final report = await ref.read(manualSyncProvider)();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -638,41 +636,38 @@ class _LandlordListingsScreenState
       ),
     );
     if (created == true) {
-      await ref
-          .read(appDependenciesProvider)
-          .listings
-          .createDraft(
-            CreateListingInput(
-              unitId: selectedUnit.id,
-              propertyId: selectedUnit.propertyId,
-              landlordId: selectedUnit.landlordId,
-              title: title.text.trim(),
-              description: description.text.trim(),
-              monthlyRentMinor: selectedUnit.monthlyRentMinor,
-              currency: selectedUnit.currency,
-              city: propertyById[selectedUnit.propertyId]?.city ?? 'Kampala',
-              district: district.text.trim(),
-              neighborhood: neighborhood.text.trim(),
-              approximateLatitude: _optionalDouble(latitude.text),
-              approximateLongitude: _optionalDouble(longitude.text),
-              availableFrom: availableFrom,
-              floorAreaSquareMetres: _optionalInt(floorArea.text),
-              furnished: furnished,
-              parkingSpaces: _optionalInt(parkingSpaces.text),
-              minimumLeaseMonths: _optionalInt(minimumLeaseMonths.text),
-              securityDepositMinor: _optionalMoneyMinor(securityDeposit.text),
-              serviceChargeMinor: _optionalMoneyMinor(serviceCharge.text),
-              utilitiesIncluded: _splitCommaSeparated(utilities.text),
-              accessibilityFeatures: _splitCommaSeparated(accessibility.text),
-              petsPolicy: petsPolicy.text.trim(),
-              smokingPolicy: smokingPolicy.text.trim(),
-              viewingInstructions: viewingInstructions.text.trim(),
-              imageUrls: _splitLines(imageUrls.text),
-              videoUrl: videoUrl.text.trim(),
-              contactPhone: phone.text.trim(),
-              contactEmail: email.text.trim(),
-            ),
-          );
+      await ref.read(createListingDraftProvider)(
+        CreateListingInput(
+          unitId: selectedUnit.id,
+          propertyId: selectedUnit.propertyId,
+          landlordId: selectedUnit.landlordId,
+          title: title.text.trim(),
+          description: description.text.trim(),
+          monthlyRentMinor: selectedUnit.monthlyRentMinor,
+          currency: selectedUnit.currency,
+          city: propertyById[selectedUnit.propertyId]?.city ?? 'Kampala',
+          district: district.text.trim(),
+          neighborhood: neighborhood.text.trim(),
+          approximateLatitude: _optionalDouble(latitude.text),
+          approximateLongitude: _optionalDouble(longitude.text),
+          availableFrom: availableFrom,
+          floorAreaSquareMetres: _optionalInt(floorArea.text),
+          furnished: furnished,
+          parkingSpaces: _optionalInt(parkingSpaces.text),
+          minimumLeaseMonths: _optionalInt(minimumLeaseMonths.text),
+          securityDepositMinor: _optionalMoneyMinor(securityDeposit.text),
+          serviceChargeMinor: _optionalMoneyMinor(serviceCharge.text),
+          utilitiesIncluded: _splitCommaSeparated(utilities.text),
+          accessibilityFeatures: _splitCommaSeparated(accessibility.text),
+          petsPolicy: petsPolicy.text.trim(),
+          smokingPolicy: smokingPolicy.text.trim(),
+          viewingInstructions: viewingInstructions.text.trim(),
+          imageUrls: _splitLines(imageUrls.text),
+          videoUrl: videoUrl.text.trim(),
+          contactPhone: phone.text.trim(),
+          contactEmail: email.text.trim(),
+        ),
+      );
       if (mounted) {
         ScaffoldMessenger.of(this.context).showSnackBar(
           const SnackBar(

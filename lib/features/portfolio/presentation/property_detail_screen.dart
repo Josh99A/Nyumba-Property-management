@@ -9,7 +9,9 @@ import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../marketplace/application/marketplace_use_cases.dart';
 import '../../marketplace/domain/listing.dart';
+import '../application/portfolio_use_cases.dart';
 import '../domain/property.dart';
 import '../domain/unit.dart';
 import 'portfolio_visuals.dart';
@@ -187,14 +189,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 
   Future<void> _showAddUnit() async {
-    final properties = await ref
-        .read(appDependenciesProvider)
-        .properties
-        .getAll();
-    Property? property;
-    for (final item in properties) {
-      if (item.id == widget.propertyId) property = item;
-    }
+    final property = await ref.read(getPropertyByIdProvider)(widget.propertyId);
     if (property == null || !mounted) return;
 
     final formKey = GlobalKey<FormState>();
@@ -209,7 +204,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Add unit to ${property!.name}'),
+          title: Text('Add unit to ${property.name}'),
           content: SizedBox(
             width: 520,
             child: Form(
@@ -330,22 +325,19 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 try {
-                  await ref
-                      .read(appDependenciesProvider)
-                      .units
-                      .create(
-                        CreateUnitInput(
-                          propertyId: property!.id,
-                          landlordId: property.landlordId,
-                          label: label.text.trim(),
-                          type: type,
-                          status: status,
-                          monthlyRentMinor:
-                              int.parse(rent.text.replaceAll(',', '')) * 100,
-                          bedrooms: int.parse(bedrooms.text),
-                          bathrooms: int.parse(bathrooms.text),
-                        ),
-                      );
+                  await ref.read(createUnitProvider)(
+                    CreateUnitInput(
+                      propertyId: property.id,
+                      landlordId: property.landlordId,
+                      label: label.text.trim(),
+                      type: type,
+                      status: status,
+                      monthlyRentMinor:
+                          int.parse(rent.text.replaceAll(',', '')) * 100,
+                      bedrooms: int.parse(bedrooms.text),
+                      bathrooms: int.parse(bathrooms.text),
+                    ),
+                  );
                   if (context.mounted) Navigator.pop(context, true);
                 } on Object catch (caught) {
                   setDialogState(() => error = caught.toString());
@@ -369,24 +361,20 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 
   Future<void> _createListing(Property property, Unit unit) async {
-    final draft = await ref
-        .read(appDependenciesProvider)
-        .listings
-        .createDraft(
-          CreateListingInput(
-            unitId: unit.id,
-            propertyId: property.id,
-            landlordId: property.landlordId,
-            title: '${unit.label} at ${property.name}',
-            description:
-                'A well maintained ${unit.type.name} in ${property.city}.',
-            monthlyRentMinor: unit.monthlyRentMinor,
-            currency: unit.currency,
-            city: property.city,
-            neighborhood: property.city,
-            contactPhone: '+256 772 000 100',
-          ),
-        );
+    final draft = await ref.read(createListingDraftProvider)(
+      CreateListingInput(
+        unitId: unit.id,
+        propertyId: property.id,
+        landlordId: property.landlordId,
+        title: '${unit.label} at ${property.name}',
+        description: 'A well maintained ${unit.type.name} in ${property.city}.',
+        monthlyRentMinor: unit.monthlyRentMinor,
+        currency: unit.currency,
+        city: property.city,
+        neighborhood: property.city,
+        contactPhone: '+256 772 000 100',
+      ),
+    );
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${draft.title} saved as a local draft.')),

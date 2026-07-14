@@ -1,38 +1,126 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/offline/aggregate_sync_status.dart';
+import '../../../core/offline/offline_entity.dart';
+import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/coming_soon.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
+import '../../finance/application/billing_providers.dart';
+import '../../finance/domain/rent_payment.dart';
+import '../../tenants/application/tenancy_providers.dart';
+import '../../tenants/domain/tenancy.dart';
 import 'widgets/tenant_components.dart';
 
-class TenantPaymentsScreen extends StatefulWidget {
+const _demoTenantId = 'demo-tenant-001';
+
+String _paymentStatusLabel(AggregateSyncStatus status) => switch (status) {
+  AggregateSyncStatus.synced => 'Paid',
+  AggregateSyncStatus.pending || AggregateSyncStatus.syncing => 'Awaiting sync',
+  AggregateSyncStatus.rejected => 'Rejected',
+  AggregateSyncStatus.blocked => 'Blocked',
+  AggregateSyncStatus.conflicted => 'Conflicted',
+};
+
+class TenantPaymentsScreen extends ConsumerStatefulWidget {
   const TenantPaymentsScreen({super.key});
 
   @override
-  State<TenantPaymentsScreen> createState() => _TenantPaymentsScreenState();
+  ConsumerState<TenantPaymentsScreen> createState() =>
+      _TenantPaymentsScreenState();
 }
 
-class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
-  int _balance = 1200000;
+class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
   String _filter = 'All';
   String _defaultMethod = 'MTN MoMo ••• 0841';
-  final List<_TenantPayment> _payments = [..._seedPayments];
 
-  List<_TenantPayment> get _filteredPayments {
-    if (_filter == 'All') return _payments;
-    return _payments.where((payment) => payment.status == _filter).toList();
-  }
-
-  int get _paidThisYear => _payments
-      .where((payment) => payment.status == 'Paid')
-      .fold(0, (sum, payment) => sum + payment.amount);
+  String get _tenantId =>
+      ref.read(sessionControllerProvider)?.userId ?? _demoTenantId;
 
   @override
   Widget build(BuildContext context) {
-    final paid = _balance == 0;
-    final filtered = _filteredPayments;
+    final tenancyValue = ref.watch(myTenancyProvider(_tenantId));
+    return tenancyValue.when(
+      loading: () => const TenantPage(
+        title: 'Payments',
+        description:
+            'Manage rent, invoices, receipts, and your payment history.',
+        children: [
+          Padding(
+            padding: EdgeInsets.all(48),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      ),
+      error: (error, stack) => TenantPage(
+        title: 'Payments',
+        description:
+            'Manage rent, invoices, receipts, and your payment history.',
+        children: [
+          NyumbaSurface(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Could not load your tenancy: $error'),
+            ),
+          ),
+        ],
+      ),
+      data: (tenancy) => tenancy == null
+          ? const TenantPage(
+              title: 'Payments',
+              description:
+                  'Manage rent, invoices, receipts, and your payment history.',
+              children: [
+                NyumbaSurface(
+                  child: TenantEmptyState(
+                    title: 'No tenancy on this device yet',
+                    message:
+                        'Your lease details will appear after your landlord '
+                        'links this account to a unit.',
+                    icon: Icons.home_outlined,
+                  ),
+                ),
+              ],
+            )
+          : _buildLoaded(context, tenancy),
+    );
+  }
+
+  Widget _buildLoaded(BuildContext context, Tenancy tenancy) {
+    final payments =
+        ref.watch(tenancyPaymentsProvider(tenancy.id)).value ??
+        const <RentPayment>[];
+    final outbox =
+        ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
+    String statusOf(RentPayment payment) => _paymentStatusLabel(
+      resolveAggregateSyncStatus(
+        entityType: OfflineEntityType.payment,
+        entityId: payment.id,
+        outbox: outbox,
+        syncMetadata: payment.syncMetadata,
+      ),
+    );
+
+    final paid = !tenancy.balanceDue;
+    final balanceWhole = tenancy.balanceMinor ~/ 100;
+    final rentWhole = tenancy.monthlyRentMinor ~/ 100;
+    final filtered = payments.where((payment) {
+      return switch (_filter) {
+        'Paid' => statusOf(payment) == 'Paid',
+        'Awaiting sync' => statusOf(payment) == 'Awaiting sync',
+        _ => true,
+      };
+    }).toList();
+    final paidThisYear = payments
+        .where((payment) => payment.paidOn.toLocal().year == DateTime.now().year)
+        .fold<int>(0, (sum, payment) => sum + payment.amountMinor);
+    final now = DateTime.now();
+
     return TenantPage(
       title: 'Payments',
       description: 'Manage rent, invoices, receipts, and your payment history.',
@@ -45,7 +133,9 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
         ),
       ),
       primaryAction: FilledButton.icon(
-        onPressed: paid ? _showCurrentReceipt : _payRent,
+        onPressed: paid
+            ? () => _showCurrentReceipt(payments, statusOf)
+            : () => _payRent(tenancy),
         icon: Icon(
           paid ? Icons.receipt_long_outlined : Icons.payments_outlined,
         ),
@@ -53,25 +143,29 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
       ),
       children: [
         TenantBalanceHero(
-          amount: _balance,
-          dueLabel: 'Invoice NYB-INV-2608 • due 5 Aug 2026',
+          amount: balanceWhole,
+          dueLabel: paid
+              ? 'No balance outstanding'
+              : '${DateFormat('MMMM y').format(now)} rent • due on the 5th',
           paid: paid,
-          onPay: paid ? _showCurrentReceipt : _payRent,
+          onPay: paid
+              ? () => _showCurrentReceipt(payments, statusOf)
+              : () => _payRent(tenancy),
         ),
         const SizedBox(height: 18),
         TenantMetricGrid(
           children: [
             TenantMetricCard(
-              label: 'Paid in 2026',
-              value: formatTenantUgx(_paidThisYear),
+              label: 'Paid in ${now.year}',
+              value: formatTenantUgx(paidThisYear ~/ 100),
               caption:
-                  '${_payments.where((item) => item.status == 'Paid').length} confirmed payments',
+                  '${payments.length} payment${payments.length == 1 ? '' : 's'} recorded',
               icon: Icons.savings_outlined,
               color: context.nyumba.sageDark,
             ),
             TenantMetricCard(
               label: 'Monthly rent',
-              value: 'UGX 1,200,000',
+              value: formatTenantUgx(rentWhole),
               caption: 'Due on the 5th of each month',
               icon: Icons.calendar_month_outlined,
               color: context.nyumba.midnightNavy,
@@ -89,8 +183,10 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
         LayoutBuilder(
           builder: (context, constraints) {
             final invoice = _InvoicePanel(
-              balance: _balance,
-              onPay: paid ? _showCurrentReceipt : _payRent,
+              tenancy: tenancy,
+              onPay: paid
+                  ? () => _showCurrentReceipt(payments, statusOf)
+                  : () => _payRent(tenancy),
             );
             final methods = _PaymentMethodsPanel(
               defaultMethod: _defaultMethod,
@@ -140,8 +236,7 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
                         for (final item in const [
                           'All',
                           'Paid',
-                          'Processing',
-                          'Overdue',
+                          'Awaiting sync',
                         ])
                           ChoiceChip(
                             label: Text(item),
@@ -177,7 +272,11 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
                           ) ...[
                             _PaymentCard(
                               payment: filtered[index],
-                              onReceipt: () => _showReceipt(filtered[index]),
+                              status: statusOf(filtered[index]),
+                              onReceipt: () => _showReceipt(
+                                filtered[index],
+                                statusOf(filtered[index]),
+                              ),
                             ),
                             if (index < filtered.length - 1) const Divider(),
                           ],
@@ -210,21 +309,36 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
                               DataRow(
                                 cells: [
                                   DataCell(Text(payment.period)),
-                                  DataCell(Text(payment.reference)),
-                                  DataCell(Text(payment.date)),
+                                  DataCell(Text(payment.receiptNumber)),
+                                  DataCell(
+                                    Text(
+                                      DateFormat(
+                                        'd MMM y',
+                                      ).format(payment.paidOn.toLocal()),
+                                    ),
+                                  ),
                                   DataCell(Text(payment.method)),
                                   DataCell(
-                                    Text(formatTenantUgx(payment.amount)),
+                                    Text(
+                                      formatTenantUgx(
+                                        payment.amountMinor ~/ 100,
+                                      ),
+                                    ),
                                   ),
                                   DataCell(
-                                    TenantStatusBadge(status: payment.status),
+                                    TenantStatusBadge(
+                                      status: statusOf(payment),
+                                    ),
                                   ),
                                   DataCell(
                                     IconButton(
-                                      tooltip: payment.status == 'Paid'
+                                      tooltip: statusOf(payment) == 'Paid'
                                           ? 'View receipt'
                                           : 'View details',
-                                      onPressed: () => _showReceipt(payment),
+                                      onPressed: () => _showReceipt(
+                                        payment,
+                                        statusOf(payment),
+                                      ),
                                       icon: const Icon(
                                         Icons.chevron_right_rounded,
                                       ),
@@ -245,13 +359,15 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
     );
   }
 
-  Future<void> _payRent() async {
+  Future<void> _payRent(Tenancy tenancy) async {
     var method = _defaultMethod.startsWith('MTN') ? 'MTN MoMo' : 'Card (Bank)';
-    final paid = await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Pay August rent'),
+          title: Text(
+            'Pay ${DateFormat('MMMM').format(DateTime.now())} rent',
+          ),
           content: SizedBox(
             width: 460,
             child: Column(
@@ -268,7 +384,7 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
                     children: [
                       const Expanded(child: Text('Amount payable')),
                       Text(
-                        formatTenantUgx(_balance),
+                        formatTenantUgx(tenancy.balanceMinor ~/ 100),
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ],
@@ -345,23 +461,26 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
         ),
       ),
     );
-    if (paid != true || !mounted) return;
-    final now = DateTime.now();
-    setState(() {
-      _balance = 0;
-      _payments.insert(
-        0,
-        _TenantPayment(
-          period: 'August 2026',
-          reference: 'NYB-RCP-00896',
-          date: DateFormat('d MMM 2026').format(now),
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(recordRentPaymentProvider)(
+        RecordRentPaymentInput(
+          tenancyId: tenancy.id,
+          amountMinor: tenancy.balanceMinor,
           method: method,
-          amount: 1200000,
-          status: 'Paid',
         ),
       );
-    });
-    showTenantMessage(context, 'Payment recorded locally and queued to sync.');
+      if (mounted) {
+        showTenantMessage(
+          context,
+          'Payment recorded locally and queued to sync.',
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        showTenantMessage(context, 'Could not record the payment: $error');
+      }
+    }
   }
 
   Future<void> _manageMethods() async {
@@ -434,32 +553,33 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
     showTenantMessage(context, '$result is now your default method.');
   }
 
-  Future<void> _showCurrentReceipt() {
-    final payment = _payments.firstWhere(
-      (item) => item.status == 'Paid',
-      orElse: () => _seedPayments.first,
-    );
-    return _showReceipt(payment);
+  Future<void> _showCurrentReceipt(
+    List<RentPayment> payments,
+    String Function(RentPayment) statusOf,
+  ) {
+    if (payments.isEmpty) {
+      showTenantMessage(context, 'No payments recorded yet.');
+      return Future<void>.value();
+    }
+    return _showReceipt(payments.first, statusOf(payments.first));
   }
 
-  Future<void> _showReceipt(_TenantPayment payment) {
+  Future<void> _showReceipt(RentPayment payment, String status) {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(
-          payment.status == 'Paid' ? 'Payment receipt' : 'Payment details',
-        ),
+        title: Text(status == 'Paid' ? 'Payment receipt' : 'Payment details'),
         content: SizedBox(
           width: 440,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(child: TenantStatusBadge(status: payment.status)),
+              Center(child: TenantStatusBadge(status: status)),
               const SizedBox(height: 12),
               Center(
                 child: Text(
-                  formatTenantUgx(payment.amount),
+                  formatTenantUgx(payment.amountMinor ~/ 100),
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ),
@@ -473,13 +593,15 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
               TenantInfoRow(
                 icon: Icons.tag_rounded,
                 label: 'Reference',
-                value: payment.reference,
+                value: payment.receiptNumber,
               ),
               const SizedBox(height: 12),
               TenantInfoRow(
                 icon: Icons.payments_outlined,
                 label: 'Payment',
-                value: '${payment.date} • ${payment.method}',
+                value:
+                    '${DateFormat('d MMM y').format(payment.paidOn.toLocal())}'
+                    ' • ${payment.method}',
               ),
             ],
           ),
@@ -489,7 +611,7 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Close'),
           ),
-          if (payment.status == 'Paid')
+          if (status == 'Paid')
             ComingSoon(
               message: 'Receipt printing coming soon',
               child: FilledButton.icon(
@@ -505,29 +627,32 @@ class _TenantPaymentsScreenState extends State<TenantPaymentsScreen> {
 }
 
 class _InvoicePanel extends StatelessWidget {
-  const _InvoicePanel({required this.balance, required this.onPay});
+  const _InvoicePanel({required this.tenancy, required this.onPay});
 
-  final int balance;
+  final Tenancy tenancy;
   final VoidCallback onPay;
 
   @override
   Widget build(BuildContext context) {
-    final paid = balance == 0;
+    final paid = !tenancy.balanceDue;
     return TenantPanel(
-      title: 'Current invoice',
-      subtitle: 'NYB-INV-2608 • August 2026',
+      title: 'Current balance',
+      subtitle: '${tenancy.unitLabel} · ${tenancy.propertyName}',
       trailing: TenantStatusBadge(status: paid ? 'Paid' : 'Pending'),
       child: Column(
         children: [
-          const _InvoiceLine(label: 'Monthly rent', amount: 'UGX 1,200,000'),
+          _InvoiceLine(
+            label: 'Monthly rent',
+            amount: formatTenantUgx(tenancy.monthlyRentMinor ~/ 100),
+          ),
           const SizedBox(height: 10),
           const _InvoiceLine(label: 'Service charges', amount: 'UGX 0'),
           const SizedBox(height: 10),
           const _InvoiceLine(label: 'Credits applied', amount: 'UGX 0'),
           const Divider(height: 27),
           _InvoiceLine(
-            label: paid ? 'Amount paid' : 'Amount due',
-            amount: paid ? 'UGX 1,200,000' : formatTenantUgx(balance),
+            label: paid ? 'Amount outstanding' : 'Amount due',
+            amount: formatTenantUgx(tenancy.balanceMinor ~/ 100),
             emphasized: true,
           ),
           const SizedBox(height: 16),
@@ -538,7 +663,7 @@ class _InvoicePanel extends StatelessWidget {
               icon: Icon(
                 paid ? Icons.receipt_long_outlined : Icons.lock_outline_rounded,
               ),
-              label: Text(paid ? 'View receipt' : 'Pay invoice'),
+              label: Text(paid ? 'View receipt' : 'Pay balance'),
             ),
           ),
         ],
@@ -633,8 +758,8 @@ class _PaymentMethodsPanel extends StatelessWidget {
                 size: 19,
                 color: context.nyumba.sageDark,
               ),
-              SizedBox(width: 8),
-              Expanded(
+              const SizedBox(width: 8),
+              const Expanded(
                 child: Text(
                   'Nyumba does not store your mobile money PIN or bank password.',
                 ),
@@ -654,13 +779,19 @@ class _PaymentMethodsPanel extends StatelessWidget {
 }
 
 class _PaymentCard extends StatelessWidget {
-  const _PaymentCard({required this.payment, required this.onReceipt});
+  const _PaymentCard({
+    required this.payment,
+    required this.status,
+    required this.onReceipt,
+  });
 
-  final _TenantPayment payment;
+  final RentPayment payment;
+  final String status;
   final VoidCallback onReceipt;
 
   @override
   Widget build(BuildContext context) {
+    final settled = status == 'Paid';
     return InkWell(
       onTap: onReceipt,
       child: Padding(
@@ -671,16 +802,14 @@ class _PaymentCard extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: payment.status == 'Paid'
+                color: settled
                     ? context.nyumba.sageTint
                     : context.nyumba.goldTint,
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                payment.status == 'Paid'
-                    ? Icons.check_rounded
-                    : Icons.schedule_rounded,
-                color: payment.status == 'Paid'
+                settled ? Icons.check_rounded : Icons.schedule_rounded,
+                color: settled
                     ? context.nyumba.sageDark
                     : context.nyumba.terracottaDark,
               ),
@@ -695,11 +824,10 @@ class _PaymentCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   Text(
-                    '${payment.reference} • ${payment.date}',
+                    '${payment.receiptNumber} • '
+                    '${DateFormat('d MMM y').format(payment.paidOn.toLocal())}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  const SizedBox(height: 6),
-                  TenantStatusBadge(status: payment.status),
                 ],
               ),
             ),
@@ -708,14 +836,11 @@ class _PaymentCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  formatTenantUgx(payment.amount),
+                  formatTenantUgx(payment.amountMinor ~/ 100),
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  payment.method,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                TenantStatusBadge(status: status),
               ],
             ),
           ],
@@ -724,80 +849,3 @@ class _PaymentCard extends StatelessWidget {
     );
   }
 }
-
-class _TenantPayment {
-  const _TenantPayment({
-    required this.period,
-    required this.reference,
-    required this.date,
-    required this.method,
-    required this.amount,
-    required this.status,
-  });
-
-  final String period;
-  final String reference;
-  final String date;
-  final String method;
-  final int amount;
-  final String status;
-}
-
-const _seedPayments = [
-  _TenantPayment(
-    period: 'July 2026',
-    reference: 'NYB-RCP-00842',
-    date: '3 Jul 2026',
-    method: 'MTN MoMo',
-    amount: 1200000,
-    status: 'Paid',
-  ),
-  _TenantPayment(
-    period: 'June 2026',
-    reference: 'NYB-RCP-00791',
-    date: '4 Jun 2026',
-    method: 'MTN MoMo',
-    amount: 1200000,
-    status: 'Paid',
-  ),
-  _TenantPayment(
-    period: 'May 2026',
-    reference: 'NYB-RCP-00744',
-    date: '2 May 2026',
-    method: 'Airtel Money',
-    amount: 1200000,
-    status: 'Paid',
-  ),
-  _TenantPayment(
-    period: 'April 2026',
-    reference: 'NYB-RCP-00693',
-    date: '5 Apr 2026',
-    method: 'MTN MoMo',
-    amount: 1200000,
-    status: 'Paid',
-  ),
-  _TenantPayment(
-    period: 'March 2026',
-    reference: 'NYB-RCP-00648',
-    date: '3 Mar 2026',
-    method: 'Card (Bank)',
-    amount: 1200000,
-    status: 'Paid',
-  ),
-  _TenantPayment(
-    period: 'February 2026',
-    reference: 'NYB-RCP-00596',
-    date: '4 Feb 2026',
-    method: 'MTN MoMo',
-    amount: 1200000,
-    status: 'Paid',
-  ),
-  _TenantPayment(
-    period: 'January 2026',
-    reference: 'NYB-RCP-00541',
-    date: '5 Jan 2026',
-    method: 'MTN MoMo',
-    amount: 1200000,
-    status: 'Paid',
-  ),
-];
