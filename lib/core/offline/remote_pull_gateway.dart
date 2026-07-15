@@ -171,12 +171,32 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
   };
 }
 
+/// Whether the workspace is actually reading from the server right now.
+///
+/// [connecting] is the honest initial value: a subscription exists but no
+/// snapshot has arrived, so nothing has been proven yet.
+enum CloudLinkState { connecting, live, failed }
+
 final class RemotePullCoordinator {
   RemotePullCoordinator({required this.database, required this.gateway});
 
   final OfflineDatabase database;
   final RemotePullGateway gateway;
   final List<StreamSubscription<List<RemoteRecord>>> _subscriptions = [];
+  final StreamController<CloudLinkState> _linkStates =
+      StreamController<CloudLinkState>.broadcast();
+  CloudLinkState _linkState = CloudLinkState.connecting;
+
+  /// The most recent link state; [linkStates] emits every subsequent change.
+  CloudLinkState get linkState => _linkState;
+
+  Stream<CloudLinkState> get linkStates => _linkStates.stream;
+
+  void _publish(CloudLinkState next) {
+    if (_linkState == next || _linkStates.isClosed) return;
+    _linkState = next;
+    _linkStates.add(next);
+  }
 
   void watch(
     OfflineEntityType type, {
@@ -197,6 +217,9 @@ final class RemotePullCoordinator {
         )
         .listen(
           (records) async {
+            // A delivered snapshot is the only proof the server is readable;
+            // an empty list still proves it.
+            _publish(CloudLinkState.live);
             for (final record in records) {
               await database.mergeRemoteEntity(
                 entityType: record.entityType,
@@ -208,7 +231,8 @@ final class RemotePullCoordinator {
           onError: (_) {
             // Listener errors leave the local source of truth intact. The SDK
             // retries transient streams; permission/configuration failures are
-            // surfaced by the existing local stale/sync status.
+            // surfaced here so the UI never claims a working cloud link.
+            _publish(CloudLinkState.failed);
           },
         );
     _subscriptions.add(subscription);
@@ -219,5 +243,6 @@ final class RemotePullCoordinator {
       await subscription.cancel();
     }
     _subscriptions.clear();
+    await _linkStates.close();
   }
 }

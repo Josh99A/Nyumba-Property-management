@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/cloud_status_badge.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
@@ -41,6 +42,8 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
         titleSpacing: context.isCompact ? 16 : 32,
         title: const NyumbaLogo(height: 42),
         actions: [
+          const CloudStatusBadge(),
+          SizedBox(width: context.isCompact ? 8 : 14),
           Padding(
             padding: EdgeInsets.only(right: context.isCompact ? 12 : 30),
             child: OutlinedButton(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme/nyumba_colors.dart';
 import '../../core/offline/outbox_entry.dart';
+import '../../core/presentation/cloud_status_badge.dart';
 import '../../core/presentation/motion.dart';
 import '../../core/presentation/nyumba_logo.dart';
 import '../../core/presentation/responsive.dart';
@@ -638,6 +639,8 @@ class _MobileShell extends ConsumerWidget {
         titleSpacing: 16,
         title: const NyumbaLogo(height: 38),
         actions: [
+          const CloudStatusBadge(),
+          const SizedBox(width: 6),
           IconButton(
             tooltip: 'Notifications',
             onPressed: () => _showNotifications(context),

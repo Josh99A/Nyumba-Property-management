@@ -160,6 +160,32 @@ final outboxEntriesProvider = StreamProvider((ref) async* {
   yield* deps.database.watchOutbox();
 });
 
+/// Workspace-level view of the server link, for the top-bar indicator.
+enum CloudStatus { connecting, live, failed, demo }
+
+/// Reports whether this workspace is genuinely reading from the server.
+///
+/// A workspace with no pull coordinator is not cloud-backed at all (an explicit
+/// demo role, or a build without Firebase configuration), which must read as
+/// [CloudStatus.demo] rather than a misleading offline state. While the
+/// workspace itself is still opening, the honest answer is [connecting].
+final cloudStatusProvider = StreamProvider<CloudStatus>((ref) async* {
+  final deps = await ref.watch(appDependenciesProvider.future);
+  final coordinator = deps.remotePullCoordinator;
+  if (coordinator == null) {
+    yield CloudStatus.demo;
+    return;
+  }
+  yield _cloudStatus(coordinator.linkState);
+  yield* coordinator.linkStates.map(_cloudStatus);
+});
+
+CloudStatus _cloudStatus(CloudLinkState state) => switch (state) {
+  CloudLinkState.connecting => CloudStatus.connecting,
+  CloudLinkState.live => CloudStatus.live,
+  CloudLinkState.failed => CloudStatus.failed,
+};
+
 final userSettingsProvider = StreamProvider.family<UserSettings?, String>((
   ref,
   userId,
@@ -208,9 +234,14 @@ Future<AppDependencies> createAppDependencies({
   );
   final managedUsers = SembastManagedUserRepository(database: database);
   final adminActions = SembastAdminActionRepository(database: database);
-  final usesFirebase =
-      session != null && !session.isDemo && Firebase.apps.isNotEmpty;
-  final gateway = usesFirebase
+  final isDemoSession = session?.isDemo ?? false;
+  // Public browsing is unauthenticated but still server-backed: `publicListings`
+  // is world-readable, so an anonymous visitor must read the real catalogue
+  // rather than seeded fixtures. Only an explicit demo role, or a build with no
+  // Firebase configuration, falls back to local demo data.
+  final usesFirebase = !isDemoSession && Firebase.apps.isNotEmpty;
+  final isAuthenticated = session != null && !isDemoSession;
+  final gateway = usesFirebase && isAuthenticated
       ? await FirebaseRemoteSyncGateway.create()
       : DemoRemoteSyncGateway();
   final syncEngine = SyncEngine(database: database, gateway: gateway);
@@ -236,7 +267,10 @@ Future<AppDependencies> createAppDependencies({
       gateway: FirestoreRemotePullGateway(),
     );
     remotePullCoordinator.watch(OfflineEntityType.listing, publicOnly: true);
-    if (session.role == AppRole.superAdmin || session.role == AppRole.admin) {
+    if (session == null) {
+      // Anonymous visitor: the public catalogue is the only readable scope.
+    } else if (session.role == AppRole.superAdmin ||
+        session.role == AppRole.admin) {
       for (final type in const [
         OfflineEntityType.property,
         OfflineEntityType.unit,

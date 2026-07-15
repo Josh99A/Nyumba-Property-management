@@ -1,8 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="nyumba_property_management"
+        android:label="Nyumba"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupOnly="false"><!--
+        The local mirror is encrypted with a Keystore-protected key that is
+        deliberately not backed up. Restoring the database without its key
+        yields undecryptable data, so backup is disabled instead: every record
+        is server-authoritative and re-pulls after a reinstall. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

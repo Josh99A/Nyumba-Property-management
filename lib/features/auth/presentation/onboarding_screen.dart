@@ -68,7 +68,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (linked > 0) {
         context.go('/tenant');
       } else {
-        final email = ref.read(sessionControllerProvider)?.email ?? 'this email';
+        final email =
+            ref.read(sessionControllerProvider)?.email ?? 'this email';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(

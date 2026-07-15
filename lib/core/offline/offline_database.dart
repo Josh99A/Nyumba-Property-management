@@ -36,6 +36,34 @@ final class OfflineDatabase {
     return result;
   }
 
+  /// Opens the local mirror, discarding it first if it cannot be decoded.
+  ///
+  /// A mirror written under a different codec state (encrypted vs plaintext) or
+  /// under a workspace key that no longer exists is permanently unreadable: no
+  /// key available now can decode it. Rebuilding from the server is therefore
+  /// the only way forward, and it discards nothing that could still have been
+  /// read. Any other failure is a real fault and is rethrown untouched.
+  static Future<OfflineDatabase> openRecovering({
+    required DatabaseFactory factory,
+    required String path,
+    SembastCodec? codec,
+  }) async {
+    try {
+      return await open(factory: factory, path: path, codec: codec);
+    } on Object catch (error) {
+      if (!isUnreadableMirror(error)) rethrow;
+      await factory.deleteDatabase(path);
+      return open(factory: factory, path: path, codec: codec);
+    }
+  }
+
+  /// True when the stored mirror cannot be decoded at all: Sembast rejected the
+  /// codec signature, or a codec failed to authenticate its content.
+  static bool isUnreadableMirror(Object error) =>
+      (error is DatabaseException &&
+          error.code == DatabaseException.errInvalidCodec) ||
+      error is FormatException;
+
   Future<void> initialize() async {
     await database.transaction((transaction) async {
       final current = await _metadataStore.record('schema').get(transaction);

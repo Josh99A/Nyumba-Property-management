@@ -166,7 +166,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                             autofillHints: const [AutofillHints.newPassword],
                             decoration: InputDecoration(
                               labelText: 'Password',
-                              prefixIcon: const Icon(Icons.lock_outline_rounded),
+                              prefixIcon: const Icon(
+                                Icons.lock_outline_rounded,
+                              ),
                               suffixIcon: IconButton(
                                 tooltip: _obscurePassword
                                     ? 'Show password'

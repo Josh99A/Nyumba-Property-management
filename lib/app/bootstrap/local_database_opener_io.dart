@@ -16,7 +16,7 @@ Future<OfflineDatabase> openScopedOfflineDatabase(String scope) async {
   final directory = await getApplicationSupportDirectory();
   final encrypt = Platform.isAndroid || Platform.isIOS;
   final codec = encrypt ? await _codecForScope(scope) : null;
-  return OfflineDatabase.open(
+  return OfflineDatabase.openRecovering(
     factory: databaseFactoryIo,
     path: path.join(directory.path, 'nyumba_$scope.db'),
     codec: codec,
