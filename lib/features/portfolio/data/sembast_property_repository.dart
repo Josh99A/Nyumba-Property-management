@@ -55,11 +55,15 @@ final class SembastPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Future<List<Property>> getAll({String? landlordId}) async => _filterAndSort(
+  Future<List<Property>> getAll({
+    String? landlordId,
+    bool includeArchived = false,
+  }) async => _filterAndSort(
     (await _database.readEntities(
       OfflineEntityType.property,
     )).map(PropertyMapper.fromJson),
     landlordId,
+    includeArchived: includeArchived,
   );
 
   @override
@@ -74,6 +78,11 @@ final class SembastPropertyRepository implements PropertyRepository {
     final current = await getById(property.id);
     if (current == null) {
       throw EntityNotFoundException('property', property.id);
+    }
+    if (current.isArchived) {
+      throw DomainValidationException(<String, String>{
+        'property': 'an archived property cannot be edited',
+      });
     }
     final now = _clock.now().toUtc();
     final updated = Property(
@@ -101,6 +110,32 @@ final class SembastPropertyRepository implements PropertyRepository {
   }
 
   @override
+  Future<Property> archive(String propertyId) async {
+    final current = await getById(propertyId);
+    if (current == null) {
+      throw EntityNotFoundException('property', propertyId);
+    }
+    if (current.isArchived) return current;
+
+    final now = _clock.now().toUtc();
+    final archived = current.copyWith(
+      isArchived: true,
+      archivedAt: now,
+      updatedAt: now,
+      syncMetadata: current.syncMetadata.markPending(),
+    );
+    await _database.putEntityAndEnqueue(
+      entityType: OfflineEntityType.property,
+      entityId: archived.id,
+      entity: PropertyMapper.toJson(archived),
+      mutationId: _idGenerator.generate(),
+      operation: OutboxOperation.delete,
+      createdAt: now,
+    );
+    return archived;
+  }
+
+  @override
   Stream<List<Property>> watchAll({String? landlordId}) => _database
       .watchEntities(OfflineEntityType.property)
       .map(
@@ -115,11 +150,16 @@ final class SembastPropertyRepository implements PropertyRepository {
 
   static List<Property> _filterAndSort(
     Iterable<Property> items,
-    String? landlordId,
-  ) {
+    String? landlordId, {
+    bool includeArchived = false,
+  }) {
     final result = items
         .where(
-          (property) => landlordId == null || property.landlordId == landlordId,
+          (property) =>
+              (includeArchived ||
+                  !property.isArchived ||
+                  property.syncMetadata.state != EntitySyncState.synced) &&
+              (landlordId == null || property.landlordId == landlordId),
         )
         .toList(growable: false);
     result.sort((left, right) => left.name.compareTo(right.name));

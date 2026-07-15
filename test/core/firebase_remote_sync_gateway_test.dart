@@ -130,4 +130,55 @@ void main() {
         'uploads/landlord/command/photo-$index.webp',
     ]);
   });
+
+  test(
+    'text edits do not clear already-uploaded property or listing media',
+    () {
+      final gateway = FirebaseRemoteSyncGateway(
+        installationId: 'install_1234',
+        appVersion: '1.2.3',
+        platform: 'web',
+        invoke: (_) async => <String, Object?>{},
+      );
+      RemoteMutation edit({required OfflineEntityType type}) => RemoteMutation(
+        mutationId: 'outbox_${type.name}',
+        entityType: type,
+        entityId: '${type.name}_123456',
+        operation: OutboxOperation.update,
+        payload: <String, Object?>{
+          '_expectedVersion': 1,
+          'unitId': 'unit_123456',
+          'name': 'Updated name',
+          'title': 'Updated title',
+          'description': 'Updated description',
+          'monthlyRentMinor': 100000,
+          'unitType': 'apartment',
+          'city': 'Kampala',
+          'neighborhood': 'Ntinda',
+          'bedrooms': 1,
+          'bathrooms': 1,
+          'amenities': <String>[],
+          'imageUrls': <String>[
+            'https://cdn.example.com/already-published.webp',
+          ],
+        },
+        idempotencyKey: 'command_${type.name}',
+        clientCreatedAt: createdAt,
+      );
+
+      final propertyPayload =
+          gateway.buildEnvelope(
+                edit(type: OfflineEntityType.property),
+              )['payload']!
+              as Map<String, Object?>;
+      final listingPayload =
+          gateway.buildEnvelope(
+                edit(type: OfflineEntityType.listing),
+              )['payload']!
+              as Map<String, Object?>;
+
+      expect(propertyPayload, isNot(contains('stagedImagePaths')));
+      expect(listingPayload, isNot(contains('stagedImagePaths')));
+    },
+  );
 }

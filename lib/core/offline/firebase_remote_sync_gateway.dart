@@ -164,6 +164,9 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
       for (final name in names)
         if (payload[name] != null) name: payload[name],
     };
+    List<String> stagedPaths(int limit) => _stringList(
+      payload['stagedImagePaths'] ?? payload['imageUrls'],
+    ).where((path) => path.startsWith('uploads/')).take(limit).toList();
 
     return switch ((mutation.entityType, mutation.operation)) {
       (OfflineEntityType.userProfile, OutboxOperation.update) => _RemoteCommand(
@@ -179,19 +182,17 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
       (OfflineEntityType.property, OutboxOperation.create) => _RemoteCommand(
         'property.create',
         <String, Object?>{
+          if (payload['landlordId'] != null)
+            'targetLandlordId': payload['landlordId'],
           ...pick(['name', 'addressLine', 'city', 'district', 'description']),
-          'stagedImagePaths': _stringList(
-            payload['stagedImagePaths'] ?? payload['imageUrls'],
-          ).where((path) => path.startsWith('uploads/')).take(5).toList(),
+          'stagedImagePaths': stagedPaths(5),
         },
       ),
       (OfflineEntityType.property, OutboxOperation.update) => _RemoteCommand(
         'property.update',
         <String, Object?>{
           ...pick(['name', 'addressLine', 'city', 'district', 'description']),
-          'stagedImagePaths': _stringList(
-            payload['stagedImagePaths'] ?? payload['imageUrls'],
-          ).where((path) => path.startsWith('uploads/')).take(5).toList(),
+          if (stagedPaths(5).isNotEmpty) 'stagedImagePaths': stagedPaths(5),
         },
       ),
       (OfflineEntityType.property, OutboxOperation.delete) =>
@@ -223,7 +224,31 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         'unit.archive',
         <String, Object?>{},
       ),
-      (OfflineEntityType.listing, OutboxOperation.create) ||
+      (OfflineEntityType.listing, OutboxOperation.create) => _RemoteCommand(
+        'listing.saveDraft',
+        <String, Object?>{
+          ...pick([
+            'unitId',
+            'title',
+            'description',
+            'monthlyRentMinor',
+            'unitType',
+            'city',
+            'neighborhood',
+            'district',
+            'bedrooms',
+            'bathrooms',
+            'amenities',
+          ]),
+          if (payload['approximateLatitude'] != null &&
+              payload['approximateLongitude'] != null)
+            'approximateLocation': <String, Object?>{
+              'lat': payload['approximateLatitude'],
+              'lng': payload['approximateLongitude'],
+            },
+          'stagedImagePaths': stagedPaths(10),
+        },
+      ),
       (OfflineEntityType.listing, OutboxOperation.update) => _RemoteCommand(
         'listing.saveDraft',
         <String, Object?>{
@@ -246,9 +271,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
               'lat': payload['approximateLatitude'],
               'lng': payload['approximateLongitude'],
             },
-          'stagedImagePaths': _stringList(
-            payload['stagedImagePaths'] ?? payload['imageUrls'],
-          ).where((path) => path.startsWith('uploads/')).toList(),
+          if (stagedPaths(10).isNotEmpty) 'stagedImagePaths': stagedPaths(10),
         },
       ),
       (OfflineEntityType.listing, OutboxOperation.publish) =>

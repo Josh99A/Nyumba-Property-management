@@ -16,4 +16,5 @@ abstract interface class ListingRepository {
   Future<Listing> createDraft(CreateListingInput input);
   Future<Listing> update(Listing listing);
   Future<Listing> publish(String listingId);
+  Future<Listing> unpublish(String listingId);
 }

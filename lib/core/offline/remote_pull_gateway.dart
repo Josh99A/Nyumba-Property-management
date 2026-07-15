@@ -142,6 +142,7 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     if (type == OfflineEntityType.listing) {
       result['status'] =
           result['publicationState'] ?? result['status'] ?? 'draft';
+      if (result['status'] == 'unpublished') result['status'] = 'paused';
       result['imageUrls'] = result['imagePaths'] ?? result['imageUrls'] ?? [];
       result['publicContactToken'] =
           result['landlordToken'] ?? result['publicContactToken'];

@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
-import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
+import { loadActiveLandlordContext, requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
-import { CURRENCY } from '../shared/config';
+import { COUNTRY, CURRENCY } from '../shared/config';
 import { DomainError } from '../shared/errors';
 import {
   idSchema,
@@ -15,32 +15,49 @@ import {
 } from '../shared/handlers';
 
 const propertyCreateSchema = strictPayload({
+  targetLandlordId: idSchema.optional(),
   name: shortText,
   addressLine: shortText,
   city: shortText,
   district: optionalShortText,
   description: longText.optional(),
+  stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(5).optional(),
 });
+
+function validateStagedPaths(uid: string, paths: string[]): void {
+  if (paths.some((path) => !path.startsWith(`uploads/${uid}/`))) {
+    throw new DomainError('VALIDATION_FAILED', { fields: ['stagedImagePaths'] });
+  }
+}
 
 export const propertyCreate: CommandHandler<z.infer<typeof propertyCreateSchema>> = {
   payloadSchema: propertyCreateSchema,
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    validateStagedPaths(actor.uid, cmd.payload.stagedImagePaths ?? []);
+    const isStaff = actor.platformAdmin || actor.superAdmin;
+    if (isStaff && !cmd.payload.targetLandlordId) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'targetLandlordRequired' });
+    }
+    const landlord = isStaff
+      ? await loadActiveLandlordContext(tx, db, cmd.payload.targetLandlordId!)
+      : await requireActiveLandlord(tx, db, actor);
     const ref = db.collection(COLLECTIONS.properties).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     requireAbsent(snapshot);
+    const { targetLandlordId: _targetLandlordId, ...propertyFields } = cmd.payload;
     tx.create(ref, {
       ...newAggregate(cmd.aggregateId!, now),
       landlordId: landlord.landlordId,
-      ...cmd.payload,
+      country: COUNTRY,
+      ...propertyFields,
     });
     return {
       status: 'applied',
       aggregateId: cmd.aggregateId!,
       serverVersion: 1,
-      changedFields: Object.keys(cmd.payload),
+      changedFields: Object.keys(propertyFields),
     };
   },
 };
@@ -51,6 +68,7 @@ const propertyUpdateSchema = strictPayload({
   city: shortText.optional(),
   district: optionalShortText,
   description: z.string().trim().max(5_000).optional(),
+  stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(5).optional(),
 }).refine((value) => Object.values(value).some((field) => field !== undefined));
 
 export const propertyUpdate: CommandHandler<z.infer<typeof propertyUpdateSchema>> = {
@@ -58,11 +76,16 @@ export const propertyUpdate: CommandHandler<z.infer<typeof propertyUpdateSchema>
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    if (cmd.payload.stagedImagePaths) {
+      validateStagedPaths(actor.uid, cmd.payload.stagedImagePaths);
+    }
     const ref = db.collection(COLLECTIONS.properties).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, cmd.expectedVersion);
-    requireOwnedByLandlord(current, landlord.landlordId);
+    if (!actor.platformAdmin && !actor.superAdmin) {
+      const landlord = await requireActiveLandlord(tx, db, actor);
+      requireOwnedByLandlord(current, landlord.landlordId);
+    }
     const changes = Object.fromEntries(Object.entries(cmd.payload).filter(([, value]) => value !== undefined));
     tx.update(ref, { ...changes, ...bumpVersion(current, now) });
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: current.version + 1, changedFields: Object.keys(changes) };
@@ -74,7 +97,6 @@ export const propertyArchive: CommandHandler<Record<string, never>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
     const ref = db.collection(COLLECTIONS.properties).doc(cmd.aggregateId!);
     const unitsQuery = db.collection(COLLECTIONS.units)
       .where('propertyId', '==', cmd.aggregateId!)
@@ -82,7 +104,10 @@ export const propertyArchive: CommandHandler<Record<string, never>> = {
       .limit(1);
     const [snapshot, activeUnits] = await Promise.all([tx.get(ref), tx.get(unitsQuery)]);
     const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, cmd.expectedVersion);
-    requireOwnedByLandlord(current, landlord.landlordId);
+    if (!actor.platformAdmin && !actor.superAdmin) {
+      const landlord = await requireActiveLandlord(tx, db, actor);
+      requireOwnedByLandlord(current, landlord.landlordId);
+    }
     if (!activeUnits.empty) throw new DomainError('VALIDATION_FAILED', { reason: 'propertyHasActiveUnits' });
     tx.update(ref, { isDeleted: true, deletedAt: now, ...bumpVersion(current, now) });
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: current.version + 1, changedFields: ['isDeleted', 'deletedAt'] };
@@ -91,7 +116,7 @@ export const propertyArchive: CommandHandler<Record<string, never>> = {
 
 const unitFields = {
   label: shortText,
-  type: z.enum(['apartment', 'house', 'studio', 'room', 'commercial', 'other']),
+  type: z.enum(['apartment', 'house', 'shop', 'office', 'bedsitter', 'room', 'other']),
   monthlyRentMinor: nonNegativeMoney,
   bedrooms: z.number().int().min(0).max(100),
   bathrooms: z.number().int().min(0).max(100),
@@ -104,12 +129,15 @@ export const unitCreate: CommandHandler<z.infer<typeof unitCreateSchema>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
     const propertyRef = db.collection(COLLECTIONS.properties).doc(cmd.payload.propertyId);
     const unitRef = db.collection(COLLECTIONS.units).doc(cmd.aggregateId!);
     const [propertySnap, unitSnap] = await Promise.all([tx.get(propertyRef), tx.get(unitRef)]);
-    const property = requireAggregate<Record<string, unknown> & { version: number }>(propertySnap, undefined);
-    requireOwnedByLandlord(property, landlord.landlordId);
+    const property = requireAggregate<Record<string, unknown> & { version: number; landlordId: string }>(propertySnap, undefined);
+    const isStaff = actor.platformAdmin || actor.superAdmin;
+    const landlord = isStaff
+      ? await loadActiveLandlordContext(tx, db, property.landlordId)
+      : await requireActiveLandlord(tx, db, actor);
+    if (!isStaff) requireOwnedByLandlord(property, landlord.landlordId);
     requireAbsent(unitSnap);
     if (landlord.account.activeUnitCount >= landlord.entitlements.unitLimit) {
       throw new DomainError('UNIT_LIMIT_REACHED', { unitLimit: landlord.entitlements.unitLimit });
@@ -145,11 +173,13 @@ export const unitUpdate: CommandHandler<z.infer<typeof unitUpdateSchema>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
     const ref = db.collection(COLLECTIONS.units).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, cmd.expectedVersion);
-    requireOwnedByLandlord(current, landlord.landlordId);
+    if (!actor.platformAdmin && !actor.superAdmin) {
+      const landlord = await requireActiveLandlord(tx, db, actor);
+      requireOwnedByLandlord(current, landlord.landlordId);
+    }
     const changes = Object.fromEntries(Object.entries(cmd.payload).filter(([, value]) => value !== undefined));
     tx.update(ref, { ...changes, ...bumpVersion(current, now) });
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: current.version + 1, changedFields: Object.keys(changes) };
@@ -161,11 +191,14 @@ export const unitArchive: CommandHandler<Record<string, never>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
     const ref = db.collection(COLLECTIONS.units).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     const current = requireAggregate<{ version: number; landlordId: string; occupancyStatus: string; activePublicListingId?: string | null }>(snapshot, cmd.expectedVersion);
-    requireOwnedByLandlord(current, landlord.landlordId);
+    const isStaff = actor.platformAdmin || actor.superAdmin;
+    const landlord = isStaff
+      ? await loadActiveLandlordContext(tx, db, current.landlordId)
+      : await requireActiveLandlord(tx, db, actor);
+    if (!isStaff) requireOwnedByLandlord(current, landlord.landlordId);
     if (current.occupancyStatus !== 'vacant' || current.activePublicListingId) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'unitNotArchivable' });
     }
@@ -183,11 +216,14 @@ export const unitRestore: CommandHandler<Record<string, never>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
     const ref = db.collection(COLLECTIONS.units).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     const current = requireAggregate<{ version: number; landlordId: string; isDeleted: boolean }>(snapshot, cmd.expectedVersion, { allowDeleted: true });
-    requireOwnedByLandlord(current, landlord.landlordId);
+    const isStaff = actor.platformAdmin || actor.superAdmin;
+    const landlord = isStaff
+      ? await loadActiveLandlordContext(tx, db, current.landlordId)
+      : await requireActiveLandlord(tx, db, actor);
+    if (!isStaff) requireOwnedByLandlord(current, landlord.landlordId);
     if (!current.isDeleted) throw new DomainError('VALIDATION_FAILED', { reason: 'unitNotArchived' });
     if (landlord.account.activeUnitCount >= landlord.entitlements.unitLimit) {
       throw new DomainError('UNIT_LIMIT_REACHED', { unitLimit: landlord.entitlements.unitLimit });

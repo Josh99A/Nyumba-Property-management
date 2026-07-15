@@ -37,6 +37,11 @@ final class SembastUnitRepository implements UnitRepository {
       throw EntityNotFoundException('property', input.propertyId);
     }
     final property = PropertyMapper.fromJson(propertyJson);
+    if (property.isArchived) {
+      throw DomainValidationException(<String, String>{
+        'propertyId': 'must reference an active property',
+      });
+    }
     if (property.landlordId != input.landlordId) {
       throw DomainValidationException(<String, String>{
         'landlordId': 'must own the referenced property',
@@ -78,14 +83,18 @@ final class SembastUnitRepository implements UnitRepository {
   }
 
   @override
-  Future<List<Unit>> getAll({String? propertyId, String? landlordId}) async =>
-      _filterAndSort(
-        (await _database.readEntities(
-          OfflineEntityType.unit,
-        )).map(UnitMapper.fromJson),
-        propertyId: propertyId,
-        landlordId: landlordId,
-      );
+  Future<List<Unit>> getAll({
+    String? propertyId,
+    String? landlordId,
+    bool includeArchived = false,
+  }) async => _filterAndSort(
+    (await _database.readEntities(
+      OfflineEntityType.unit,
+    )).map(UnitMapper.fromJson),
+    propertyId: propertyId,
+    landlordId: landlordId,
+    includeArchived: includeArchived,
+  );
 
   @override
   Future<Unit?> getById(String id) async {
@@ -98,6 +107,11 @@ final class SembastUnitRepository implements UnitRepository {
     unit.validate();
     final current = await getById(unit.id);
     if (current == null) throw EntityNotFoundException('unit', unit.id);
+    if (current.isArchived) {
+      throw DomainValidationException(<String, String>{
+        'unit': 'an archived rental space cannot be edited',
+      });
+    }
     final now = _clock.now().toUtc();
     final updated = Unit(
       id: current.id,
@@ -135,6 +149,41 @@ final class SembastUnitRepository implements UnitRepository {
   }
 
   @override
+  Future<Unit> archive(String unitId) async {
+    final current = await getById(unitId);
+    if (current == null) throw EntityNotFoundException('unit', unitId);
+    if (current.isArchived) return current;
+    if (current.status != UnitStatus.vacant) {
+      throw DomainValidationException(<String, String>{
+        'unit.status': 'only a vacant rental space can be archived',
+      });
+    }
+
+    final now = _clock.now().toUtc();
+    final archived = current.copyWith(
+      isArchived: true,
+      archivedAt: now,
+      updatedAt: now,
+      syncMetadata: current.syncMetadata.markPending(),
+    );
+    await _database.putEntityAndEnqueue(
+      entityType: OfflineEntityType.unit,
+      entityId: archived.id,
+      entity: UnitMapper.toJson(archived),
+      mutationId: _idGenerator.generate(),
+      operation: OutboxOperation.delete,
+      createdAt: now,
+      dependsOn: <AggregateReference>[
+        AggregateReference(
+          type: OfflineEntityType.property,
+          id: current.propertyId,
+        ),
+      ],
+    );
+    return archived;
+  }
+
+  @override
   Stream<List<Unit>> watchAll({String? propertyId, String? landlordId}) =>
       _database
           .watchEntities(OfflineEntityType.unit)
@@ -155,10 +204,14 @@ final class SembastUnitRepository implements UnitRepository {
     Iterable<Unit> units, {
     String? propertyId,
     String? landlordId,
+    bool includeArchived = false,
   }) {
     final result = units
         .where(
           (unit) =>
+              (includeArchived ||
+                  !unit.isArchived ||
+                  unit.syncMetadata.state != EntitySyncState.synced) &&
               (propertyId == null || unit.propertyId == propertyId) &&
               (landlordId == null || unit.landlordId == landlordId),
         )

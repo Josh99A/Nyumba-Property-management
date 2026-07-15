@@ -16,6 +16,8 @@ final class PropertyMapper {
     'imageUrls': property.imageUrls,
     'createdAt': property.createdAt.toUtc().toIso8601String(),
     'updatedAt': property.updatedAt.toUtc().toIso8601String(),
+    'isDeleted': property.isArchived,
+    'deletedAt': property.archivedAt?.toUtc().toIso8601String(),
     'syncMetadata': SyncMetadataMapper.toJson(property.syncMetadata),
   };
 
@@ -32,6 +34,8 @@ final class PropertyMapper {
       imageUrls: reader.stringList('imageUrls'),
       createdAt: reader.requiredDate('createdAt'),
       updatedAt: reader.requiredDate('updatedAt'),
+      isArchived: reader.optionalBool('isDeleted'),
+      archivedAt: reader.optionalDate('deletedAt'),
       syncMetadata: SyncMetadataMapper.fromJson(json['syncMetadata']),
     );
   }

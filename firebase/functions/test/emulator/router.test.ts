@@ -127,6 +127,145 @@ describe('command router', () => {
     expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()?.activeUnitCount).toBe(1);
   });
 
+  it('allows audited staff property archives and still blocks active units', async () => {
+    await seedLandlord();
+    const archive = envelope('command_property_archive_1', 'property.archive', 'property_1234', 1, {});
+    expect(await executeCommandCore(db, admin, archive, now)).toMatchObject({ status: 'applied' });
+    expect((await db.doc('properties/property_1234').get()).data()?.isDeleted).toBe(true);
+
+    await db.doc('properties/property_1234').update({ isDeleted: false, deletedAt: null, version: 2 });
+    await db.doc('units/unit_active_1234').set({
+      id: 'unit_active_1234', propertyId: 'property_1234', landlordId: landlord.uid,
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    const blocked = envelope('command_property_archive_2', 'property.archive', 'property_1234', 2, {});
+    expect(await executeCommandCore(db, superAdmin, blocked, now)).toMatchObject({
+      status: 'rejected',
+      error: { code: 'VALIDATION_FAILED', details: { reason: 'propertyHasActiveUnits' } },
+    });
+  });
+
+  it('allows Admin and Super Admin to manage a landlord portfolio lifecycle', async () => {
+    await seedLandlord();
+    const propertyId = 'property_staff_1234';
+    const unitId = 'unit_staff_123456';
+    const listingId = 'listing_staff_1234';
+
+    expect(await executeCommandCore(db, admin, envelope(
+      'command_staff_property_create',
+      'property.create',
+      propertyId,
+      0,
+      {
+        targetLandlordId: landlord.uid,
+        name: 'Staff Managed Court',
+        addressLine: '12 Admin Road',
+        city: 'Kampala',
+        stagedImagePaths: [],
+      },
+    ), now)).toMatchObject({ status: 'applied' });
+    const property = (await db.doc(`properties/${propertyId}`).get()).data()!;
+    expect(property.landlordId).toBe(landlord.uid);
+    expect(property).not.toHaveProperty('targetLandlordId');
+
+    expect(await executeCommandCore(db, admin, envelope(
+      'command_staff_property_update',
+      'property.update',
+      propertyId,
+      1,
+      { name: 'Staff Managed Homes' },
+    ), now)).toMatchObject({ status: 'applied', serverVersion: 2 });
+    expect(await executeCommandCore(db, admin, envelope(
+      'command_staff_unit_create',
+      'unit.create',
+      unitId,
+      0,
+      { ...unitPayload('S1'), propertyId },
+    ), now)).toMatchObject({ status: 'applied' });
+    expect(await executeCommandCore(db, admin, envelope(
+      'command_staff_unit_update',
+      'unit.update',
+      unitId,
+      1,
+      { label: 'S2' },
+    ), now)).toMatchObject({ status: 'applied', serverVersion: 2 });
+
+    expect(await executeCommandCore(db, superAdmin, envelope(
+      'command_staff_listing_create',
+      'listing.saveDraft',
+      listingId,
+      0,
+      {
+        unitId,
+        title: 'Staff managed apartment',
+        description: 'A well maintained apartment in Kampala.',
+        monthlyRentMinor: 100_000,
+        unitType: 'apartment',
+        city: 'Kampala',
+        neighborhood: 'Ntinda',
+        district: 'Kampala',
+        bedrooms: 1,
+        bathrooms: 1,
+        amenities: [],
+        stagedImagePaths: [],
+      },
+    ), now)).toMatchObject({ status: 'applied' });
+    expect(await executeCommandCore(db, superAdmin, envelope(
+      'command_staff_listing_update',
+      'listing.saveDraft',
+      listingId,
+      1,
+      {
+        unitId,
+        title: 'Updated staff managed apartment',
+        description: 'An updated, well maintained apartment in Kampala.',
+        monthlyRentMinor: 120_000,
+        unitType: 'apartment',
+        city: 'Kampala',
+        neighborhood: 'Ntinda',
+        district: 'Kampala',
+        bedrooms: 1,
+        bathrooms: 1,
+        amenities: [],
+        stagedImagePaths: [],
+      },
+    ), now)).toMatchObject({ status: 'applied', serverVersion: 2 });
+    expect(await executeCommandCore(db, superAdmin, envelope(
+      'command_staff_listing_publish',
+      'listing.publish',
+      listingId,
+      2,
+      {},
+    ), now)).toMatchObject({ status: 'accepted' });
+    expect(await executeCommandCore(db, superAdmin, envelope(
+      'command_staff_listing_unpublish',
+      'listing.unpublish',
+      listingId,
+      3,
+      {},
+    ), now)).toMatchObject({ status: 'accepted' });
+    expect((await db.doc(`publicListings/${listingId}`).get()).data()?.status).toBe('unpublished');
+
+    expect(await executeCommandCore(db, superAdmin, envelope(
+      'command_staff_unit_archive',
+      'unit.archive',
+      unitId,
+      4,
+      {},
+    ), now)).toMatchObject({ status: 'applied' });
+    expect(await executeCommandCore(db, superAdmin, envelope(
+      'command_staff_property_archive',
+      'property.archive',
+      propertyId,
+      2,
+      {},
+    ), now)).toMatchObject({ status: 'applied' });
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()).toMatchObject({
+      activeUnitCount: 0,
+      activeListingCount: 0,
+    });
+  });
+
   it('publishes an allowlisted projection and rejects occupied/unentitled units', async () => {
     await seedLandlord();
     await db.doc('units/unit_123456').set({

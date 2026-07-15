@@ -673,7 +673,10 @@ Future<void> _seedPortfolioIfNeeded({
   required ListingRepository listings,
 }) async {
   const landlordId = 'demo-landlord-001';
-  final existing = await properties.getAll(landlordId: landlordId);
+  final existing = await properties.getAll(
+    landlordId: landlordId,
+    includeArchived: true,
+  );
   if (existing.isNotEmpty) return;
 
   await DemoDataSeeder(

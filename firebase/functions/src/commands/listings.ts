@@ -2,7 +2,11 @@ import { createHash } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
-import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
+import {
+  loadActiveLandlordContext,
+  requireActiveLandlord,
+  requireOwnedByLandlord,
+} from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
 import { LISTING_LIFETIME_DAYS } from '../shared/config';
 import { DomainError } from '../shared/errors';
@@ -21,15 +25,15 @@ const draftSchema = strictPayload({
   title: shortText,
   description: longText,
   monthlyRentMinor: nonNegativeMoney,
-  unitType: z.enum(['apartment', 'house', 'studio', 'room', 'commercial', 'other']),
+  unitType: z.enum(['apartment', 'house', 'shop', 'office', 'bedsitter', 'room', 'other']),
   city: shortText,
   neighborhood: shortText,
-  district: shortText,
+  district: shortText.optional(),
   bedrooms: z.number().int().min(0).max(100),
   bathrooms: z.number().int().min(0).max(100),
   amenities: z.array(z.string().trim().min(1).max(100)).max(50),
   approximateLocation: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).strict().optional(),
-  stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(10),
+  stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(10).optional(),
 });
 
 function validateStagedPaths(uid: string, paths: string[]): void {
@@ -43,12 +47,15 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'createOrEdit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
-    validateStagedPaths(actor.uid, cmd.payload.stagedImagePaths);
+    const isStaff = actor.platformAdmin || actor.superAdmin;
+    validateStagedPaths(actor.uid, cmd.payload.stagedImagePaths ?? []);
     const listingRef = db.collection(COLLECTIONS.privateListings).doc(cmd.aggregateId!);
     const unitRef = db.collection(COLLECTIONS.units).doc(cmd.payload.unitId);
     const [listingSnap, unitSnap] = await Promise.all([tx.get(listingRef), tx.get(unitRef)]);
-    const unit = requireAggregate<Record<string, unknown> & { version: number }>(unitSnap, undefined);
+    const unit = requireAggregate<Record<string, unknown> & { version: number; landlordId: string }>(unitSnap, undefined);
+    const landlord = isStaff
+      ? await loadActiveLandlordContext(tx, db, unit.landlordId)
+      : await requireActiveLandlord(tx, db, actor);
     requireOwnedByLandlord(unit, landlord.landlordId);
     if (cmd.expectedVersion === 0) {
       requireAbsent(listingSnap);
@@ -58,6 +65,7 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
         publicationState: 'draft',
         mediaState: 'staged',
         ...cmd.payload,
+        stagedImagePaths: cmd.payload.stagedImagePaths ?? [],
       });
       return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: Object.keys(cmd.payload) };
     }
@@ -66,8 +74,11 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
     if (current.publicationState === 'published') {
       throw new DomainError('VALIDATION_FAILED', { reason: 'publishedListingIsImmutable' });
     }
-    tx.update(listingRef, { ...cmd.payload, mediaState: 'staged', ...bumpVersion(current, now) });
-    return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: current.version + 1, changedFields: [...Object.keys(cmd.payload), 'mediaState'] };
+    const mediaChanges = cmd.payload.stagedImagePaths
+      ? { mediaState: 'staged' }
+      : {};
+    tx.update(listingRef, { ...cmd.payload, ...mediaChanges, ...bumpVersion(current, now) });
+    return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: current.version + 1, changedFields: [...Object.keys(cmd.payload), ...Object.keys(mediaChanges)] };
   },
 };
 
@@ -78,10 +89,12 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
-    if (!landlord.entitlements.advertising) throw new DomainError('ENTITLEMENT_MISSING', { entitlement: 'advertising' });
-    if (landlord.account.activeListingCount >= landlord.entitlements.activeListingLimit) {
-      throw new DomainError('UNIT_LIMIT_REACHED', { listingLimit: landlord.entitlements.activeListingLimit });
+    const isStaff = actor.platformAdmin || actor.superAdmin;
+    const actorLandlord = isStaff
+      ? null
+      : await requireActiveLandlord(tx, db, actor);
+    if (actorLandlord && !actorLandlord.entitlements.advertising) {
+      throw new DomainError('ENTITLEMENT_MISSING', { entitlement: 'advertising' });
     }
     const listingRef = db.collection(COLLECTIONS.privateListings).doc(cmd.aggregateId!);
     const listingSnap = await tx.get(listingRef);
@@ -91,7 +104,14 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
       city?: string; neighborhood?: string; district?: string; bedrooms?: number; bathrooms?: number;
       amenities?: string[]; approximateLocation?: { lat: number; lng: number }; stagedImagePaths?: string[];
     }>(listingSnap, cmd.expectedVersion);
+    const landlord = isStaff
+      ? await loadActiveLandlordContext(tx, db, listing.landlordId)
+      : actorLandlord!;
     requireOwnedByLandlord(listing, landlord.landlordId);
+    if (!landlord.entitlements.advertising) throw new DomainError('ENTITLEMENT_MISSING', { entitlement: 'advertising' });
+    if (landlord.account.activeListingCount >= landlord.entitlements.activeListingLimit) {
+      throw new DomainError('UNIT_LIMIT_REACHED', { listingLimit: landlord.entitlements.activeListingLimit });
+    }
     const unitRef = db.collection(COLLECTIONS.units).doc(listing.unitId);
     const unitSnap = await tx.get(unitRef);
     const unit = requireAggregate<{ version: number; landlordId: string; occupancyStatus: string; activePublicListingId?: string | null }>(unitSnap, undefined);
@@ -99,7 +119,7 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
     if (unit.occupancyStatus !== 'vacant' || unit.activePublicListingId) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'unitUnavailable' });
     }
-    const required: Array<keyof typeof listing> = ['title', 'description', 'monthlyRentMinor', 'unitType', 'city', 'neighborhood', 'district'];
+    const required: Array<keyof typeof listing> = ['title', 'description', 'monthlyRentMinor', 'unitType', 'city', 'neighborhood'];
     if (required.some((field) => listing[field] === undefined || listing[field] === '')) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'listingMissingPublicFields' });
     }
@@ -131,7 +151,7 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
       unitType: listing.unitType,
       city: listing.city,
       neighborhood: listing.neighborhood,
-      district: listing.district,
+      ...(listing.district ? { district: listing.district } : {}),
       bedrooms: listing.bedrooms ?? 0,
       bathrooms: listing.bathrooms ?? 0,
       amenities: listing.amenities ?? [],
@@ -170,10 +190,13 @@ export const listingUnpublish: CommandHandler<Record<string, never>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const isStaff = actor.platformAdmin || actor.superAdmin;
     const listingRef = db.collection(COLLECTIONS.privateListings).doc(cmd.aggregateId!);
     const listingSnap = await tx.get(listingRef);
     const listing = requireAggregate<{ version: number; landlordId: string; unitId: string; publicationState: string }>(listingSnap, cmd.expectedVersion);
+    const landlord = isStaff
+      ? await loadActiveLandlordContext(tx, db, listing.landlordId)
+      : await requireActiveLandlord(tx, db, actor);
     requireOwnedByLandlord(listing, landlord.landlordId);
     if (listing.publicationState !== 'published') throw new DomainError('VALIDATION_FAILED', { reason: 'listingNotPublished' });
     const unitRef = db.collection(COLLECTIONS.units).doc(listing.unitId);
@@ -198,13 +221,16 @@ export const listingRenew: CommandHandler<Record<string, never>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
-    if (!landlord.entitlements.advertising) throw new DomainError('ENTITLEMENT_MISSING', { entitlement: 'advertising' });
+    const isStaff = actor.platformAdmin || actor.superAdmin;
     const listingRef = db.collection(COLLECTIONS.privateListings).doc(cmd.aggregateId!);
     const publicRef = db.collection(COLLECTIONS.publicListings).doc(cmd.aggregateId!);
     const [listingSnap, publicSnap] = await Promise.all([tx.get(listingRef), tx.get(publicRef)]);
     const listing = requireAggregate<{ version: number; landlordId: string; publicationState: string }>(listingSnap, cmd.expectedVersion);
+    const landlord = isStaff
+      ? await loadActiveLandlordContext(tx, db, listing.landlordId)
+      : await requireActiveLandlord(tx, db, actor);
     requireOwnedByLandlord(listing, landlord.landlordId);
+    if (!landlord.entitlements.advertising) throw new DomainError('ENTITLEMENT_MISSING', { entitlement: 'advertising' });
     if (listing.publicationState !== 'published' || publicSnap.data()?.status !== 'published') {
       throw new DomainError('VALIDATION_FAILED', { reason: 'listingNotPublished' });
     }

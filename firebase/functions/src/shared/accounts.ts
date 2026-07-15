@@ -49,6 +49,24 @@ export async function requireActiveLandlord(
   actor: Actor,
 ): Promise<LandlordContext> {
   const landlordId = actor.uid;
+  const context = await loadActiveLandlordContext(tx, db, landlordId);
+  if (context.account.ownerUid !== actor.uid) {
+    throw new DomainError('PERMISSION_DENIED');
+  }
+  return context;
+}
+
+/**
+ * Loads mutable landlord state for an already-authorized staff workflow.
+ * Callers must verify the actor has an Admin/Super Admin claim before using
+ * this helper; the target landlord ID comes from a canonical aggregate or an
+ * explicitly audited staff command.
+ */
+export async function loadActiveLandlordContext(
+  tx: Transaction,
+  db: Firestore,
+  landlordId: string,
+): Promise<LandlordContext> {
   const [accountSnap, subscriptionSnap, entitlementsConfig] = await Promise.all([
     tx.get(db.collection(COLLECTIONS.landlordAccounts).doc(landlordId)),
     tx.get(db.collection(COLLECTIONS.subscriptions).doc(landlordId)),
@@ -57,7 +75,6 @@ export async function requireActiveLandlord(
 
   const account = accountSnap.data() as LandlordAccount | undefined;
   if (!accountSnap.exists || !account) throw new DomainError('PERMISSION_DENIED');
-  if (account.ownerUid !== actor.uid) throw new DomainError('PERMISSION_DENIED');
   if (account.approvalStatus === 'suspended') throw new DomainError('ACCOUNT_SUSPENDED');
   if (account.approvalStatus !== 'approved') throw new DomainError('ACCOUNT_NOT_APPROVED');
 

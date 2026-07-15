@@ -16,6 +16,7 @@ export const ENFORCE_APP_CHECK = false;
 
 /** Finalized market configuration mirrored from lib/core/config/market_config.dart. */
 export const CURRENCY = 'UGX';
+export const COUNTRY = 'Uganda';
 export const LISTING_LIFETIME_DAYS = 30;
 export const MAX_LISTING_PHOTOS = 10;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;

@@ -13,6 +13,8 @@ final class Property {
     required this.updatedAt,
     required this.syncMetadata,
     this.description,
+    this.isArchived = false,
+    this.archivedAt,
     List<String> imageUrls = const <String>[],
   }) : imageUrls = List.unmodifiable(imageUrls) {
     validate();
@@ -31,6 +33,8 @@ final class Property {
   final DateTime createdAt;
   final DateTime updatedAt;
   final SyncMetadata syncMetadata;
+  final bool isArchived;
+  final DateTime? archivedAt;
 
   void validate() {
     DomainValidation.check(<String, String?>{
@@ -49,6 +53,11 @@ final class Property {
       'updatedAt': updatedAt.isBefore(createdAt)
           ? 'must not be before createdAt'
           : null,
+      'archivedAt': isArchived && archivedAt == null
+          ? 'is required for an archived property'
+          : !isArchived && archivedAt != null
+          ? 'must be empty for an active property'
+          : null,
     });
   }
 
@@ -62,6 +71,9 @@ final class Property {
     List<String>? imageUrls,
     DateTime? updatedAt,
     SyncMetadata? syncMetadata,
+    bool? isArchived,
+    DateTime? archivedAt,
+    bool clearArchivedAt = false,
   }) => Property(
     id: id,
     landlordId: landlordId,
@@ -74,6 +86,8 @@ final class Property {
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncMetadata: syncMetadata ?? this.syncMetadata,
+    isArchived: isArchived ?? this.isArchived,
+    archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
   );
 }
 

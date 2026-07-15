@@ -11,6 +11,8 @@ import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
+import '../../auth/domain/authorization_policy.dart';
 import '../../portfolio/domain/property.dart';
 import '../../portfolio/domain/unit.dart';
 import '../../portfolio/application/rental_space_labels.dart';
@@ -42,6 +44,17 @@ class _LandlordListingsScreenState
     final applicationsValue = ref.watch(rentalApplicationsProvider);
     final applications = applicationsValue.value ?? const <RentalApplication>[];
     final pendingCount = outbox.value?.length ?? 0;
+    final session = ref.watch(sessionControllerProvider);
+    bool allows(CrudOperation operation) =>
+        session != null &&
+        AuthorizationPolicy.allows(
+          session.role,
+          AppResource.privateListing,
+          operation,
+        );
+    final canCreate = allows(CrudOperation.create);
+    final canUpdate = allows(CrudOperation.update);
+    final canUnpublish = allows(CrudOperation.delete);
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
@@ -60,18 +73,21 @@ class _LandlordListingsScreenState
                 title: 'Listings',
                 description:
                     'Advertise vacant rental spaces and review incoming applications.',
-                primaryAction: FilledButton.icon(
-                  onPressed:
-                      unitsValue.value == null || propertiesValue.value == null
-                      ? null
-                      : () => _showCreateListing(
-                          context,
-                          unitsValue.value!,
-                          propertiesValue.value!,
-                        ),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Create listing'),
-                ),
+                primaryAction: canCreate
+                    ? FilledButton.icon(
+                        onPressed:
+                            unitsValue.value == null ||
+                                propertiesValue.value == null
+                            ? null
+                            : () => _showCreateListing(
+                                context,
+                                unitsValue.value!,
+                                propertiesValue.value!,
+                              ),
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('Create listing'),
+                      )
+                    : null,
                 secondaryAction: OutlinedButton.icon(
                   onPressed: pendingCount == 0 || _syncing ? null : _sync,
                   icon: _syncing
@@ -128,6 +144,7 @@ class _LandlordListingsScreenState
                     'Published',
                     'Draft',
                     'Publishing',
+                    'Paused',
                   ])
                     ChoiceChip(
                       label: Text(filter),
@@ -154,6 +171,7 @@ class _LandlordListingsScreenState
                       'Published' => listing.isPublic,
                       'Draft' => listing.status == ListingStatus.draft,
                       'Publishing' => publishing,
+                      'Paused' => listing.status == ListingStatus.paused,
                       _ => true,
                     };
                   }).toList();
@@ -193,6 +211,11 @@ class _LandlordListingsScreenState
                                     )
                                     .length,
                                 onPublish: () => _publish(listing),
+                                onEdit: () => _editListing(listing),
+                                onUnpublish: () => _unpublish(listing),
+                                canPublish: canUpdate,
+                                canEdit: canUpdate,
+                                canUnpublish: canUnpublish,
                               ),
                             ),
                         ],
@@ -226,6 +249,192 @@ class _LandlordListingsScreenState
           context,
         ).showSnackBar(SnackBar(content: Text('Could not publish: $error')));
       }
+    }
+  }
+
+  Future<void> _editListing(Listing listing) async {
+    final formKey = GlobalKey<FormState>();
+    final title = TextEditingController(text: listing.title);
+    final description = TextEditingController(text: listing.description);
+    final rent = TextEditingController(
+      text: (listing.monthlyRentMinor ~/ 100).toString(),
+    );
+    final city = TextEditingController(text: listing.city);
+    final neighborhood = TextEditingController(text: listing.neighborhood);
+    final district = TextEditingController(text: listing.district);
+    String? error;
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Edit ${listing.title}'),
+          content: SizedBox(
+            width: 560,
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: title,
+                      decoration: const InputDecoration(
+                        labelText: 'Listing title',
+                      ),
+                      validator: (value) => (value?.trim().length ?? 0) < 3
+                          ? 'Enter a listing title'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: description,
+                      minLines: 3,
+                      maxLines: 5,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                      ),
+                      validator: (value) => (value?.trim().length ?? 0) < 10
+                          ? 'Add a useful description'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: rent,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Monthly rent',
+                        prefixText: 'UGX ',
+                      ),
+                      validator: (value) {
+                        final amount = int.tryParse(
+                          value?.replaceAll(',', '') ?? '',
+                        );
+                        return amount == null || amount <= 0
+                            ? 'Enter a valid rent amount'
+                            : null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: city,
+                      decoration: const InputDecoration(labelText: 'City'),
+                      validator: (value) => (value?.trim().isEmpty ?? true)
+                          ? 'Enter a city'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: neighborhood,
+                      decoration: const InputDecoration(
+                        labelText: 'Neighborhood',
+                      ),
+                      validator: (value) => (value?.trim().isEmpty ?? true)
+                          ? 'Enter a neighborhood'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: district,
+                      decoration: const InputDecoration(
+                        labelText: 'District (optional)',
+                      ),
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        error!,
+                        style: TextStyle(color: context.nyumba.danger),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                try {
+                  await ref.read(updateListingProvider)(
+                    listing.copyWith(
+                      title: title.text.trim(),
+                      description: description.text.trim(),
+                      monthlyRentMinor:
+                          int.parse(rent.text.replaceAll(',', '')) * 100,
+                      city: city.text.trim(),
+                      neighborhood: neighborhood.text.trim(),
+                      district: district.text.trim(),
+                      clearDistrict: district.text.trim().isEmpty,
+                    ),
+                  );
+                  if (context.mounted) Navigator.pop(context, true);
+                } on Object catch (caught) {
+                  setDialogState(() => error = caught.toString());
+                }
+              },
+              child: const Text('Save changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+    title.dispose();
+    description.dispose();
+    rent.dispose();
+    city.dispose();
+    neighborhood.dispose();
+    district.dispose();
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Listing changes saved locally and queued to sync.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _unpublish(Listing listing) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Unpublish ${listing.title}?'),
+        content: const Text(
+          'The listing stays marked as unpublishing until the server removes '
+          'its public projection.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Unpublish listing'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(unpublishListingProvider)(listing.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unpublish request saved locally and awaiting server confirmation.',
+          ),
+        ),
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not unpublish: $error')));
     }
   }
 
@@ -827,21 +1036,38 @@ class _LandlordListingCard extends StatelessWidget {
     required this.listing,
     required this.applicationCount,
     required this.onPublish,
+    required this.onEdit,
+    required this.onUnpublish,
+    required this.canPublish,
+    required this.canEdit,
+    required this.canUnpublish,
   });
 
   final Listing listing;
   final int applicationCount;
   final VoidCallback onPublish;
+  final VoidCallback onEdit;
+  final VoidCallback onUnpublish;
+  final bool canPublish;
+  final bool canEdit;
+  final bool canUnpublish;
 
   @override
   Widget build(BuildContext context) {
     final publishing =
         listing.status == ListingStatus.published &&
         listing.syncMetadata.state != EntitySyncState.synced;
+    final unpublishing =
+        listing.status == ListingStatus.paused &&
+        listing.syncMetadata.state != EntitySyncState.synced;
     final (label, tone) = publishing
         ? ('Publishing', BadgeTone.warning)
+        : unpublishing
+        ? ('Unpublishing', BadgeTone.warning)
         : listing.isPublic
         ? ('Published', BadgeTone.success)
+        : listing.status == ListingStatus.paused
+        ? ('Paused', BadgeTone.neutral)
         : ('Draft', BadgeTone.neutral);
     final currency = NumberFormat.currency(
       locale: 'en_UG',
@@ -905,49 +1131,69 @@ class _LandlordListingCard extends StatelessWidget {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const Spacer(),
-                    if (listing.status == ListingStatus.draft)
+                    if (canPublish &&
+                        (listing.status == ListingStatus.draft ||
+                            (listing.status == ListingStatus.paused &&
+                                listing.syncMetadata.state ==
+                                    EntitySyncState.synced)))
                       TextButton(
                         onPressed: onPublish,
                         child: const Text('Publish'),
-                      )
-                    else
-                      PopupMenuButton<String>(
-                        tooltip: 'Listing actions',
-                        onSelected: (value) {
-                          if (value == 'view') {
-                            context.go('/listing/${listing.id}');
-                          } else if (value == 'details') {
-                            showDialog<void>(
-                              context: context,
-                              builder: (dialogContext) => AlertDialog(
-                                title: Text(listing.title),
-                                content: Text(
-                                  '${listingLocationFor(listing)}\n\n'
-                                  '$applicationCount application${applicationCount == 1 ? '' : 's'}\n'
-                                  '${listing.isPublic ? 'Server-confirmed public listing.' : 'Awaiting server acknowledgement.'}',
-                                ),
-                                actions: [
-                                  FilledButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogContext),
-                                    child: const Text('Close'),
-                                  ),
-                                ],
+                      ),
+                    PopupMenuButton<String>(
+                      tooltip: 'Listing actions',
+                      onSelected: (value) {
+                        if (value == 'view') {
+                          context.go('/listing/${listing.id}');
+                        } else if (value == 'details') {
+                          showDialog<void>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: Text(listing.title),
+                              content: Text(
+                                '${listingLocationFor(listing)}\n\n'
+                                '$applicationCount application${applicationCount == 1 ? '' : 's'}\n'
+                                '${listing.isPublic ? 'Server-confirmed public listing.' : 'Awaiting server acknowledgement.'}',
                               ),
-                            );
-                          }
-                        },
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
+                              actions: [
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else if (value == 'unpublish') {
+                          onUnpublish();
+                        } else if (value == 'edit') {
+                          onEdit();
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        if (listing.isPublic)
+                          const PopupMenuItem(
                             value: 'view',
                             child: Text('View public listing'),
                           ),
-                          PopupMenuItem(
-                            value: 'details',
-                            child: Text('Listing details'),
+                        const PopupMenuItem(
+                          value: 'details',
+                          child: Text('Listing details'),
+                        ),
+                        if (canEdit &&
+                            listing.status != ListingStatus.published &&
+                            !unpublishing)
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Text('Edit listing'),
                           ),
-                        ],
-                      ),
+                        if (listing.status == ListingStatus.published &&
+                            canUnpublish)
+                          const PopupMenuItem(
+                            value: 'unpublish',
+                            child: Text('Unpublish listing'),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ],

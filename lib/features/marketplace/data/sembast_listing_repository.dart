@@ -43,6 +43,9 @@ final class SembastListingRepository implements ListingRepository {
       throw EntityNotFoundException('property', input.propertyId);
     }
     final errors = <String, String>{};
+    if (property.isArchived) {
+      errors['propertyId'] = 'must reference an active property';
+    }
     if (unit.propertyId != input.propertyId) {
       errors['propertyId'] = 'must match the referenced unit';
     }
@@ -146,6 +149,22 @@ final class SembastListingRepository implements ListingRepository {
         .copyWith(syncMetadata: current.syncMetadata.markPending());
     await _persist(published, operation: OutboxOperation.publish);
     return published;
+  }
+
+  @override
+  Future<Listing> unpublish(String listingId) async {
+    final current = await getById(listingId);
+    if (current == null) throw EntityNotFoundException('listing', listingId);
+    if (current.status != ListingStatus.published) return current;
+
+    final now = _clock.now().toUtc();
+    final unpublished = current.copyWith(
+      status: ListingStatus.paused,
+      updatedAt: now,
+      syncMetadata: current.syncMetadata.markPending(),
+    );
+    await _persist(unpublished, operation: OutboxOperation.delete);
+    return unpublished;
   }
 
   @override

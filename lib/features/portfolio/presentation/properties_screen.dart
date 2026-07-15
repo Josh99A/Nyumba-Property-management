@@ -11,6 +11,9 @@ import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
+import '../../auth/domain/authorization_policy.dart';
+import '../../auth/domain/user_session.dart';
 import '../application/portfolio_use_cases.dart';
 import '../domain/property.dart';
 import '../domain/unit.dart';
@@ -49,7 +52,15 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
   Widget build(BuildContext context) {
     final propertiesValue = ref.watch(portfolioPropertiesProvider);
     final unitsValue = ref.watch(portfolioUnitsProvider);
+    final session = ref.watch(sessionControllerProvider);
     final units = unitsValue.value ?? const <Unit>[];
+    final canCreate =
+        session != null &&
+        AuthorizationPolicy.allows(
+          session.role,
+          AppResource.property,
+          CrudOperation.create,
+        );
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         context.pageGutter,
@@ -67,11 +78,13 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                 title: 'Properties and rental spaces',
                 description:
                     'Every rentable space has its own rent, occupancy, lease, and maintenance history.',
-                primaryAction: FilledButton.icon(
-                  onPressed: _createProperty,
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add property'),
-                ),
+                primaryAction: canCreate
+                    ? FilledButton.icon(
+                        onPressed: _createProperty,
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('Add property'),
+                      )
+                    : null,
               ),
               const SizedBox(height: 22),
               _PortfolioUsage(units: units),
@@ -179,7 +192,22 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
   }
 
   Future<void> _createProperty() async {
+    final session = ref.read(sessionControllerProvider);
+    if (session == null) return;
+    final knownLandlordIds =
+        (ref.read(portfolioPropertiesProvider).value ?? [])
+            .map((property) => property.landlordId)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
     final formKey = GlobalKey<FormState>();
+    final landlordId = TextEditingController(
+      text: session.role == AppRole.landlord
+          ? session.userId
+          : knownLandlordIds.isEmpty
+          ? ''
+          : knownLandlordIds.first,
+    );
     final name = TextEditingController();
     final address = TextEditingController();
     final city = TextEditingController(text: 'Kampala');
@@ -199,6 +227,21 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (session.role == AppRole.admin ||
+                        session.role == AppRole.superAdmin) ...[
+                      TextFormField(
+                        controller: landlordId,
+                        decoration: const InputDecoration(
+                          labelText: 'Target landlord account ID',
+                          helperText:
+                              'Staff actions are server-validated and audited.',
+                        ),
+                        validator: (value) => (value?.trim().isEmpty ?? true)
+                            ? 'Enter the landlord account ID'
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     TextFormField(
                       controller: name,
                       autofocus: true,
@@ -336,7 +379,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                 try {
                   final created = await ref.read(createPropertyProvider)(
                     CreatePropertyInput(
-                      landlordId: 'demo-landlord-001',
+                      landlordId: landlordId.text.trim(),
                       name: name.text.trim(),
                       addressLine: address.text.trim(),
                       city: city.text.trim(),
@@ -358,6 +401,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
       ),
     );
     name.dispose();
+    landlordId.dispose();
     address.dispose();
     city.dispose();
     description.dispose();
@@ -464,6 +508,10 @@ class _PropertyCard extends StatelessWidget {
       decimalDigits: 0,
     );
     final pending = property.syncMetadata.state != EntitySyncState.synced;
+    final archiveNeedsAttention =
+        property.isArchived &&
+        (property.syncMetadata.state == EntitySyncState.failed ||
+            property.syncMetadata.state == EntitySyncState.conflicted);
     return NyumbaSurface(
       padding: EdgeInsets.zero,
       onTap: () => context.go('/properties/${property.id}'),
@@ -482,12 +530,18 @@ class _PropertyCard extends StatelessWidget {
                 ),
               ),
               if (pending)
-                const Positioned(
+                Positioned(
                   left: 12,
                   top: 12,
                   child: StatusBadge(
-                    label: 'Pending sync',
-                    tone: BadgeTone.warning,
+                    label: property.isArchived
+                        ? archiveNeedsAttention
+                              ? 'Archive needs attention'
+                              : 'Archive pending'
+                        : 'Pending sync',
+                    tone: archiveNeedsAttention
+                        ? BadgeTone.danger
+                        : BadgeTone.warning,
                   ),
                 ),
             ],

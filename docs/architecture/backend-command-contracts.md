@@ -70,12 +70,12 @@ Names are versioned contracts. Payload schemas should live beside Functions and 
 | --- | --- | --- |
 | Identity | `profile.update`, `landlord.onboard` | `profile.update` accepts validated display/contact and personal notification preferences only; server controls identity, role, and status fields |
 | Admin | `landlord.approve`, `landlord.suspend`, `landlord.reinstate` | platform-admin or super-admin claim; mandatory reason and audit; privileged-account management is super-admin-only |
-| Portfolio | `property.create/update/archive`, `unit.create/update/archive/restore` | owning landlord; account/entitlement checks; property create/update accepts at most five validated staged image paths in display order (first is primary); unit counter transaction |
+| Portfolio | `property.create/update/archive`, `unit.create/update/archive/restore` | owning landlord or audited Admin/Super Admin acting for a canonical target landlord; account/entitlement checks; property create/update accepts at most five validated staged image paths in display order (first is primary); unit counter transaction |
 | Tenancy | `tenant.invite/update`, `lease.create/activate/end` | owning landlord; activation checks unit occupancy; tenant acceptance policy **TBD** |
 | Billing | `invoice.generate`, `payment.initiate`, `payment.recordManual`, `receipt.regenerate` | server computes money; provider/server confirms payment |
 | Maintenance | `maintenance.create`, `maintenance.updateStatus`, `maintenance.addComment` | tenant lease scope or owning landlord; transition matrix enforced |
 | Communication | `notice.publish` | server resolves audience and queues notification job |
-| Listing | `listing.saveDraft/publish/unpublish` | owner plus approval, availability, advertising entitlement, moderation |
+| Listing | `listing.saveDraft/publish/unpublish` | owner or audited Admin/Super Admin acting for the canonical landlord; approval, availability, advertising entitlement, moderation |
 | Application | `application.submit/withdraw`, `contact.submit` | applicant identity from auth; active listing, App Check, throttling |
 | Reporting | `report.request` | scoped parameters; asynchronous server-derived document |
 | Documents | `document.finalizeUpload/delete` | staging object ownership, checksum/type/size, owning aggregate access |

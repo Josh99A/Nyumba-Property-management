@@ -21,6 +21,8 @@ final class UnitMapper {
     'amenities': unit.amenities,
     'createdAt': unit.createdAt.toUtc().toIso8601String(),
     'updatedAt': unit.updatedAt.toUtc().toIso8601String(),
+    'isDeleted': unit.isArchived,
+    'deletedAt': unit.archivedAt?.toUtc().toIso8601String(),
     'syncMetadata': SyncMetadataMapper.toJson(unit.syncMetadata),
   };
 
@@ -42,6 +44,8 @@ final class UnitMapper {
       amenities: reader.stringList('amenities'),
       createdAt: reader.requiredDate('createdAt'),
       updatedAt: reader.requiredDate('updatedAt'),
+      isArchived: reader.optionalBool('isDeleted'),
+      archivedAt: reader.optionalDate('deletedAt'),
       syncMetadata: SyncMetadataMapper.fromJson(json['syncMetadata']),
     );
   }

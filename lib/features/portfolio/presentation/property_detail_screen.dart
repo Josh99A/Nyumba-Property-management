@@ -9,6 +9,8 @@ import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
+import '../../auth/domain/authorization_policy.dart';
 import '../../marketplace/application/marketplace_use_cases.dart';
 import '../../marketplace/domain/listing.dart';
 import '../application/portfolio_use_cases.dart';
@@ -16,6 +18,7 @@ import '../application/rental_space_labels.dart';
 import '../domain/property.dart';
 import '../domain/unit.dart';
 import 'portfolio_visuals.dart';
+import 'property_archive_button.dart';
 
 class PropertyDetailScreen extends ConsumerStatefulWidget {
   const PropertyDetailScreen({
@@ -50,6 +53,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final propertiesValue = ref.watch(portfolioPropertiesProvider);
     final unitsValue = ref.watch(portfolioUnitsProvider);
     final listingsValue = ref.watch(landlordListingsProvider);
+    final session = ref.watch(sessionControllerProvider);
     final properties = propertiesValue.value;
     if (propertiesValue.isLoading || properties == null) {
       return const Center(child: CircularProgressIndicator());
@@ -66,6 +70,24 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         .where((unit) => unit.propertyId == property!.id)
         .toList();
     final listings = listingsValue.value ?? const <Listing>[];
+    bool allows(AppResource resource, CrudOperation operation) =>
+        session != null &&
+        AuthorizationPolicy.allows(session.role, resource, operation);
+    final canUpdateProperty = allows(
+      AppResource.property,
+      CrudOperation.update,
+    );
+    final canArchiveProperty = allows(
+      AppResource.property,
+      CrudOperation.delete,
+    );
+    final canCreateUnit = allows(AppResource.unit, CrudOperation.create);
+    final canUpdateUnit = allows(AppResource.unit, CrudOperation.update);
+    final canArchiveUnit = allows(AppResource.unit, CrudOperation.delete);
+    final canCreateListing = allows(
+      AppResource.privateListing,
+      CrudOperation.create,
+    );
     final filteredUnits = allUnits.where((unit) {
       return switch (_filter) {
         'Occupied' => unit.status == UnitStatus.occupied,
@@ -74,6 +96,25 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         _ => true,
       };
     }).toList();
+    final propertyActions = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        if (canUpdateProperty && !property.isArchived)
+          OutlinedButton.icon(
+            key: const ValueKey('edit-property'),
+            onPressed: () => _editProperty(property!),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Edit property'),
+          ),
+        if (canArchiveProperty && !property.isArchived)
+          PropertyArchiveButton(
+            propertyName: property.name,
+            activeRentalSpaceCount: allUnits.length,
+            onArchive: () => _archiveProperty(property!),
+          ),
+      ],
+    );
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
@@ -88,14 +129,35 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () => context.go('/properties'),
-                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                  label: const Text('Properties'),
+              if (context.isCompact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => context.go('/properties'),
+                      icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                      label: const Text('Properties'),
+                    ),
+                    const SizedBox(height: 8),
+                    propertyActions,
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => context.go('/properties'),
+                          icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                          label: const Text('Properties'),
+                        ),
+                      ),
+                    ),
+                    propertyActions,
+                  ],
                 ),
-              ),
               const SizedBox(height: 8),
               _PropertyHero(property: property, units: allUnits),
               const SizedBox(height: 22),
@@ -107,11 +169,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
-                  FilledButton.icon(
-                    onPressed: _showAddUnit,
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Add rental space'),
-                  ),
+                  if (canCreateUnit)
+                    FilledButton.icon(
+                      onPressed: _showAddUnit,
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Add rental space'),
+                    ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -174,8 +237,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                               hasListing: listings.any(
                                 (listing) => listing.unitId == unit.id,
                               ),
+                              canAdvertise: canCreateListing,
+                              canUpdate: canUpdateUnit,
+                              canArchive: canArchiveUnit,
                               onAdvertise: () =>
                                   _createListing(property!, unit),
+                              onEdit: () => _editUnit(unit),
+                              onArchive: () => _archiveUnit(unit, listings),
                             ),
                           ),
                       ],
@@ -187,6 +255,118 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _editProperty(Property property) async {
+    final formKey = GlobalKey<FormState>();
+    final name = TextEditingController(text: property.name);
+    final address = TextEditingController(text: property.addressLine);
+    final city = TextEditingController(text: property.city);
+    final description = TextEditingController(text: property.description ?? '');
+    String? error;
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Edit ${property.name}'),
+          content: SizedBox(
+            width: 500,
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: name,
+                      decoration: const InputDecoration(
+                        labelText: 'Property name',
+                      ),
+                      validator: (value) => (value?.trim().length ?? 0) < 2
+                          ? 'Enter a property name'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: address,
+                      decoration: const InputDecoration(
+                        labelText: 'Street address',
+                      ),
+                      validator: (value) => (value?.trim().length ?? 0) < 3
+                          ? 'Enter the street address'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: city,
+                      decoration: const InputDecoration(
+                        labelText: 'City or town',
+                      ),
+                      validator: (value) => (value?.trim().isEmpty ?? true)
+                          ? 'Enter a city or town'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: description,
+                      minLines: 2,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Description (optional)',
+                      ),
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        error!,
+                        style: TextStyle(color: context.nyumba.danger),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                try {
+                  await ref.read(updatePropertyProvider)(
+                    property.copyWith(
+                      name: name.text.trim(),
+                      addressLine: address.text.trim(),
+                      city: city.text.trim(),
+                      description: description.text.trim(),
+                      clearDescription: description.text.trim().isEmpty,
+                    ),
+                  );
+                  if (context.mounted) Navigator.pop(context, true);
+                } on Object catch (caught) {
+                  setDialogState(() => error = caught.toString());
+                }
+              },
+              child: const Text('Save changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+    name.dispose();
+    address.dispose();
+    city.dispose();
+    description.dispose();
+    if (updated == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Property changes saved locally and queued to sync.'),
+        ),
+      );
+    }
   }
 
   Future<void> _showAddUnit() async {
@@ -361,6 +541,256 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         const SnackBar(
           content: Text('Rental space saved locally and queued to sync.'),
         ),
+      );
+    }
+  }
+
+  Future<void> _editUnit(Unit unit) async {
+    final formKey = GlobalKey<FormState>();
+    final label = TextEditingController(text: unit.label);
+    final rent = TextEditingController(
+      text: (unit.monthlyRentMinor ~/ 100).toString(),
+    );
+    final bedrooms = TextEditingController(text: unit.bedrooms.toString());
+    final bathrooms = TextEditingController(text: unit.bathrooms.toString());
+    var type = unit.type;
+    String? error;
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Edit ${unit.displayName}'),
+          content: SizedBox(
+            width: 520,
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: label,
+                      decoration: const InputDecoration(
+                        labelText: 'Rental space name or number',
+                      ),
+                      validator: (value) => (value?.trim().isEmpty ?? true)
+                          ? 'Enter a rental space name or number'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<UnitType>(
+                      initialValue: type,
+                      decoration: const InputDecoration(
+                        labelText: 'Rental space type',
+                      ),
+                      items: [
+                        for (final item in UnitType.values)
+                          DropdownMenuItem(
+                            value: item,
+                            child: Text(_titleCase(item.name)),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) setDialogState(() => type = value);
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: rent,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Monthly rent',
+                        prefixText: 'UGX ',
+                      ),
+                      validator: (value) {
+                        final amount = int.tryParse(
+                          value?.replaceAll(',', '') ?? '',
+                        );
+                        return amount == null || amount <= 0
+                            ? 'Enter a valid rent amount'
+                            : null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: bedrooms,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Bedrooms',
+                            ),
+                            validator: (value) =>
+                                int.tryParse(value ?? '') == null
+                                ? 'Required'
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: bathrooms,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Bathrooms',
+                            ),
+                            validator: (value) =>
+                                int.tryParse(value ?? '') == null
+                                ? 'Required'
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        error!,
+                        style: TextStyle(color: context.nyumba.danger),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                try {
+                  await ref.read(updateUnitProvider)(
+                    unit.copyWith(
+                      label: label.text.trim(),
+                      type: type,
+                      monthlyRentMinor:
+                          int.parse(rent.text.replaceAll(',', '')) * 100,
+                      bedrooms: int.parse(bedrooms.text),
+                      bathrooms: int.parse(bathrooms.text),
+                    ),
+                  );
+                  if (context.mounted) Navigator.pop(context, true);
+                } on Object catch (caught) {
+                  setDialogState(() => error = caught.toString());
+                }
+              },
+              child: const Text('Save changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+    label.dispose();
+    rent.dispose();
+    bedrooms.dispose();
+    bathrooms.dispose();
+    if (updated == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Rental space changes saved locally and queued to sync.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _archiveUnit(Unit unit, List<Listing> listings) async {
+    final blockingListing = listings.any(
+      (listing) =>
+          listing.unitId == unit.id &&
+          (listing.status == ListingStatus.published ||
+              (listing.status == ListingStatus.paused &&
+                  listing.syncMetadata.state != EntitySyncState.synced)),
+    );
+    String? blocker;
+    if (unit.status != UnitStatus.vacant) {
+      blocker = 'End the active tenancy and return the space to vacant first.';
+    } else if (blockingListing) {
+      blocker = 'Unpublish the listing and wait for server confirmation first.';
+    }
+    if (blocker != null) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Rental space cannot be archived yet'),
+          content: Text(blocker!),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Got it'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Archive ${unit.displayName}?'),
+        content: const Text(
+          'The rental space stays marked as archive pending until the server '
+          'confirms it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: context.nyumba.danger,
+            ),
+            child: const Text('Archive rental space'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(archiveUnitProvider)(unit.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Archive queued for ${unit.displayName}; awaiting server confirmation.',
+          ),
+        ),
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not archive rental space: $error')),
+      );
+    }
+  }
+
+  Future<void> _archiveProperty(Property property) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(archivePropertyProvider)(property.id);
+      if (!mounted) return;
+      context.go('/properties');
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Archive queued for ${property.name}; awaiting server confirmation.',
+          ),
+        ),
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not archive property: $error')),
       );
     }
   }
@@ -680,12 +1110,22 @@ class _UnitCard extends StatelessWidget {
   const _UnitCard({
     required this.unit,
     required this.hasListing,
+    required this.canAdvertise,
+    required this.canUpdate,
+    required this.canArchive,
     required this.onAdvertise,
+    required this.onEdit,
+    required this.onArchive,
   });
 
   final Unit unit;
   final bool hasListing;
+  final bool canAdvertise;
+  final bool canUpdate;
+  final bool canArchive;
   final VoidCallback onAdvertise;
+  final VoidCallback onEdit;
+  final VoidCallback onArchive;
 
   @override
   Widget build(BuildContext context) {
@@ -694,13 +1134,18 @@ class _UnitCard extends StatelessWidget {
       symbol: 'UGX ',
       decimalDigits: 0,
     );
-    final (statusLabel, tone) = switch (unit.status) {
-      UnitStatus.occupied => ('Occupied', BadgeTone.success),
-      UnitStatus.vacant => ('Vacant', BadgeTone.info),
-      UnitStatus.reserved => ('Reserved', BadgeTone.warning),
-      UnitStatus.maintenance => ('Maintenance', BadgeTone.danger),
-      UnitStatus.inactive => ('Inactive', BadgeTone.neutral),
-    };
+    final (statusLabel, tone) = unit.isArchived
+        ? unit.syncMetadata.state == EntitySyncState.failed ||
+                  unit.syncMetadata.state == EntitySyncState.conflicted
+              ? ('Archive needs attention', BadgeTone.danger)
+              : ('Archive pending', BadgeTone.warning)
+        : switch (unit.status) {
+            UnitStatus.occupied => ('Occupied', BadgeTone.success),
+            UnitStatus.vacant => ('Vacant', BadgeTone.info),
+            UnitStatus.reserved => ('Reserved', BadgeTone.warning),
+            UnitStatus.maintenance => ('Maintenance', BadgeTone.danger),
+            UnitStatus.inactive => ('Inactive', BadgeTone.neutral),
+          };
     return NyumbaSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -727,6 +1172,28 @@ class _UnitCard extends StatelessWidget {
                 ),
               ),
               StatusBadge(label: statusLabel, tone: tone),
+              if (!unit.isArchived && (canUpdate || canArchive)) ...[
+                const SizedBox(width: 4),
+                PopupMenuButton<String>(
+                  tooltip: 'Rental space actions',
+                  onSelected: (value) {
+                    if (value == 'edit') onEdit();
+                    if (value == 'archive') onArchive();
+                  },
+                  itemBuilder: (context) => [
+                    if (canUpdate)
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Text('Edit rental space'),
+                      ),
+                    if (canArchive)
+                      const PopupMenuItem(
+                        value: 'archive',
+                        child: Text('Archive rental space'),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -774,7 +1241,7 @@ class _UnitCard extends StatelessWidget {
               else
                 const StatusBadge(label: 'Synced', tone: BadgeTone.success),
               const Spacer(),
-              if (unit.canBeAdvertised && !hasListing)
+              if (canAdvertise && unit.canBeAdvertised && !hasListing)
                 TextButton.icon(
                   onPressed: onAdvertise,
                   icon: const Icon(Icons.campaign_outlined, size: 18),

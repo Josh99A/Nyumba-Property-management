@@ -22,6 +22,8 @@ final class Unit {
     this.bathrooms = 0,
     this.floor,
     this.description,
+    this.isArchived = false,
+    this.archivedAt,
     List<String> amenities = const <String>[],
   }) : amenities = List.unmodifiable(amenities) {
     validate();
@@ -46,6 +48,8 @@ final class Unit {
   final DateTime createdAt;
   final DateTime updatedAt;
   final SyncMetadata syncMetadata;
+  final bool isArchived;
+  final DateTime? archivedAt;
 
   bool get canBeAdvertised => status == UnitStatus.vacant;
 
@@ -66,6 +70,11 @@ final class Unit {
       'updatedAt': updatedAt.isBefore(createdAt)
           ? 'must not be before createdAt'
           : null,
+      'archivedAt': isArchived && archivedAt == null
+          ? 'is required for an archived rental space'
+          : !isArchived && archivedAt != null
+          ? 'must be empty for an active rental space'
+          : null,
     });
   }
 
@@ -84,6 +93,9 @@ final class Unit {
     List<String>? amenities,
     DateTime? updatedAt,
     SyncMetadata? syncMetadata,
+    bool? isArchived,
+    DateTime? archivedAt,
+    bool clearArchivedAt = false,
   }) => Unit(
     id: id,
     propertyId: propertyId,
@@ -101,6 +113,8 @@ final class Unit {
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncMetadata: syncMetadata ?? this.syncMetadata,
+    isArchived: isArchived ?? this.isArchived,
+    archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
   );
 }
 
