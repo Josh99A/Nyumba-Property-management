@@ -18,10 +18,11 @@ class SignInScreen extends ConsumerStatefulWidget {
 
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'joshua@demo.nyumba.ug');
-  final _passwordController = TextEditingController(text: 'password');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isSubmitting = false;
+  bool _isGoogleSubmitting = false;
 
   @override
   void dispose() {
@@ -78,6 +79,22 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           content: Text(error.toString().replaceFirst('Bad state: ', '')),
         ),
       );
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isGoogleSubmitting = true);
+    try {
+      await ref.read(sessionControllerProvider.notifier).signInWithGoogle();
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isGoogleSubmitting = false);
     }
   }
 
@@ -237,6 +254,31 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                               ),
                                             )
                                           : const Text('Sign in'),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    OutlinedButton.icon(
+                                      onPressed: _isGoogleSubmitting
+                                          ? null
+                                          : _signInWithGoogle,
+                                      icon: _isGoogleSubmitting
+                                          ? const SizedBox.square(
+                                              dimension: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.g_mobiledata_rounded,
+                                              size: 26,
+                                            ),
+                                      label: const Text('Continue with Google'),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    TextButton(
+                                      onPressed: () => context.go('/sign-up'),
+                                      child: const Text(
+                                        'New to Nyumba? Create a landlord account',
+                                      ),
                                     ),
                                   ],
                                 ),

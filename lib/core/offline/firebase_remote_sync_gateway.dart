@@ -65,10 +65,52 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
     };
   }
 
+  /// Sends a one-off command outside the outbox (auth-time flows such as
+  /// landlord onboarding and tenant invite claims, which are online by
+  /// nature). Returns the full command response; a rejected command throws.
+  Future<Map<String, Object?>> sendCommand({
+    required String type,
+    String? aggregateId,
+    int? expectedVersion,
+    Map<String, Object?> payload = const <String, Object?>{},
+  }) {
+    final commandId = 'authcmd_${const Uuid().v7().replaceAll('-', '')}';
+    return _invokeEnvelope(<String, Object?>{
+      'commandId': commandId,
+      'type': type,
+      'schemaVersion': 1,
+      'aggregateId': ?aggregateId,
+      'expectedVersion': ?expectedVersion,
+      'payload': payload,
+      'client': <String, Object?>{
+        'installationId': installationId,
+        'appVersion': appVersion,
+        'platform': platform,
+      },
+    });
+  }
+
   @override
   Future<RemoteWriteResult> push(RemoteMutation mutation) async {
+    final response = await _invokeEnvelope(buildEnvelope(mutation));
+    final committedAt = DateTime.tryParse(
+      response['serverUpdatedAt']?.toString() ?? '',
+    );
+    if (committedAt == null) {
+      throw const RemoteSyncException('Missing serverUpdatedAt.');
+    }
+    return RemoteWriteResult(
+      committedAt: committedAt.toUtc(),
+      serverRevision: response['serverVersion']?.toString(),
+      wasAlreadyApplied: response['wasAlreadyApplied'] == true,
+    );
+  }
+
+  Future<Map<String, Object?>> _invokeEnvelope(
+    Map<String, Object?> envelope,
+  ) async {
     try {
-      final response = await invoke(buildEnvelope(mutation));
+      final response = await invoke(envelope);
       final status = response['status'];
       if (status == 'rejected') {
         final error = _optionalStringMap(response['error']);
@@ -80,17 +122,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
       if (status != 'applied' && status != 'accepted') {
         throw const RemoteSyncException('Malformed command response.');
       }
-      final committedAt = DateTime.tryParse(
-        response['serverUpdatedAt']?.toString() ?? '',
-      );
-      if (committedAt == null) {
-        throw const RemoteSyncException('Missing serverUpdatedAt.');
-      }
-      return RemoteWriteResult(
-        committedAt: committedAt.toUtc(),
-        serverRevision: response['serverVersion']?.toString(),
-        wasAlreadyApplied: response['wasAlreadyApplied'] == true,
-      );
+      return response;
     } on RemoteSyncException {
       rethrow;
     } on FirebaseFunctionsException catch (error) {

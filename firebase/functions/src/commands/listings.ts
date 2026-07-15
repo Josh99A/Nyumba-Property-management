@@ -103,6 +103,15 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
     if (required.some((field) => listing[field] === undefined || listing[field] === '')) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'listingMissingPublicFields' });
     }
+    // The public map location is intentionally approximate: coordinates are
+    // coarsened to ~110 m so the exact address can never be recovered from
+    // the public projection.
+    const approximateLocation = listing.approximateLocation
+      ? {
+          lat: Math.round(listing.approximateLocation.lat * 1_000) / 1_000,
+          lng: Math.round(listing.approximateLocation.lng * 1_000) / 1_000,
+        }
+      : null;
     const expiresAt = Timestamp.fromMillis(now.toMillis() + LISTING_LIFETIME_DAYS * 24 * 60 * 60 * 1000);
     const landlordToken = createHash('sha256').update(landlord.landlordId).digest('hex').slice(0, 24);
     const publicRef = db.collection(COLLECTIONS.publicListings).doc(cmd.aggregateId!);
@@ -126,7 +135,7 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
       bedrooms: listing.bedrooms ?? 0,
       bathrooms: listing.bathrooms ?? 0,
       amenities: listing.amenities ?? [],
-      approximateLocation: listing.approximateLocation ?? null,
+      approximateLocation,
       landlordToken,
       imagePaths: [],
       status: 'published',

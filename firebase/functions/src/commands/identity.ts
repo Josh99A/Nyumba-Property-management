@@ -55,7 +55,12 @@ export const landlordOnboard: CommandHandler<z.infer<typeof onboardSchema>> = {
     if (cmd.aggregateId !== actor.uid) throw new DomainError('PERMISSION_DENIED');
     const accountRef = db.collection(COLLECTIONS.landlordAccounts).doc(actor.uid);
     const userRef = db.collection(COLLECTIONS.users).doc(actor.uid);
-    const [account, user] = await Promise.all([tx.get(accountRef), tx.get(userRef)]);
+    const subscriptionRef = db.collection(COLLECTIONS.subscriptions).doc(actor.uid);
+    const [account, user, subscription] = await Promise.all([
+      tx.get(accountRef),
+      tx.get(userRef),
+      tx.get(subscriptionRef),
+    ]);
     requireAbsent(account);
     const userData = requireAggregate<Record<string, unknown> & { version: number }>(user, undefined);
 
@@ -69,6 +74,17 @@ export const landlordOnboard: CommandHandler<z.infer<typeof onboardSchema>> = {
       businessName: cmd.payload.businessName ?? null,
       phone: cmd.payload.phone,
     });
+    // Pre-billing placeholder: prices and the payment provider are TBD, so a
+    // new landlord starts on a starter trial. A provider webhook owns this
+    // document once billing exists; entitlement limits still apply.
+    if (!subscription.exists) {
+      tx.create(subscriptionRef, {
+        ...newAggregate(actor.uid, now),
+        tier: 'starter',
+        status: 'trialing',
+        trialStartedAt: now,
+      });
+    }
     tx.update(userRef, { role: 'landlord', ...bumpVersion(userData, now) });
     return {
       status: 'applied',

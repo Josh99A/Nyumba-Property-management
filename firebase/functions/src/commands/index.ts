@@ -9,7 +9,7 @@ import { maintenanceAddComment, maintenanceCreate, maintenanceUpdateStatus } fro
 import { listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from './listings';
 import { propertyArchive, propertyCreate, propertyUpdate, unitArchive, unitCreate, unitRestore, unitUpdate } from './portfolio';
 import { reportRequest } from './reports';
-import { leaseActivate, leaseCreate, leaseEnd, tenantInvite, tenantUpdate } from './tenancy';
+import { leaseActivate, leaseCreate, leaseEnd, tenantClaimInvite, tenantInvite, tenantUpdate } from './tenancy';
 
 // Payload types are enforced by each handler's strict runtime schema before
 // the untyped registry boundary is crossed.
@@ -28,6 +28,7 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['unit.restore', unitRestore],
   ['tenant.invite', tenantInvite],
   ['tenant.update', tenantUpdate],
+  ['tenant.claimInvite', tenantClaimInvite],
   ['lease.create', leaseCreate],
   ['lease.activate', leaseActivate],
   ['lease.end', leaseEnd],

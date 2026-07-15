@@ -26,7 +26,18 @@ service cloud.firestore {
         && data.ownerId == request.auth.uid;
     }
 
-    function isReadablePublicListing(data) {
+    // Documents are readable only while published and unexpired. `get`
+    // evaluates real data, so the timestamp type is checked explicitly. For
+    // `list`, the engine cannot statically prove `is timestamp`; the range
+    // comparison against request.time is sufficient there because a Firestore
+    // range filter over a timestamp bound only ever matches timestamp values.
+    function isReadablePublicListingDoc(data) {
+      return data.status == 'published'
+        && data.expiresAt is timestamp
+        && data.expiresAt > request.time;
+    }
+
+    function isReadablePublicListingQuery(data) {
       return data.status == 'published'
         && data.expiresAt > request.time;
     }
@@ -154,8 +165,8 @@ service cloud.firestore {
     // Public browsing is deliberately isolated from private property/unit data.
     // Queries must constrain status == published and expiresAt > request.time.
     match /publicListings/{listingId} {
-      allow get: if isReadablePublicListing(resource.data);
-      allow list: if isReadablePublicListing(resource.data)
+      allow get: if isReadablePublicListingDoc(resource.data);
+      allow list: if isReadablePublicListingQuery(resource.data)
         && request.query.limit != null
         && request.query.limit <= 50;
       allow write: if false;

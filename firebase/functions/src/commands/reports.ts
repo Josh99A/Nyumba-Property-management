@@ -22,6 +22,8 @@ export const reportRequest: CommandHandler<z.infer<typeof reportSchema>> = {
     requireAbsent(snapshot);
     const report = {
       ...newAggregate(cmd.aggregateId!, now), landlordId: landlord.landlordId,
+      // firestore.rules ownsReport() authorizes reads on ownerType/ownerId.
+      ownerType: 'landlord', ownerId: landlord.landlordId,
       requestedByUid: actor.uid, ...cmd.payload, state: 'queued', downloadPath: null,
     };
     tx.create(ref, report);

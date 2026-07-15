@@ -1,7 +1,8 @@
+import { createHash } from 'node:crypto';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { COLLECTIONS } from '../shared/collections';
-import { MAX_IMAGE_BYTES, MAX_LISTING_PHOTOS } from '../shared/config';
+import { MAX_DOCUMENT_BYTES, MAX_IMAGE_BYTES, MAX_LISTING_PHOTOS } from '../shared/config';
 
 const imageContentTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
@@ -48,10 +49,44 @@ export async function movePrivateDocument(payload: Record<string, unknown>): Pro
   const documentId = String(payload.documentId);
   const landlordId = String(payload.landlordId);
   const sourcePath = String(payload.sourcePath);
+  const db = getFirestore();
+  const documentRef = db.collection(COLLECTIONS.documents).doc(documentId);
+  const documentSnap = await documentRef.get();
+  if (!documentSnap.exists) return;
+  const declared = documentSnap.data()!;
+  if (declared.state !== 'pending') return;
+
+  // The staged object must match what the command declared: content type and
+  // size within the finalized limits, and the client-computed SHA-256. A
+  // mismatch is deterministic, so mark the document rejected instead of
+  // burning the job's retry budget.
   const bucket = getStorage().bucket();
+  const source = bucket.file(sourcePath);
+  const [metadata] = await source.getMetadata();
+  const size = Number(metadata.size);
+  const limit = declared.contentType === 'application/pdf' ? MAX_DOCUMENT_BYTES : MAX_IMAGE_BYTES;
+  let rejectionReason: string | null = null;
+  if (metadata.contentType !== declared.contentType) {
+    rejectionReason = 'contentTypeMismatch';
+  } else if (!Number.isFinite(size) || size !== Number(declared.byteSize) || size > limit) {
+    rejectionReason = 'byteSizeMismatch';
+  } else {
+    const [contents] = await source.download();
+    const sha256 = createHash('sha256').update(contents).digest('hex');
+    if (sha256 !== declared.sha256) rejectionReason = 'checksumMismatch';
+  }
+  if (rejectionReason) {
+    await documentRef.update({
+      state: 'rejected',
+      rejectionReason,
+      updatedAt: Timestamp.now(),
+    });
+    return;
+  }
+
   const destination = `private/landlords/${landlordId}/documents/${documentId}/${fileName(sourcePath)}`;
-  await bucket.file(sourcePath).copy(bucket.file(destination));
-  await getFirestore().collection(COLLECTIONS.documents).doc(documentId).update({
+  await source.copy(bucket.file(destination));
+  await documentRef.update({
     state: 'available',
     privatePath: destination,
     updatedAt: Timestamp.now(),

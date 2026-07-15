@@ -106,18 +106,16 @@ final class SembastTenancyRepository implements TenancyRepository {
   }
 
   @override
-  Stream<List<Tenancy>> watchAll({
-    String? landlordId,
-    String? tenantUserId,
-  }) => _database
-      .watchEntities(OfflineEntityType.tenancy)
-      .map(
-        (items) => _filterAndSort(
-          items.map(TenancyMapper.fromJson),
-          landlordId,
-          tenantUserId,
-        ),
-      );
+  Stream<List<Tenancy>> watchAll({String? landlordId, String? tenantUserId}) =>
+      _database
+          .watchEntities(OfflineEntityType.tenancy)
+          .map(
+            (items) => _filterAndSort(
+              items.map(TenancyMapper.fromJson),
+              landlordId,
+              tenantUserId,
+            ),
+          );
 
   static List<Tenancy> _filterAndSort(
     Iterable<Tenancy> items,

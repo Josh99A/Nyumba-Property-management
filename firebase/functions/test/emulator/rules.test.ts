@@ -26,10 +26,12 @@ beforeEach(async () => {
     await Promise.all([
       setDoc(doc(db, 'publicListings/published_1'), { status: 'published', expiresAt: future }),
       setDoc(doc(db, 'publicListings/expired_123'), { status: 'published', expiresAt: past }),
+      setDoc(doc(db, 'publicListings/malformed_1'), { status: 'published', expiresAt: '2100-01-01' }),
       setDoc(doc(db, 'properties/landlord_one'), { landlordId: 'landlord_1' }),
       setDoc(doc(db, 'properties/landlord_two'), { landlordId: 'landlord_2' }),
       setDoc(doc(db, 'tenantPortals/tenant_1/leases/lease_123'), { id: 'lease_123' }),
       setDoc(doc(db, 'commandReceipts/command_1'), { actorUid: 'tenant_1' }),
+      setDoc(doc(db, 'reportSnapshots/report_1'), { ownerType: 'landlord', ownerId: 'landlord_1' }),
       setDoc(doc(db, 'backendJobs/job_123456'), { state: 'pending' }),
       setDoc(doc(db, 'auditLogs/audit_123'), { action: 'test' }),
     ]);
@@ -43,6 +45,7 @@ describe('Firestore rules matrix', () => {
     const db = env.unauthenticatedContext().firestore();
     await assertSucceeds(getDoc(doc(db, 'publicListings/published_1')));
     await assertFails(getDoc(doc(db, 'publicListings/expired_123')));
+    await assertFails(getDoc(doc(db, 'publicListings/malformed_1')));
     await assertSucceeds(getDocs(query(
       collection(db, 'publicListings'),
       where('status', '==', 'published'),
@@ -59,6 +62,8 @@ describe('Firestore rules matrix', () => {
     const tenantDb = env.authenticatedContext('tenant_1').firestore();
     await assertSucceeds(getDoc(doc(tenantDb, 'tenantPortals/tenant_1/leases/lease_123')));
     await assertFails(getDoc(doc(tenantDb, 'tenantPortals/tenant_2/leases/lease_123')));
+    await assertSucceeds(getDoc(doc(landlordDb, 'reportSnapshots/report_1')));
+    await assertFails(getDoc(doc(env.authenticatedContext('landlord_2').firestore(), 'reportSnapshots/report_1')));
   });
 
   it('denies canonical client writes and protects receipts/jobs/audits', async () => {

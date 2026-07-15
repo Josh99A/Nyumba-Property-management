@@ -4,6 +4,7 @@ import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/account
 import { COLLECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { idSchema, longText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import { tenantMaintenanceProjection } from '../shared/projections';
 
 const createSchema = strictPayload({
   leaseId: idSchema.optional(),
@@ -59,7 +60,7 @@ export const maintenanceCreate: CommandHandler<z.infer<typeof createSchema>> = {
     };
     tx.create(requestRef, request);
     if (tenantUserUid) {
-      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(tenantUserUid).collection(TENANT_PORTAL_SECTIONS.maintenance).doc(cmd.aggregateId!), request);
+      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(tenantUserUid).collection(TENANT_PORTAL_SECTIONS.maintenance).doc(cmd.aggregateId!), tenantMaintenanceProjection(request));
     }
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: ['status', 'comments'] };
   },
@@ -101,7 +102,7 @@ export const maintenanceUpdateStatus: CommandHandler<z.infer<typeof statusSchema
     const changes = { status: cmd.payload.status, statusNote: cmd.payload.note ?? null, ...bumpVersion(request, now) };
     tx.update(ref, changes);
     if (request.tenantUserUid) {
-      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(request.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.maintenance).doc(cmd.aggregateId!), { ...request, ...changes });
+      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(request.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.maintenance).doc(cmd.aggregateId!), tenantMaintenanceProjection({ ...request, ...changes }));
     }
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: request.version + 1, changedFields: ['status', 'statusNote'] };
   },
@@ -130,7 +131,7 @@ export const maintenanceAddComment: CommandHandler<z.infer<typeof commentSchema>
     const changes = { comments: nextComments, ...bumpVersion(request, now) };
     tx.update(ref, changes);
     if (request.tenantUserUid) {
-      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(request.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.maintenance).doc(cmd.aggregateId!), { ...request, ...changes });
+      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(request.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.maintenance).doc(cmd.aggregateId!), tenantMaintenanceProjection({ ...request, ...changes }));
     }
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: request.version + 1, changedFields: ['comments'] };
   },

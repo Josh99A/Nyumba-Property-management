@@ -125,9 +125,20 @@ flutter devices
 flutter run -d <device-id>
 ```
 
-From **Sign in**, choose **Landlord**, **Tenant**, or **Admin** under "Explore the role demos." The regular prefilled sign-in form also opens the landlord demo. Prospective-tenant flows are available directly from **Browse available homes** and do not require a demo role.
+From **Sign in**, choose **Landlord**, **Tenant**, or **Admin** under "Explore the role demos" for a local, offline-only walkthrough. Real accounts use the same screen: sign in with email/password or Google, or create a landlord account via **Sign up**.
 
 Demo identities and data are local only; they are not Firebase accounts and must not be used as production fixtures.
+
+## Authentication and roles
+
+Firebase Authentication (email/password and Google) backs real sessions; role-based authorization is enforced server-side and mirrored in client routing:
+
+- **Landlord** — self-registration. Sign up (or continue with Google), verify your email, then complete onboarding: the `landlord.onboard` command creates the landlord account in `pending` approval with a starter-trial subscription. A platform admin approves it (`firebase/functions/scripts/approve-landlord.mjs` until the admin UI is wired), which unlocks entitled actions.
+- **Tenant** — never self-registers. A landlord adds the tenant's email (`tenant.invite`); when a user signs in with that verified email, `tenant.claimInvite` links the record, promotes the role, and provisions their portal projections automatically.
+- **Admin** — the `platformAdmin` custom claim, granted with `firebase/functions/scripts/grant-admin.mjs <email>` after the account's first sign-in.
+- **Prospective tenant** — browses `/explore` without an account; contact/application submissions use anonymous auth.
+
+Email verification is required before a session loads (Google accounts arrive verified). Roles come from the server-owned `users/{uid}` document and the admin claim — GoRouter guards are UX only; Firestore Rules and callable command checks remain the authorization boundary.
 
 ## Firebase configuration
 
@@ -139,20 +150,19 @@ dart pub global run flutterfire_cli:flutterfire configure --project nyumba-prope
 
 This writes `lib/firebase_options.dart` and the platform files (`android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`), all covered by `.gitignore`. These are client identifiers, not secrets — real protection comes from Security Rules, App Check, and API-key restrictions in the Google Cloud console — but keeping them out of the repository keeps environments explicit and prevents accidental cross-environment builds. Service accounts, `.env` files, and signing keys are likewise ignored and must never be committed.
 
+Deployed to the development project: callable command handlers (`executeCommand`), the auth provisioning trigger, background workers, Firestore/Storage rules and indexes, and the Storage default bucket (all `europe-west1`). Operational configuration is seeded with `firebase/functions/scripts/seed-entitlements.mjs`.
+
 Remaining backend work before release:
 
 1. Create the staging and production Firebase projects (same region, `europe-west1`) and run `flutterfire configure` against each.
-2. Replace the local demo session with a Firebase Auth adapter.
-3. Implement `RemoteSyncGateway` against authenticated callable Cloud Functions using [the backend command contracts](docs/architecture/backend-command-contracts.md). The current demo gateway is deliberately local and idempotent.
-4. Implement the server-authoritative command handlers described in [firebase/functions/COMMANDS.md](firebase/functions/COMMANDS.md), including entitlement, approval, publication, invoice, payment, projection, and audit checks.
-5. Validate the provided rules and queries with the Emulator Suite before deploying them to an explicitly selected non-production project:
+2. Register every platform with App Check (web reCAPTCHA v3, Android Play Integrity, iOS App Attest), ship the real site key, then flip `ENFORCE_APP_CHECK` in `firebase/functions/src/shared/config.ts` and enable console enforcement for Firestore/Storage.
+3. Integrate the payment provider and replace the starter-trial subscription placeholder with webhook-owned billing state.
+4. Configure FCM, and validate rules and commands with the Emulator Suite before each deploy:
 
    ```sh
-   cd firebase
-   firebase emulators:start --config firebase.json --project <nyumba-dev-project-id>
+   cd firebase/functions
+   npm run test:emulator
    ```
-
-6. Register and enforce App Check, configure FCM and Storage, add rules/command integration tests, and deploy with an explicit `--project` value.
 
 Review [the Firebase handoff](firebase/README.md) and [data and security model](docs/architecture/firebase-data-and-security.md) before implementing remote writes. The supplied rules intentionally deny direct client writes to canonical records.
 

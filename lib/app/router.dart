@@ -8,7 +8,9 @@ import '../features/admin/presentation/admin_subscriptions_screen.dart';
 import '../features/admin/presentation/admin_users_screen.dart';
 import '../features/auth/application/session_controller.dart';
 import '../features/auth/domain/user_session.dart';
+import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/presentation/sign_in_screen.dart';
+import '../features/auth/presentation/sign_up_screen.dart';
 import '../features/dashboard/presentation/landlord_dashboard_screen.dart';
 import '../features/documents/presentation/documents_screen.dart';
 import '../features/finance/presentation/finance_screen.dart';
@@ -82,6 +84,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/sign-in',
         pageBuilder: (context, state) =>
             _transitionPage(state: state, child: const SignInScreen()),
+      ),
+      GoRoute(
+        path: '/sign-up',
+        pageBuilder: (context, state) =>
+            _transitionPage(state: state, child: const SignUpScreen()),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        pageBuilder: (context, state) =>
+            _transitionPage(state: state, child: const OnboardingScreen()),
       ),
       GoRoute(
         path: '/explore',
@@ -240,17 +252,23 @@ String? _redirect(UserSession? session, String path) {
   final publicPath =
       path == '/' ||
       path == '/sign-in' ||
+      path == '/sign-up' ||
       path == '/explore' ||
       path.startsWith('/listing/');
   if (session == null) return publicPath ? null : '/sign-in';
 
+  // A signed-in account without a workspace role (fresh landlord sign-up or a
+  // tenant whose invitation has not been claimed yet) completes onboarding.
+  final needsOnboarding =
+      session.role == AppRole.client && !session.isAnonymous && !session.isDemo;
   final home = switch (session.role) {
     AppRole.landlord => '/dashboard',
     AppRole.tenant => '/tenant',
     AppRole.admin => '/admin',
-    AppRole.client => '/explore',
+    AppRole.client => needsOnboarding ? '/onboarding' : '/explore',
   };
-  if (path == '/sign-in') return home;
+  if (path == '/sign-in' || path == '/sign-up') return home;
+  if (path == '/onboarding') return needsOnboarding ? null : home;
   if (publicPath) return null;
 
   final allowed = switch (session.role) {

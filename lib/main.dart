@@ -27,6 +27,9 @@ Future<void> _initializeFirebase() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // Activation is pointless (and noisy) until the platforms are registered
+    // with App Check; the backend keeps enforcement off until then.
+    if (_webRecaptchaV3SiteKey.startsWith('TBD')) return;
     try {
       await FirebaseAppCheck.instance.activate(
         providerWeb: ReCaptchaV3Provider(_webRecaptchaV3SiteKey),

@@ -4,10 +4,15 @@ import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/account
 import { COLLECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { idSchema, nonNegativeMoney, optionalShortText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import { tenantLeaseProjection } from '../shared/projections';
+
+// Invite emails are stored lowercased so tenant.claimInvite can match the
+// verified token email with an exact Firestore equality query.
+const inviteEmail = z.string().email().max(320).transform((value) => value.toLowerCase());
 
 const tenantCreateSchema = strictPayload({
   displayName: shortText,
-  email: z.string().email().max(320),
+  email: inviteEmail,
   phone: z.string().trim().min(7).max(32),
   tenantUserUid: idSchema.optional(),
   notes: z.string().trim().max(2_000).optional(),
@@ -29,7 +34,7 @@ export const tenantInvite: CommandHandler<z.infer<typeof tenantCreateSchema>> = 
 
 const tenantUpdateSchema = strictPayload({
   displayName: shortText.optional(),
-  email: z.string().email().max(320).optional(),
+  email: inviteEmail.optional(),
   phone: z.string().trim().min(7).max(32).optional(),
   tenantUserUid: idSchema.optional(),
   notes: z.string().trim().max(2_000).optional(),
@@ -48,6 +53,103 @@ export const tenantUpdate: CommandHandler<z.infer<typeof tenantUpdateSchema>> = 
     const changes = Object.fromEntries(Object.entries(cmd.payload).filter(([, value]) => value !== undefined));
     tx.update(ref, { ...changes, ...bumpVersion(current, now) });
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: current.version + 1, changedFields: Object.keys(changes) };
+  },
+};
+
+const claimInviteSchema = strictPayload({});
+
+/**
+ * Executed by a signed-in user to claim tenant invitations addressed to their
+ * verified email. Tenants never self-register: a landlord creates the tenant
+ * record first (tenant.invite), and this command only links an auth account
+ * whose token email matches. It is idempotent — zero matches is a success.
+ */
+export const tenantClaimInvite: CommandHandler<Record<string, never>> = {
+  payloadSchema: claimInviteSchema,
+  aggregateIdMode: 'forbidden',
+  expectedVersionMode: 'none',
+  async apply({ tx, db, actor, cmd, now }) {
+    void cmd;
+    if (!actor.emailVerified || !actor.email) {
+      throw new DomainError('PERMISSION_DENIED', { reason: 'verifiedEmailRequired' });
+    }
+    const email = actor.email.toLowerCase();
+
+    // All reads must complete before the first buffered write.
+    const inviteSnap = await tx.get(
+      db
+        .collection(COLLECTIONS.tenantRecords)
+        .where('email', '==', email)
+        .where('inviteState', '==', 'pending')
+        .limit(20),
+    );
+    const claimable = inviteSnap.docs.filter((doc) => {
+      const record = doc.data() as { tenantUserUid?: string | null; isDeleted?: boolean };
+      const linkedElsewhere =
+        typeof record.tenantUserUid === 'string' && record.tenantUserUid !== actor.uid;
+      return record.isDeleted !== true && !linkedElsewhere;
+    });
+
+    const leaseSnaps = await Promise.all(
+      claimable.map((doc) =>
+        tx.get(
+          db
+            .collection(COLLECTIONS.leases)
+            .where('tenantRecordId', '==', doc.id)
+            .limit(10),
+        ),
+      ),
+    );
+    const userRef = db.collection(COLLECTIONS.users).doc(actor.uid);
+    const userSnap = await tx.get(userRef);
+    const user = requireAggregate<{ version: number; role?: string }>(userSnap, undefined);
+
+    let linkedLeases = 0;
+    for (const doc of claimable) {
+      const record = doc.data() as Record<string, unknown> & { version: number };
+      tx.update(doc.ref, {
+        tenantUserUid: actor.uid,
+        inviteState: 'accepted',
+        ...bumpVersion(record, now),
+      });
+    }
+    for (const leaseSnap of leaseSnaps) {
+      for (const leaseDoc of leaseSnap.docs) {
+        const lease = leaseDoc.data() as Record<string, unknown> & {
+          version: number;
+          status: string;
+          tenantUserUid?: string | null;
+        };
+        if (typeof lease.tenantUserUid === 'string' && lease.tenantUserUid !== actor.uid) continue;
+        const nextLease = { ...lease, tenantUserUid: actor.uid, ...bumpVersion(lease, now) };
+        tx.update(leaseDoc.ref, {
+          tenantUserUid: actor.uid,
+          ...bumpVersion(lease, now),
+        });
+        if (lease.status === 'active') {
+          tx.set(
+            db
+              .collection(COLLECTIONS.tenantPortals)
+              .doc(actor.uid)
+              .collection(TENANT_PORTAL_SECTIONS.leases)
+              .doc(leaseDoc.id),
+            tenantLeaseProjection(nextLease),
+          );
+        }
+        linkedLeases += 1;
+      }
+    }
+    // Admins and landlords keep their primary role; the portal projection is
+    // keyed by uid, so access still works for them.
+    if (claimable.length > 0 && (user.role === 'client' || user.role === undefined)) {
+      tx.update(userRef, { role: 'tenant', ...bumpVersion(user, now) });
+    }
+    return {
+      status: 'applied',
+      aggregateId: actor.uid,
+      safeResult: { linkedRecords: claimable.length, linkedLeases },
+      changedFields: claimable.length > 0 ? ['tenantUserUid', 'inviteState'] : [],
+    };
   },
 };
 
@@ -108,7 +210,7 @@ export const leaseActivate: CommandHandler<Record<string, never>> = {
     tx.update(leaseRef, { status: 'active', activatedAt: now, ...bumpVersion(lease, now) });
     tx.update(unitRef, { occupancyStatus: 'occupied', activeLeaseId: cmd.aggregateId!, ...bumpVersion(unit, now) });
     if (lease.tenantUserUid) {
-      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.leases).doc(cmd.aggregateId!), nextLease);
+      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.leases).doc(cmd.aggregateId!), tenantLeaseProjection(nextLease));
     }
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: lease.version + 1, changedFields: ['status', 'activatedAt'] };
   },
@@ -134,7 +236,7 @@ export const leaseEnd: CommandHandler<z.infer<typeof leaseEndSchema>> = {
     tx.update(leaseRef, { status: 'ended', endedAt: now, endReason: cmd.payload.reason ?? null, ...bumpVersion(lease, now) });
     tx.update(unitRef, { occupancyStatus: 'vacant', activeLeaseId: null, ...bumpVersion(unit, now) });
     if (lease.tenantUserUid) {
-      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.leases).doc(cmd.aggregateId!), nextLease);
+      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.leases).doc(cmd.aggregateId!), tenantLeaseProjection(nextLease));
     }
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: lease.version + 1, changedFields: ['status', 'endedAt', 'endReason'] };
   },

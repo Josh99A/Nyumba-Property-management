@@ -10,8 +10,8 @@ final leaseDocumentsProvider = StreamProvider<List<LeaseDocument>>((
   yield* deps.leaseDocuments.watchAll();
 });
 
-final tenantLeaseDocumentsProvider = StreamProvider
-    .family<List<LeaseDocument>, String>((ref, tenantId) async* {
+final tenantLeaseDocumentsProvider =
+    StreamProvider.family<List<LeaseDocument>, String>((ref, tenantId) async* {
       final deps = await ref.watch(appDependenciesProvider.future);
       yield* deps.leaseDocuments.watchAll(tenantId: tenantId);
     });

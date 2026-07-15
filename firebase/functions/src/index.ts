@@ -17,15 +17,21 @@ export const onUserCreated = functionsV1
   .onCreate(async (user) => {
     const now = Timestamp.now();
     const ref = getFirestore().collection(COLLECTIONS.users).doc(user.uid);
-    await ref.create({
-      id: user.uid,
-      displayName: user.displayName ?? '',
-      email: user.email ?? null,
-      role: 'client',
-      status: 'active',
-      version: 1,
-      createdAt: now,
-      updatedAt: now,
-      isDeleted: false,
+    // Auth triggers deliver at least once; an existing profile means an
+    // earlier attempt already succeeded and must not be overwritten.
+    await getFirestore().runTransaction(async (tx) => {
+      const existing = await tx.get(ref);
+      if (existing.exists) return;
+      tx.create(ref, {
+        id: user.uid,
+        displayName: user.displayName ?? '',
+        email: user.email ?? null,
+        role: 'client',
+        status: 'active',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+      });
     });
   });

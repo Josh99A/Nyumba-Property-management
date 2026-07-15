@@ -1,12 +1,12 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { actorFromAuth } from '../shared/actor';
-import { REGION } from '../shared/config';
+import { ENFORCE_APP_CHECK, REGION } from '../shared/config';
 import { DomainError } from '../shared/errors';
 import { executeCommandCore } from '../shared/router';
 
 export const executeCommand = onCall(
-  { region: REGION, enforceAppCheck: true },
+  { region: REGION, enforceAppCheck: ENFORCE_APP_CHECK },
   async (request) => {
     try {
       const actor = actorFromAuth(request.auth);

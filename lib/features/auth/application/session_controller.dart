@@ -3,12 +3,21 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/offline/firebase_remote_sync_gateway.dart';
 import '../domain/user_session.dart';
 
 final sessionControllerProvider =
     NotifierProvider<SessionController, UserSession?>(SessionController.new);
+
+/// Lightweight command channel for auth-time flows (onboarding, invite
+/// claims). Separate from the per-workspace sync gateway because these
+/// commands run before any workspace exists.
+final authCommandGatewayProvider = FutureProvider<FirebaseRemoteSyncGateway>(
+  (ref) => FirebaseRemoteSyncGateway.create(),
+);
 
 class SessionController extends Notifier<UserSession?> {
   StreamSubscription<User?>? _authSubscription;
@@ -87,6 +96,84 @@ class SessionController extends Notifier<UserSession?> {
     await FirebaseAuth.instance.signInAnonymously();
   }
 
+  /// Google accounts arrive email-verified, so the session loads immediately
+  /// through the auth-state listener.
+  Future<void> signInWithGoogle() async {
+    _requireFirebase();
+    final provider = GoogleAuthProvider()
+      ..setCustomParameters({'prompt': 'select_account'});
+    if (kIsWeb) {
+      await FirebaseAuth.instance.signInWithPopup(provider);
+    } else {
+      await FirebaseAuth.instance.signInWithProvider(provider);
+    }
+  }
+
+  /// Creates an email/password account destined for landlord onboarding. The
+  /// session stays signed out until the verification link is used; onboarding
+  /// itself runs from the onboarding screen on the first verified sign-in.
+  Future<void> register({
+    required String displayName,
+    required String email,
+    required String password,
+  }) async {
+    _requireFirebase();
+    final credential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email.trim(), password: password);
+    await credential.user?.updateDisplayName(displayName.trim());
+    await credential.user?.sendEmailVerification();
+  }
+
+  /// Promotes the verified signed-in user to a landlord (pending approval)
+  /// through the server-authoritative landlord.onboard command.
+  Future<void> completeLandlordOnboarding({
+    required String phone,
+    String? businessName,
+  }) async {
+    _requireFirebase();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.isAnonymous) {
+      throw StateError('Sign in before setting up a landlord workspace.');
+    }
+    final gateway = await ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: 'landlord.onboard',
+      aggregateId: user.uid,
+      expectedVersion: 0,
+      payload: <String, Object?>{
+        'phone': phone,
+        if (businessName != null && businessName.trim().isNotEmpty)
+          'businessName': businessName.trim(),
+      },
+    );
+    await refreshSession();
+  }
+
+  /// Links any pending tenant invitations addressed to this verified email.
+  /// Returns how many tenant records were linked; the session reloads when the
+  /// role changes to tenant.
+  Future<int> claimTenantInvites() async {
+    _requireFirebase();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.isAnonymous) return 0;
+    final gateway = await ref.read(authCommandGatewayProvider.future);
+    final response = await gateway.sendCommand(type: 'tenant.claimInvite');
+    final result = response['result'];
+    final linked = result is Map
+        ? (result['linkedRecords'] as num?)?.toInt() ?? 0
+        : 0;
+    if (linked > 0) await refreshSession();
+    return linked;
+  }
+
+  /// Re-resolves the session from the server (fresh claims, users document,
+  /// and landlord approval state).
+  Future<void> refreshSession() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    await _loadVerifiedSession(user, ++_generation);
+  }
+
   Future<void> sendPasswordResetEmail(String email) async {
     _requireFirebase();
     await FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
@@ -121,9 +208,26 @@ class SessionController extends Notifier<UserSession?> {
         return;
       }
     }
-    if (generation != _generation) return;
     final data = userDocument?.data() ?? const <String, dynamic>{};
     final platformAdmin = token.claims?['platformAdmin'] == true;
+    final role = platformAdmin
+        ? AppRole.admin
+        : _roleFromServer(data['role']?.toString(), user.isAnonymous);
+    var accountStatus = _statusFromServer(data['status']?.toString());
+    if (role == AppRole.landlord) {
+      // Approval lives on the server-owned landlord account, not the user
+      // document, so suspension or pending review applies on next load.
+      final account = await FirebaseFirestore.instance
+          .collection('landlordAccounts')
+          .doc(user.uid)
+          .get(const GetOptions(source: Source.server));
+      accountStatus = switch (account.data()?['approvalStatus']?.toString()) {
+        'pending' => AccountStatus.pendingApproval,
+        'suspended' => AccountStatus.suspended,
+        _ => accountStatus,
+      };
+    }
+    if (generation != _generation) return;
     state = UserSession(
       userId: user.uid,
       displayName:
@@ -132,13 +236,26 @@ class SessionController extends Notifier<UserSession?> {
           (user.isAnonymous ? 'Prospective tenant' : 'Nyumba user'),
       email: data['email']?.toString() ?? user.email ?? '',
       phone: data['phone']?.toString() ?? user.phoneNumber ?? '',
-      role: platformAdmin
-          ? AppRole.admin
-          : _roleFromServer(data['role']?.toString(), user.isAnonymous),
-      accountStatus: _statusFromServer(data['status']?.toString()),
+      role: role,
+      accountStatus: accountStatus,
       emailVerified: user.emailVerified,
       isAnonymous: user.isAnonymous,
     );
+    if (role == AppRole.client && !user.isAnonymous) {
+      // An invited tenant signs in as a plain account; linking happens
+      // server-side against the verified email and upgrades the role.
+      unawaited(_autoClaimInvites(generation));
+    }
+  }
+
+  Future<void> _autoClaimInvites(int generation) async {
+    try {
+      if (generation != _generation) return;
+      await claimTenantInvites();
+    } on Object {
+      // Best-effort: offline or backend-unavailable claims retry on the next
+      // sign-in, and the onboarding screen exposes a manual retry.
+    }
   }
 
   void updateProfile({

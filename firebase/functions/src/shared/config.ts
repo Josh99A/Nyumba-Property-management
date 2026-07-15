@@ -5,6 +5,15 @@ import { DomainError } from './errors';
 /** Finalized deployment region (docs/architecture/README.md). */
 export const REGION = 'europe-west1';
 
+/**
+ * TODO(release): flip to true once every Flutter platform is registered with
+ * App Check (web reCAPTCHA v3, Android Play Integrity, iOS App Attest) and the
+ * client ships real provider keys. Enforcing before registration would reject
+ * every callable command; Firestore/Storage enforcement is likewise enabled in
+ * the console only after registration (docs/architecture/README.md).
+ */
+export const ENFORCE_APP_CHECK = false;
+
 /** Finalized market configuration mirrored from lib/core/config/market_config.dart. */
 export const CURRENCY = 'UGX';
 export const LISTING_LIFETIME_DAYS = 30;

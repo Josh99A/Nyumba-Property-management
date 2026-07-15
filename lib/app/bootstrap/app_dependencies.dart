@@ -244,6 +244,17 @@ Future<AppDependencies> createAppDependencies({
       ]) {
         remotePullCoordinator.watch(type, landlordId: session.userId);
       }
+    } else if (session.role == AppRole.tenant) {
+      for (final type in const [
+        OfflineEntityType.tenancy,
+        OfflineEntityType.invoice,
+        OfflineEntityType.payment,
+        OfflineEntityType.maintenanceRequest,
+        OfflineEntityType.document,
+        OfflineEntityType.notice,
+      ]) {
+        remotePullCoordinator.watch(type, tenantUid: session.userId);
+      }
     } else if (session.role == AppRole.client) {
       remotePullCoordinator.watch(
         OfflineEntityType.application,

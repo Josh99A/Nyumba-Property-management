@@ -84,18 +84,16 @@ final class SembastRentPaymentRepository implements RentPaymentRepository {
   }
 
   @override
-  Stream<List<RentPayment>> watchAll({
-    String? landlordId,
-    String? tenancyId,
-  }) => _database
-      .watchEntities(OfflineEntityType.payment)
-      .map(
-        (items) => _filterAndSort(
-          items.map(RentPaymentMapper.fromJson),
-          landlordId,
-          tenancyId,
-        ),
-      );
+  Stream<List<RentPayment>> watchAll({String? landlordId, String? tenancyId}) =>
+      _database
+          .watchEntities(OfflineEntityType.payment)
+          .map(
+            (items) => _filterAndSort(
+              items.map(RentPaymentMapper.fromJson),
+              landlordId,
+              tenancyId,
+            ),
+          );
 
   static List<RentPayment> _filterAndSort(
     Iterable<RentPayment> items,

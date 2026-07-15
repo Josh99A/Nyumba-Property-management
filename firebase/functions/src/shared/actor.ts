@@ -7,6 +7,8 @@ import { DomainError } from './errors';
  */
 export interface Actor {
   uid: string;
+  /** Token email; only trustworthy for linking when emailVerified is true. */
+  email: string | null;
   platformAdmin: boolean;
   emailVerified: boolean;
   signInProvider: string | null;
@@ -17,6 +19,7 @@ export function actorFromAuth(auth: AuthData | undefined): Actor {
   const token = auth.token;
   return {
     uid: auth.uid,
+    email: typeof token.email === 'string' ? token.email : null,
     platformAdmin: token.platformAdmin === true,
     emailVerified: token.email_verified === true,
     signInProvider: token.firebase?.sign_in_provider ?? null,

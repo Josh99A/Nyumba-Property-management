@@ -9,6 +9,8 @@ import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
+import '../../auth/domain/user_session.dart';
 import '../application/dashboard_snapshot.dart';
 import 'widgets/dashboard_cards.dart';
 
@@ -18,6 +20,7 @@ class LandlordDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final snapshot = ref.watch(dashboardSnapshotProvider);
+    final session = ref.watch(sessionControllerProvider);
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         context.pageGutter,
@@ -39,6 +42,10 @@ class LandlordDashboardScreen extends ConsumerWidget {
                   label: const Text('Add property'),
                 ),
               ),
+              if (session?.accountStatus == AccountStatus.pendingApproval) ...[
+                const SizedBox(height: 14),
+                const _PendingApprovalBanner(),
+              ],
               const SizedBox(height: 22),
               _KpiGrid(snapshot: snapshot),
               const SizedBox(height: 20),
@@ -80,6 +87,43 @@ class LandlordDashboardScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PendingApprovalBanner extends StatelessWidget {
+  const _PendingApprovalBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: context.nyumba.goldTint,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.nyumba.goldBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.pending_actions_outlined,
+            size: 18,
+            color: context.nyumba.terracottaDark,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Your landlord account is awaiting review. You can prepare your '
+              'portfolio now; publishing listings and inviting tenants unlock '
+              'once an administrator approves the account.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: context.nyumba.terracottaDark,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

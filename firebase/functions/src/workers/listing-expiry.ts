@@ -51,7 +51,7 @@ export const expirePublicListings = onSchedule(
           attemptCount: 0, nextAttemptAt: now, leaseUntil: null, createdAt: now, updatedAt: now,
         });
         writeAudit(tx, db, now, {
-          actor: { uid: 'system', platformAdmin: true, emailVerified: true, signInProvider: null },
+          actor: { uid: 'system', email: null, platformAdmin: true, emailVerified: true, signInProvider: null },
           commandId: guardId,
           commandType: 'listing.expire',
           aggregateId: candidate.id,

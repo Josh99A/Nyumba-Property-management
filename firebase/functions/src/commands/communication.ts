@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { newAggregate, requireAbsent } from '../shared/aggregates';
-import { requireActiveLandlord } from '../shared/accounts';
+import { newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
+import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
 import { createJob, longText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
 
@@ -24,6 +24,15 @@ export const noticePublish: CommandHandler<z.infer<typeof noticeSchema>> = {
     const ref = db.collection(COLLECTIONS.notices).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     requireAbsent(snapshot);
+    // A scoped audience must reference an aggregate this landlord owns; the
+    // fanout worker then narrows delivery to exactly that scope.
+    if (cmd.payload.audience === 'property' || cmd.payload.audience === 'lease') {
+      const targetCollection =
+        cmd.payload.audience === 'property' ? COLLECTIONS.properties : COLLECTIONS.leases;
+      const targetSnap = await tx.get(db.collection(targetCollection).doc(cmd.payload.audienceId!));
+      const target = requireAggregate<{ version: number; landlordId: string }>(targetSnap, undefined);
+      requireOwnedByLandlord(target, landlord.landlordId);
+    }
     tx.create(ref, {
       ...newAggregate(cmd.aggregateId!, now), landlordId: landlord.landlordId,
       ...cmd.payload, audienceId: cmd.payload.audienceId ?? null, publishState: 'pending', publishedAt: null,

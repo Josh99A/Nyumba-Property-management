@@ -70,7 +70,9 @@ final class SembastNoticeRepository implements NoticeRepository {
   @override
   Stream<List<Notice>> watchAll({String? landlordId}) => _database
       .watchEntities(OfflineEntityType.notice)
-      .map((items) => _filterAndSort(items.map(NoticeMapper.fromJson), landlordId));
+      .map(
+        (items) => _filterAndSort(items.map(NoticeMapper.fromJson), landlordId),
+      );
 
   static List<Notice> _filterAndSort(
     Iterable<Notice> items,

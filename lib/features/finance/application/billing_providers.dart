@@ -10,8 +10,8 @@ final rentPaymentsProvider = StreamProvider<List<RentPayment>>((ref) async* {
 });
 
 /// Payments belonging to one tenancy, newest first.
-final tenancyPaymentsProvider = StreamProvider
-    .family<List<RentPayment>, String>((ref, tenancyId) async* {
+final tenancyPaymentsProvider =
+    StreamProvider.family<List<RentPayment>, String>((ref, tenancyId) async* {
       final deps = await ref.watch(appDependenciesProvider.future);
       yield* deps.payments.watchAll(tenancyId: tenancyId);
     });
@@ -35,10 +35,7 @@ class RecordRentPayment {
     if (tenancy == null) {
       throw EntityNotFoundException('tenancy', input.tenancyId);
     }
-    final payment = await deps.payments.record(
-      tenancy: tenancy,
-      input: input,
-    );
+    final payment = await deps.payments.record(tenancy: tenancy, input: input);
     await deps.tenancies.adjustBalance(
       tenancyId: tenancy.id,
       deltaMinor: -input.amountMinor,

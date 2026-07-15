@@ -4,6 +4,7 @@ import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../s
 import { COLLECTIONS, CLIENT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { createJob, idSchema, longText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import { clientApplicationProjection, clientContactProjection } from '../shared/projections';
 
 const applicationSchema = strictPayload({
   listingId: idSchema,
@@ -22,10 +23,12 @@ export const applicationSubmit: CommandHandler<z.infer<typeof applicationSchema>
     const appRef = db.collection(COLLECTIONS.applications).doc(cmd.aggregateId!);
     const publicRef = db.collection(COLLECTIONS.publicListings).doc(cmd.payload.listingId);
     const privateRef = db.collection(COLLECTIONS.privateListings).doc(cmd.payload.listingId);
+    // Fetch a handful and filter in code so a withdrawn application does not
+    // permanently block re-applying (avoids an extra composite index).
     const duplicateQuery = db.collection(COLLECTIONS.applications)
       .where('listingId', '==', cmd.payload.listingId)
       .where('applicantUid', '==', actor.uid)
-      .limit(1);
+      .limit(10);
     const [appSnap, publicSnap, privateSnap, duplicates] = await Promise.all([
       tx.get(appRef), tx.get(publicRef), tx.get(privateRef), tx.get(duplicateQuery),
     ]);
@@ -36,18 +39,18 @@ export const applicationSubmit: CommandHandler<z.infer<typeof applicationSchema>
       throw new DomainError('NOT_FOUND');
     }
     if (!privateSnap.exists || typeof privateListing?.landlordId !== 'string') throw new DomainError('NOT_FOUND');
-    if (!duplicates.empty) throw new DomainError('ALREADY_EXISTS');
+    const hasOpenApplication = duplicates.docs.some(
+      (document) => document.data().status !== 'withdrawn',
+    );
+    if (hasOpenApplication) throw new DomainError('ALREADY_EXISTS');
     const canonical = {
       ...newAggregate(cmd.aggregateId!, now), listingId: cmd.payload.listingId,
       landlordId: privateListing.landlordId, applicantUid: actor.uid,
       displayName: cmd.payload.displayName, email: cmd.payload.email, phone: cmd.payload.phone,
       message: cmd.payload.message, answers: cmd.payload.answers, status: 'submitted', landlordNotes: null,
     };
-    const projection = { ...canonical } as Record<string, unknown>;
-    delete projection.landlordNotes;
-    delete projection.landlordId;
     tx.create(appRef, canonical);
-    tx.set(db.collection(COLLECTIONS.clientPortals).doc(actor.uid).collection(CLIENT_PORTAL_SECTIONS.applications).doc(cmd.aggregateId!), projection);
+    tx.set(db.collection(COLLECTIONS.clientPortals).doc(actor.uid).collection(CLIENT_PORTAL_SECTIONS.applications).doc(cmd.aggregateId!), clientApplicationProjection(canonical));
     createJob(tx, db, `${cmd.commandId}_notify`, 'notifyLandlordApplication', { applicationId: cmd.aggregateId!, landlordId: privateListing.landlordId }, now);
     return { status: 'accepted', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: ['status'] };
   },
@@ -65,7 +68,7 @@ export const applicationWithdraw: CommandHandler<Record<string, never>> = {
     if (application.status !== 'submitted') throw new DomainError('VALIDATION_FAILED', { reason: 'applicationNotWithdrawable' });
     const changes = { status: 'withdrawn', withdrawnAt: now, ...bumpVersion(application, now) };
     tx.update(ref, changes);
-    tx.set(db.collection(COLLECTIONS.clientPortals).doc(actor.uid).collection(CLIENT_PORTAL_SECTIONS.applications).doc(cmd.aggregateId!), { ...application, ...changes });
+    tx.set(db.collection(COLLECTIONS.clientPortals).doc(actor.uid).collection(CLIENT_PORTAL_SECTIONS.applications).doc(cmd.aggregateId!), clientApplicationProjection({ ...application, ...changes }));
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: application.version + 1, changedFields: ['status', 'withdrawnAt'] };
   },
 };
@@ -106,7 +109,9 @@ export const contactSubmit: CommandHandler<z.infer<typeof contactSchema>> = {
       message: cmd.payload.message, deliveryState: 'pending',
     };
     tx.create(ref, contact);
-    tx.set(db.collection(COLLECTIONS.clientPortals).doc(actor.uid).collection(CLIENT_PORTAL_SECTIONS.contactRequests).doc(cmd.aggregateId!), contact);
+    // The requester projection must not reveal the landlord's UID; the public
+    // listing only exposes an opaque contact token.
+    tx.set(db.collection(COLLECTIONS.clientPortals).doc(actor.uid).collection(CLIENT_PORTAL_SECTIONS.contactRequests).doc(cmd.aggregateId!), clientContactProjection(contact));
     createJob(tx, db, `${cmd.commandId}_notify`, 'deliverContactRequest', { contactRequestId: cmd.aggregateId!, landlordId: privateListing?.landlordId }, now);
     return { status: 'accepted', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: ['deliveryState'] };
   },

@@ -4,6 +4,11 @@ import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/account
 import { COLLECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { createJob, idSchema, nonNegativeMoney, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import {
+  tenantInvoiceProjection,
+  tenantPaymentProjection,
+  tenantReceiptProjection,
+} from '../shared/projections';
 
 const lineItemSchema = z.object({ description: shortText, amountMinor: nonNegativeMoney }).strict();
 const invoiceSchema = strictPayload({
@@ -35,7 +40,7 @@ export const invoiceGenerate: CommandHandler<z.infer<typeof invoiceSchema>> = {
     };
     tx.create(invoiceRef, invoice);
     if (lease.tenantUserUid) {
-      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.invoices).doc(cmd.aggregateId!), invoice);
+      tx.set(db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.invoices).doc(cmd.aggregateId!), tenantInvoiceProjection(invoice));
     }
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, safeResult: { totalMinor }, changedFields: ['lineItems', 'totalMinor', 'balanceMinor', 'status'] };
   },
@@ -86,11 +91,11 @@ export const paymentRecordManual: CommandHandler<z.infer<typeof manualPaymentSch
     });
     if (invoice.tenantUserUid) {
       const portal = db.collection(COLLECTIONS.tenantPortals).doc(invoice.tenantUserUid);
-      tx.set(portal.collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!), payment);
-      tx.set(portal.collection(TENANT_PORTAL_SECTIONS.receipts).doc(receiptId), receipt);
-      tx.set(portal.collection(TENANT_PORTAL_SECTIONS.invoices).doc(cmd.payload.invoiceId), {
+      tx.set(portal.collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!), tenantPaymentProjection(payment));
+      tx.set(portal.collection(TENANT_PORTAL_SECTIONS.receipts).doc(receiptId), tenantReceiptProjection(receipt));
+      tx.set(portal.collection(TENANT_PORTAL_SECTIONS.invoices).doc(cmd.payload.invoiceId), tenantInvoiceProjection({
         ...invoice, balanceMinor: nextBalance, status: nextStatus, ...bumpVersion(invoice, now),
-      });
+      }));
     }
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, safeResult: { receiptId, receiptNumber }, changedFields: ['status', 'confirmedAt', 'allocations', 'receiptId'] };
   },
@@ -133,7 +138,7 @@ export const paymentInitiate: CommandHandler<z.infer<typeof initiateSchema>> = {
     };
     tx.create(paymentRef, payment);
     createJob(tx, db, `${cmd.commandId}_provider`, 'initiatePayment', { paymentId: cmd.aggregateId!, providerKey: providerSnap.data()?.providerKey }, now);
-    tx.set(db.collection(COLLECTIONS.tenantPortals).doc(actor.uid).collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!), payment);
+    tx.set(db.collection(COLLECTIONS.tenantPortals).doc(actor.uid).collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!), tenantPaymentProjection(payment));
     return { status: 'accepted', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: ['status'] };
   },
 };
