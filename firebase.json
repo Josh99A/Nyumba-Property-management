@@ -31,7 +31,26 @@
     ],
     "headers": [
       {
+        "comment": "Header globs match the REQUEST path, not the rewrite target, so '/' must be listed explicitly or it falls back to Firebase's 1-hour default and serves a stale app after a deploy. These filenames are stable while their contents change every build, so they must always be revalidated.",
+        "source": "/",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      },
+      {
         "source": "/index.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      },
+      {
+        "source": "/main.dart.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      },
+      {
+        "source": "/flutter_bootstrap.js",
         "headers": [
           { "key": "Cache-Control", "value": "no-cache" }
         ]
