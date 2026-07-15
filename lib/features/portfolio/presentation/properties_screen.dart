@@ -15,6 +15,7 @@ import '../application/portfolio_use_cases.dart';
 import '../domain/property.dart';
 import '../domain/unit.dart';
 import 'portfolio_visuals.dart';
+import 'property_photo_picker.dart';
 
 class PropertiesScreen extends ConsumerStatefulWidget {
   const PropertiesScreen({super.key, this.openCreateOnLoad = false});
@@ -183,6 +184,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     final address = TextEditingController();
     final city = TextEditingController(text: 'Kampala');
     final description = TextEditingController();
+    final selectedPhotos = <PickedPropertyPhoto>[];
     String? error;
     final property = await showDialog<Property>(
       context: context,
@@ -236,6 +238,75 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                         labelText: 'Description (optional)',
                       ),
                     ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Property photos',
+                                style: Theme.of(context).textTheme.titleSmall,
+                              ),
+                              Text(
+                                'Add 1–5 photos. The primary photo appears first.',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: selectedPhotos.length >= propertyPhotoLimit
+                              ? null
+                              : () async {
+                                  final result = await pickPropertyPhotos(
+                                    remainingSlots:
+                                        propertyPhotoLimit -
+                                        selectedPhotos.length,
+                                  );
+                                  if (!context.mounted) return;
+                                  setDialogState(() {
+                                    selectedPhotos.addAll(result.photos);
+                                    error = result.rejectedMessages.isEmpty
+                                        ? null
+                                        : result.rejectedMessages.join(' ');
+                                  });
+                                },
+                          icon: const Icon(Icons.add_photo_alternate_outlined),
+                          label: const Text('Add photos'),
+                        ),
+                      ],
+                    ),
+                    if (selectedPhotos.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (
+                            var index = 0;
+                            index < selectedPhotos.length;
+                            index++
+                          )
+                            _SelectedPropertyPhoto(
+                              photo: selectedPhotos[index],
+                              isPrimary: index == 0,
+                              onSetPrimary: index == 0
+                                  ? null
+                                  : () => setDialogState(() {
+                                      final photo = selectedPhotos.removeAt(
+                                        index,
+                                      );
+                                      selectedPhotos.insert(0, photo);
+                                    }),
+                              onRemove: () => setDialogState(
+                                () => selectedPhotos.removeAt(index),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                     if (error != null) ...[
                       const SizedBox(height: 12),
                       Text(
@@ -256,6 +327,12 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
             FilledButton(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
+                if (selectedPhotos.isEmpty) {
+                  setDialogState(
+                    () => error = 'Add at least one property photo.',
+                  );
+                  return;
+                }
                 try {
                   final created = await ref.read(createPropertyProvider)(
                     CreatePropertyInput(
@@ -264,6 +341,9 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                       addressLine: address.text.trim(),
                       city: city.text.trim(),
                       description: description.text.trim(),
+                      imageUrls: selectedPhotos
+                          .map((photo) => photo.dataUri)
+                          .toList(),
                     ),
                   );
                   if (context.mounted) Navigator.pop(context, created);
@@ -398,10 +478,7 @@ class _PropertyCard extends StatelessWidget {
                 ),
                 child: AspectRatio(
                   aspectRatio: 3 / 1.45,
-                  child: Image.asset(
-                    propertyAssetForName(property.name),
-                    fit: BoxFit.cover,
-                  ),
+                  child: propertyImage(property),
                 ),
               ),
               if (pending)
@@ -482,6 +559,72 @@ class _PropertyCard extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectedPropertyPhoto extends StatelessWidget {
+  const _SelectedPropertyPhoto({
+    required this.photo,
+    required this.isPrimary,
+    required this.onSetPrimary,
+    required this.onRemove,
+  });
+
+  final PickedPropertyPhoto photo;
+  final bool isPrimary;
+  final VoidCallback? onSetPrimary;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 104,
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(9),
+                child: Image.memory(
+                  photo.bytes,
+                  width: 104,
+                  height: 76,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned(
+                right: 3,
+                top: 3,
+                child: IconButton.filledTonal(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Remove ${photo.name}',
+                  onPressed: onRemove,
+                  icon: const Icon(Icons.close_rounded, size: 16),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          if (isPrimary)
+            Text(
+              'Primary',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: context.nyumba.sageGreen,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            TextButton(
+              onPressed: onSetPrimary,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+              ),
+              child: const Text('Make primary'),
+            ),
         ],
       ),
     );

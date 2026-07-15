@@ -96,4 +96,38 @@ void main() {
       ),
     );
   });
+
+  test('property commands send only five staged image paths in order', () {
+    final gateway = FirebaseRemoteSyncGateway(
+      installationId: 'install_1234',
+      appVersion: '1.2.3',
+      platform: 'web',
+      invoke: (_) async => <String, Object?>{},
+    );
+    final mutation = RemoteMutation(
+      mutationId: 'outbox_property',
+      entityType: OfflineEntityType.property,
+      entityId: 'property_1234',
+      operation: OutboxOperation.create,
+      payload: <String, Object?>{
+        'name': 'Acacia Court',
+        'addressLine': '12 Acacia Avenue',
+        'city': 'Kampala',
+        'imageUrls': <String>[
+          'data:image/png;base64,AA==',
+          for (var index = 0; index < 6; index++)
+            'uploads/landlord/command/photo-$index.webp',
+        ],
+      },
+      idempotencyKey: 'command_property',
+      clientCreatedAt: createdAt,
+    );
+
+    final envelope = gateway.buildEnvelope(mutation);
+    final payload = envelope['payload']! as Map<String, Object?>;
+    expect(payload['stagedImagePaths'], <String>[
+      for (var index = 0; index < 5; index++)
+        'uploads/landlord/command/photo-$index.webp',
+    ]);
+  });
 }

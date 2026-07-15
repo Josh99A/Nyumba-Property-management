@@ -7,6 +7,7 @@ import '../features/admin/presentation/admin_reports_screen.dart';
 import '../features/admin/presentation/admin_subscriptions_screen.dart';
 import '../features/admin/presentation/admin_users_screen.dart';
 import '../features/auth/application/session_controller.dart';
+import '../features/auth/domain/authorization_policy.dart';
 import '../features/auth/domain/user_session.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/presentation/sign_in_screen.dart';
@@ -264,30 +265,39 @@ String? _redirect(UserSession? session, String path) {
   final home = switch (session.role) {
     AppRole.landlord => '/dashboard',
     AppRole.tenant => '/tenant',
-    AppRole.admin => '/admin',
+    AppRole.superAdmin || AppRole.admin => '/admin',
     AppRole.client => needsOnboarding ? '/onboarding' : '/explore',
   };
   if (path == '/sign-in' || path == '/sign-up') return home;
   if (path == '/onboarding') return needsOnboarding ? null : home;
   if (publicPath) return null;
 
-  final allowed = switch (session.role) {
-    AppRole.landlord =>
+  final adminPath = path == '/admin' || path.startsWith('/admin/');
+  final portfolioPath =
+      path == '/dashboard' ||
+      path == '/properties' ||
+      path.startsWith('/properties/') ||
+      path == '/tenants' ||
+      path == '/finances' ||
+      path == '/maintenance' ||
+      path == '/listings' ||
+      path == '/documents';
+  final allowed =
       path == '/settings' ||
-          path == '/dashboard' ||
-          path == '/properties' ||
-          path.startsWith('/properties/') ||
-          path == '/tenants' ||
-          path == '/finances' ||
-          path == '/maintenance' ||
-          path == '/listings' ||
-          path == '/documents',
-    AppRole.tenant =>
-      path == '/settings' || path == '/tenant' || path.startsWith('/tenant/'),
-    AppRole.admin =>
-      path == '/settings' || path == '/admin' || path.startsWith('/admin/'),
-    AppRole.client => false,
-  };
+      (adminPath &&
+          AuthorizationPolicy.allows(
+            session.role,
+            AppResource.userAccount,
+            CrudOperation.read,
+          )) ||
+      (portfolioPath &&
+          AuthorizationPolicy.allows(
+            session.role,
+            AppResource.property,
+            CrudOperation.read,
+          )) ||
+      (session.role == AppRole.tenant &&
+          (path == '/tenant' || path.startsWith('/tenant/')));
   return allowed ? null : home;
 }
 

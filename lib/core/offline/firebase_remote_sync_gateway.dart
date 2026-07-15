@@ -178,11 +178,21 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
       ),
       (OfflineEntityType.property, OutboxOperation.create) => _RemoteCommand(
         'property.create',
-        pick(['name', 'addressLine', 'city', 'district', 'description']),
+        <String, Object?>{
+          ...pick(['name', 'addressLine', 'city', 'district', 'description']),
+          'stagedImagePaths': _stringList(
+            payload['stagedImagePaths'] ?? payload['imageUrls'],
+          ).where((path) => path.startsWith('uploads/')).take(5).toList(),
+        },
       ),
       (OfflineEntityType.property, OutboxOperation.update) => _RemoteCommand(
         'property.update',
-        pick(['name', 'addressLine', 'city', 'district', 'description']),
+        <String, Object?>{
+          ...pick(['name', 'addressLine', 'city', 'district', 'description']),
+          'stagedImagePaths': _stringList(
+            payload['stagedImagePaths'] ?? payload['imageUrls'],
+          ).where((path) => path.startsWith('uploads/')).take(5).toList(),
+        },
       ),
       (OfflineEntityType.property, OutboxOperation.delete) =>
         const _RemoteCommand('property.archive', <String, Object?>{}),

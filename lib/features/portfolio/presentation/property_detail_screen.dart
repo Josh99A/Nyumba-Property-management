@@ -436,23 +436,151 @@ class _PropertyHero extends StatelessWidget {
   }
 }
 
-class _HeroImage extends StatelessWidget {
+class _HeroImage extends StatefulWidget {
   const _HeroImage({required this.property});
 
   final Property property;
 
   @override
+  State<_HeroImage> createState() => _HeroImageState();
+}
+
+class _HeroImageState extends State<_HeroImage> {
+  final _controller = PageController();
+  int _currentIndex = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final imageCount = widget.property.imageUrls.isEmpty
+        ? 1
+        : widget.property.imageUrls.length;
     return ClipRRect(
       borderRadius: context.isCompact
           ? const BorderRadius.vertical(top: Radius.circular(11))
           : const BorderRadius.horizontal(left: Radius.circular(11)),
       child: AspectRatio(
         aspectRatio: context.isCompact ? 2 : 1.5,
-        child: Image.asset(
-          propertyAssetForName(property.name),
-          fit: BoxFit.cover,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Semantics(
+              label: 'Property photos',
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: imageCount,
+                onPageChanged: (index) => setState(() => _currentIndex = index),
+                itemBuilder: (context, index) => propertyImage(
+                  widget.property,
+                  index: widget.property.imageUrls.isEmpty ? -1 : index,
+                ),
+              ),
+            ),
+            if (imageCount > 1) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _CarouselButton(
+                  tooltip: 'Previous photo',
+                  icon: Icons.chevron_left_rounded,
+                  onPressed: () =>
+                      _goTo((_currentIndex - 1 + imageCount) % imageCount),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: _CarouselButton(
+                  tooltip: 'Next photo',
+                  icon: Icons.chevron_right_rounded,
+                  onPressed: () => _goTo((_currentIndex + 1) % imageCount),
+                ),
+              ),
+              Positioned(
+                bottom: 12,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (var index = 0; index < imageCount; index++)
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: index == _currentIndex ? 18 : 7,
+                        height: 7,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          color: index == _currentIndex
+                              ? Colors.white
+                              : Colors.white70,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Positioned(
+                right: 12,
+                top: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_currentIndex + 1}/$imageCount',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelSmall?.copyWith(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
+      ),
+    );
+  }
+
+  void _goTo(int index) {
+    _controller.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOut,
+    );
+  }
+}
+
+class _CarouselButton extends StatelessWidget {
+  const _CarouselButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: IconButton.filled(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.black45,
+          foregroundColor: Colors.white,
+        ),
+        icon: Icon(icon),
       ),
     );
   }

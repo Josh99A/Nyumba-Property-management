@@ -43,6 +43,13 @@ class SessionController extends Notifier<UserSession?> {
 
   void startDemo(AppRole role) {
     state = switch (role) {
+      AppRole.superAdmin => const UserSession(
+        userId: 'demo-super-admin-001',
+        displayName: 'Nyumba Super Admin',
+        email: 'superadmin@demo.nyumba.ug',
+        role: AppRole.superAdmin,
+        isDemo: true,
+      ),
       AppRole.landlord => const UserSession(
         userId: 'demo-landlord-001',
         displayName: 'Joshua Mugisha',
@@ -209,8 +216,11 @@ class SessionController extends Notifier<UserSession?> {
       }
     }
     final data = userDocument?.data() ?? const <String, dynamic>{};
+    final superAdmin = token.claims?['superAdmin'] == true;
     final platformAdmin = token.claims?['platformAdmin'] == true;
-    final role = platformAdmin
+    final role = superAdmin
+        ? AppRole.superAdmin
+        : platformAdmin
         ? AppRole.admin
         : _roleFromServer(data['role']?.toString(), user.isAnonymous);
     var accountStatus = _statusFromServer(data['status']?.toString());

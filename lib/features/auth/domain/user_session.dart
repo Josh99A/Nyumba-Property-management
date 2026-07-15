@@ -1,4 +1,14 @@
-enum AppRole { admin, landlord, tenant, client }
+enum AppRole { superAdmin, admin, landlord, tenant, client }
+
+extension AppRolePresentation on AppRole {
+  String get label => switch (this) {
+    AppRole.superAdmin => 'Super Admin',
+    AppRole.admin => 'Admin',
+    AppRole.landlord => 'Landlord',
+    AppRole.tenant => 'Tenant',
+    AppRole.client => 'Prospective Client',
+  };
+}
 
 enum AccountStatus { active, pendingApproval, suspended }
 

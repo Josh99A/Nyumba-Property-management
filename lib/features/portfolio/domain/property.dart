@@ -13,7 +13,8 @@ final class Property {
     required this.updatedAt,
     required this.syncMetadata,
     this.description,
-  }) {
+    List<String> imageUrls = const <String>[],
+  }) : imageUrls = List.unmodifiable(imageUrls) {
     validate();
   }
 
@@ -24,6 +25,9 @@ final class Property {
   final String city;
   final String country;
   final String? description;
+
+  /// Ordered property images. The first image is the primary image.
+  final List<String> imageUrls;
   final DateTime createdAt;
   final DateTime updatedAt;
   final SyncMetadata syncMetadata;
@@ -37,6 +41,11 @@ final class Property {
       'city': DomainValidation.requiredText(city, maxLength: 100),
       'country': DomainValidation.requiredText(country, maxLength: 100),
       'description': DomainValidation.optionalText(description),
+      'imageUrls': imageUrls.any((url) => url.trim().isEmpty)
+          ? 'must not contain empty image references'
+          : imageUrls.length > 5
+          ? 'must contain at most 5 images'
+          : null,
       'updatedAt': updatedAt.isBefore(createdAt)
           ? 'must not be before createdAt'
           : null,
@@ -50,6 +59,7 @@ final class Property {
     String? country,
     String? description,
     bool clearDescription = false,
+    List<String>? imageUrls,
     DateTime? updatedAt,
     SyncMetadata? syncMetadata,
   }) => Property(
@@ -60,6 +70,7 @@ final class Property {
     city: city ?? this.city,
     country: country ?? this.country,
     description: clearDescription ? null : (description ?? this.description),
+    imageUrls: imageUrls ?? this.imageUrls,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncMetadata: syncMetadata ?? this.syncMetadata,
@@ -74,6 +85,7 @@ final class CreatePropertyInput {
     required this.city,
     this.country = 'Uganda',
     this.description,
+    this.imageUrls = const <String>[],
   });
 
   final String landlordId;
@@ -82,6 +94,7 @@ final class CreatePropertyInput {
   final String city;
   final String country;
   final String? description;
+  final List<String> imageUrls;
 
   void validate() {
     DomainValidation.check(<String, String?>{
@@ -91,6 +104,11 @@ final class CreatePropertyInput {
       'city': DomainValidation.requiredText(city, maxLength: 100),
       'country': DomainValidation.requiredText(country, maxLength: 100),
       'description': DomainValidation.optionalText(description),
+      'imageUrls': imageUrls.any((url) => url.trim().isEmpty)
+          ? 'must not contain empty image references'
+          : imageUrls.length > 5
+          ? 'must contain at most 5 images'
+          : null,
     });
   }
 }

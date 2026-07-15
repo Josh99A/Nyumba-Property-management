@@ -70,7 +70,7 @@ Names are versioned contracts. Payload schemas should live beside Functions and 
 | --- | --- | --- |
 | Identity | `profile.update`, `landlord.onboard` | `profile.update` accepts validated display/contact and personal notification preferences only; server controls identity, role, and status fields |
 | Admin | `landlord.approve`, `landlord.suspend`, `landlord.reinstate` | platform-admin claim; mandatory reason and audit |
-| Portfolio | `property.create/update/archive`, `unit.create/update/archive/restore` | owning landlord; account/entitlement checks; unit counter transaction |
+| Portfolio | `property.create/update/archive`, `unit.create/update/archive/restore` | owning landlord; account/entitlement checks; property create/update accepts at most five validated staged image paths in display order (first is primary); unit counter transaction |
 | Tenancy | `tenant.invite/update`, `lease.create/activate/end` | owning landlord; activation checks unit occupancy; tenant acceptance policy **TBD** |
 | Billing | `invoice.generate`, `payment.initiate`, `payment.recordManual`, `receipt.regenerate` | server computes money; provider/server confirms payment |
 | Maintenance | `maintenance.create`, `maintenance.updateStatus`, `maintenance.addComment` | tenant lease scope or owning landlord; transition matrix enforced |
