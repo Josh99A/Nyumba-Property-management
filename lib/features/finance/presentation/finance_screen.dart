@@ -8,6 +8,7 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/metric_grid.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
@@ -126,7 +127,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _FinanceSummary(payments: payments, tenancies: tenancies),
+        FinanceSummary(payments: payments, tenancies: tenancies),
         const SizedBox(height: 22),
         NyumbaSurface(
           padding: EdgeInsets.zero,
@@ -446,8 +447,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
   }
 }
 
-class _FinanceSummary extends StatelessWidget {
-  const _FinanceSummary({required this.payments, required this.tenancies});
+@visibleForTesting
+class FinanceSummary extends StatelessWidget {
+  const FinanceSummary({
+    required this.payments,
+    required this.tenancies,
+    super.key,
+  });
 
   final List<RentPayment> payments;
   final List<Tenancy> tenancies;
@@ -513,58 +519,45 @@ class _FinanceSummary extends StatelessWidget {
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1000 ? 4 : 2;
-        const gap = 14.0;
-        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (final item in summaries)
-              SizedBox(
-                width: width,
-                height: 136,
-                child: NyumbaSurface(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(item.$3, color: item.$4, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              item.$1,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      FittedBox(
-                        alignment: Alignment.centerLeft,
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          item.$2,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleLarge?.copyWith(color: item.$4),
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        item.$5,
+    return MetricGrid(
+      minRowHeight: 136,
+      columnsForWidth: (width) => width >= 1000 ? 4 : 2,
+      children: [
+        for (final item in summaries)
+          NyumbaSurface(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(item.$3, color: item.$4, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        item.$1,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                FittedBox(
+                  alignment: Alignment.centerLeft,
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    item.$2,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(color: item.$4),
                   ),
                 ),
-              ),
-          ],
-        );
-      },
+                const Spacer(),
+                Text(item.$5, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

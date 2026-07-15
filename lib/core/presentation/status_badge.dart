@@ -60,11 +60,15 @@ class StatusBadge extends StatelessWidget {
             Icon(icon, size: 14, color: foreground),
             const SizedBox(width: 5),
           ],
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: foreground,
-              fontWeight: FontWeight.w700,
+          // A badge is often the trailing item of a tight row, so its label has
+          // to be able to give way rather than run past the badge's edge.
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: foreground,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/offline/firebase_remote_sync_gateway.dart';
@@ -11,6 +11,22 @@ import '../domain/user_session.dart';
 
 final sessionControllerProvider =
     NotifierProvider<SessionController, UserSession?>(SessionController.new);
+
+/// Returns the first value that carries actual text, treating blanks as absent.
+///
+/// The `onUserCreated` trigger runs the instant an account exists, which for an
+/// email/password sign-up is *before* `updateDisplayName`, so the profile
+/// document can hold an empty name. A plain `??` chain keeps that empty string
+/// (it is not null) and hides the real name Auth holds, leaving the account
+/// avatar with no initials, so blanks must fall through to the next source.
+@visibleForTesting
+String? firstFilled(Object? preferred, String? fallback) {
+  final candidate = preferred?.toString().trim();
+  if (candidate != null && candidate.isNotEmpty) return candidate;
+  final alternative = fallback?.trim();
+  if (alternative != null && alternative.isNotEmpty) return alternative;
+  return null;
+}
 
 /// Lightweight command channel for auth-time flows (onboarding, invite
 /// claims). Separate from the per-workspace sync gateway because these
@@ -244,11 +260,10 @@ class SessionController extends Notifier<UserSession?> {
     state = UserSession(
       userId: user.uid,
       displayName:
-          data['displayName']?.toString() ??
-          user.displayName ??
+          firstFilled(data['displayName'], user.displayName) ??
           (user.isAnonymous ? 'Prospective tenant' : 'Nyumba user'),
-      email: data['email']?.toString() ?? user.email ?? '',
-      phone: data['phone']?.toString() ?? user.phoneNumber ?? '',
+      email: firstFilled(data['email'], user.email) ?? '',
+      phone: firstFilled(data['phone'], user.phoneNumber) ?? '',
       role: role,
       accountStatus: accountStatus,
       emailVerified: user.emailVerified,

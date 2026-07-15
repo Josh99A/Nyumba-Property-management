@@ -18,17 +18,26 @@ class AppDestination {
     required this.icon,
     required this.selectedIcon,
     required this.path,
+    this.shortLabel,
   });
 
   final String label;
   final IconData icon;
   final IconData selectedIcon;
   final String path;
+
+  /// Label for the bottom bar, where each destination gets roughly a fifth of
+  /// the screen: anything longer than one short word wraps and breaks the row.
+  /// The sidebar and overflow sheet keep the descriptive [label].
+  final String? shortLabel;
+
+  String get compactLabel => shortLabel ?? label;
 }
 
 const _landlordDestinations = [
   AppDestination(
     label: 'Portfolio overview',
+    shortLabel: 'Overview',
     icon: Icons.home_outlined,
     selectedIcon: Icons.home_rounded,
     path: '/dashboard',
@@ -101,6 +110,7 @@ const _tenantDestinations = [
 const _adminDestinations = [
   AppDestination(
     label: 'Admin overview',
+    shortLabel: 'Admin',
     icon: Icons.dashboard_outlined,
     selectedIcon: Icons.dashboard_rounded,
     path: '/admin',
@@ -113,12 +123,14 @@ const _adminDestinations = [
   ),
   AppDestination(
     label: 'Access & operations',
+    shortLabel: 'Access',
     icon: Icons.policy_outlined,
     selectedIcon: Icons.policy_rounded,
     path: '/admin/access',
   ),
   AppDestination(
     label: 'Subscriptions',
+    shortLabel: 'Plans',
     icon: Icons.workspace_premium_outlined,
     selectedIcon: Icons.workspace_premium_rounded,
     path: '/admin/subscriptions',
@@ -698,7 +710,8 @@ class _MobileShell extends ConsumerWidget {
             NavigationDestination(
               icon: Icon(destination.icon),
               selectedIcon: Icon(destination.selectedIcon),
-              label: destination.label,
+              label: destination.compactLabel,
+              tooltip: destination.label,
             ),
           if (overflow.isNotEmpty)
             const NavigationDestination(
@@ -724,20 +737,30 @@ class _Avatar extends StatelessWidget {
         .trim()
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty);
-    final initials = parts.isEmpty
-        ? '?'
-        : parts.take(2).map((part) => part[0]).join().toUpperCase();
+    final initials = parts
+        .take(2)
+        .map((part) => part.characters.first)
+        .join()
+        .toUpperCase();
     final scheme = Theme.of(context).colorScheme;
     return CircleAvatar(
       radius: radius,
       backgroundColor: scheme.primary,
       foregroundColor: scheme.onPrimary,
-      child: Text(
-        initials,
-        style: Theme.of(
-          context,
-        ).textTheme.labelMedium?.copyWith(color: scheme.onPrimary),
-      ),
+      // An account with no name yet still needs a recognisable account
+      // affordance; a "?" reads as an unanswered question, not as "you".
+      child: initials.isEmpty
+          ? Icon(
+              Icons.person_rounded,
+              size: radius * 1.1,
+              color: scheme.onPrimary,
+            )
+          : Text(
+              initials,
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: scheme.onPrimary),
+            ),
     );
   }
 }

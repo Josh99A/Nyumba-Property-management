@@ -17,6 +17,12 @@ class OccupancyRing extends StatelessWidget {
   Widget build(BuildContext context) {
     final percentage = (rate * 100).round();
     final palette = context.nyumba;
+    // The reading inside the ring takes its size from the ring, so the system
+    // text scale would otherwise apply twice and push the label out of the
+    // circle. Grow the graphic with the reader's scale instead, and keep the
+    // label within the ring's inner square.
+    final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.4);
+    final dimension = size * textScale;
     return Semantics(
       label: '$percentage percent of rental spaces are occupied',
       child: TweenAnimationBuilder<double>(
@@ -27,7 +33,7 @@ class OccupancyRing extends StatelessWidget {
         duration: NyumbaMotion.chart,
         curve: NyumbaMotion.easeOut,
         builder: (context, animatedRate, _) => SizedBox.square(
-          dimension: size,
+          dimension: dimension,
           child: CustomPaint(
             painter: _OccupancyPainter(
               rate: animatedRate,
@@ -35,21 +41,28 @@ class OccupancyRing extends StatelessWidget {
               gradientColors: [palette.sageGreen, palette.sageDark],
             ),
             child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${(animatedRate * 100).round()}%',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      color: palette.sageDark,
-                      fontSize: size * .24,
-                    ),
+              child: Padding(
+                padding: EdgeInsets.all(dimension * .2),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${(animatedRate * 100).round()}%',
+                        style: Theme.of(context).textTheme.displaySmall
+                            ?.copyWith(
+                              color: palette.sageDark,
+                              fontSize: size * .24,
+                            ),
+                      ),
+                      Text(
+                        'Occupied',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                   ),
-                  Text(
-                    'Occupied',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
+                ),
               ),
             ),
           ),

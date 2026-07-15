@@ -267,12 +267,14 @@ class TenantBalanceHero extends StatelessWidget {
                           size: 20,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          paid ? 'Rent is up to date' : 'Current rent balance',
-                          style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(
-                                color: Colors.white.withValues(alpha: .82),
-                              ),
+                        Flexible(
+                          child: Text(
+                            paid ? 'Rent is up to date' : 'Current rent balance',
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(
+                                  color: Colors.white.withValues(alpha: .82),
+                                ),
+                          ),
                         ),
                       ],
                     ),

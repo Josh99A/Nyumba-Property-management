@@ -7,6 +7,7 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/metric_grid.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -459,50 +460,41 @@ class _MaintenanceSummary extends StatelessWidget {
         context.nyumba.sageDark,
       ),
     ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 900 ? 4 : 2;
-        const gap = 14.0;
-        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (final item in items)
-              SizedBox(
-                width: width,
-                height: 116,
-                child: NyumbaSurface(
-                  child: Row(
+    return MetricGrid(
+      minRowHeight: 116,
+      columnsForWidth: (width) => width >= 900 ? 4 : 2,
+      children: [
+        for (final item in items)
+          NyumbaSurface(
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: item.$4.withValues(alpha: .1),
+                  child: Icon(item.$3, color: item.$4),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        backgroundColor: item.$4.withValues(alpha: .1),
-                        child: Icon(item.$3, color: item.$4),
+                      Text(
+                        '${item.$2}',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.headlineSmall?.copyWith(color: item.$4),
                       ),
-                      const SizedBox(width: 14),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${item.$2}',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.headlineSmall?.copyWith(color: item.$4),
-                          ),
-                          Text(
-                            item.$1,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
+                      Text(
+                        item.$1,
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),
                 ),
-              ),
-          ],
-        );
-      },
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

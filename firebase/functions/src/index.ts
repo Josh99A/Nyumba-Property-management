@@ -24,7 +24,11 @@ export const onUserCreated = functionsV1
       if (existing.exists) return;
       tx.create(ref, {
         id: user.uid,
-        displayName: user.displayName ?? '',
+        // This trigger runs the instant the account exists, which for an
+        // email/password sign-up is before the client sets a display name.
+        // Store null rather than '': an empty string reads as a real value and
+        // shadows the name Auth later holds.
+        displayName: user.displayName || null,
         email: user.email ?? null,
         role: 'client',
         status: 'active',

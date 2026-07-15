@@ -114,35 +114,34 @@ class OccupancyCard extends StatelessWidget {
             trailing: Icon(Icons.more_vert_rounded, size: 20),
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final vertical = constraints.maxWidth < 410;
-                final chart = OccupancyRing(
-                  rate: snapshot.occupancyRate,
-                  size: vertical
-                      ? constraints.maxHeight.clamp(130, 170)
-                      : constraints.maxHeight.clamp(145, 188),
-                );
-                final legend = _OccupancyLegend(snapshot: snapshot);
-                if (vertical) {
-                  return Column(
-                    children: [
-                      Expanded(child: Center(child: chart)),
-                      const SizedBox(height: 10),
-                      legend,
-                    ],
-                  );
-                }
-                return Row(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final vertical = constraints.maxWidth < 410;
+              // The ring is a graphic, not text, so it keeps its size while the
+              // card grows around it.
+              final chart = OccupancyRing(
+                rate: snapshot.occupancyRate,
+                size: vertical ? 150 : 170,
+              );
+              final legend = _OccupancyLegend(snapshot: snapshot);
+              if (vertical) {
+                return Column(
                   children: [
-                    Expanded(flex: 3, child: Center(child: chart)),
-                    const SizedBox(width: 20),
-                    Expanded(flex: 2, child: legend),
+                    Center(child: chart),
+                    const SizedBox(height: 10),
+                    legend,
                   ],
                 );
-              },
-            ),
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(flex: 3, child: Center(child: chart)),
+                  const SizedBox(width: 20),
+                  Expanded(flex: 2, child: legend),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 14),
           Text(
@@ -262,11 +261,12 @@ class RentCollectionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 18,
+            runSpacing: 6,
             children: [
               _LineLegend(color: context.nyumba.sageDark, label: 'Collected'),
-              const SizedBox(width: 18),
               _LineLegend(
                 color: context.nyumba.terracottaGold,
                 label: 'Outstanding',
@@ -275,7 +275,8 @@ class RentCollectionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Expanded(
+          SizedBox(
+            height: 150,
             child: RentTrendChart(
               collected: snapshot.collectionTrend,
               outstanding: snapshot.outstandingTrend,
@@ -487,19 +488,22 @@ class _PaymentListRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formatUgx(payment.amountMinor),
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                DateFormat('d MMM').format(payment.date),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  formatUgx(payment.amountMinor),
+                  style: Theme.of(context).textTheme.labelLarge,
+                  textAlign: TextAlign.end,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  DateFormat('d MMM').format(payment.date),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -560,10 +564,12 @@ class MaintenanceCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 2, 20, 12),
-            child: Row(
+            child: Wrap(
+              spacing: 18,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const StatusBadge(label: 'Urgent (3)', tone: BadgeTone.info),
-                const SizedBox(width: 18),
                 Text(
                   'Open (3)',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -625,9 +631,11 @@ class _MaintenanceRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          StatusBadge(
-            label: urgent ? 'Urgent' : 'High',
-            tone: urgent ? BadgeTone.danger : BadgeTone.warning,
+          Flexible(
+            child: StatusBadge(
+              label: urgent ? 'Urgent' : 'High',
+              tone: urgent ? BadgeTone.danger : BadgeTone.warning,
+            ),
           ),
         ],
       ),

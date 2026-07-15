@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/metric_grid.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
@@ -167,24 +168,13 @@ class _KpiGrid extends StatelessWidget {
         tone: context.nyumba.danger,
       ),
     ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 980 ? 4 : 2;
-        const spacing = 14.0;
-        final width =
-            (constraints.maxWidth - spacing * (columns - 1)) / columns;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: [
-            for (final (index, card) in cards.indexed)
-              FadeSlideIn(
-                delay: NyumbaMotion.stagger(index),
-                child: SizedBox(width: width, height: 132, child: card),
-              ),
-          ],
-        );
-      },
+    return MetricGrid(
+      minRowHeight: 132,
+      columnsForWidth: (width) => width >= 980 ? 4 : 2,
+      children: [
+        for (final (index, card) in cards.indexed)
+          FadeSlideIn(delay: NyumbaMotion.stagger(index), child: card),
+      ],
     );
   }
 }
@@ -203,21 +193,18 @@ class _DashboardMain extends StatelessWidget {
           builder: (context, constraints) {
             if (constraints.maxWidth < 760) {
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SizedBox(
-                    height: 346,
-                    child: OccupancyCard(snapshot: snapshot),
-                  ),
+                  OccupancyCard(snapshot: snapshot),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    height: 346,
-                    child: RentCollectionCard(snapshot: snapshot),
-                  ),
+                  RentCollectionCard(snapshot: snapshot),
                 ],
               );
             }
-            return SizedBox(
-              height: 330,
+            // Side by side the two cards should share an edge, so the taller
+            // one sets the height rather than a fixed number that a wrapped
+            // heading or a larger text scale would burst.
+            return IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
