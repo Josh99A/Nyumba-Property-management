@@ -28,7 +28,8 @@ export function writeAudit(
   tx.create(ref, {
     id: ref.id,
     actorUid: event.actor.uid,
-    actorIsAdmin: event.actor.platformAdmin,
+    actorIsAdmin: event.actor.platformAdmin || event.actor.superAdmin,
+    actorIsSuperAdmin: event.actor.superAdmin,
     commandId: event.commandId,
     action: event.commandType,
     aggregateId: event.aggregateId,

@@ -11,7 +11,9 @@ service firebase.storage {
     }
 
     function isPlatformAdmin() {
-      return signedIn() && request.auth.token.platformAdmin == true;
+      return signedIn()
+        && (request.auth.token.platformAdmin == true
+          || request.auth.token.superAdmin == true);
     }
 
     // Finalized limits (mirrored in lib/core/config/market_config.dart):

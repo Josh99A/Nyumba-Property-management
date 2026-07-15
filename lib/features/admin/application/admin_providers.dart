@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../auth/application/session_controller.dart';
+import '../../auth/domain/authorization_policy.dart';
+import '../../auth/domain/user_session.dart';
 import '../domain/admin_action.dart';
 import '../domain/managed_user.dart';
 
@@ -34,13 +36,20 @@ class ChangeUserStatus {
     required String userId,
     required ManagedUserStatus status,
   }) async {
+    final session = _requireStaffSession(_ref);
     final deps = await _ref.read(appDependenciesProvider.future);
+    final target = await deps.managedUsers.getById(userId);
+    if (target == null) {
+      throw StateError('The selected user account no longer exists.');
+    }
+    if (target.id == session.userId ||
+        !AuthorizationPolicy.canManageAccountRole(session.role, target.role)) {
+      throw StateError('You do not have permission to manage this account.');
+    }
     final updated = await deps.managedUsers.changeStatus(
       userId: userId,
       status: status,
     );
-    final actor =
-        _ref.read(sessionControllerProvider)?.displayName ?? 'Platform admin';
     await deps.adminActions.append(
       action: switch (status) {
         ManagedUserStatus.active => 'Reactivated account',
@@ -49,7 +58,7 @@ class ChangeUserStatus {
       },
       targetUserId: updated.id,
       targetName: updated.name,
-      performedBy: actor,
+      performedBy: session.displayName,
     );
     return updated;
   }
@@ -61,16 +70,27 @@ class InviteUser {
   final Ref _ref;
 
   Future<ManagedUser> call(InviteManagedUserInput input) async {
+    final session = _requireStaffSession(_ref);
+    if (!AuthorizationPolicy.canManageAccountRole(session.role, input.role)) {
+      throw StateError('You do not have permission to assign that role.');
+    }
     final deps = await _ref.read(appDependenciesProvider.future);
     final user = await deps.managedUsers.invite(input);
-    final actor =
-        _ref.read(sessionControllerProvider)?.displayName ?? 'Platform admin';
     await deps.adminActions.append(
       action: 'Invited ${input.role.toLowerCase()}',
       targetUserId: user.id,
       targetName: user.name,
-      performedBy: actor,
+      performedBy: session.displayName,
     );
     return user;
   }
+}
+
+UserSession _requireStaffSession(Ref ref) {
+  final session = ref.read(sessionControllerProvider);
+  if (session == null ||
+      (session.role != AppRole.admin && session.role != AppRole.superAdmin)) {
+    throw StateError('Administrator permission is required.');
+  }
+  return session;
 }

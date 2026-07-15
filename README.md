@@ -125,7 +125,7 @@ flutter devices
 flutter run -d <device-id>
 ```
 
-From **Sign in**, choose **Landlord**, **Tenant**, or **Admin** under "Explore the role demos" for a local, offline-only walkthrough. Real accounts use the same screen: sign in with email/password or Google, or create a landlord account via **Sign up**.
+From **Sign in**, choose **Landlord**, **Tenant**, **Admin**, or **Super Admin** under "Explore the role demos" for a local, offline-only walkthrough. Real accounts use the same screen: sign in with email/password or Google, or create a landlord account via **Sign up**.
 
 Demo identities and data are local only; they are not Firebase accounts and must not be used as production fixtures.
 
@@ -135,10 +135,11 @@ Firebase Authentication (email/password and Google) backs real sessions; role-ba
 
 - **Landlord** — self-registration. Sign up (or continue with Google), verify your email, then complete onboarding: the `landlord.onboard` command creates the landlord account in `pending` approval with a starter-trial subscription. A platform admin approves it (`firebase/functions/scripts/approve-landlord.mjs` until the admin UI is wired), which unlocks entitled actions.
 - **Tenant** — never self-registers. A landlord adds the tenant's email (`tenant.invite`); when a user signs in with that verified email, `tenant.claimInvite` links the record, promotes the role, and provisions their portal projections automatically.
-- **Admin** — the `platformAdmin` custom claim, granted with `firebase/functions/scripts/grant-admin.mjs <email>` after the account's first sign-in.
+- **Admin** — the `platformAdmin` custom claim, granted with `firebase/functions/scripts/grant-admin.mjs <email> --project <project-id>` after the account's first sign-in. Admins have broad operational access but cannot manage privileged accounts.
+- **Super Admin** — the separate `superAdmin` custom claim, granted only through a controlled operator environment with `firebase/functions/scripts/grant-admin.mjs <email> --super-admin --project <project-id>`. Super Admins manage privileged accounts and protected platform configuration.
 - **Prospective tenant** — browses `/explore` without an account; contact/application submissions use anonymous auth.
 
-Email verification is required before a session loads (Google accounts arrive verified). Roles come from the server-owned `users/{uid}` document and the admin claim — GoRouter guards are UX only; Firestore Rules and callable command checks remain the authorization boundary.
+Email verification is required before a session loads (Google accounts arrive verified). Ordinary roles come from the server-owned `users/{uid}` document; Admin and Super Admin come only from verified custom claims. GoRouter guards are UX only; Firestore Rules and callable command checks remain the authorization boundary. See [`docs/architecture/role-permissions.md`](docs/architecture/role-permissions.md) for the complete matrix.
 
 ## Firebase configuration
 

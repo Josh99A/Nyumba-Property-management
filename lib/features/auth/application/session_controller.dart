@@ -126,7 +126,10 @@ class SessionController extends Notifier<UserSession?> {
   }) async {
     _requireFirebase();
     final credential = await FirebaseAuth.instance
-        .createUserWithEmailAndPassword(email: email.trim(), password: password);
+        .createUserWithEmailAndPassword(
+          email: email.trim(),
+          password: password,
+        );
     await credential.user?.updateDisplayName(displayName.trim());
     await credential.user?.sendEmailVerification();
   }

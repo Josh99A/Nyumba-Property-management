@@ -8,8 +8,9 @@ import { executeCommandCore } from '../../src/shared/router';
 const app = initializeApp({ projectId: 'demo-nyumba' }, 'router-tests');
 const db = getFirestore(app);
 const now = Timestamp.fromDate(new Date('2026-07-15T00:00:00.000Z'));
-const landlord: Actor = { uid: 'landlord_1234', email: 'landlord@nyumba.test', platformAdmin: false, emailVerified: true, signInProvider: 'password' };
-const admin: Actor = { uid: 'admin_123456', email: 'admin@nyumba.test', platformAdmin: true, emailVerified: true, signInProvider: 'password' };
+const landlord: Actor = { uid: 'landlord_1234', email: 'landlord@nyumba.test', platformAdmin: false, superAdmin: false, emailVerified: true, signInProvider: 'password' };
+const admin: Actor = { uid: 'admin_123456', email: 'admin@nyumba.test', platformAdmin: true, superAdmin: false, emailVerified: true, signInProvider: 'password' };
+const superAdmin: Actor = { uid: 'super_admin_123', email: 'superadmin@nyumba.test', platformAdmin: false, superAdmin: true, emailVerified: true, signInProvider: 'password' };
 
 function envelope(
   commandId: string,
@@ -108,6 +109,8 @@ describe('command router', () => {
     const self = envelope('command_admin_2', 'landlord.approve', admin.uid, 1, { reasonCode: 'IDENTITY_VERIFIED' });
     await db.doc(`landlordAccounts/${admin.uid}`).set({ id: admin.uid, approvalStatus: 'pending', version: 1, isDeleted: false });
     expect(await executeCommandCore(db, admin, self, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+    const superAdminApproval = envelope('command_admin_3', 'landlord.approve', landlord.uid, 1, { reasonCode: 'IDENTITY_VERIFIED' });
+    expect(await executeCommandCore(db, superAdmin, superAdminApproval, now)).toMatchObject({ status: 'applied' });
   });
 
   it('enforces unit limits and keeps archive/restore counters stable under replay', async () => {
@@ -163,7 +166,7 @@ describe('command router', () => {
 
   it('keeps the landlord UID out of client portal projections', async () => {
     await seedLandlord();
-    const client: Actor = { uid: 'client_123456', email: 'client@nyumba.test', platformAdmin: false, emailVerified: true, signInProvider: 'password' };
+    const client: Actor = { uid: 'client_123456', email: 'client@nyumba.test', platformAdmin: false, superAdmin: false, emailVerified: true, signInProvider: 'password' };
     const expiresAt = Timestamp.fromMillis(now.toMillis() + 7 * 24 * 60 * 60 * 1000);
     await db.doc('publicListings/listing_1234').set({ id: 'listing_1234', status: 'published', expiresAt });
     await db.doc('privateListings/listing_1234').set({
@@ -244,7 +247,7 @@ describe('command router', () => {
 
   it('links pending invites to a verified tenant account and provisions the portal', async () => {
     await seedLandlord();
-    const tenant: Actor = { uid: 'tenant_123456', email: 'brian.okello@example.com', platformAdmin: false, emailVerified: true, signInProvider: 'google.com' };
+    const tenant: Actor = { uid: 'tenant_123456', email: 'brian.okello@example.com', platformAdmin: false, superAdmin: false, emailVerified: true, signInProvider: 'google.com' };
     await db.doc(`users/${tenant.uid}`).set({
       id: tenant.uid, displayName: 'Brian Okello', email: tenant.email, role: 'client',
       status: 'active', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
@@ -277,7 +280,7 @@ describe('command router', () => {
   });
 
   it('rejects invite claims without a verified email', async () => {
-    const unverified: Actor = { uid: 'tenant_654321', email: 'new.tenant@example.com', platformAdmin: false, emailVerified: false, signInProvider: 'password' };
+    const unverified: Actor = { uid: 'tenant_654321', email: 'new.tenant@example.com', platformAdmin: false, superAdmin: false, emailVerified: false, signInProvider: 'password' };
     const claim = { commandId: 'command_claim_3', type: 'tenant.claimInvite', schemaVersion: 1 as const, payload: {}, client: { installationId: 'install_1234', appVersion: '1.0.0', platform: 'web' as const } };
     const result = await executeCommandCore(db, unverified, claim, now);
     expect(result).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });

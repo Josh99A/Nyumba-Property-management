@@ -21,6 +21,7 @@ void main() {
     expect(find.text('Landlord'), findsOneWidget);
     expect(find.text('Tenant'), findsOneWidget);
     expect(find.text('Admin'), findsOneWidget);
+    expect(find.text('Super Admin'), findsOneWidget);
     expect(find.text('Browse available homes'), findsWidgets);
   });
 }

@@ -11,7 +11,9 @@ service cloud.firestore {
     }
 
     function isPlatformAdmin() {
-      return signedIn() && request.auth.token.platformAdmin == true;
+      return signedIn()
+        && (request.auth.token.platformAdmin == true
+          || request.auth.token.superAdmin == true);
     }
 
     function ownsLandlordDocument(data) {

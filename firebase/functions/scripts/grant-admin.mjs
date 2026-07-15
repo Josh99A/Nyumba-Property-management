@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Grants (or revokes) the platformAdmin custom claim.
+ * Grants (or revokes) an administrator custom claim.
  *
  * Usage:
- *   node scripts/grant-admin.mjs <email> [--project <projectId>] [--revoke]
+ *   node scripts/grant-admin.mjs <email> [--super-admin] [--project <projectId>] [--revoke]
  *
  * Requires Application Default Credentials with permission on the target
  * project (e.g. `gcloud auth application-default login`). The target user must
@@ -16,12 +16,13 @@ import { getAuth } from 'firebase-admin/auth';
 const args = process.argv.slice(2);
 const email = args.find((arg) => !arg.startsWith('--'));
 const revoke = args.includes('--revoke');
+const superAdmin = args.includes('--super-admin');
 const projectFlag = args.indexOf('--project');
 const projectId =
   projectFlag !== -1 ? args[projectFlag + 1] : process.env.GOOGLE_CLOUD_PROJECT ?? 'nyumba-property-management';
 
 if (!email || !email.includes('@')) {
-  console.error('Usage: node scripts/grant-admin.mjs <email> [--project <projectId>] [--revoke]');
+  console.error('Usage: node scripts/grant-admin.mjs <email> [--super-admin] [--project <projectId>] [--revoke]');
   process.exit(1);
 }
 
@@ -31,12 +32,17 @@ const auth = getAuth();
 try {
   const user = await auth.getUserByEmail(email);
   const claims = { ...(user.customClaims ?? {}) };
-  if (revoke) delete claims.platformAdmin;
-  else claims.platformAdmin = true;
+  const claim = superAdmin ? 'superAdmin' : 'platformAdmin';
+  if (revoke) {
+    delete claims[claim];
+  } else {
+    claims[claim] = true;
+    delete claims[superAdmin ? 'platformAdmin' : 'superAdmin'];
+  }
   await auth.setCustomUserClaims(user.uid, claims);
   await auth.revokeRefreshTokens(user.uid);
   console.log(
-    `${revoke ? 'Revoked' : 'Granted'} platformAdmin for ${email} (uid ${user.uid}) on ${projectId}.`,
+    `${revoke ? 'Revoked' : 'Granted'} ${claim} for ${email} (uid ${user.uid}) on ${projectId}.`,
   );
   console.log('The user must sign out and back in (or refresh their token) for the change to apply.');
 } catch (error) {

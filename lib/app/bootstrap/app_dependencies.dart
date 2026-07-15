@@ -236,7 +236,22 @@ Future<AppDependencies> createAppDependencies({
       gateway: FirestoreRemotePullGateway(),
     );
     remotePullCoordinator.watch(OfflineEntityType.listing, publicOnly: true);
-    if (session.role == AppRole.landlord) {
+    if (session.role == AppRole.superAdmin || session.role == AppRole.admin) {
+      for (final type in const [
+        OfflineEntityType.property,
+        OfflineEntityType.unit,
+        OfflineEntityType.tenancy,
+        OfflineEntityType.listing,
+        OfflineEntityType.application,
+        OfflineEntityType.invoice,
+        OfflineEntityType.payment,
+        OfflineEntityType.maintenanceRequest,
+        OfflineEntityType.document,
+        OfflineEntityType.notice,
+      ]) {
+        remotePullCoordinator.watch(type, administrativeScope: true);
+      }
+    } else if (session.role == AppRole.landlord) {
       for (final type in const [
         OfflineEntityType.property,
         OfflineEntityType.unit,

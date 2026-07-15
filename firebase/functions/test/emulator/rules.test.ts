@@ -6,6 +6,7 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { collection, doc, getDoc, getDocs, limit, query, setDoc, Timestamp, where } from 'firebase/firestore';
+import { getBytes, ref, uploadBytes } from 'firebase/storage';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -14,11 +15,13 @@ beforeAll(async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-nyumba-rules',
     firestore: { rules: readFileSync('../firestore.rules', 'utf8') },
+    storage: { rules: readFileSync('../storage.rules', 'utf8') },
   });
 });
 
 beforeEach(async () => {
   await env.clearFirestore();
+  await env.clearStorage();
   await env.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
     const future = Timestamp.fromDate(new Date('2100-01-01T00:00:00Z'));
@@ -35,6 +38,13 @@ beforeEach(async () => {
       setDoc(doc(db, 'backendJobs/job_123456'), { state: 'pending' }),
       setDoc(doc(db, 'auditLogs/audit_123'), { action: 'test' }),
     ]);
+  });
+  await env.withSecurityRulesDisabled(async (context) => {
+    await uploadBytes(
+      ref(context.storage(), 'private/landlords/landlord_1/document.pdf'),
+      new Uint8Array([1, 2, 3]),
+      { contentType: 'application/pdf' },
+    );
   });
 });
 
@@ -83,5 +93,21 @@ describe('Firestore rules matrix', () => {
     const adminDb = env.authenticatedContext('admin_123', { platformAdmin: true }).firestore();
     await assertFails(getDoc(doc(adminDb, 'backendJobs/job_123456')));
     await assertSucceeds(getDoc(doc(adminDb, 'auditLogs/audit_123')));
+
+    const superAdminDb = env.authenticatedContext('super_admin_123', { superAdmin: true }).firestore();
+    await assertSucceeds(getDoc(doc(superAdminDb, 'properties/landlord_two')));
+    await assertSucceeds(getDoc(doc(superAdminDb, 'auditLogs/audit_123')));
+    await assertFails(getDoc(doc(superAdminDb, 'backendJobs/job_123456')));
+  });
+
+  it('allows both administrator claims to read canonical private media', async () => {
+    const path = 'private/landlords/landlord_1/document.pdf';
+    const adminStorage = env.authenticatedContext('admin_123', { platformAdmin: true }).storage();
+    const superAdminStorage = env.authenticatedContext('super_admin_123', { superAdmin: true }).storage();
+    const tenantStorage = env.authenticatedContext('tenant_123').storage();
+
+    await assertSucceeds(getBytes(ref(adminStorage, path)));
+    await assertSucceeds(getBytes(ref(superAdminStorage, path)));
+    await assertFails(getBytes(ref(tenantStorage, path)));
   });
 });

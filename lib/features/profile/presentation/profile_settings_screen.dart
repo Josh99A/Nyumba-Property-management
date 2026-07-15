@@ -8,6 +8,7 @@ import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
+import '../../auth/domain/user_session.dart';
 import '../application/profile_use_cases.dart';
 import '../domain/user_settings.dart';
 
@@ -225,7 +226,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 child: context.isCompact
                     ? Column(
                         children: [
-                          _accountCard(session.role.name),
+                          _accountCard(session.role.label),
                           const SizedBox(height: 16),
                           _preferenceCards(),
                         ],
@@ -235,7 +236,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                         children: [
                           Expanded(
                             flex: 5,
-                            child: _accountCard(session.role.name),
+                            child: _accountCard(session.role.label),
                           ),
                           const SizedBox(width: 18),
                           Expanded(flex: 4, child: _preferenceCards()),

@@ -69,7 +69,7 @@ Names are versioned contracts. Payload schemas should live beside Functions and 
 | Domain | Commands | Authority notes |
 | --- | --- | --- |
 | Identity | `profile.update`, `landlord.onboard` | `profile.update` accepts validated display/contact and personal notification preferences only; server controls identity, role, and status fields |
-| Admin | `landlord.approve`, `landlord.suspend`, `landlord.reinstate` | platform-admin claim; mandatory reason and audit |
+| Admin | `landlord.approve`, `landlord.suspend`, `landlord.reinstate` | platform-admin or super-admin claim; mandatory reason and audit; privileged-account management is super-admin-only |
 | Portfolio | `property.create/update/archive`, `unit.create/update/archive/restore` | owning landlord; account/entitlement checks; property create/update accepts at most five validated staged image paths in display order (first is primary); unit counter transaction |
 | Tenancy | `tenant.invite/update`, `lease.create/activate/end` | owning landlord; activation checks unit occupancy; tenant acceptance policy **TBD** |
 | Billing | `invoice.generate`, `payment.initiate`, `payment.recordManual`, `receipt.regenerate` | server computes money; provider/server confirms payment |
@@ -191,6 +191,6 @@ Refunds, reversals, chargebacks, overpayments, partial allocations, and manual-p
 
 ## Admin and provider boundaries
 
-Admin commands require the custom claim plus recent authentication for destructive/high-impact actions. Self-approval and self-granting admin claims are forbidden. Approval/suspension reasons are enumerated, and every action records actor, target, source IP metadata where legally appropriate, and a redacted diff.
+Admin commands require either the `platformAdmin` or `superAdmin` custom claim plus recent authentication for destructive/high-impact actions. Only a Super Admin may manage privileged accounts; self-promotion, self-suspension, and client-granted claims are forbidden. Approval/suspension reasons are enumerated, and every action records actor, target, source IP metadata where legally appropriate, and a redacted diff. The detailed matrix is in [role-permissions.md](role-permissions.md).
 
 Billing/provider webhooks use dedicated HTTP endpoints, raw-body signature verification, Secret Manager credentials, provider event-ID deduplication, and replay-window checks. They do not trust a Firebase client token as proof of payment. Provider secrets and actual Firebase project IDs are intentionally absent from this repository.

@@ -23,4 +23,9 @@ Before any deployment:
 5. Implement and test callable commands; these rules intentionally deny direct client writes.
 6. Finalized: region `europe-west1`, listing expiry 30 days renewable, retention (financial 7 years, deleted media purged after 90 days, maintenance media 2 years). Still **TBD:** plan pricing/unit limits and the payment provider.
 
+Administrator roles are separate custom claims. Grant an operational Admin
+with `functions/scripts/grant-admin.mjs <email> --project <project-id>` and a
+Super Admin only from a controlled operator environment by adding
+`--super-admin`. Never grant either role from Flutter or a writable document.
+
 Deployment should use an explicit `--project` value and reviewed CI environment. Never put provider keys, webhook secrets, service-account JSON, or Flutter Firebase option values in these rules/configuration files.

@@ -11,6 +11,8 @@ import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
+import '../../auth/application/session_controller.dart';
+import '../../auth/domain/authorization_policy.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_action.dart';
 import '../domain/managed_user.dart';
@@ -30,6 +32,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(sessionControllerProvider);
     final usersValue = ref.watch(managedUsersProvider);
     final actions =
         ref.watch(adminActionsProvider).value ?? const <AdminActionRecord>[];
@@ -63,6 +66,10 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           outbox: outbox,
           syncMetadata: account.syncMetadata,
         );
+    bool canManage(ManagedUser account) =>
+        session != null &&
+        account.id != session.userId &&
+        AuthorizationPolicy.canManageAccountRole(session.role, account.role);
 
     return AdminPage(
       title: 'Users & access',
@@ -137,7 +144,14 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                       : 180,
                   child: _FilterDropdown(
                     value: _role,
-                    values: const ['All roles', 'Admin', 'Landlord', 'Tenant'],
+                    values: const [
+                      'All roles',
+                      'Super Admin',
+                      'Admin',
+                      'Landlord',
+                      'Tenant',
+                      'Client',
+                    ],
                     icon: Icons.badge_outlined,
                     onChanged: (value) => setState(() => _role = value),
                   ),
@@ -232,6 +246,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                               _UserCard(
                                 account: filtered[index],
                                 syncStatus: statusOf(filtered[index]),
+                                canManage: canManage(filtered[index]),
                                 onAction: (action) =>
                                     _handleAction(action, filtered[index]),
                               ),
@@ -281,6 +296,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                     DataCell(
                                       _AccountMenu(
                                         account: account,
+                                        canManage: canManage(account),
                                         onAction: (action) =>
                                             _handleAction(action, account),
                                       ),
@@ -350,6 +366,15 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
     var role = 'Landlord';
+    final actorRole = ref.read(sessionControllerProvider)?.role;
+    final assignableRoles = actorRole == null
+        ? const <String>[]
+        : AuthorizationPolicy.assignableAccountRoles(actorRole);
+    if (assignableRoles.isEmpty) {
+      showAdminMessage(context, 'You cannot assign account roles.');
+      return;
+    }
+    role = assignableRoles.contains(role) ? role : assignableRoles.first;
     final submitted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -380,7 +405,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 const SizedBox(height: 12),
                 _FilterDropdown(
                   value: role,
-                  values: const ['Admin', 'Landlord', 'Tenant'],
+                  values: assignableRoles,
                   icon: Icons.badge_outlined,
                   onChanged: (value) => setDialogState(() => role = value),
                 ),
@@ -714,11 +739,13 @@ class _UserCard extends StatelessWidget {
   const _UserCard({
     required this.account,
     required this.syncStatus,
+    required this.canManage,
     required this.onAction,
   });
 
   final ManagedUser account;
   final AggregateSyncStatus syncStatus;
+  final bool canManage;
   final ValueChanged<String> onAction;
 
   @override
@@ -760,7 +787,11 @@ class _UserCard extends StatelessWidget {
               ],
             ),
           ),
-          _AccountMenu(account: account, onAction: onAction),
+          _AccountMenu(
+            account: account,
+            canManage: canManage,
+            onAction: onAction,
+          ),
         ],
       ),
     );
@@ -768,9 +799,14 @@ class _UserCard extends StatelessWidget {
 }
 
 class _AccountMenu extends StatelessWidget {
-  const _AccountMenu({required this.account, required this.onAction});
+  const _AccountMenu({
+    required this.account,
+    required this.canManage,
+    required this.onAction,
+  });
 
   final ManagedUser account;
+  final bool canManage;
   final ValueChanged<String> onAction;
 
   @override
@@ -787,7 +823,7 @@ class _AccountMenu extends StatelessWidget {
             title: Text('View account'),
           ),
         ),
-        if (account.status == ManagedUserStatus.invited)
+        if (canManage && account.status == ManagedUserStatus.invited)
           const PopupMenuItem(
             value: 'resend',
             child: ListTile(
@@ -796,7 +832,7 @@ class _AccountMenu extends StatelessWidget {
               title: Text('Resend invitation'),
             ),
           )
-        else
+        else if (canManage)
           PopupMenuItem(
             value: 'status',
             child: ListTile(

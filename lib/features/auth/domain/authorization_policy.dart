@@ -64,10 +64,7 @@ abstract final class AuthorizationPolicy {
     CrudOperation operation,
   ) => operationsFor(role, resource).contains(operation);
 
-  static Set<CrudOperation> operationsFor(
-    AppRole role,
-    AppResource resource,
-  ) {
+  static Set<CrudOperation> operationsFor(AppRole role, AppResource resource) {
     if (role == AppRole.superAdmin) {
       return switch (resource) {
         AppResource.auditLog => _read,
@@ -80,16 +77,14 @@ abstract final class AuthorizationPolicy {
       AppRole.admin => switch (resource) {
         AppResource.superAdminAccount ||
         AppResource.backendOperation => const <CrudOperation>{},
-        AppResource.adminAccount ||
-        AppResource.auditLog => _read,
+        AppResource.adminAccount || AppResource.auditLog => _read,
         AppResource.landlordApproval ||
         AppResource.platformConfiguration => _readUpdate,
         _ => _all,
       },
       AppRole.landlord => switch (resource) {
-        AppResource.profile ||
-        AppResource.subscription ||
-        AppResource.landlordAccount => _readUpdate,
+        AppResource.profile || AppResource.subscription => _readUpdate,
+        AppResource.landlordAccount => _read,
         AppResource.property ||
         AppResource.unit ||
         AppResource.tenantRecord ||
@@ -98,9 +93,8 @@ abstract final class AuthorizationPolicy {
         AppResource.privateListing => _all,
         AppResource.lease ||
         AppResource.payment ||
-        AppResource.maintenanceRequest ||
-        AppResource.application ||
-        AppResource.contactRequest => _createReadUpdate,
+        AppResource.maintenanceRequest => _createReadUpdate,
+        AppResource.application || AppResource.contactRequest => _readUpdate,
         AppResource.invoice || AppResource.report => _createRead,
         AppResource.receipt || AppResource.publicListing => _read,
         _ => const <CrudOperation>{},
@@ -131,26 +125,30 @@ abstract final class AuthorizationPolicy {
   }
 
   static bool canManageAccountRole(AppRole actorRole, String targetRole) {
-    final normalized = targetRole
-        .trim()
-        .toLowerCase()
-        .replaceAll(RegExp(r'[ _-]+'), '');
+    final normalized = targetRole.trim().toLowerCase().replaceAll(
+      RegExp(r'[ _-]+'),
+      '',
+    );
     if (actorRole == AppRole.superAdmin) return true;
     if (actorRole != AppRole.admin) return false;
-    return normalized != 'admin' && normalized != 'superadmin';
+    return const {
+      'client',
+      'prospectiveclient',
+      'tenant',
+      'landlord',
+    }.contains(normalized);
   }
 
-  static List<String> assignableAccountRoles(AppRole actorRole) => switch (
-    actorRole
-  ) {
-    AppRole.superAdmin => const [
-      'Super Admin',
-      'Admin',
-      'Landlord',
-      'Tenant',
-      'Client',
-    ],
-    AppRole.admin => const ['Landlord', 'Tenant', 'Client'],
-    _ => const <String>[],
-  };
+  static List<String> assignableAccountRoles(AppRole actorRole) =>
+      switch (actorRole) {
+        AppRole.superAdmin => const [
+          'Super Admin',
+          'Admin',
+          'Landlord',
+          'Tenant',
+          'Client',
+        ],
+        AppRole.admin => const ['Landlord', 'Tenant', 'Client'],
+        _ => const <String>[],
+      };
 }

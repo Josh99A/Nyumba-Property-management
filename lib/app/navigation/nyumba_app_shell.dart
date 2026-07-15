@@ -27,7 +27,7 @@ class AppDestination {
 
 const _landlordDestinations = [
   AppDestination(
-    label: 'Overview',
+    label: 'Portfolio overview',
     icon: Icons.home_outlined,
     selectedIcon: Icons.home_rounded,
     path: '/dashboard',
@@ -99,7 +99,7 @@ const _tenantDestinations = [
 
 const _adminDestinations = [
   AppDestination(
-    label: 'Overview',
+    label: 'Admin overview',
     icon: Icons.dashboard_outlined,
     selectedIcon: Icons.dashboard_rounded,
     path: '/admin',
@@ -123,6 +123,8 @@ const _adminDestinations = [
     path: '/admin/reports',
   ),
 ];
+
+const _staffDestinations = [..._adminDestinations, ..._landlordDestinations];
 
 class NyumbaAppShell extends ConsumerWidget {
   const NyumbaAppShell({required this.child, super.key});
@@ -172,7 +174,7 @@ class NyumbaAppShell extends ConsumerWidget {
   List<AppDestination> _destinationsFor(AppRole role) => switch (role) {
     AppRole.landlord => _landlordDestinations,
     AppRole.tenant => _tenantDestinations,
-    AppRole.admin => _adminDestinations,
+    AppRole.superAdmin || AppRole.admin => _staffDestinations,
     AppRole.client => const <AppDestination>[],
   };
 }
@@ -507,7 +509,7 @@ class _SidebarProfile extends StatelessWidget {
                       style: Theme.of(context).textTheme.labelMedium,
                     ),
                     Text(
-                      session.role.name,
+                      session.role.label,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],

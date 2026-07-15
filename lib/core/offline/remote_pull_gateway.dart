@@ -24,6 +24,7 @@ abstract interface class RemotePullGateway {
     String? tenantUid,
     String? clientUid,
     bool publicOnly = false,
+    bool administrativeScope = false,
   });
 }
 
@@ -40,6 +41,7 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     String? tenantUid,
     String? clientUid,
     bool publicOnly = false,
+    bool administrativeScope = false,
   }) {
     Query<Map<String, dynamic>> query;
     if (publicOnly) {
@@ -51,6 +53,8 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
           .where('status', isEqualTo: 'published')
           .where('expiresAt', isGreaterThan: Timestamp.now())
           .limit(50);
+    } else if (administrativeScope) {
+      query = _firestore.collection(_landlordCollection(entityType)).limit(200);
     } else if (landlordId != null) {
       query = _firestore
           .collection(_landlordCollection(entityType))
@@ -67,7 +71,7 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
           .collection(_clientSection(entityType));
     } else {
       throw ArgumentError(
-        'A landlord, tenant, client, or public scope is required.',
+        'A landlord, tenant, client, administrative, or public scope is required.',
       );
     }
 
@@ -179,6 +183,7 @@ final class RemotePullCoordinator {
     String? tenantUid,
     String? clientUid,
     bool publicOnly = false,
+    bool administrativeScope = false,
   }) {
     final subscription = gateway
         .watchCollection(
@@ -187,6 +192,7 @@ final class RemotePullCoordinator {
           tenantUid: tenantUid,
           clientUid: clientUid,
           publicOnly: publicOnly,
+          administrativeScope: administrativeScope,
         )
         .listen(
           (records) async {

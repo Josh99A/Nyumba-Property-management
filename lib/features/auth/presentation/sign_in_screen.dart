@@ -308,6 +308,12 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                     icon: Icons.admin_panel_settings_outlined,
                                     onPressed: () => _startDemo(AppRole.admin),
                                   ),
+                                  _DemoButton(
+                                    label: 'Super Admin',
+                                    icon: Icons.security_rounded,
+                                    onPressed: () =>
+                                        _startDemo(AppRole.superAdmin),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 28),

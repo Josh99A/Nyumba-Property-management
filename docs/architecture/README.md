@@ -4,7 +4,7 @@ Status: implementation baseline. Decisions marked **TBD** must be resolved befor
 
 ## Goals
 
-Nyumba is a multi-tenant, offline-first Flutter application for web, Android, and iOS. The same codebase serves four experiences: platform administrator, landlord, tenant, and prospective client. The architecture prioritizes:
+Nyumba is a multi-tenant, offline-first Flutter application for web, Android, and iOS. The same codebase serves five authenticated experiences: super administrator, platform administrator, landlord, tenant, and prospective client. Anonymous visitors may browse the public marketplace. The architecture prioritizes:
 
 - a useful read and write experience during intermittent connectivity;
 - strict separation between landlord-private, tenant-private, administrative, and public listing data;
@@ -70,12 +70,16 @@ The collection and security contract is in [firebase-data-and-security.md](fireb
 
 Route guards and role-specific navigation improve user experience but are not authorization controls. Every remote operation is checked again by Firestore/Storage Rules or a Cloud Function.
 
-- **Platform admin:** identified by a server-issued `platformAdmin` custom claim. Administrative mutations go through audited functions.
+- **Super admin:** identified by a server-issued `superAdmin` custom claim. This role manages privileged accounts and platform-wide configuration through audited operations.
+- **Platform admin:** identified by a separate server-issued `platformAdmin` custom claim. It has broad operational access but cannot manage Admin or Super Admin accounts.
 - **Landlord:** normally owns the account whose ID equals their Firebase UID. Approval and subscription records are server-owned and checked at mutation time.
 - **Tenant:** reads a UID-scoped tenant portal. The server creates or removes projections as lease access changes.
 - **Client:** may browse public listings anonymously. Contact and application submission require Firebase Authentication (anonymous authentication is acceptable), App Check, rate limiting, and server validation.
 
 Do not trust a `uid`, `landlordId`, role, amount, status, unit count, or timestamp supplied in a client payload. Derive identity from the verified token and derive sensitive values from server documents/provider events.
+
+The complete CRUD matrix and privileged-role constraints are normative in
+[role-permissions.md](role-permissions.md).
 
 ## Canonical value conventions
 

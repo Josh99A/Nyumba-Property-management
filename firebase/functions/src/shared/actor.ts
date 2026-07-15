@@ -10,6 +10,7 @@ export interface Actor {
   /** Token email; only trustworthy for linking when emailVerified is true. */
   email: string | null;
   platformAdmin: boolean;
+  superAdmin: boolean;
   emailVerified: boolean;
   signInProvider: string | null;
 }
@@ -21,11 +22,18 @@ export function actorFromAuth(auth: AuthData | undefined): Actor {
     uid: auth.uid,
     email: typeof token.email === 'string' ? token.email : null,
     platformAdmin: token.platformAdmin === true,
+    superAdmin: token.superAdmin === true,
     emailVerified: token.email_verified === true,
     signInProvider: token.firebase?.sign_in_provider ?? null,
   };
 }
 
 export function requirePlatformAdmin(actor: Actor): void {
-  if (!actor.platformAdmin) throw new DomainError('PERMISSION_DENIED');
+  if (!actor.platformAdmin && !actor.superAdmin) {
+    throw new DomainError('PERMISSION_DENIED');
+  }
+}
+
+export function requireSuperAdmin(actor: Actor): void {
+  if (!actor.superAdmin) throw new DomainError('PERMISSION_DENIED');
 }

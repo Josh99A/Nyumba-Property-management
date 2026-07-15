@@ -43,7 +43,7 @@ if (!account.exists) {
   process.exit(2);
 }
 
-const operator = { uid: 'ops_script_admin', email: null, platformAdmin: true, emailVerified: true, signInProvider: null };
+const operator = { uid: 'ops_script_admin', email: null, platformAdmin: true, superAdmin: false, emailVerified: true, signInProvider: null };
 const response = await executeCommandCore(db, operator, {
   commandId: `opscmd_${randomUUID().replaceAll('-', '')}`,
   type: commandTypes[action].type,

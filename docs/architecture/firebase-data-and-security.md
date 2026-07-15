@@ -10,7 +10,8 @@ This is the target logical model, not a request to expose every collection direc
 | Authenticated client/applicant | own profile and `clientPortals/{uid}`; public listings | contact/application commands, subject to App Check/rate limits |
 | Tenant | own profile and `tenantPortals/{uid}` | tenant commands such as maintenance submission and payment initiation |
 | Landlord | canonical documents whose `landlordId` equals their UID; own account/subscription | landlord commands if approval/subscription/feature policy permits |
-| Platform admin | operational collections required by admin role | audited admin commands; billing still follows provider authority |
+| Platform admin | operational collections required by admin role | broad audited operational commands; cannot manage privileged accounts and billing still follows provider authority |
+| Super admin | all safe operational collections, including admin/audit views | audited platform and privileged-account commands; immutable audit/provider/retention boundaries still apply |
 | Cloud Functions/service accounts | canonical and projection data required by the operation | validated transactions, projections, jobs, provider callbacks |
 
 Firestore and Storage Rules are not applied to Admin SDK calls. Every function must therefore repeat authentication, authorization, validation, account-state, entitlement, and ownership checks. UI route guards are never a security boundary.
@@ -18,8 +19,8 @@ Firestore and Storage Rules are not applied to Admin SDK calls. Every function m
 ## Identity and roles
 
 - Firebase Authentication UID is the actor identifier.
-- `platformAdmin: true` is a server-issued custom claim and is required for platform-wide reads/commands. Never infer admin from an email domain or a writable document.
-- `users/{uid}.role` drives UI routing but remains server-owned. Supported values are `client`, `tenant`, `landlord`, and `admin`; a user may gain tenant and landlord capabilities over time, so authorization should check actual relationships/claims as well as display role.
+- `platformAdmin: true` and `superAdmin: true` are distinct server-issued custom claims. Either grants scoped administrative reads; only `superAdmin` may manage privileged accounts or protected platform configuration. Never infer either role from an email domain or a writable document.
+- `users/{uid}.role` drives ordinary UI routing but remains server-owned. Supported ordinary values are `client`, `tenant`, and `landlord`; administrator UI roles come only from verified custom claims. A user may gain tenant and landlord capabilities over time, so authorization checks actual relationships/claims as well as the display role.
 - The initial model assumes one owner per landlord account and uses `landlordId == owner UID`. **TBD:** if staff/collaborator accounts are required, add a server-owned membership collection and explicit permissions; do not overload role strings.
 - `landlordAccounts/{uid}.approvalStatus` and `subscriptions/{uid}.status` are mutable server documents, not long-lived custom claims, so suspension or expiry takes effect without waiting for token refresh.
 

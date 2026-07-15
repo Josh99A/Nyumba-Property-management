@@ -159,6 +159,13 @@ void main() {
         '/admin/users',
         '/admin/subscriptions',
         '/admin/reports',
+        '/dashboard',
+        '/properties',
+        '/tenants',
+        '/finances',
+        '/maintenance',
+        '/listings',
+        '/documents',
       ]) {
         router.go(route);
         await tester.pumpAndSettle();
@@ -168,6 +175,33 @@ void main() {
           reason: '$route should render at ${size.width}x${size.height}',
         );
       }
+    }
+  });
+
+  testWidgets('super admin can open admin and portfolio workspaces', (
+    tester,
+  ) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    container
+        .read(sessionControllerProvider.notifier)
+        .startDemo(AppRole.superAdmin);
+    final router = container.read(routerProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    for (final route in const ['/admin/users', '/properties', '/finances']) {
+      router.go(route);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(router.routeInformationProvider.value.uri.path, route);
+      expect(tester.takeException(), isNull);
     }
   });
 }
