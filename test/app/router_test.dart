@@ -156,6 +156,7 @@ void main() {
 
       for (final route in const [
         '/admin',
+        '/admin/access',
         '/admin/users',
         '/admin/subscriptions',
         '/admin/reports',
@@ -196,12 +197,91 @@ void main() {
       ),
     );
 
-    for (final route in const ['/admin/users', '/properties', '/finances']) {
+    for (final route in const [
+      '/admin/access',
+      '/admin/users',
+      '/properties',
+      '/finances',
+    ]) {
       router.go(route);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(router.routeInformationProvider.value.uri.path, route);
       expect(tester.takeException(), isNull);
     }
+  });
+
+  testWidgets('admin sees visible CRUD operations and protected roles', (
+    tester,
+  ) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 900);
+
+    container.read(sessionControllerProvider.notifier).startDemo(AppRole.admin);
+    final router = container.read(routerProvider)..go('/admin/access');
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Access & operations'), findsWidgets);
+    expect(find.text('Admin permissions'), findsOneWidget);
+    expect(find.text('Super Admin accounts'), findsOneWidget);
+    expect(find.text('No access'), findsWidgets);
+    expect(find.text('Create'), findsWidgets);
+    expect(find.text('Read'), findsWidgets);
+    expect(find.text('Update'), findsWidgets);
+    expect(find.text('Archive'), findsWidgets);
+    expect(find.byKey(const ValueKey('access-property')), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Protected'));
+    await tester.pump();
+    expect(find.text('Super Admin accounts'), findsOneWidget);
+    expect(find.byKey(const ValueKey('access-property')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('access operations screen remains usable on a phone', (
+    tester,
+  ) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+
+    container
+        .read(sessionControllerProvider.notifier)
+        .startDemo(AppRole.superAdmin);
+    final router = container.read(routerProvider)..go('/admin/access');
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Access & operations'), findsWidgets);
+    expect(find.text('Super Admin permissions'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('access-superAdminAccount')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 }

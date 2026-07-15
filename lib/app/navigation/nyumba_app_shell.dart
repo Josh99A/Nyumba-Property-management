@@ -111,6 +111,12 @@ const _adminDestinations = [
     path: '/admin/users',
   ),
   AppDestination(
+    label: 'Access & operations',
+    icon: Icons.policy_outlined,
+    selectedIcon: Icons.policy_rounded,
+    path: '/admin/access',
+  ),
+  AppDestination(
     label: 'Subscriptions',
     icon: Icons.workspace_premium_outlined,
     selectedIcon: Icons.workspace_premium_rounded,

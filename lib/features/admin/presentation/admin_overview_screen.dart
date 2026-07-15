@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../auth/application/session_controller.dart';
+import '../../auth/domain/user_session.dart';
 import 'widgets/admin_components.dart';
 
 class AdminOverviewScreen extends StatefulWidget {
@@ -102,6 +106,13 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               tone: context.nyumba.sageDark,
             ),
           ],
+        ),
+        const SizedBox(height: 20),
+        Consumer(
+          builder: (context, ref, _) {
+            final role = ref.watch(sessionControllerProvider)?.role;
+            return _AccessOperationsPanel(role: role ?? AppRole.admin);
+          },
         ),
         const SizedBox(height: 20),
         LayoutBuilder(
@@ -249,6 +260,73 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
             child: const Text('Approve landlord'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AccessOperationsPanel extends StatelessWidget {
+  const _AccessOperationsPanel({required this.role});
+
+  final AppRole role;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSuperAdmin = role == AppRole.superAdmin;
+    return AdminPanel(
+      title: 'Your access & operations',
+      subtitle: 'Visible CRUD permissions for every platform resource',
+      trailing: StatusBadge(
+        label: isSuperAdmin ? 'Full site operations' : 'Almost all operations',
+        tone: BadgeTone.success,
+        icon: Icons.verified_user_outlined,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final summary = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isSuperAdmin
+                    ? 'You can manage business data, platform configuration, '
+                          'and privileged accounts. Audit history remains read-only.'
+                    : 'You can operate across users, portfolios, billing, '
+                          'maintenance, listings, and reports. Privileged '
+                          'administrator accounts remain protected.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: const [
+                  StatusBadge(label: 'Create', tone: BadgeTone.success),
+                  StatusBadge(label: 'Read', tone: BadgeTone.success),
+                  StatusBadge(label: 'Update', tone: BadgeTone.success),
+                  StatusBadge(label: 'Archive', tone: BadgeTone.success),
+                ],
+              ),
+            ],
+          );
+          final action = FilledButton.icon(
+            onPressed: () => context.go('/admin/access'),
+            icon: const Icon(Icons.policy_outlined),
+            label: const Text('View all operations'),
+          );
+          if (constraints.maxWidth < 760) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [summary, const SizedBox(height: 18), action],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: summary),
+              const SizedBox(width: 24),
+              action,
+            ],
+          );
+        },
       ),
     );
   }

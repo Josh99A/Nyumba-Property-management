@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/admin/presentation/admin_overview_screen.dart';
+import '../features/admin/presentation/admin_access_operations_screen.dart';
 import '../features/admin/presentation/admin_reports_screen.dart';
 import '../features/admin/presentation/admin_subscriptions_screen.dart';
 import '../features/admin/presentation/admin_users_screen.dart';
@@ -214,6 +215,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: const AdminOverviewScreen(),
             ),
             routes: [
+              GoRoute(
+                path: 'access',
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const AdminAccessOperationsScreen(),
+                ),
+              ),
               GoRoute(
                 path: 'users',
                 pageBuilder: (context, state) => _transitionPage(
