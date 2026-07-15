@@ -64,6 +64,7 @@ firebase-adminsdk*.json
 
 # Android release signing
 android/key.properties
+android/keys.properties
 android/app/upload-keystore.jks
 *.keystore
 *.jks
