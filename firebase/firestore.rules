@@ -35,7 +35,7 @@ service cloud.firestore {
 
     function hasActiveSubscription(landlordId) {
       let sub = get(/databases/$(database)/documents/subscriptions/$(landlordId)).data;
-      return sub.status == 'active' || sub.status == 'trialing';
+      return sub.status == 'active';
     }
 
     // Documents are readable only while published and unexpired. `get`

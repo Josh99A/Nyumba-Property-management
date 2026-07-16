@@ -87,6 +87,8 @@ final authCommandGatewayProvider = FutureProvider<FirebaseRemoteSyncGateway>(
 
 class SessionController extends Notifier<UserSession?> {
   StreamSubscription<User?>? _authSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+  _subscriptionStateSubscription;
 
   /// Keeps push registration current across FCM token rotations for the
   /// lifetime of one authenticated session; cancelled whenever that session
@@ -105,6 +107,7 @@ class SessionController extends Notifier<UserSession?> {
     ref.onDispose(() {
       _generation++;
       unawaited(_authSubscription?.cancel());
+      _cancelSubscriptionStateWatch();
       _cancelTokenRotationWatch();
     });
     if (Firebase.apps.isEmpty) return null;
@@ -112,6 +115,7 @@ class SessionController extends Notifier<UserSession?> {
       final generation = ++_generation;
       // Whatever session the rotation watcher was serving has ended.
       _cancelTokenRotationWatch();
+      _cancelSubscriptionStateWatch();
       if (user == null) {
         state = null;
         return;
@@ -300,6 +304,7 @@ class SessionController extends Notifier<UserSession?> {
     _publish(const SessionResolution(isResolving: true), generation);
     try {
       final welcome = await _resolveSession(user, generation);
+      _watchLandlordSubscription(generation);
       _publish(
         SessionResolution(
           welcome: welcome,
@@ -385,6 +390,8 @@ class SessionController extends Notifier<UserSession?> {
         ? AppRole.admin
         : _roleFromServer(data['role']?.toString(), user.isAnonymous);
     var accountStatus = _statusFromServer(data['status']?.toString());
+    var subscriptionStatus = LandlordSubscriptionStatus.notApplicable;
+    String? subscriptionTier;
     if (role == AppRole.landlord) {
       // Approval lives on the server-owned landlord account, not the user
       // document, so suspension or pending review applies on next load.
@@ -397,6 +404,18 @@ class SessionController extends Notifier<UserSession?> {
         'suspended' => AccountStatus.suspended,
         _ => accountStatus,
       };
+      final subscription = await FirebaseFirestore.instance
+          .collection('subscriptions')
+          .doc(user.uid)
+          .get(const GetOptions(source: Source.server));
+      final subscriptionData = subscription.data();
+      subscriptionStatus = _subscriptionStatusFromServer(
+        subscriptionData?['status']?.toString(),
+      );
+      final rawTier = subscriptionData?['tier'];
+      subscriptionTier = rawTier is String && rawTier.trim().isNotEmpty
+          ? rawTier.trim()
+          : null;
     }
     if (generation != _generation) return null;
     final session = UserSession(
@@ -408,6 +427,8 @@ class SessionController extends Notifier<UserSession?> {
       phone: firstFilled(data['phone'], user.phoneNumber) ?? '',
       role: role,
       accountStatus: accountStatus,
+      subscriptionStatus: subscriptionStatus,
+      subscriptionTier: subscriptionTier,
       emailVerified: user.emailVerified,
       isAnonymous: user.isAnonymous,
     );
@@ -465,6 +486,57 @@ class SessionController extends Notifier<UserSession?> {
     }
   }
 
+  void _watchLandlordSubscription(int generation) {
+    _cancelSubscriptionStateWatch();
+    final session = state;
+    if (session == null ||
+        session.isDemo ||
+        session.role != AppRole.landlord ||
+        Firebase.apps.isEmpty) {
+      return;
+    }
+    _subscriptionStateSubscription = FirebaseFirestore.instance
+        .collection('subscriptions')
+        .doc(session.userId)
+        .snapshots(includeMetadataChanges: true)
+        .listen(
+          (snapshot) {
+            if (generation != _generation) return;
+            // Subscription activation is server-authoritative. A cached
+            // `active` value must never unlock the workspace while offline or
+            // before Firestore has confirmed it against the backend.
+            if (snapshot.metadata.isFromCache) return;
+            final current = state;
+            if (current == null || current.userId != session.userId) return;
+            final data = snapshot.data();
+            final rawTier = data?['tier'];
+            final tier = rawTier is String && rawTier.trim().isNotEmpty
+                ? rawTier.trim()
+                : null;
+            state = current.withSubscription(
+              status: _subscriptionStatusFromServer(
+                data?['status']?.toString(),
+              ),
+              tier: tier,
+            );
+          },
+          onError: (_) {
+            if (generation != _generation) return;
+            final current = state;
+            if (current == null || current.userId != session.userId) return;
+            state = current.withSubscription(
+              status: LandlordSubscriptionStatus.unavailable,
+              tier: current.subscriptionTier,
+            );
+          },
+        );
+  }
+
+  void _cancelSubscriptionStateWatch() {
+    unawaited(_subscriptionStateSubscription?.cancel());
+    _subscriptionStateSubscription = null;
+  }
+
   void updateProfile({
     required String displayName,
     required String email,
@@ -484,6 +556,7 @@ class SessionController extends Notifier<UserSession?> {
     state = null;
     _generation++;
     _announceArrival = false;
+    _cancelSubscriptionStateWatch();
     ref
         .read(sessionResolutionProvider.notifier)
         .publish(const SessionResolution());
@@ -505,6 +578,18 @@ class SessionController extends Notifier<UserSession?> {
     'pending' || 'pendingApproval' => AccountStatus.pendingApproval,
     'suspended' => AccountStatus.suspended,
     _ => AccountStatus.active,
+  };
+
+  static LandlordSubscriptionStatus _subscriptionStatusFromServer(
+    String? status,
+  ) => switch (status) {
+    'active' => LandlordSubscriptionStatus.active,
+    'pending_payment' ||
+    'trialing' => LandlordSubscriptionStatus.pendingPayment,
+    'past_due' => LandlordSubscriptionStatus.pastDue,
+    'canceled' => LandlordSubscriptionStatus.canceled,
+    'expired' => LandlordSubscriptionStatus.expired,
+    _ => LandlordSubscriptionStatus.unavailable,
   };
 
   static void _requireFirebase() {

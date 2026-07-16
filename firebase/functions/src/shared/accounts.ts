@@ -6,6 +6,7 @@ import { loadEntitlements, planForTier, type PlanEntitlements } from './config';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'suspended';
 export type SubscriptionStatus =
+  | 'pending_payment'
   | 'trialing'
   | 'active'
   | 'past_due'
@@ -80,7 +81,7 @@ export async function loadActiveLandlordContext(
 
   const subscription = subscriptionSnap.data() as Subscription | undefined;
   if (!subscriptionSnap.exists || !subscription) throw new DomainError('SUBSCRIPTION_INACTIVE');
-  if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+  if (subscription.status !== 'active') {
     throw new DomainError('SUBSCRIPTION_INACTIVE', { status: subscription.status });
   }
 

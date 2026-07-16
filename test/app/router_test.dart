@@ -4,8 +4,81 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/app/router.dart';
 import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
 import 'package:nyumba_property_management/features/auth/domain/user_session.dart';
+import 'package:nyumba_property_management/features/subscriptions/presentation/landlord_subscription_screen.dart';
+
+class _PendingLandlordSessionController extends SessionController {
+  @override
+  UserSession? build() => const UserSession(
+    userId: 'landlord-pending',
+    displayName: 'Pending Landlord',
+    email: 'pending@nyumba.test',
+    role: AppRole.landlord,
+    subscriptionStatus: LandlordSubscriptionStatus.pendingPayment,
+    subscriptionTier: 'starter',
+  );
+}
 
 void main() {
+  test('landlord workspace stays locked until payment is confirmed', () {
+    const pending = UserSession(
+      userId: 'landlord-pending',
+      displayName: 'Pending Landlord',
+      email: 'pending@nyumba.test',
+      role: AppRole.landlord,
+      subscriptionStatus: LandlordSubscriptionStatus.pendingPayment,
+      subscriptionTier: 'starter',
+    );
+    const active = UserSession(
+      userId: 'landlord-active',
+      displayName: 'Active Landlord',
+      email: 'active@nyumba.test',
+      role: AppRole.landlord,
+      subscriptionStatus: LandlordSubscriptionStatus.active,
+      subscriptionTier: 'starter',
+    );
+
+    expect(redirectForSession(pending, '/dashboard'), '/subscription');
+    expect(redirectForSession(pending, '/properties'), '/subscription');
+    expect(redirectForSession(pending, '/subscription'), isNull);
+    expect(redirectForSession(active, '/dashboard'), isNull);
+    expect(redirectForSession(active, '/subscription'), '/dashboard');
+  });
+
+  testWidgets('subscription gate renders at desktop and phone sizes', (
+    tester,
+  ) async {
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    for (final size in const [Size(1280, 900), Size(390, 844)]) {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sessionControllerProvider.overrideWith(
+              _PendingLandlordSessionController.new,
+            ),
+          ],
+          child: const MaterialApp(home: LandlordSubscriptionScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Subscription required to continue'), findsOneWidget);
+      expect(find.text('Awaiting payment confirmation'), findsOneWidget);
+      expect(find.text('Checkout unavailable'), findsOneWidget);
+      expect(
+        tester.takeException(),
+        isNull,
+        reason:
+            'subscription gate should render at ${size.width}x${size.height}',
+      );
+    }
+  });
+
   testWidgets('role changes refresh one stable router instance', (
     tester,
   ) async {

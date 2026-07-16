@@ -159,15 +159,17 @@ export const landlordOnboard: CommandHandler<z.infer<typeof onboardSchema>> = {
       businessName: cmd.payload.businessName ?? null,
       phone: cmd.payload.phone,
     });
-    // Pre-billing placeholder: prices and the payment provider are TBD, so a
-    // new landlord starts on a starter trial. A provider webhook owns this
-    // document once billing exists; entitlement limits still apply.
+    // Payment-gated activation: the workspace stays closed until a future
+    // signed billing webhook marks this server-owned subscription `active`.
+    // There is deliberately no client confirmation command. Until provider
+    // integration lands, checkout remains unavailable and the account fails
+    // closed in `pending_payment`.
     if (!subscription.exists) {
       tx.create(subscriptionRef, {
         ...newAggregate(actor.uid, now),
         tier: 'starter',
-        status: 'trialing',
-        trialStartedAt: now,
+        status: 'pending_payment',
+        requestedAt: now,
       });
     }
     tx.update(userRef, { role: 'landlord', ...bumpVersion(userData, now) });

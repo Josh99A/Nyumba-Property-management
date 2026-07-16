@@ -20,13 +20,11 @@ final class LandlordEntitlement {
   /// Human-readable plan name from the catalog, e.g. `Starter`.
   final String displayName;
 
-  /// Subscription status, e.g. `active` or `trialing`.
+  /// Subscription status. Workspace entitlements are exposed only for `active`.
   final String status;
 
   final int unitLimit;
   final int activeListingLimit;
-
-  bool get isTrialing => status == 'trialing';
 }
 
 /// The landlord's plan, or why it could not be established.

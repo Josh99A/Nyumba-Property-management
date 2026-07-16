@@ -115,6 +115,14 @@ Everything in Premium, plus:
 
 ## Client presentation
 
+After landlord onboarding, the client routes the account to the subscription
+screen and keeps every landlord workspace route locked until the server-owned
+subscription status is `active`. A local plan choice, an initiated checkout, or
+an accepted asynchronous command is never payment confirmation. New accounts
+start as `pending_payment`; only a verified provider webhook may activate them
+once billing integration exists. Until then, checkout is shown as unavailable
+and fails closed rather than simulating payment.
+
 The admin subscriptions screen presents this structure with illustrative UGX
 prices clearly labelled as drafts. The client may render plan and entitlement
 state, but enforcement (unit counting, publishing entitlement, billing state)

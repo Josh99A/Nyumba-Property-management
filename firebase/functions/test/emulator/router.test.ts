@@ -95,6 +95,8 @@ describe('command router', () => {
     ['pending', 'active', true, 'ACCOUNT_NOT_APPROVED'],
     ['suspended', 'active', true, 'ACCOUNT_SUSPENDED'],
     ['approved', 'missing', true, 'SUBSCRIPTION_INACTIVE'],
+    ['approved', 'pending_payment', true, 'SUBSCRIPTION_INACTIVE'],
+    ['approved', 'trialing', true, 'SUBSCRIPTION_INACTIVE'],
     ['approved', 'active', false, 'ENTITLEMENT_MISSING'],
   ])('rejects landlord state approval=%s subscription=%s config=%s', async (approval, subscription, config, code) => {
     await seedLandlord({ approval, subscription, config });
@@ -370,7 +372,7 @@ describe('command router', () => {
     expect(result).toMatchObject({ status: 'rejected', error: { code: 'ENTITLEMENT_MISSING' } });
   });
 
-  it('bootstraps a pending landlord account with a starter trial on onboarding', async () => {
+  it('bootstraps a payment-gated landlord account on onboarding', async () => {
     await db.doc(`users/${landlord.uid}`).set({
       id: landlord.uid, displayName: 'Landlord', email: 'landlord@nyumba.test', role: 'client',
       status: 'active', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
@@ -380,7 +382,7 @@ describe('command router', () => {
     }), now);
     expect(result.status).toBe('applied');
     expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()).toMatchObject({ approvalStatus: 'pending' });
-    expect((await db.doc(`subscriptions/${landlord.uid}`).get()).data()).toMatchObject({ tier: 'starter', status: 'trialing' });
+    expect((await db.doc(`subscriptions/${landlord.uid}`).get()).data()).toMatchObject({ tier: 'starter', status: 'pending_payment' });
     expect((await db.doc(`users/${landlord.uid}`).get()).data()).toMatchObject({ role: 'landlord' });
   });
 

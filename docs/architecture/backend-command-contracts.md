@@ -80,7 +80,11 @@ Names are versioned contracts. Payload schemas should live beside Functions and 
 | Reporting | `report.request` | scoped parameters; asynchronous server-derived document |
 | Documents | `document.finalizeUpload/delete` | staging object ownership, checksum/type/size, owning aggregate access |
 
-Subscription activation/change is initiated by a checkout command but finalized only by a signed billing webhook. Exact plan pricing/limits and payment provider schemas are **TBD**.
+New landlord subscriptions start as `pending_payment`, and landlord workspace
+access requires `active`. Subscription activation/change will be initiated by a
+checkout command but finalized only by a signed billing webhook. There is no
+client-side confirmation command. Exact plan pricing/limits and payment provider
+schemas are **TBD**, so checkout currently fails closed as unavailable.
 
 ## Idempotent execution
 
@@ -141,7 +145,7 @@ Validation/authorization failures can either be returned without persistence or 
 
 ```text
 read landlord account + subscription + versioned plan configuration
-require owner, approved, not suspended, active/trialing, unit-management entitlement
+require owner, approved, not suspended, active paid subscription, unit-management entitlement
 read property and require same landlord
 read/check unit ID does not exist
 require activeUnitCount < configured unitLimit (unknown limit => deny)
@@ -156,7 +160,7 @@ Archive/restore use aggregate state and command ID to ensure the counter changes
 
 ```text
 read private listing, unit, property, landlord account, subscription, entitlement config
-require owner, approved, active/trialing, advertising entitlement
+require owner, approved, active paid subscription, advertising entitlement
 require unit is vacant/available and no other active public listing for the unit
 validate public text/media and moderation policy
 validate structured public location (never exact address), unit facts,

@@ -47,10 +47,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             phone: _phoneController.text.trim(),
             businessName: _businessController.text,
           );
-      if (mounted) context.go('/dashboard');
+      if (mounted) context.go('/subscription');
       showNyumbaToast(
-        'Workspace ready. Publishing listings unlocks once an administrator '
-        'approves your account.',
+        'Landlord details saved. Choose a subscription and wait for confirmed '
+        'payment to open your workspace.',
         variant: NyumbaToastVariant.success,
       );
     } on Object catch (error) {
@@ -169,9 +169,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Your workspace opens right away; publishing '
-                              'listings unlocks once an administrator '
-                              'approves the account.',
+                              'After setup, choose a subscription. The landlord '
+                              'workspace stays locked until payment is '
+                              'confirmed by the server.',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             const SizedBox(height: 18),
@@ -214,7 +214,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         color: Colors.white,
                                       ),
                                     )
-                                  : const Text('Open my landlord workspace'),
+                                  : const Text('Continue to subscriptions'),
                             ),
                           ],
                         ),
