@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 /**
- * Seeds the server-owned `backendConfig/entitlements` document.
+ * Seeds the server-owned `backendConfig/entitlements` document and the public
+ * `planCatalog/{tier}` documents the client renders.
  *
- * Every landlord command fails closed with ENTITLEMENT_MISSING until this
- * exists. Values follow the suggested limits in
+ * Every landlord command fails closed with ENTITLEMENT_MISSING until the
+ * entitlements config exists, and the subscription screen shows no plan
+ * limits until the catalog exists — limits are never hard-coded in Flutter.
+ * Values follow the suggested limits in
  * docs/architecture/subscription-tiers.md; monetary prices remain TBD and are
- * deliberately absent. Safe to re-run — bumps the version and overwrites.
+ * deliberately absent. Safe to re-run — bumps versions and overwrites.
  *
  * Usage: node scripts/seed-entitlements.mjs [--project <projectId>]
  */
@@ -27,11 +30,39 @@ const plans = {
   enterprise: { unitLimit: 1000, activeListingLimit: 1000, advertising: true },
 };
 
+/** Public presentation facts; prices stay absent until the product decides them. */
+const catalog = {
+  starter: { displayName: 'Starter', tagline: 'Individual landlords and small portfolios', sortOrder: 1 },
+  pro: { displayName: 'Pro', tagline: 'Growing landlords and small teams', sortOrder: 2 },
+  premium: { displayName: 'Premium', tagline: 'Professional property managers', sortOrder: 3 },
+  enterprise: {
+    displayName: 'Enterprise',
+    tagline: 'Agencies, institutions, and large companies',
+    sortOrder: 4,
+    capacityLabel: 'Custom capacity and controls',
+  },
+};
+
 const ref = db.collection('backendConfig').doc('entitlements');
 await db.runTransaction(async (tx) => {
-  const existing = await tx.get(ref);
+  const catalogRefs = Object.keys(catalog).map((tier) => db.collection('planCatalog').doc(tier));
+  const [existing, ...existingCatalog] = await Promise.all([
+    tx.get(ref),
+    ...catalogRefs.map((catalogRef) => tx.get(catalogRef)),
+  ]);
   const version = (existing.data()?.version ?? 0) + 1;
   tx.set(ref, { version, plans, updatedAt: FieldValue.serverTimestamp() });
+  catalogRefs.forEach((catalogRef, index) => {
+    const tier = catalogRef.id;
+    tx.set(catalogRef, {
+      ...catalog[tier],
+      unitLimit: plans[tier].unitLimit,
+      activeListingLimit: plans[tier].activeListingLimit,
+      isPublic: true,
+      version: (existingCatalog[index].data()?.version ?? 0) + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
 });
-console.log(`Seeded backendConfig/entitlements on ${projectId}:`);
+console.log(`Seeded backendConfig/entitlements and planCatalog on ${projectId}:`);
 console.table(plans);

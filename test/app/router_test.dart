@@ -67,9 +67,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Subscription required to continue'), findsOneWidget);
+      expect(find.text('Choose your plan'), findsOneWidget);
       expect(find.text('Awaiting payment confirmation'), findsOneWidget);
-      expect(find.text('Checkout unavailable'), findsOneWidget);
+      // The reserved starter tier shows as selected; the other tiers stay
+      // choosable. Without Firebase the catalog is empty, so no capacity
+      // number may appear anywhere.
+      expect(find.text('Selected'), findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, 'Choose plan'), findsNWidgets(3));
+      expect(find.textContaining('rental spaces'), findsNothing);
       expect(
         tester.takeException(),
         isNull,

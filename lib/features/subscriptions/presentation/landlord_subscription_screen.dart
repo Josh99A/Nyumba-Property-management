@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/config/market_config.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/surface.dart';
@@ -10,7 +11,12 @@ import '../../../core/presentation/toast.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/auth_failure.dart';
 import '../../auth/domain/user_session.dart';
+import '../application/subscription_providers.dart';
 
+/// Pre-payment gate for landlord accounts. Lets the landlord pick the plan
+/// they intend to pay for and shows live payment status; the workspace itself
+/// unlocks only when the server-owned subscription turns `active`, which the
+/// session controller watches and the router enforces.
 class LandlordSubscriptionScreen extends ConsumerStatefulWidget {
   const LandlordSubscriptionScreen({super.key});
 
@@ -22,6 +28,7 @@ class LandlordSubscriptionScreen extends ConsumerStatefulWidget {
 class _LandlordSubscriptionScreenState
     extends ConsumerState<LandlordSubscriptionScreen> {
   bool _isRefreshing = false;
+  String? _selectingTier;
 
   Future<void> _refresh() async {
     setState(() => _isRefreshing = true);
@@ -51,13 +58,38 @@ class _LandlordSubscriptionScreenState
     }
   }
 
+  Future<void> _choosePlan(String tier, String planName) async {
+    setState(() => _selectingTier = tier);
+    try {
+      await ref.read(selectSubscriptionPlanProvider)(tier);
+      showNyumbaToast(
+        '$planName plan selected. Your workspace opens once its payment is '
+        'confirmed.',
+        variant: NyumbaToastVariant.success,
+      );
+    } on Object catch (error) {
+      showNyumbaToast(
+        describeAuthFailure(error),
+        variant: NyumbaToastVariant.error,
+      );
+    } finally {
+      if (mounted) setState(() => _selectingTier = null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(sessionControllerProvider);
     final status =
         session?.subscriptionStatus ?? LandlordSubscriptionStatus.unavailable;
     final active = status == LandlordSubscriptionStatus.active;
-    final tier = session?.subscriptionTier;
+    final tier = session?.subscriptionTier?.toLowerCase();
+    final catalog = ref
+        .watch(publicPlanCatalogProvider)
+        .maybeWhen(
+          data: (plans) => plans,
+          orElse: () => const <String, PublicPlanFacts>{},
+        );
 
     return Scaffold(
       body: SafeArea(
@@ -97,17 +129,17 @@ class _LandlordSubscriptionScreenState
                     Text(
                       active
                           ? 'Your subscription is active'
-                          : 'Subscription required to continue',
+                          : 'Choose your plan',
                       style: Theme.of(context).textTheme.headlineLarge,
                     ),
                     const SizedBox(height: 10),
                     Text(
                       active
-                          ? 'Your payment has been confirmed by the server. '
-                                'You can now enter your landlord workspace.'
-                          : 'Landlord workspaces open only after Nyumba receives '
-                                'server-confirmed payment. Tenant and public '
-                                'listing access remain free.',
+                          ? 'Your payment has been confirmed. You can now '
+                                'enter your landlord workspace.'
+                          : 'Your workspace opens as soon as Nyumba confirms '
+                                'your subscription payment. Tenant and public '
+                                'listing access stay free.',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: context.nyumba.mutedInk,
                       ),
@@ -115,7 +147,8 @@ class _LandlordSubscriptionScreenState
                     const SizedBox(height: 24),
                     _PaymentStatusCard(
                       status: status,
-                      tier: tier,
+                      planName: _planName(tier, catalog),
+                      accountEmail: session?.email ?? '',
                       isRefreshing: _isRefreshing,
                       onRefresh: _refresh,
                       onContinue: active
@@ -129,13 +162,28 @@ class _LandlordSubscriptionScreenState
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Plan prices, billing intervals, and electronic checkout '
-                      'are not configured yet. Nyumba will not simulate a '
-                      'successful payment or unlock a workspace locally.',
+                      active
+                          ? 'Changing an active plan is handled with your '
+                                'next payment — contact Nyumba support.'
+                          : 'Pick the plan that fits your portfolio. You can '
+                                'switch freely until your payment is '
+                                'confirmed, and pricing is always confirmed '
+                                'with you before you pay.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: context.nyumba.mutedInk,
                       ),
                     ),
+                    if (catalog.isEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Plan capacity details could not be loaded right now, '
+                        'so they are not shown — nothing is guessed on this '
+                        'device.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: context.nyumba.terracottaDark,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     LayoutBuilder(
                       builder: (context, constraints) {
@@ -152,14 +200,25 @@ class _LandlordSubscriptionScreenState
                           spacing: gap,
                           runSpacing: gap,
                           children: [
-                            for (final plan in _plans)
+                            for (final presentation in _tiers)
                               SizedBox(
                                 width: width,
-                                child: _PlanSummary(
-                                  plan: plan,
-                                  selected:
-                                      tier?.toLowerCase() ==
-                                      plan.name.toLowerCase(),
+                                child: _PlanCard(
+                                  presentation: presentation,
+                                  facts: catalog[presentation.tier],
+                                  selected: tier == presentation.tier,
+                                  busy: _selectingTier == presentation.tier,
+                                  onChoose:
+                                      active ||
+                                          _selectingTier != null ||
+                                          tier == presentation.tier
+                                      ? null
+                                      : () => _choosePlan(
+                                          presentation.tier,
+                                          catalog[presentation.tier]
+                                                  ?.displayName ??
+                                              presentation.fallbackName,
+                                        ),
                                 ),
                               ),
                           ],
@@ -177,17 +236,29 @@ class _LandlordSubscriptionScreenState
   }
 }
 
+String? _planName(String? tier, Map<String, PublicPlanFacts> catalog) {
+  if (tier == null || tier.isEmpty) return null;
+  final fromCatalog = catalog[tier]?.displayName;
+  if (fromCatalog != null) return fromCatalog;
+  for (final presentation in _tiers) {
+    if (presentation.tier == tier) return presentation.fallbackName;
+  }
+  return tier;
+}
+
 class _PaymentStatusCard extends StatelessWidget {
   const _PaymentStatusCard({
     required this.status,
-    required this.tier,
+    required this.planName,
+    required this.accountEmail,
     required this.isRefreshing,
     required this.onRefresh,
     required this.onContinue,
   });
 
   final LandlordSubscriptionStatus status;
-  final String? tier;
+  final String? planName;
+  final String accountEmail;
   final bool isRefreshing;
   final VoidCallback onRefresh;
   final VoidCallback? onContinue;
@@ -227,9 +298,18 @@ class _PaymentStatusCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  _statusMessage(status, tier),
+                  _statusMessage(status, planName),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+                if (!active) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _howToPay(accountEmail),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.mutedInk,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Wrap(
                   spacing: 10,
@@ -239,11 +319,6 @@ class _PaymentStatusCard extends StatelessWidget {
                       FilledButton(
                         onPressed: onContinue,
                         child: const Text('Enter workspace'),
-                      )
-                    else
-                      FilledButton(
-                        onPressed: null,
-                        child: const Text('Checkout unavailable'),
                       ),
                     OutlinedButton.icon(
                       onPressed: isRefreshing ? null : onRefresh,
@@ -275,33 +350,66 @@ String _statusTitle(LandlordSubscriptionStatus status) => switch (status) {
   _ => 'Subscription required',
 };
 
-String _statusMessage(LandlordSubscriptionStatus status, String? tier) {
-  final plan = tier == null || tier.isEmpty ? 'selected plan' : '$tier plan';
+String _statusMessage(LandlordSubscriptionStatus status, String? planName) {
+  final plan = planName == null ? 'selected plan' : '$planName plan';
   return switch (status) {
     LandlordSubscriptionStatus.pendingPayment =>
-      'Your $plan is reserved, but no confirmed payment has been received.',
+      'Your $plan is reserved, and no payment has been confirmed yet.',
     LandlordSubscriptionStatus.pastDue =>
-      'The server has marked your $plan payment as past due.',
+      'Your $plan payment is past due. Settle it to keep the workspace open.',
     LandlordSubscriptionStatus.canceled =>
       'A new paid subscription is required before entering the workspace.',
     LandlordSubscriptionStatus.expired =>
       'Renew your subscription before entering the workspace.',
     LandlordSubscriptionStatus.active =>
-      'The server confirmed payment for your $plan.',
+      'Payment for your $plan has been confirmed.',
     _ =>
       'Nyumba could not verify an active paid subscription for this account.',
   };
 }
 
-class _PlanSummary extends StatelessWidget {
-  const _PlanSummary({required this.plan, required this.selected});
+/// Manual activation guidance until electronic checkout ships. Payment rails
+/// come from the market config; cash is excluded because subscriptions are
+/// paid to Nyumba, not recorded by a landlord.
+String _howToPay(String accountEmail) {
+  final methods = NyumbaMarket.paymentMethods
+      .where((method) => !method.startsWith('Cash'))
+      .join(', ');
+  final account = accountEmail.isEmpty
+      ? 'your account email'
+      : 'your account email ($accountEmail)';
+  return 'In-app checkout is coming soon. To activate now, pay via $methods '
+      'and share the transaction reference with Nyumba support, quoting '
+      '$account. Your workspace opens automatically the moment the payment '
+      'is confirmed — no need to stay on this page.';
+}
 
-  final _Plan plan;
+class _PlanCard extends StatelessWidget {
+  const _PlanCard({
+    required this.presentation,
+    required this.facts,
+    required this.selected,
+    required this.busy,
+    required this.onChoose,
+  });
+
+  final _TierPresentation presentation;
+  final PublicPlanFacts? facts;
   final bool selected;
+  final bool busy;
+  final VoidCallback? onChoose;
 
   @override
   Widget build(BuildContext context) {
+    final name = facts?.displayName ?? presentation.fallbackName;
+    final audience = facts?.tagline ?? presentation.audience;
+    final capacity = facts == null
+        ? null
+        : facts!.capacityLabel ??
+              'Up to ${facts!.unitLimit} rental spaces · '
+                  '${facts!.activeListingLimit} active listings';
     return NyumbaSurface(
+      onTap: onChoose,
       borderColor: selected
           ? context.nyumba.midnightNavy
           : context.nyumba.outline,
@@ -312,33 +420,50 @@ class _PlanSummary extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(plan.icon, color: context.nyumba.midnightNavy),
+                Icon(presentation.icon, color: context.nyumba.midnightNavy),
                 const SizedBox(width: 9),
                 Expanded(
                   child: Text(
-                    plan.name,
+                    name,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                if (selected)
-                  Icon(
-                    Icons.check_circle_rounded,
-                    color: context.nyumba.sageDark,
-                    semanticLabel: 'Current plan',
-                  ),
               ],
             ),
             const SizedBox(height: 10),
-            Text(plan.audience, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 12),
-            Text(plan.capacity, style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 18),
-            Text(
-              'Price awaiting server configuration',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: context.nyumba.terracottaDark,
+            Text(audience, style: Theme.of(context).textTheme.bodySmall),
+            if (capacity != null) ...[
+              const SizedBox(height: 12),
+              Text(capacity, style: Theme.of(context).textTheme.labelLarge),
+            ],
+            const SizedBox(height: 14),
+            if (selected)
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 19,
+                    color: context.nyumba.sageDark,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Selected',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: context.nyumba.sageDark,
+                    ),
+                  ),
+                ],
+              )
+            else
+              OutlinedButton(
+                onPressed: onChoose,
+                child: busy
+                    ? const SizedBox.square(
+                        dimension: 17,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Choose plan'),
               ),
-            ),
           ],
         ),
       ),
@@ -346,38 +471,50 @@ class _PlanSummary extends StatelessWidget {
   }
 }
 
-class _Plan {
-  const _Plan(this.name, this.audience, this.capacity, this.icon);
+class _TierPresentation {
+  const _TierPresentation(
+    this.tier,
+    this.fallbackName,
+    this.audience,
+    this.icon,
+  );
 
-  final String name;
+  /// Catalog document ID; also what `subscription.selectPlan` records.
+  final String tier;
+
+  /// Shown only while the server catalog is unavailable.
+  final String fallbackName;
+
   final String audience;
-  final String capacity;
   final IconData icon;
 }
 
-const _plans = [
-  _Plan(
+/// Presentation order and iconography for the normative tier structure
+/// (docs/architecture/subscription-tiers.md). Capacity numbers never live
+/// here — they render only from the server-owned plan catalog.
+const _tiers = [
+  _TierPresentation(
+    'starter',
     'Starter',
     'Individual landlords and small portfolios',
-    'Suggested limit: up to 10 units',
     Icons.home_work_outlined,
   ),
-  _Plan(
+  _TierPresentation(
+    'pro',
     'Pro',
     'Growing landlords and small teams',
-    'Suggested limit: up to 50 units',
     Icons.rocket_launch_outlined,
   ),
-  _Plan(
+  _TierPresentation(
+    'premium',
     'Premium',
     'Professional property managers',
-    'Suggested limit: up to 200 units',
     Icons.workspace_premium_outlined,
   ),
-  _Plan(
+  _TierPresentation(
+    'enterprise',
     'Enterprise',
     'Agencies, institutions, and large companies',
-    'Custom capacity and controls',
     Icons.domain_outlined,
   ),
 ];

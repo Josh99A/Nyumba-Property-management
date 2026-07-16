@@ -9,6 +9,7 @@ import { maintenanceAddComment, maintenanceCreate, maintenanceUpdateStatus } fro
 import { listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from './listings';
 import { propertyArchive, propertyCreate, propertyUpdate, unitArchive, unitCreate, unitRestore, unitUpdate } from './portfolio';
 import { reportRequest } from './reports';
+import { subscriptionConfirmPayment, subscriptionSelectPlan } from './subscription';
 import { leaseActivate, leaseCreate, leaseEnd, tenancyEstablish, tenantClaimInvite, tenantInvite, tenantUpdate } from './tenancy';
 
 // Payload types are enforced by each handler's strict runtime schema before
@@ -20,6 +21,8 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['landlord.approve', landlordApprove],
   ['landlord.suspend', landlordSuspend],
   ['landlord.reinstate', landlordReinstate],
+  ['subscription.selectPlan', subscriptionSelectPlan],
+  ['subscription.confirmPayment', subscriptionConfirmPayment],
   ['property.create', propertyCreate],
   ['property.update', propertyUpdate],
   ['property.archive', propertyArchive],
