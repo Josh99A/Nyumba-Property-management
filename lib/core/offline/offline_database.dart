@@ -178,6 +178,40 @@ final class OfflineDatabase {
     return outboxEntry;
   });
 
+  /// Persists an entity that has no remote command, without an outbox intent.
+  ///
+  /// The offline invariant is that no optimistic record may exist without a
+  /// durable sync intent. That invariant assumes the record is *authored* here
+  /// and belongs on the server. Two kinds of local record are not:
+  ///
+  /// - values the server derives and owns (a tenancy balance is recomputed from
+  ///   invoices; pushing a client-computed one would invert authority), and
+  /// - local-only working state with no canonical collection behind it
+  ///   (admin plan drafts, the local account directory).
+  ///
+  /// Enqueueing these produced outbox entries no command could ever satisfy,
+  /// which failed permanently and silently.
+  ///
+  /// [reason] is required and intentionally unused at runtime: it forces the
+  /// caller to state which of the two cases applies, and shows up in review at
+  /// the call site. It is documentation the compiler makes mandatory.
+  Future<void> putLocalEntity({
+    required OfflineEntityType entityType,
+    required String entityId,
+    required Map<String, Object?> entity,
+    // ignore: avoid_unused_constructor_parameters
+    required LocalOnlyReason reason,
+    bool createOnly = false,
+  }) {
+    return database.transaction((transaction) async {
+      final entityRecord = _entityStore(entityType).record(entityId);
+      if (createOnly && await entityRecord.exists(transaction)) {
+        throw EntityAlreadyExistsException(entityType.name, entityId);
+      }
+      await entityRecord.put(transaction, Map<String, Object?>.from(entity));
+    });
+  }
+
   /// Applies server/bootstrap data only when there is no unsynced local edit.
   /// This keeps the local database authoritative while preventing remote pulls
   /// from overwriting optimistic user changes.

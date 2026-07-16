@@ -92,33 +92,41 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
   }
 
   _TenantDocument _fromPayment(RentPayment payment) {
+    // A receipt exists only once the server issued its number. Until then this
+    // row is a record of what the landlord entered, not proof of a receipt, and
+    // must not claim to be an official one.
+    final issued = payment.hasIssuedReceipt;
+    final reference = payment.receiptNumber ?? 'Not yet issued';
     return _applyOverrides(
       _TenantDocument(
         title: 'Rent receipt — ${payment.period}',
-        reference: payment.receiptNumber,
+        reference: reference,
         category: 'Receipts',
         date: DateFormat('d MMM y').format(payment.paidOn.toLocal()),
         size: '—',
-        status: 'Ready',
+        status: issued ? 'Ready' : 'Awaiting confirmation',
         format: 'PDF',
         offline: true,
         favorite: false,
-        description:
-            'Official receipt for '
-            '${formatTenantUgx(payment.amountMinor ~/ 100)} received via '
-            '${payment.method} for ${payment.period} rent.',
+        description: issued
+            ? 'Official receipt for '
+                  '${formatTenantUgx(payment.amountMinor ~/ 100)} received via '
+                  '${payment.method} for ${payment.period} rent.'
+            : '${formatTenantUgx(payment.amountMinor ~/ 100)} recorded via '
+                  '${payment.method} for ${payment.period} rent. The official '
+                  'receipt is issued once this payment is confirmed.',
         recipient: payment.tenantName,
         propertyName: payment.propertyName,
         unitLabel: payment.unitLabel,
         printable: PrintableDocumentData(
           title: 'Receipt',
-          number: payment.receiptNumber,
+          number: reference,
           recipient: payment.tenantName,
           property: payment.propertyName,
           unit: payment.unitLabel,
           amountMinor: payment.amountMinor,
           date: payment.paidOn,
-          status: 'Received',
+          status: issued ? 'Received' : 'Awaiting confirmation',
         ),
       ),
     );

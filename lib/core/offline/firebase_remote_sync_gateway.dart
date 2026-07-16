@@ -294,6 +294,32 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
           },
         },
       ),
+      // The only application edit the client offers is withdrawal.
+      (OfflineEntityType.application, OutboxOperation.update) =>
+        const _RemoteCommand('application.withdraw', <String, Object?>{}),
+      // One command for the whole tenancy: the server creates the tenant
+      // record, activates the lease, and flips unit occupancy in a single
+      // transaction. The client models all of that as one aggregate, so it can
+      // only offer one idempotency key for it.
+      (OfflineEntityType.tenancy, OutboxOperation.create) =>
+        _RemoteCommand('tenancy.establish', <String, Object?>{
+          'unitId': payload['unitId'],
+          'displayName': payload['tenantName'],
+          'email': payload['email'],
+          'phone': payload['phone'],
+          'startDate': payload['leaseStart'],
+          'endDate': payload['leaseEnd'],
+          'monthlyRentMinor': payload['monthlyRentMinor'],
+          if (payload['balanceMinor'] != null)
+            'openingBalanceMinor': payload['balanceMinor'],
+        }),
+      (OfflineEntityType.payment, OutboxOperation.create) =>
+        _RemoteCommand('payment.recordAgainstTenancy', <String, Object?>{
+          'tenancyId': payload['tenancyId'],
+          'amountMinor': payload['amountMinor'],
+          'method': _snakeCase(payload['method']?.toString() ?? ''),
+          'period': payload['period'],
+        }),
       (OfflineEntityType.maintenanceRequest, OutboxOperation.create) =>
         _RemoteCommand('maintenance.create', <String, Object?>{
           ...pick(['unitId', 'title', 'description', 'category', 'priority']),

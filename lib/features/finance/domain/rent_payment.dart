@@ -7,7 +7,6 @@ import '../../../core/domain/sync_metadata.dart';
 final class RentPayment {
   RentPayment({
     required this.id,
-    required this.receiptNumber,
     required this.landlordId,
     required this.tenantName,
     required this.unitLabel,
@@ -20,14 +19,26 @@ final class RentPayment {
     required this.updatedAt,
     required this.syncMetadata,
     this.tenancyId,
+    this.receiptNumber,
   }) {
     validate();
   }
 
   final String id;
 
-  /// Human-readable receipt reference such as `NYB-RCP-00842`.
-  final String receiptNumber;
+  /// Human-readable receipt reference such as `NYB-RCP-00842`, or null while
+  /// the payment is still awaiting server confirmation.
+  ///
+  /// The number is issued by the server from the landlord's receipt counter and
+  /// arrives on the next pull. The device cannot author one: two landlords'
+  /// devices recording rent offline would both mint the same "next" number, and
+  /// a receipt number is a claim that a receipt was *issued* — which is only
+  /// true once the server says so.
+  final String? receiptNumber;
+
+  /// Whether the server has confirmed this payment and issued its receipt.
+  bool get hasIssuedReceipt => receiptNumber != null;
+
   final String landlordId;
   final String? tenancyId;
   final String tenantName;
@@ -45,10 +56,11 @@ final class RentPayment {
 
   void validate() {
     DomainValidation.check(<String, String?>{
-      'receiptNumber': DomainValidation.requiredText(
-        receiptNumber,
-        maxLength: 40,
-      ),
+      if (receiptNumber != null)
+        'receiptNumber': DomainValidation.requiredText(
+          receiptNumber!,
+          maxLength: 40,
+        ),
       'landlordId': DomainValidation.requiredText(landlordId, maxLength: 100),
       'tenantName': DomainValidation.requiredText(tenantName, maxLength: 120),
       'unitLabel': DomainValidation.requiredText(unitLabel, maxLength: 60),

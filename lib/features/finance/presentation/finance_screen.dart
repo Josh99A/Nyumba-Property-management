@@ -114,7 +114,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
       final matchesQuery =
           query.isEmpty ||
           payment.tenantName.toLowerCase().contains(query) ||
-          payment.receiptNumber.toLowerCase().contains(query) ||
+          (payment.receiptNumber?.toLowerCase().contains(query) ?? false) ||
           payment.propertyName.toLowerCase().contains(query);
       final matchesFilter = switch (_filter) {
         'Confirmed' => statusOf(payment) == AggregateSyncStatus.synced,
@@ -211,7 +211,19 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                           .map(
                             (payment) => DataRow(
                               cells: [
-                                DataCell(Text(payment.receiptNumber)),
+                                // No number until the server issues the
+                                // receipt, so say so rather than inventing one.
+                                DataCell(
+                                  payment.receiptNumber == null
+                                      ? Text(
+                                          'Awaiting receipt',
+                                          style: TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            color: context.nyumba.mutedInk,
+                                          ),
+                                        )
+                                      : Text(payment.receiptNumber!),
+                                ),
                                 DataCell(Text(payment.tenantName)),
                                 DataCell(
                                   Text(

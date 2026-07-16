@@ -25,6 +25,10 @@ enum AggregateSyncStatus {
 
   /// A remote change could not be applied over an unsynced local edit.
   conflicted,
+
+  /// Held on this device only, and not waiting to be sent. Distinct from
+  /// [synced], which asserts the server has this record.
+  localOnly,
 }
 
 /// Resolves the status for the aggregate identified by [entityType]/[entityId]
@@ -65,6 +69,12 @@ AggregateSyncStatus resolveAggregateSyncStatus({
   }
   if (syncMetadata.state == EntitySyncState.conflicted) {
     return AggregateSyncStatus.conflicted;
+  }
+  // Checked before the synced fallback: a local-only record has no outbox entry
+  // and no failure, so it would otherwise land on `synced` and claim the server
+  // holds a record that was never sent anywhere.
+  if (syncMetadata.state == EntitySyncState.localOnly) {
+    return AggregateSyncStatus.localOnly;
   }
   return AggregateSyncStatus.synced;
 }

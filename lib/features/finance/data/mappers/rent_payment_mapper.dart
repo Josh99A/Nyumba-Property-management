@@ -26,7 +26,7 @@ final class RentPaymentMapper {
     final reader = JsonReader(json);
     return RentPayment(
       id: reader.requiredString('id'),
-      receiptNumber: reader.requiredString('receiptNumber'),
+      receiptNumber: reader.optionalString('receiptNumber'),
       landlordId: reader.requiredString('landlordId'),
       tenancyId: reader.optionalString('tenancyId'),
       tenantName: reader.requiredString('tenantName'),

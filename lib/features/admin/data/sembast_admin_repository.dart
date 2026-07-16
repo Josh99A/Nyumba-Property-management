@@ -6,13 +6,28 @@ import 'package:nyumba_property_management/core/domain/id_generator.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
-import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
 import 'package:nyumba_property_management/core/offline/uuid_id_generator.dart';
 import 'package:nyumba_property_management/features/admin/data/mappers/admin_mappers.dart';
 import 'package:nyumba_property_management/features/admin/domain/admin_action.dart';
 import 'package:nyumba_property_management/features/admin/domain/admin_repository.dart';
 import 'package:nyumba_property_management/features/admin/domain/managed_user.dart';
 
+/// The admin account directory.
+///
+/// Local-only, deliberately. Every record here is keyed by a client-generated
+/// UUID, whereas the server identifies accounts by Firebase UID: `landlordId`
+/// on every canonical document *is* the owner's UID, and the audited admin
+/// commands (`landlord.approve` / `landlord.suspend` / `landlord.reinstate`)
+/// take that UID as their aggregate ID. A UUID minted on this device names
+/// nobody on the server, so these records cannot address a real account, and
+/// there is no command at all for creating a user with an arbitrary role —
+/// provisioning runs through the audited ops scripts in `firebase/functions/
+/// scripts/`.
+///
+/// This previously enqueued outbox entries anyway, which failed permanently and
+/// invisibly. Rebuilding the directory on pulled `users`/`landlordAccounts`
+/// documents keyed by UID is the real fix; until then it must not pretend to
+/// sync.
 final class SembastManagedUserRepository implements ManagedUserRepository {
   SembastManagedUserRepository({
     required OfflineDatabase database,
@@ -41,15 +56,13 @@ final class SembastManagedUserRepository implements ManagedUserRepository {
       joinedLabel: 'Invited ${now.day}/${now.month}/${now.year}',
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.pending(),
+      syncMetadata: const SyncMetadata.local(),
     );
-    await _database.putEntityAndEnqueue(
-      entityType: OfflineEntityType.userProfile,
+    await _database.putLocalEntity(
+      entityType: OfflineEntityType.managedUser,
       entityId: user.id,
       entity: ManagedUserMapper.toJson(user),
-      mutationId: _idGenerator.generate(),
-      operation: OutboxOperation.create,
-      createdAt: now,
+      reason: LocalOnlyReason.localWorkspaceOnly,
       createOnly: true,
     );
     return user;
@@ -68,15 +81,13 @@ final class SembastManagedUserRepository implements ManagedUserRepository {
     final updated = current.copyWith(
       status: status,
       updatedAt: now,
-      syncMetadata: current.syncMetadata.markPending(),
+      syncMetadata: const SyncMetadata.local(),
     );
-    await _database.putEntityAndEnqueue(
-      entityType: OfflineEntityType.userProfile,
+    await _database.putLocalEntity(
+      entityType: OfflineEntityType.managedUser,
       entityId: updated.id,
       entity: ManagedUserMapper.toJson(updated),
-      mutationId: _idGenerator.generate(),
-      operation: OutboxOperation.update,
-      createdAt: now,
+      reason: LocalOnlyReason.localWorkspaceOnly,
     );
     return updated;
   }
@@ -84,7 +95,7 @@ final class SembastManagedUserRepository implements ManagedUserRepository {
   @override
   Future<List<ManagedUser>> getAll() async {
     final result = (await _database.readEntities(
-      OfflineEntityType.userProfile,
+      OfflineEntityType.managedUser,
     )).map(ManagedUserMapper.fromJson).toList(growable: false);
     result.sort((left, right) => left.name.compareTo(right.name));
     return result;
@@ -92,13 +103,13 @@ final class SembastManagedUserRepository implements ManagedUserRepository {
 
   @override
   Future<ManagedUser?> getById(String id) async {
-    final json = await _database.readEntity(OfflineEntityType.userProfile, id);
+    final json = await _database.readEntity(OfflineEntityType.managedUser, id);
     return json == null ? null : ManagedUserMapper.fromJson(json);
   }
 
   @override
   Stream<List<ManagedUser>> watchAll() =>
-      _database.watchEntities(OfflineEntityType.userProfile).map((items) {
+      _database.watchEntities(OfflineEntityType.managedUser).map((items) {
         final result = items
             .map(ManagedUserMapper.fromJson)
             .toList(growable: false);
@@ -107,6 +118,15 @@ final class SembastManagedUserRepository implements ManagedUserRepository {
       });
 }
 
+/// The admin audit trail shown in-app.
+///
+/// Local-only for the same reason as [SembastManagedUserRepository]: it records
+/// actions against UUID-keyed directory entries, and the server writes its own
+/// authoritative `auditLogs` inside each admin command's transaction. That
+/// server-side log is the real audit record — it is admin-read-only by rule and
+/// cannot be authored from a device, which is the entire point of an audit log.
+/// Shipping these entries would not add to it; it would only invent a second,
+/// client-authored history of events that may never have happened.
 final class SembastAdminActionRepository implements AdminActionRepository {
   SembastAdminActionRepository({
     required OfflineDatabase database,
@@ -139,22 +159,14 @@ final class SembastAdminActionRepository implements AdminActionRepository {
       performedBy: performedBy.trim(),
       performedAt: now,
       createdAt: now,
-      syncMetadata: const SyncMetadata.pending(),
+      syncMetadata: const SyncMetadata.local(),
     );
-    await _database.putEntityAndEnqueue(
+    await _database.putLocalEntity(
       entityType: OfflineEntityType.adminAction,
       entityId: record.id,
       entity: AdminActionMapper.toJson(record),
-      mutationId: _idGenerator.generate(),
-      operation: OutboxOperation.create,
-      createdAt: now,
+      reason: LocalOnlyReason.localWorkspaceOnly,
       createOnly: true,
-      dependsOn: [
-        AggregateReference(
-          type: OfflineEntityType.userProfile,
-          id: targetUserId,
-        ),
-      ],
     );
     return record;
   }

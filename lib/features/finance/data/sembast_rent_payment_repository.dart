@@ -34,7 +34,6 @@ final class SembastRentPaymentRepository implements RentPaymentRepository {
     final now = _clock.now().toUtc();
     final payment = RentPayment(
       id: _idGenerator.generate(),
-      receiptNumber: 'NYB-RCP-${now.millisecondsSinceEpoch % 100000}',
       landlordId: tenancy.landlordId,
       tenancyId: tenancy.id,
       tenantName: tenancy.tenantName,

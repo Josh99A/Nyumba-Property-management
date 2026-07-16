@@ -49,6 +49,15 @@ class SyncStateBadge extends StatelessWidget {
         tone: BadgeTone.danger,
         icon: Icons.fork_right_rounded,
       ),
+      // Always shown, even in compact lists. `synced` may be hidden because
+      // "everything is safely on the server" is the state a user assumes by
+      // default; "this exists only on this device" is the opposite, and
+      // silence would read as the assumption rather than the exception.
+      AggregateSyncStatus.localOnly => const StatusBadge(
+        label: 'On this device',
+        tone: BadgeTone.info,
+        icon: Icons.smartphone_outlined,
+      ),
     };
   }
 }

@@ -23,6 +23,9 @@ String _paymentStatusLabel(AggregateSyncStatus status) => switch (status) {
   AggregateSyncStatus.rejected => 'Rejected',
   AggregateSyncStatus.blocked => 'Blocked',
   AggregateSyncStatus.conflicted => 'Conflicted',
+  // A payment always carries a sync intent, so this is unreachable in practice
+  // — but it must never fall into the 'Paid' branch if that ever changes.
+  AggregateSyncStatus.localOnly => 'On this device',
 };
 
 class TenantPaymentsScreen extends ConsumerStatefulWidget {
@@ -305,7 +308,18 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                               DataRow(
                                 cells: [
                                   DataCell(Text(payment.period)),
-                                  DataCell(Text(payment.receiptNumber)),
+                                  DataCell(
+                                    Text(
+                                      payment.receiptNumber ??
+                                          'Awaiting receipt',
+                                      style: payment.hasIssuedReceipt
+                                          ? null
+                                          : TextStyle(
+                                              fontStyle: FontStyle.italic,
+                                              color: context.nyumba.mutedInk,
+                                            ),
+                                    ),
+                                  ),
                                   DataCell(
                                     Text(
                                       DateFormat(
@@ -587,7 +601,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
               TenantInfoRow(
                 icon: Icons.tag_rounded,
                 label: 'Reference',
-                value: payment.receiptNumber,
+                value: payment.receiptNumber ?? 'Issued once confirmed',
               ),
               const SizedBox(height: 12),
               TenantInfoRow(
@@ -646,14 +660,16 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
     try {
       await const PdfDocumentService().print(
         PrintableDocumentData(
-          title: 'Receipt',
-          number: payment.receiptNumber,
+          // Printing an unconfirmed payment as a "Receipt / Paid" would hand a
+          // tenant a document asserting something the server has not agreed to.
+          title: payment.hasIssuedReceipt ? 'Receipt' : 'Payment record',
+          number: payment.receiptNumber ?? 'Not yet issued',
           recipient: payment.tenantName,
           property: payment.propertyName,
           unit: payment.unitLabel,
           amountMinor: payment.amountMinor,
           date: payment.paidOn,
-          status: 'Paid',
+          status: payment.hasIssuedReceipt ? 'Paid' : 'Awaiting confirmation',
         ),
       );
     } on Object catch (error) {

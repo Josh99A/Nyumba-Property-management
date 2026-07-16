@@ -60,6 +60,17 @@ final class SembastTenancyRepository implements TenancyRepository {
     return tenancy;
   }
 
+  /// Reflects a payment against the local balance immediately.
+  ///
+  /// This deliberately enqueues nothing. A tenancy balance is not authored on
+  /// the device — the server derives it from the tenancy's open invoices, and
+  /// `payment.recordAgainstTenancy` recomputes it as part of settling them. The
+  /// payment's own outbox entry is the durable sync intent for this change; a
+  /// second entry pushing a client-computed balance would make the client the
+  /// authority on money, which it must never be.
+  ///
+  /// The local value is therefore an optimistic projection that a remote pull
+  /// is free to overwrite, which is exactly the behavior we want here.
   @override
   Future<Tenancy> adjustBalance({
     required String tenancyId,
@@ -74,15 +85,13 @@ final class SembastTenancyRepository implements TenancyRepository {
     final updated = current.copyWith(
       balanceMinor: next,
       updatedAt: now,
-      syncMetadata: current.syncMetadata.markPending(),
+      syncMetadata: current.syncMetadata,
     );
-    await _database.putEntityAndEnqueue(
+    await _database.putLocalEntity(
       entityType: OfflineEntityType.tenancy,
       entityId: updated.id,
       entity: TenancyMapper.toJson(updated),
-      mutationId: _idGenerator.generate(),
-      operation: OutboxOperation.update,
-      createdAt: now,
+      reason: LocalOnlyReason.serverDerived,
     );
     return updated;
   }

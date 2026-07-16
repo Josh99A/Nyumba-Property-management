@@ -5,7 +5,6 @@ import 'package:nyumba_property_management/core/domain/id_generator.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
-import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
 import 'package:nyumba_property_management/core/offline/uuid_id_generator.dart';
 import 'package:nyumba_property_management/features/documents/data/mappers/lease_document_mapper.dart';
 import 'package:nyumba_property_management/features/documents/domain/lease_document.dart';
@@ -50,15 +49,13 @@ final class SembastLeaseDocumentRepository implements LeaseDocumentRepository {
       issuedAt: now,
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.pending(),
+      syncMetadata: const SyncMetadata.local(),
     );
-    await _database.putEntityAndEnqueue(
-      entityType: OfflineEntityType.document,
+    await _database.putLocalEntity(
+      entityType: OfflineEntityType.leaseDocument,
       entityId: document.id,
       entity: LeaseDocumentMapper.toJson(document),
-      mutationId: _idGenerator.generate(),
-      operation: OutboxOperation.create,
-      createdAt: now,
+      reason: LocalOnlyReason.localWorkspaceOnly,
       createOnly: true,
     );
     return document;
@@ -70,7 +67,7 @@ final class SembastLeaseDocumentRepository implements LeaseDocumentRepository {
     String? tenantId,
   }) async => _filterAndSort(
     (await _database.readEntities(
-      OfflineEntityType.document,
+      OfflineEntityType.leaseDocument,
     )).map(LeaseDocumentMapper.fromJson),
     landlordId,
     tenantId,
@@ -78,7 +75,10 @@ final class SembastLeaseDocumentRepository implements LeaseDocumentRepository {
 
   @override
   Future<LeaseDocument?> getById(String id) async {
-    final json = await _database.readEntity(OfflineEntityType.document, id);
+    final json = await _database.readEntity(
+      OfflineEntityType.leaseDocument,
+      id,
+    );
     return json == null ? null : LeaseDocumentMapper.fromJson(json);
   }
 
@@ -87,7 +87,7 @@ final class SembastLeaseDocumentRepository implements LeaseDocumentRepository {
     String? landlordId,
     String? tenantId,
   }) => _database
-      .watchEntities(OfflineEntityType.document)
+      .watchEntities(OfflineEntityType.leaseDocument)
       .map(
         (items) => _filterAndSort(
           items.map(LeaseDocumentMapper.fromJson),
