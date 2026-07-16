@@ -79,12 +79,17 @@ Names are versioned contracts. Payload schemas should live beside Functions and 
 | Application | `application.submit/withdraw`, `contact.submit` | applicant identity from auth; active listing, App Check, throttling |
 | Reporting | `report.request` | scoped parameters; asynchronous server-derived document |
 | Documents | `document.finalizeUpload/delete` | staging object ownership, checksum/type/size, owning aggregate access |
+| Subscription | `subscription.selectPlan` | owner only; tier validated against server entitlement config; rejected once `active` — can never change status |
+| Subscription | `subscription.confirmPayment` | Admin/Super Admin only, never self; the audited transition to `active` that the future billing webhook will call |
 
 New landlord subscriptions start as `pending_payment`, and landlord workspace
-access requires `active`. Subscription activation/change will be initiated by a
-checkout command but finalized only by a signed billing webhook. There is no
-client-side confirmation command. Exact plan pricing/limits and payment provider
-schemas are **TBD**, so checkout currently fails closed as unavailable.
+access requires `active`. A landlord may change the tier they intend to pay for
+with `subscription.selectPlan` while unpaid, but activation happens only
+through `subscription.confirmPayment` — platform staff today (see
+`scripts/confirm-subscription.mjs`), a signed billing webhook once provider
+integration exists. There is no self-service confirmation. Exact plan
+pricing/limits and payment provider schemas are **TBD**, so in-app checkout
+remains unavailable and fails closed.
 
 ## Idempotent execution
 

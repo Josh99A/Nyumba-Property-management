@@ -117,11 +117,17 @@ Everything in Premium, plus:
 
 After landlord onboarding, the client routes the account to the subscription
 screen and keeps every landlord workspace route locked until the server-owned
-subscription status is `active`. A local plan choice, an initiated checkout, or
-an accepted asynchronous command is never payment confirmation. New accounts
-start as `pending_payment`; only a verified provider webhook may activate them
-once billing integration exists. Until then, checkout is shown as unavailable
-and fails closed rather than simulating payment.
+subscription status is `active`. The screen renders plan names and capacity
+limits from the public `planCatalog` documents (seeded by
+`scripts/seed-entitlements.mjs`), never from values baked into Flutter, and
+lets the landlord change their intended tier via `subscription.selectPlan`
+while unpaid. A local plan choice, an initiated checkout, or an accepted
+asynchronous command is never payment confirmation. New accounts start as
+`pending_payment`; activation happens only through the audited
+`subscription.confirmPayment` command — platform staff today
+(`scripts/confirm-subscription.mjs`), a verified provider webhook once billing
+integration exists. In-app checkout stays unavailable and fails closed rather
+than simulating payment.
 
 The admin subscriptions screen presents this structure with illustrative UGX
 prices clearly labelled as drafts. The client may render plan and entitlement

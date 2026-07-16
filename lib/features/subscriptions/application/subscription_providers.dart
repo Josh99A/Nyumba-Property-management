@@ -63,7 +63,14 @@ final landlordEntitlementProvider = StreamProvider<EntitlementState>((
         continue;
       }
       if (status != 'active') {
-        yield EntitlementUnavailable('This subscription is $status.');
+        yield EntitlementUnavailable(switch (status) {
+          'pending_payment' ||
+          'trialing' => 'This subscription is awaiting payment confirmation.',
+          'past_due' => 'This subscription payment is past due.',
+          'canceled' => 'This subscription has been canceled.',
+          'expired' => 'This subscription has expired.',
+          _ => 'This subscription is not active.',
+        });
         continue;
       }
       yield await _readPlan(firestore, tier: tier, status: status);
@@ -107,6 +114,127 @@ Future<EntitlementState> _readPlan(
   } on FirebaseException {
     // A denied or offline catalog read is not a licence to invent a limit.
     return const EntitlementUnavailable('Plan details are unavailable.');
+  }
+}
+
+/// Public plan facts for the pre-payment subscription screen.
+///
+/// Read from `planCatalog/{tier}` — server-owned, exposed by rule only while
+/// `isPublic == true`. Limits are never invented on-device: a tier with no
+/// catalog entry renders without numbers rather than with guessed ones.
+final class PublicPlanFacts {
+  const PublicPlanFacts({
+    required this.tier,
+    required this.displayName,
+    required this.unitLimit,
+    required this.activeListingLimit,
+    this.tagline,
+    this.capacityLabel,
+  });
+
+  final String tier;
+  final String displayName;
+  final int unitLimit;
+  final int activeListingLimit;
+  final String? tagline;
+
+  /// Server-owned wording that replaces the numeric capacity line, e.g.
+  /// Enterprise's custom limits.
+  final String? capacityLabel;
+}
+
+/// The publicly advertised plans, keyed by tier ID. Empty while offline,
+/// unseeded, or running without Firebase — the UI must say "unavailable"
+/// instead of quoting a limit the server never published.
+final publicPlanCatalogProvider = StreamProvider<Map<String, PublicPlanFacts>>(
+  (ref) async* {
+    if (Firebase.apps.isEmpty) {
+      yield const {};
+      return;
+    }
+    try {
+      // Rules permit a public list only when bounded to 20 documents.
+      await for (final snapshot
+          in FirebaseFirestore.instance
+              .collection('planCatalog')
+              .where('isPublic', isEqualTo: true)
+              .limit(20)
+              .snapshots()) {
+        final plans = <String, PublicPlanFacts>{};
+        for (final document in snapshot.docs) {
+          final data = document.data();
+          final displayName = data['displayName'];
+          final unitLimit = data['unitLimit'];
+          final activeListingLimit = data['activeListingLimit'];
+          if (displayName is! String ||
+              displayName.isEmpty ||
+              unitLimit is! int ||
+              activeListingLimit is! int) {
+            continue;
+          }
+          final tagline = data['tagline'];
+          final capacityLabel = data['capacityLabel'];
+          plans[document.id] = PublicPlanFacts(
+            tier: document.id,
+            displayName: displayName,
+            unitLimit: unitLimit,
+            activeListingLimit: activeListingLimit,
+            tagline: tagline is String && tagline.isNotEmpty ? tagline : null,
+            capacityLabel: capacityLabel is String && capacityLabel.isNotEmpty
+                ? capacityLabel
+                : null,
+          );
+        }
+        yield plans;
+      }
+    } on FirebaseException {
+      yield const {};
+    }
+  },
+);
+
+final selectSubscriptionPlanProvider = Provider<SelectSubscriptionPlan>(
+  SelectSubscriptionPlan.new,
+);
+
+/// Records which plan the landlord intends to pay for, through the
+/// server-authoritative `subscription.selectPlan` command.
+///
+/// Deliberately cannot touch status: only `subscription.confirmPayment`
+/// (platform staff) or a future signed provider webhook opens a workspace,
+/// so nothing on this path can be mistaken for payment.
+class SelectSubscriptionPlan {
+  const SelectSubscriptionPlan(this._ref);
+
+  final Ref _ref;
+
+  Future<void> call(String tier) async {
+    final session = _ref.read(sessionControllerProvider);
+    if (session == null || session.isDemo || session.role != AppRole.landlord) {
+      throw StateError('Sign in as a landlord to choose a plan.');
+    }
+    if (Firebase.apps.isEmpty) {
+      throw StateError('Connect to the internet to choose a plan.');
+    }
+    // The command is concurrency-checked against the server-owned subscription
+    // document, which its owner may read.
+    final subscription = await FirebaseFirestore.instance
+        .collection('subscriptions')
+        .doc(session.userId)
+        .get(const GetOptions(source: Source.server));
+    final version = (subscription.data()?['version'] as num?)?.toInt();
+    if (version == null) {
+      throw StateError(
+        'Your subscription record is still being set up. Try again shortly.',
+      );
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: 'subscription.selectPlan',
+      aggregateId: session.userId,
+      expectedVersion: version,
+      payload: <String, Object?>{'tier': tier},
+    );
   }
 }
 
