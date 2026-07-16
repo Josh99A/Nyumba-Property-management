@@ -174,19 +174,23 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         _savingAppearance = false;
         _appearanceMessage = 'Applied and saved on this device.';
       });
-    } on Object {
+    } on Object catch (error) {
       if (!mounted || _themePreference != preference) return;
       ref.read(themePreferenceProvider.notifier).load(previous);
+      // A validation message names what actually blocked the save; the generic
+      // line taught us nothing when an empty phone number was silently vetoing
+      // theme changes for every account created without one.
+      final reason = error is FormatException
+          ? error.message
+          : 'Appearance could not be saved. Please try again.';
       setState(() {
         _themePreference = previous;
         _savingAppearance = false;
         _appearanceMessage = 'Could not save this appearance setting.';
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Appearance could not be saved. Please try again.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(reason)));
     }
   }
 
