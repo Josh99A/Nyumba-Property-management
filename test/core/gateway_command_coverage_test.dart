@@ -117,6 +117,88 @@ void main() {
       expect(unmapped, isEmpty);
     });
 
+    test('tenancy.establish payload maps required and optional fields', () {
+      final mutation = RemoteMutation(
+        mutationId: 'mutation-1',
+        entityType: OfflineEntityType.tenancy,
+        entityId: 'tenancy-1',
+        operation: OutboxOperation.create,
+        payload: <String, Object?>{
+          '_expectedVersion': 0,
+          'unitId': 'unit-1',
+          'tenantName': 'Test Tenant',
+          'email': 'tenant@example.com',
+          'phone': '+256700000000',
+          'leaseStart': '2026-01-01',
+          'leaseEnd': '2026-12-31',
+          'monthlyRentMinor': 100000,
+          'balanceMinor': 50000,
+        },
+        idempotencyKey: 'mutation-1',
+        clientCreatedAt: DateTime.utc(2026, 7, 16),
+      );
+      final envelope = gateway.buildEnvelope(mutation);
+      expect(envelope['type'], 'tenancy.establish');
+      final payload = envelope['payload'] as Map<String, Object?>;
+      expect(payload['unitId'], 'unit-1');
+      expect(payload['displayName'], 'Test Tenant');
+      expect(payload['email'], 'tenant@example.com');
+      expect(payload['phone'], '+256700000000');
+      expect(payload['startDate'], '2026-01-01');
+      expect(payload['endDate'], '2026-12-31');
+      expect(payload['monthlyRentMinor'], 100000);
+      expect(payload['openingBalanceMinor'], 50000);
+    });
+
+    test('tenancy.establish omits openingBalanceMinor when null', () {
+      final mutation = RemoteMutation(
+        mutationId: 'mutation-2',
+        entityType: OfflineEntityType.tenancy,
+        entityId: 'tenancy-2',
+        operation: OutboxOperation.create,
+        payload: <String, Object?>{
+          '_expectedVersion': 0,
+          'unitId': 'unit-2',
+          'tenantName': 'Test Tenant',
+          'email': 'tenant@example.com',
+          'phone': '+256700000000',
+          'leaseStart': '2026-01-01',
+          'leaseEnd': '2026-12-31',
+          'monthlyRentMinor': 100000,
+        },
+        idempotencyKey: 'mutation-2',
+        clientCreatedAt: DateTime.utc(2026, 7, 16),
+      );
+      final envelope = gateway.buildEnvelope(mutation);
+      final payload = envelope['payload'] as Map<String, Object?>;
+      expect(payload.containsKey('openingBalanceMinor'), isFalse);
+    });
+
+    test('payment.recordAgainstTenancy maps fields with snake_case method', () {
+      final mutation = RemoteMutation(
+        mutationId: 'mutation-3',
+        entityType: OfflineEntityType.payment,
+        entityId: 'payment-1',
+        operation: OutboxOperation.create,
+        payload: <String, Object?>{
+          '_expectedVersion': 0,
+          'tenancyId': 'lease-1',
+          'amountMinor': 100000,
+          'method': 'mtnMomo',
+          'period': 'January 2026',
+        },
+        idempotencyKey: 'mutation-3',
+        clientCreatedAt: DateTime.utc(2026, 7, 16),
+      );
+      final envelope = gateway.buildEnvelope(mutation);
+      expect(envelope['type'], 'payment.recordAgainstTenancy');
+      final payload = envelope['payload'] as Map<String, Object?>;
+      expect(payload['tenancyId'], 'lease-1');
+      expect(payload['amountMinor'], 100000);
+      expect(payload['method'], 'mtn_momo');
+      expect(payload['period'], 'January 2026');
+    });
+
     test('accounts for every entity type', () {
       final covered = {
         ..._expectedCommands.keys.map((key) => key.$1),
