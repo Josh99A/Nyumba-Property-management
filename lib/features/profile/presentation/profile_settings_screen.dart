@@ -180,7 +180,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       // A validation message names what actually blocked the save; the generic
       // line taught us nothing when an empty phone number was silently vetoing
       // theme changes for every account created without one.
-      final reason = error is FormatException
+      final reason = error is FormatException && error.message.isNotEmpty
           ? error.message
           : 'Appearance could not be saved. Please try again.';
       setState(() {
