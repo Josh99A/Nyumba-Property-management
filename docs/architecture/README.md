@@ -141,25 +141,34 @@ flutter build web --release --dart-define=NYUMBA_RECAPTCHA_V3_SITE_KEY=<site-key
 An empty define skips activation entirely, so a local `flutter run` without it
 still works — requests are simply unattested.
 
-**App Check (Android).** Register Play Integrity in the same console screen; no
-build input is needed. **App Check (iOS).** App Attest requires a paid Apple
-Developer team; deferred until one exists — which costs nothing today, because
-iOS cannot be distributed at all without one.
+**App Check (Android).** Registered (Play Integrity, 2026-07-16); no build
+input is needed. However, Play Integrity only returns valid verdicts for builds
+installed **from Google Play** (any track, including internal testing). APKs
+sideloaded from GitHub Releases never attest — additionally, CI builds fall
+back to the runner's throwaway debug keystore (`android/key.properties` is
+absent in CI), whose signature is not registered, so Google sign-in also fails
+on those artifacts. Local builds signed with the registered debug keys are
+unaffected. **App Check (iOS).** App Attest requires a paid Apple Developer
+team; deferred until one exists — which costs nothing today, because iOS cannot
+be distributed at all without one.
 
 **Enforcement sequence.** Do not flip `ENFORCE_APP_CHECK`
 (`firebase/functions/src/shared/config.ts`) or console enforcement immediately:
 
 1. Deploy with the site key active and Android registered.
-2. Watch App Check request metrics in the console until verified traffic
+2. Publish the Android app to a Play track (internal testing is enough) with a
+   real upload keystore whose SHA-256 is registered in Firebase — sideloaded
+   APKs can never attest, so enforcing while Android users sideload locks all
+   of them out while web keeps working.
+3. Watch App Check request metrics in the console until verified traffic
    dominates (a day or two of real usage).
-3. Register a **debug token** for local development (console → App Check →
+4. Register a **debug token** for local development (console → App Check →
    Apps → manage debug tokens) — after enforcement, un-attested local runs are
    rejected.
-4. Flip `ENFORCE_APP_CHECK`, deploy functions, then enable console enforcement
+5. Flip `ENFORCE_APP_CHECK`, deploy functions, then enable console enforcement
    for Firestore and Storage.
 
-Enforcing before web + Android are registered rejects every callable command
-from real users. iOS absence is irrelevant while no iOS build can ship.
+iOS absence is irrelevant while no iOS build can ship.
 
 **Push (web).** Firebase Console → Project settings → Cloud Messaging → Web
 Push certificates → generate a key pair. Pass the public key at build time:
