@@ -17,8 +17,6 @@ import '../../tenants/application/tenancy_providers.dart';
 import '../../tenants/domain/tenancy.dart';
 import 'widgets/tenant_components.dart';
 
-const _demoTenantId = 'demo-tenant-001';
-
 String _paymentStatusLabel(AggregateSyncStatus status) => switch (status) {
   AggregateSyncStatus.synced => 'Paid',
   AggregateSyncStatus.pending || AggregateSyncStatus.syncing => 'Awaiting sync',
@@ -39,8 +37,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
   String _filter = 'All';
   String _defaultMethod = 'MTN MoMo ••• 0841';
 
-  String get _tenantId =>
-      ref.read(sessionControllerProvider)?.userId ?? _demoTenantId;
+  String get _tenantId => ref.read(sessionControllerProvider)?.userId ?? '';
 
   @override
   Widget build(BuildContext context) {

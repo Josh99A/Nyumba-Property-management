@@ -7,7 +7,9 @@ import '../../../core/config/market_config.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/surface.dart';
+import '../../../core/presentation/toast.dart';
 import '../application/session_controller.dart';
+import '../domain/auth_failure.dart';
 
 /// First verified sign-in for an account without a role. Landlords finish
 /// setup here (server command, pending admin approval); invited tenants are
@@ -46,12 +48,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             businessName: _businessController.text,
           );
       if (mounted) context.go('/dashboard');
+      showNyumbaToast(
+        'Workspace ready. Publishing listings unlocks once an administrator '
+        'approves your account.',
+        variant: NyumbaToastVariant.success,
+      );
     } on Object catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
-        ),
+      showNyumbaToast(
+        describeAuthFailure(error),
+        variant: NyumbaToastVariant.error,
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -67,24 +72,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (!mounted) return;
       if (linked > 0) {
         context.go('/tenant');
+        showNyumbaToast(
+          linked == 1
+              ? 'Tenancy linked. Your portal is open.'
+              : '$linked tenancies linked. Your portal is open.',
+          variant: NyumbaToastVariant.success,
+        );
       } else {
         final email =
             ref.read(sessionControllerProvider)?.email ?? 'this email';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'No tenant invitation found for $email. Ask your landlord to '
-              'add you with this exact email address.',
-            ),
-          ),
+        showNyumbaToast(
+          'No invitation found for $email. Ask your landlord to add you with '
+          'this exact email address.',
+          variant: NyumbaToastVariant.info,
         );
       }
     } on Object catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
-        ),
+      showNyumbaToast(
+        describeAuthFailure(error),
+        variant: NyumbaToastVariant.error,
       );
     } finally {
       if (mounted) setState(() => _isCheckingInvites = false);

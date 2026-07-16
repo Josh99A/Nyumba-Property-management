@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/nyumba_colors.dart';
@@ -6,6 +7,7 @@ import '../../../../core/config/market_config.dart';
 import '../../../../core/presentation/page_header.dart';
 import '../../../../core/presentation/responsive.dart';
 import '../../../../core/presentation/surface.dart';
+import '../../../auth/application/session_controller.dart';
 
 final NumberFormat _adminCurrency = NumberFormat.currency(
   locale: NyumbaMarket.currencyLocale,
@@ -40,8 +42,12 @@ class AdminPage extends StatelessWidget {
   final List<Widget> children;
   final double maxWidth;
 
-  /// Admin metrics are locally seeded fixtures until the platform reporting
-  /// backend exists; the banner keeps that visible on every admin page.
+  /// Whether this page can render seeded records at all.
+  ///
+  /// Pages that only ever show real data (or say plainly that a figure is
+  /// unavailable) pass false. Everywhere else the banner still self-hides
+  /// unless the session is genuinely a demo one, so a real administrator is
+  /// never warned about demo data they are not being shown.
   final bool showsDemoData;
 
   @override
@@ -79,11 +85,15 @@ class AdminPage extends StatelessWidget {
   }
 }
 
-class AdminDemoDataBanner extends StatelessWidget {
+class AdminDemoDataBanner extends ConsumerWidget {
   const AdminDemoDataBanner({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Seeded records only ever reach an explicit demo session, so warning a
+    // real administrator about demo data would itself be misinformation.
+    final isDemo = ref.watch(sessionControllerProvider)?.isDemo ?? false;
+    if (!isDemo) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(

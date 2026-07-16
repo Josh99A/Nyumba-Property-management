@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/documents/nyumba_document_service.dart';
@@ -209,6 +210,17 @@ class ManualSync {
   }
 }
 
+/// Whether this workspace may be filled with seeded demo records.
+///
+/// Only an explicitly chosen demo role qualifies. In particular a missing
+/// Firebase app must NOT qualify: `main()` deliberately swallows Firebase
+/// initialisation failures to keep the offline workspace reachable, so keying
+/// seeding off `Firebase.apps.isEmpty` would quietly hand a real signed-in
+/// landlord a portfolio of invented properties whenever startup hiccuped.
+/// A real account with no cloud shows an empty workspace, which is the truth.
+@visibleForTesting
+bool seedsDemoData(UserSession? session) => session?.isDemo ?? false;
+
 Future<AppDependencies> createAppDependencies({
   String scope = 'anonymous',
   UserSession? session,
@@ -237,8 +249,7 @@ Future<AppDependencies> createAppDependencies({
   final isDemoSession = session?.isDemo ?? false;
   // Public browsing is unauthenticated but still server-backed: `publicListings`
   // is world-readable, so an anonymous visitor must read the real catalogue
-  // rather than seeded fixtures. Only an explicit demo role, or a build with no
-  // Firebase configuration, falls back to local demo data.
+  // rather than seeded fixtures.
   final usesFirebase = !isDemoSession && Firebase.apps.isNotEmpty;
   final isAuthenticated = session != null && !isDemoSession;
   final gateway = usesFirebase && isAuthenticated
@@ -247,7 +258,7 @@ Future<AppDependencies> createAppDependencies({
   final syncEngine = SyncEngine(database: database, gateway: gateway);
   RemotePullCoordinator? remotePullCoordinator;
 
-  if (!usesFirebase) {
+  if (seedsDemoData(session)) {
     await _seedPortfolioIfNeeded(
       properties: properties,
       units: units,
@@ -261,7 +272,7 @@ Future<AppDependencies> createAppDependencies({
     await _seedSubscriptionPlansIfNeeded(subscriptionPlans);
     await _seedManagedUsersIfNeeded(managedUsers);
     await syncEngine.syncPending(maxMutations: 200);
-  } else {
+  } else if (usesFirebase) {
     remotePullCoordinator = RemotePullCoordinator(
       database: database,
       gateway: FirestoreRemotePullGateway(),

@@ -13,11 +13,8 @@ import '../../../core/presentation/sync_state_badge.dart';
 import '../../auth/application/session_controller.dart';
 import '../../maintenance/application/maintenance_providers.dart';
 import '../../maintenance/domain/maintenance_request.dart';
+import '../../tenants/application/tenancy_providers.dart';
 import 'widgets/tenant_components.dart';
-
-const _demoTenantId = 'demo-tenant-001';
-const _demoLandlordId = 'demo-landlord-001';
-const _demoTenantUnitLabel = 'Apartment B4 · Sunset Apartments';
 
 String tenantStatusLabel(MaintenanceStatus status) => switch (status) {
   MaintenanceStatus.submitted => 'Reported',
@@ -40,8 +37,7 @@ class _TenantMaintenanceScreenState
   String _filter = 'All';
   String _query = '';
 
-  String get _tenantId =>
-      ref.read(sessionControllerProvider)?.userId ?? _demoTenantId;
+  String get _tenantId => ref.read(sessionControllerProvider)?.userId ?? '';
 
   List<MaintenanceRequest> _applyFilters(List<MaintenanceRequest> requests) {
     final query = _query.trim().toLowerCase();
@@ -420,14 +416,27 @@ class _TenantMaintenanceScreenState
       ),
     );
     if (submitted == true) {
+      // The request must reach the landlord who actually owns this tenancy;
+      // without it there is nobody to route the work to.
+      final tenancy = ref.read(myTenancyProvider(_tenantId)).value;
+      if (tenancy == null) {
+        if (mounted) {
+          showTenantMessage(
+            context,
+            'We could not find your tenancy yet, so this request has nowhere '
+            'to go. It will work once your landlord activates your lease.',
+          );
+        }
+        return;
+      }
       try {
         final request = await ref.read(createMaintenanceRequestProvider)(
           CreateMaintenanceRequestInput(
-            landlordId: _demoLandlordId,
+            landlordId: tenancy.landlordId,
             tenantId: _tenantId,
             title: titleController.text.trim(),
             description: descriptionController.text.trim(),
-            location: _demoTenantUnitLabel,
+            location: '${tenancy.unitLabel} · ${tenancy.propertyName}',
             reporterName: session?.displayName ?? 'Tenant',
             category: category,
             priority: priority,

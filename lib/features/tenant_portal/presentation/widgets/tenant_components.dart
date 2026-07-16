@@ -269,7 +269,9 @@ class TenantBalanceHero extends StatelessWidget {
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            paid ? 'Rent is up to date' : 'Current rent balance',
+                            paid
+                                ? 'Rent is up to date'
+                                : 'Current rent balance',
                             style: Theme.of(context).textTheme.labelLarge
                                 ?.copyWith(
                                   color: Colors.white.withValues(alpha: .82),

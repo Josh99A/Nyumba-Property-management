@@ -3,14 +3,63 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
+import 'package:flutter/foundation.dart'
+    show immutable, kIsWeb, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/offline/firebase_remote_sync_gateway.dart';
+import '../domain/auth_failure.dart';
 import '../domain/user_session.dart';
 
 final sessionControllerProvider =
     NotifierProvider<SessionController, UserSession?>(SessionController.new);
+
+/// Progress of the session resolution that runs on the auth-state listener.
+///
+/// A form cannot `await` that work: it starts when Firebase reports a new user,
+/// not when the button is pressed, so a sign-in that is accepted by Google but
+/// then fails to resolve a profile has no `catch` to land in. This is how the
+/// button knows to keep spinning and how such a failure reaches the user.
+@immutable
+class SessionResolution {
+  const SessionResolution({
+    this.isResolving = false,
+    this.error,
+    this.welcome,
+    this.sequence = 0,
+  });
+
+  final bool isResolving;
+  final String? error;
+
+  /// First name to greet once an explicitly requested session lands.
+  final String? welcome;
+
+  /// Distinguishes repeats: two identical failures in a row are two events,
+  /// and `ref.listen` would otherwise ignore the second.
+  final int sequence;
+}
+
+final sessionResolutionProvider =
+    NotifierProvider<SessionResolutionController, SessionResolution>(
+      SessionResolutionController.new,
+    );
+
+class SessionResolutionController extends Notifier<SessionResolution> {
+  @override
+  SessionResolution build() => const SessionResolution();
+
+  void publish(SessionResolution resolution) => state = resolution;
+}
+
+/// How long a brand-new account waits for its profile document to appear.
+///
+/// `onUserCreated` is an asynchronous background trigger, so the document does
+/// not exist at the moment the auth state flips; a cold start pushes the write
+/// seconds past the client's first read. Giving up immediately strands a
+/// first-time user on the sign-in screen with a valid credential and no
+/// session.
+const _profileWaitBudget = Duration(seconds: 20);
 
 /// Returns the first value that carries actual text, treating blanks as absent.
 ///
@@ -38,6 +87,12 @@ final authCommandGatewayProvider = FutureProvider<FirebaseRemoteSyncGateway>(
 class SessionController extends Notifier<UserSession?> {
   StreamSubscription<User?>? _authSubscription;
   var _generation = 0;
+  var _noticeSequence = 0;
+
+  /// Set by an explicit sign-in so the arriving session can be greeted. A
+  /// session restored on page load reaches the same code path, and must not
+  /// announce a welcome the user never asked for.
+  var _announceArrival = false;
 
   @override
   UserSession? build() {
@@ -100,17 +155,27 @@ class SessionController extends Notifier<UserSession?> {
 
   Future<void> signIn({required String email, required String password}) async {
     _requireFirebase();
-    final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email.trim(),
-      password: password,
-    );
-    final user = credential.user;
-    if (user != null && !user.emailVerified) {
-      await user.sendEmailVerification();
-      state = null;
-      throw StateError(
-        'Verify your email before continuing. A new verification email was sent.',
+    _announceArrival = true;
+    try {
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
       );
+      final user = credential.user;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+        // The credential is good but the address is unproven, so nothing may
+        // open. Signing out keeps Firebase from holding a half-session that the
+        // listener would re-resolve to null on every rebuild.
+        await FirebaseAuth.instance.signOut();
+        state = null;
+        throw EmailNotVerifiedException(user.email ?? email.trim());
+      }
+    } on Object {
+      // No session will arrive, so the pending greeting must not outlive this
+      // attempt and land on someone else's sign-in.
+      _announceArrival = false;
+      rethrow;
     }
   }
 
@@ -123,12 +188,18 @@ class SessionController extends Notifier<UserSession?> {
   /// through the auth-state listener.
   Future<void> signInWithGoogle() async {
     _requireFirebase();
+    _announceArrival = true;
     final provider = GoogleAuthProvider()
       ..setCustomParameters({'prompt': 'select_account'});
-    if (kIsWeb) {
-      await FirebaseAuth.instance.signInWithPopup(provider);
-    } else {
-      await FirebaseAuth.instance.signInWithProvider(provider);
+    try {
+      if (kIsWeb) {
+        await FirebaseAuth.instance.signInWithPopup(provider);
+      } else {
+        await FirebaseAuth.instance.signInWithProvider(provider);
+      }
+    } on Object {
+      _announceArrival = false;
+      rethrow;
     }
   }
 
@@ -148,6 +219,10 @@ class SessionController extends Notifier<UserSession?> {
         );
     await credential.user?.updateDisplayName(displayName.trim());
     await credential.user?.sendEmailVerification();
+    // createUser signs the new account in, but an unverified address may not
+    // open a workspace. Sign out so the app holds no half-session while the
+    // user goes to their inbox.
+    await FirebaseAuth.instance.signOut();
   }
 
   /// Promotes the verified signed-in user to a landlord (pending approval)
@@ -213,26 +288,54 @@ class SessionController extends Notifier<UserSession?> {
   }
 
   Future<void> _loadVerifiedSession(User user, int generation) async {
+    _publish(const SessionResolution(isResolving: true), generation);
+    try {
+      final welcome = await _resolveSession(user, generation);
+      _publish(
+        SessionResolution(
+          welcome: welcome,
+          sequence: welcome == null ? 0 : ++_noticeSequence,
+        ),
+        generation,
+      );
+    } on Object catch (error) {
+      // Nothing else can report this: the listener has no caller to throw to,
+      // and a silent return here is what leaves a signed-in user staring at the
+      // sign-in screen.
+      if (generation != _generation) return;
+      state = null;
+      _publish(
+        SessionResolution(
+          error: describeAuthFailure(error),
+          sequence: ++_noticeSequence,
+        ),
+        generation,
+      );
+    }
+  }
+
+  void _publish(SessionResolution resolution, int generation) {
+    if (generation != _generation) return;
+    ref.read(sessionResolutionProvider.notifier).publish(resolution);
+  }
+
+  /// Returns the first name to greet, or null when nothing should be
+  /// announced (a restored session, or a load that another generation owns).
+  Future<String?> _resolveSession(User user, int generation) async {
     if (!user.isAnonymous) {
       await user.getIdToken(true);
       await user.reload();
       user = FirebaseAuth.instance.currentUser ?? user;
       if (!user.emailVerified) {
         if (generation == _generation) state = null;
-        return;
+        return null;
       }
     }
     final token = await user.getIdTokenResult(true);
     DocumentSnapshot<Map<String, dynamic>>? userDocument;
     if (!user.isAnonymous) {
-      userDocument = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get(const GetOptions(source: Source.server));
-      if (!userDocument.exists) {
-        if (generation == _generation) state = null;
-        return;
-      }
+      userDocument = await _awaitUserProfile(user.uid, generation);
+      if (userDocument == null) return null;
     }
     final data = userDocument?.data() ?? const <String, dynamic>{};
     final superAdmin = token.claims?['superAdmin'] == true;
@@ -256,8 +359,8 @@ class SessionController extends Notifier<UserSession?> {
         _ => accountStatus,
       };
     }
-    if (generation != _generation) return;
-    state = UserSession(
+    if (generation != _generation) return null;
+    final session = UserSession(
       userId: user.uid,
       displayName:
           firstFilled(data['displayName'], user.displayName) ??
@@ -269,10 +372,47 @@ class SessionController extends Notifier<UserSession?> {
       emailVerified: user.emailVerified,
       isAnonymous: user.isAnonymous,
     );
+    state = session;
     if (role == AppRole.client && !user.isAnonymous) {
       // An invited tenant signs in as a plain account; linking happens
       // server-side against the verified email and upgrades the role.
       unawaited(_autoClaimInvites(generation));
+    }
+    if (!_announceArrival) return null;
+    _announceArrival = false;
+    return session.firstName;
+  }
+
+  /// Reads the profile document, waiting out the gap between the account
+  /// existing and [_profileWaitBudget] elapsing.
+  ///
+  /// Returns null when a newer generation has taken over. Throws when the
+  /// budget runs out, so the caller reports a real failure instead of leaving
+  /// the user signed in with no session.
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _awaitUserProfile(
+    String uid,
+    int generation,
+  ) async {
+    final reference = FirebaseFirestore.instance.collection('users').doc(uid);
+    final deadline = DateTime.now().add(_profileWaitBudget);
+    var backoff = const Duration(milliseconds: 250);
+    while (true) {
+      if (generation != _generation) return null;
+      final snapshot = await reference.get(
+        const GetOptions(source: Source.server),
+      );
+      if (snapshot.exists) return snapshot;
+      if (!DateTime.now().isBefore(deadline)) {
+        throw StateError(
+          'Your account is still being set up. Give it a moment, then sign in '
+          'again.',
+        );
+      }
+      await Future<void>.delayed(backoff);
+      backoff = backoff * 2;
+      if (backoff > const Duration(seconds: 2)) {
+        backoff = const Duration(seconds: 2);
+      }
     }
   }
 
@@ -304,6 +444,10 @@ class SessionController extends Notifier<UserSession?> {
     final current = state;
     state = null;
     _generation++;
+    _announceArrival = false;
+    ref
+        .read(sessionResolutionProvider.notifier)
+        .publish(const SessionResolution());
     if (current?.isDemo == true || Firebase.apps.isEmpty) return;
     await FirebaseAuth.instance.signOut();
   }

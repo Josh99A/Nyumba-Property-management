@@ -6,7 +6,9 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/operational_actions.dart';
+import '../../../core/presentation/toast.dart';
 import '../application/session_controller.dart';
+import '../domain/auth_failure.dart';
 import '../domain/user_session.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
@@ -41,23 +43,37 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             email: _emailController.text,
             password: _passwordController.text,
           );
-    } on Object catch (error) {
+      // The session itself lands on the auth-state listener, which greets the
+      // user and redirects; nothing more to announce here.
+    } on EmailNotVerifiedException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
-        ),
+      await _showVerificationSent(error.email);
+    } on Object catch (error) {
+      showNyumbaToast(
+        describeAuthFailure(error),
+        variant: NyumbaToastVariant.error,
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
+  Future<void> _showVerificationSent(String email) => showNyumbaInfoDialog(
+    context,
+    title: 'Verify your email',
+    message:
+        'Your password is correct, but $email is not verified yet. We sent a '
+        'fresh link — open it, then sign in again. Check your spam folder if '
+        'it has not arrived.',
+    icon: Icons.mark_email_read_outlined,
+  );
+
   Future<void> _resetPassword() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your email address first.')),
+      showNyumbaToast(
+        'Enter your email address first.',
+        variant: NyumbaToastVariant.info,
       );
       return;
     }
@@ -69,15 +85,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       await showNyumbaInfoDialog(
         context,
         title: 'Check your email',
-        message: 'A password-reset link was sent if that account exists.',
+        // Deliberately silent on whether the account exists: confirming it
+        // would let anyone test addresses against Nyumba.
+        message:
+            'If $email has a Nyumba account, a password-reset link is on its '
+            'way. Check your spam folder if it has not arrived.',
         icon: Icons.lock_reset_rounded,
       );
     } on Object catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
-        ),
+      showNyumbaToast(
+        describeAuthFailure(error),
+        variant: NyumbaToastVariant.error,
       );
     }
   }
@@ -87,11 +105,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     try {
       await ref.read(sessionControllerProvider.notifier).signInWithGoogle();
     } on Object catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
-        ),
+      // Closing the Google window is a decision, not a fault.
+      if (isAuthCancellation(error)) return;
+      showNyumbaToast(
+        describeAuthFailure(error),
+        variant: NyumbaToastVariant.error,
       );
     } finally {
       if (mounted) setState(() => _isGoogleSubmitting = false);
@@ -104,6 +122,12 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // A credential is accepted well before the profile behind it resolves, so
+    // the button keeps its spinner until the session actually lands rather
+    // than going idle over a screen that is about to be replaced.
+    final isResolving = ref.watch(sessionResolutionProvider).isResolving;
+    final busy = _isSubmitting || isResolving;
+    final googleBusy = _isGoogleSubmitting || isResolving;
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
@@ -244,8 +268,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                     ),
                                     const SizedBox(height: 24),
                                     FilledButton(
-                                      onPressed: _isSubmitting ? null : _submit,
-                                      child: _isSubmitting
+                                      onPressed: busy ? null : _submit,
+                                      child: busy
                                           ? const SizedBox.square(
                                               dimension: 20,
                                               child: CircularProgressIndicator(
@@ -257,10 +281,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                     ),
                                     const SizedBox(height: 12),
                                     OutlinedButton.icon(
-                                      onPressed: _isGoogleSubmitting
+                                      onPressed: googleBusy
                                           ? null
                                           : _signInWithGoogle,
-                                      icon: _isGoogleSubmitting
+                                      icon: googleBusy
                                           ? const SizedBox.square(
                                               dimension: 18,
                                               child: CircularProgressIndicator(
@@ -271,7 +295,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                               Icons.g_mobiledata_rounded,
                                               size: 26,
                                             ),
-                                      label: const Text('Continue with Google'),
+                                      label: Text(
+                                        isResolving
+                                            ? 'Opening your workspace…'
+                                            : 'Continue with Google',
+                                      ),
                                     ),
                                     const SizedBox(height: 6),
                                     TextButton(

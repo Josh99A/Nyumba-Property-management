@@ -12,15 +12,14 @@ import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
+import '../../auth/application/session_controller.dart';
 import '../../notices/application/notice_providers.dart';
 import '../../notices/domain/notice.dart';
-import '../../auth/application/session_controller.dart';
+import '../../portfolio/domain/property.dart';
 import '../../tenants/application/tenancy_providers.dart';
 import '../../tenants/domain/tenancy.dart';
 import '../application/document_providers.dart';
 import '../domain/lease_document.dart';
-
-const _demoLandlordId = 'demo-landlord-001';
 
 /// One row of the unified documents list: either a generated document or a
 /// tenant notice, with its printable projection and honest sync state.
@@ -68,8 +67,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   String _filter = 'All';
   String? _busyDocument;
 
-  String get _landlordId =>
-      ref.read(sessionControllerProvider)?.userId ?? _demoLandlordId;
+  String get _landlordId => ref.read(sessionControllerProvider)?.userId ?? '';
 
   @override
   Widget build(BuildContext context) {
@@ -533,23 +531,23 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   DropdownButtonFormField<String>(
                     initialValue: audience,
                     decoration: const InputDecoration(labelText: 'Audience'),
-                    items: const [
-                      DropdownMenuItem(
+                    // Only this landlord's own properties can be addressed; a
+                    // fixed list would offer estates they do not own.
+                    items: [
+                      const DropdownMenuItem(
                         value: 'All tenants',
                         child: Text('All tenants'),
                       ),
-                      DropdownMenuItem(
-                        value: 'Sunset Apartments',
-                        child: Text('Sunset Apartments'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Riverside Heights',
-                        child: Text('Riverside Heights'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Nyumbani Gardens',
-                        child: Text('Nyumbani Gardens'),
-                      ),
+                      for (final property
+                          in ref
+                                  .read(portfolioPropertiesProvider)
+                                  .value
+                                  ?.where((property) => !property.isArchived) ??
+                              const <Property>[])
+                        DropdownMenuItem(
+                          value: property.name,
+                          child: Text(property.name),
+                        ),
                     ],
                     onChanged: (value) {
                       if (value != null) {

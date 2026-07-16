@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/offline/aggregate_sync_status.dart';
+import '../../../core/offline/offline_entity.dart';
+import '../../../core/offline/outbox_entry.dart';
+import '../../finance/application/billing_providers.dart';
+import '../../finance/domain/rent_payment.dart';
+import '../../maintenance/application/maintenance_providers.dart';
+import '../../maintenance/domain/maintenance_request.dart'
+    as maintenance_domain;
+import '../../portfolio/domain/unit.dart';
+import '../../tenants/application/tenancy_providers.dart';
+import '../../tenants/domain/tenancy.dart';
+
 enum PaymentState { paid, pending, overdue }
 
 class RecentPayment {
@@ -91,135 +104,217 @@ class DashboardSnapshot {
   final int pendingChanges;
 
   double get occupancyRate => totalUnits == 0 ? 0 : occupiedUnits / totalUnits;
+
+  static final empty = DashboardSnapshot(
+    totalUnits: 0,
+    occupiedUnits: 0,
+    rentCollectedMinor: 0,
+    rentOutstandingMinor: 0,
+    openRequests: 0,
+    collectionTrend: const <double>[],
+    outstandingTrend: const <double>[],
+    recentPayments: const <RecentPayment>[],
+    maintenance: const <MaintenanceSummary>[],
+    activity: const <ActivitySummary>[],
+    lastSyncedAt: DateTime.fromMillisecondsSinceEpoch(0),
+  );
 }
 
+/// How many months of history the rent sparkline shows.
+const _trendMonths = 10;
+
+/// The landlord dashboard, derived entirely from the local mirror.
+///
+/// Every figure is computed from this landlord's own records, so an account
+/// with no properties honestly reports zeroes instead of illustrative totals.
+/// This is a per-landlord view of data they already hold, not a platform
+/// aggregate: cross-tenant reporting stays server-derived by design.
 final dashboardSnapshotProvider = Provider<DashboardSnapshot>((ref) {
-  final now = DateTime.now();
-  return DashboardSnapshot(
-    totalUnits: 24,
-    occupiedUnits: 20,
-    rentCollectedMinor: 2250000000,
-    rentOutstandingMinor: 315000000,
-    openRequests: 6,
-    collectionTrend: const [.08, .24, .33, .47, .60, .66, .74, .78, .83, .84],
-    outstandingTrend: const [
-      .08,
-      .09,
-      .10,
-      .11,
-      .105,
-      .112,
-      .115,
-      .116,
-      .117,
-      .1175,
-    ],
-    recentPayments: [
-      RecentPayment(
-        id: 'pay-1',
-        tenant: 'Brian Okello',
-        unit: 'B4',
-        property: 'Sunset Apartments',
-        amountMinor: 120000000,
-        date: DateTime(now.year, now.month, 24),
-        state: PaymentState.paid,
-      ),
-      RecentPayment(
-        id: 'pay-2',
-        tenant: 'Grace Namuli',
-        unit: 'D1',
-        property: 'Riverside Heights',
-        amountMinor: 140000000,
-        date: DateTime(now.year, now.month, 24),
-        state: PaymentState.paid,
-      ),
-      RecentPayment(
-        id: 'pay-3',
-        tenant: 'Peter Ssemwanga',
-        unit: 'A1',
-        property: 'Greenview Court',
-        amountMinor: 110000000,
-        date: DateTime(now.year, now.month, 23),
-        state: PaymentState.paid,
-      ),
-      RecentPayment(
-        id: 'pay-4',
-        tenant: 'Mary Nansubuga',
-        unit: 'C2',
-        property: 'Nyumbani Gardens',
-        amountMinor: 130000000,
-        date: DateTime(now.year, now.month, 22),
-        state: PaymentState.paid,
-      ),
-      RecentPayment(
-        id: 'pay-5',
-        tenant: 'James Lubega',
-        unit: 'B2',
-        property: 'Sunset Apartments',
-        amountMinor: 120000000,
-        date: DateTime(now.year, now.month, 21),
-        state: PaymentState.paid,
-      ),
-    ],
-    maintenance: [
-      MaintenanceSummary(
-        id: 'maintenance-1',
-        title: 'Leaking tap in kitchen',
-        unit: 'A2',
-        property: 'Greenview Court',
-        reportedBy: 'Alice Namutebi',
-        reportedAt: now.subtract(const Duration(hours: 1)),
-        priority: MaintenancePriority.urgent,
-      ),
-      MaintenanceSummary(
-        id: 'maintenance-2',
-        title: 'No power in the living room',
-        unit: 'D3',
-        property: 'Riverside Heights',
-        reportedBy: 'John M.',
-        reportedAt: now.subtract(const Duration(hours: 3)),
-        priority: MaintenancePriority.high,
-      ),
-      MaintenanceSummary(
-        id: 'maintenance-3',
-        title: 'Water not draining in bathroom',
-        unit: 'B1',
-        property: 'Sunset Apartments',
-        reportedBy: 'Sarah W.',
-        reportedAt: now.subtract(const Duration(hours: 5)),
-        priority: MaintenancePriority.high,
-      ),
-    ],
-    activity: [
-      ActivitySummary(
-        icon: Icons.check_rounded,
-        title: 'Rent received from Brian Okello',
-        detail: 'Apartment B4 · Sunset Apartments',
-        at: now.subtract(const Duration(minutes: 20)),
-        tone: const Color(0xFF367248),
-      ),
-      ActivitySummary(
-        icon: Icons.build_outlined,
-        title: 'New maintenance request',
-        detail: 'Leaking tap · Apartment A2',
-        at: now.subtract(const Duration(hours: 1)),
-        tone: const Color(0xFFC64B2F),
-      ),
-      ActivitySummary(
-        icon: Icons.description_outlined,
-        title: 'Lease signed by David Kato',
-        detail: 'House C3 · Nyumbani Gardens',
-        at: now.subtract(const Duration(hours: 3)),
-        tone: const Color(0xFF123A6F),
-      ),
-      ActivitySummary(
-        icon: Icons.payments_outlined,
-        title: 'Payment overdue',
-        detail: 'Apartment B5 · Sunset Apartments',
-        at: now.subtract(const Duration(hours: 5)),
-        tone: const Color(0xFFC98B2E),
-      ),
-    ],
-    lastSyncedAt: now.subtract(const Duration(seconds: 22)),
+  return buildDashboardSnapshot(
+    units: ref.watch(portfolioUnitsProvider).value ?? const <Unit>[],
+    payments: ref.watch(rentPaymentsProvider).value ?? const <RentPayment>[],
+    tenancies: ref.watch(tenanciesProvider).value ?? const <Tenancy>[],
+    requests:
+        ref.watch(maintenanceRequestsProvider).value ??
+        const <maintenance_domain.MaintenanceRequest>[],
+    outbox: ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[],
+    now: DateTime.now(),
   );
 });
+
+/// Pure derivation of the dashboard from a landlord's records.
+///
+/// Kept free of Riverpod and of `DateTime.now()` so the arithmetic can be
+/// exercised directly against fixed inputs.
+@visibleForTesting
+DashboardSnapshot buildDashboardSnapshot({
+  required List<Unit> units,
+  required List<RentPayment> payments,
+  required List<Tenancy> tenancies,
+  required List<maintenance_domain.MaintenanceRequest> requests,
+  required List<OutboxEntry> outbox,
+  required DateTime now,
+}) {
+  final propertyNameByPayment = <String, String>{};
+  for (final payment in payments) {
+    propertyNameByPayment[payment.id] = payment.propertyName;
+  }
+
+  final collectedThisMonth = payments
+      .where((p) => p.paidOn.year == now.year && p.paidOn.month == now.month)
+      .fold<int>(0, (total, p) => total + p.amountMinor);
+
+  // Tenancy.validate() guarantees balanceMinor is never negative.
+  final outstanding = tenancies
+      .where((t) => t.status != TenancyStatus.ended)
+      .fold<int>(0, (total, t) => total + t.balanceMinor);
+
+  final openRequests = requests
+      .where(
+        (r) =>
+            r.status != maintenance_domain.MaintenanceStatus.resolved &&
+            r.status != maintenance_domain.MaintenanceStatus.cancelled,
+      )
+      .toList(growable: false);
+
+  final recentPayments = [...payments]
+    ..sort((a, b) => b.paidOn.compareTo(a.paidOn));
+  final recentOpen = [...openRequests]
+    ..sort((a, b) => b.reportedAt.compareTo(a.reportedAt));
+
+  return DashboardSnapshot(
+    totalUnits: units.length,
+    occupiedUnits: units.where((u) => u.status == UnitStatus.occupied).length,
+    rentCollectedMinor: collectedThisMonth,
+    rentOutstandingMinor: outstanding,
+    openRequests: openRequests.length,
+    collectionTrend: _monthlyTrend(payments, now),
+    outstandingTrend: _outstandingTrend(payments, tenancies, now),
+    recentPayments: recentPayments
+        .take(5)
+        .map(
+          (p) => RecentPayment(
+            id: p.id,
+            tenant: p.tenantName,
+            unit: p.unitLabel,
+            property: propertyNameByPayment[p.id] ?? p.propertyName,
+            amountMinor: p.amountMinor,
+            date: p.paidOn,
+            // A receipt the server has not confirmed is not yet money in the
+            // bank, so it must not render as settled.
+            state:
+                resolveAggregateSyncStatus(
+                      entityType: OfflineEntityType.payment,
+                      entityId: p.id,
+                      outbox: outbox,
+                      syncMetadata: p.syncMetadata,
+                    ) ==
+                    AggregateSyncStatus.synced
+                ? PaymentState.paid
+                : PaymentState.pending,
+          ),
+        )
+        .toList(growable: false),
+    maintenance: recentOpen
+        .take(3)
+        .map(
+          (r) => MaintenanceSummary(
+            id: r.id,
+            title: r.title,
+            unit: r.location,
+            property: r.category,
+            reportedBy: r.reporterName,
+            reportedAt: r.reportedAt,
+            priority: switch (r.priority) {
+              maintenance_domain.MaintenancePriority.urgent =>
+                MaintenancePriority.urgent,
+              maintenance_domain.MaintenancePriority.high =>
+                MaintenancePriority.high,
+              maintenance_domain.MaintenancePriority.normal =>
+                MaintenancePriority.normal,
+            },
+          ),
+        )
+        .toList(growable: false),
+    activity: _activity(recentPayments, recentOpen),
+    lastSyncedAt: _lastSyncedAt(payments, units) ?? now,
+    pendingChanges: outbox.length,
+  );
+}
+
+/// Rent collected per month for the last [_trendMonths], normalised against the
+/// best month so the sparkline is comparable. Returns empty when there is no
+/// history: an empty chart is honest, an invented curve is not.
+List<double> _monthlyTrend(List<RentPayment> payments, DateTime now) {
+  if (payments.isEmpty) return const <double>[];
+  final totals = List<int>.filled(_trendMonths, 0);
+  for (final payment in payments) {
+    final months =
+        (now.year - payment.paidOn.year) * 12 +
+        (now.month - payment.paidOn.month);
+    if (months < 0 || months >= _trendMonths) continue;
+    totals[_trendMonths - 1 - months] += payment.amountMinor;
+  }
+  final peak = totals.fold<int>(0, (max, value) => value > max ? value : max);
+  if (peak == 0) return const <double>[];
+  return totals.map((value) => value / peak).toList(growable: false);
+}
+
+/// Outstanding balance has no history in the local mirror, so the series is
+/// flat at today's ratio rather than a fabricated curve.
+List<double> _outstandingTrend(
+  List<RentPayment> payments,
+  List<Tenancy> tenancies,
+  DateTime now,
+) {
+  final collected = _monthlyTrend(payments, now);
+  if (collected.isEmpty) return const <double>[];
+  final owed = tenancies
+      .where((t) => t.status != TenancyStatus.ended)
+      .fold<int>(0, (total, t) => total + t.balanceMinor);
+  final billed = tenancies.fold<int>(
+    0,
+    (total, t) => total + t.monthlyRentMinor,
+  );
+  final ratio = billed == 0 ? 0.0 : (owed / billed).clamp(0.0, 1.0);
+  return List<double>.filled(collected.length, ratio);
+}
+
+List<ActivitySummary> _activity(
+  List<RentPayment> payments,
+  List<maintenance_domain.MaintenanceRequest> requests,
+) {
+  final entries = <ActivitySummary>[
+    for (final payment in payments.take(4))
+      ActivitySummary(
+        icon: Icons.check_rounded,
+        title: 'Rent received from ${payment.tenantName}',
+        detail: '${payment.unitLabel} · ${payment.propertyName}',
+        at: payment.paidOn,
+        tone: const Color(0xFF367248),
+      ),
+    for (final request in requests.take(4))
+      ActivitySummary(
+        icon: Icons.build_outlined,
+        title: 'Maintenance: ${request.title}',
+        detail: request.location,
+        at: request.reportedAt,
+        tone: const Color(0xFFC64B2F),
+      ),
+  ]..sort((a, b) => b.at.compareTo(a.at));
+  return entries.take(5).toList(growable: false);
+}
+
+/// The newest server acknowledgement across the records the dashboard shows.
+/// Null when nothing has ever synced, so the UI can avoid claiming otherwise.
+DateTime? _lastSyncedAt(List<RentPayment> payments, List<Unit> units) {
+  DateTime? newest;
+  for (final at in [
+    ...payments.map((p) => p.syncMetadata.lastSyncedAt),
+    ...units.map((u) => u.syncMetadata.lastSyncedAt),
+  ]) {
+    if (at == null) continue;
+    if (newest == null || at.isAfter(newest)) newest = at;
+  }
+  return newest;
+}

@@ -14,8 +14,6 @@ import '../../finance/domain/rent_payment.dart';
 import '../../tenants/application/tenancy_providers.dart';
 import 'widgets/tenant_components.dart';
 
-const _demoTenantId = 'demo-tenant-001';
-
 class TenantDocumentsScreen extends ConsumerStatefulWidget {
   const TenantDocumentsScreen({
     super.key,
@@ -42,8 +40,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
   String _category = 'All';
   bool _favoritesOnly = false;
 
-  String get _tenantId =>
-      ref.read(sessionControllerProvider)?.userId ?? _demoTenantId;
+  String get _tenantId => ref.read(sessionControllerProvider)?.userId ?? '';
 
   _TenantDocument _applyOverrides(_TenantDocument document) {
     return document.copyWith(

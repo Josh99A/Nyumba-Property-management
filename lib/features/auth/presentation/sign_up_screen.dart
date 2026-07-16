@@ -6,7 +6,9 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/operational_actions.dart';
+import '../../../core/presentation/toast.dart';
 import '../application/session_controller.dart';
+import '../domain/auth_failure.dart';
 
 /// Self-registration is for landlords: tenants are invited by their landlord
 /// and prospective tenants browse without an account. After email
@@ -55,16 +57,19 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         title: 'Verify your email',
         message:
             'We sent a verification link to ${_emailController.text.trim()}. '
-            'Open it, then sign in to finish setting up your workspace.',
+            'Open it, then sign in to finish setting up your workspace. '
+            'Check your spam folder if it has not arrived in a few minutes.',
         icon: Icons.mark_email_read_outlined,
       );
       if (mounted) context.go('/sign-in');
+      showNyumbaToast(
+        'Account created. Verify your email to continue.',
+        variant: NyumbaToastVariant.success,
+      );
     } on Object catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
-        ),
+      showNyumbaToast(
+        describeAuthFailure(error),
+        variant: NyumbaToastVariant.error,
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -78,11 +83,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       // Google emails arrive verified; the router forwards the new session to
       // onboarding automatically.
     } on Object catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
-        ),
+      if (isAuthCancellation(error)) return;
+      showNyumbaToast(
+        describeAuthFailure(error),
+        variant: NyumbaToastVariant.error,
       );
     } finally {
       if (mounted) setState(() => _isGoogleSubmitting = false);
@@ -91,6 +95,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Google hands back a credential long before the new account's profile
+    // resolves, so the button stays busy until the session lands.
+    final isResolving = ref.watch(sessionResolutionProvider).isResolving;
+    final googleBusy = _isGoogleSubmitting || isResolving;
     return Scaffold(
       body: SafeArea(
         child: Align(
@@ -217,10 +225,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
-                            onPressed: _isGoogleSubmitting
-                                ? null
-                                : _signUpWithGoogle,
-                            icon: _isGoogleSubmitting
+                            onPressed: googleBusy ? null : _signUpWithGoogle,
+                            icon: googleBusy
                                 ? const SizedBox.square(
                                     dimension: 18,
                                     child: CircularProgressIndicator(
@@ -231,7 +237,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                     Icons.g_mobiledata_rounded,
                                     size: 26,
                                   ),
-                            label: const Text('Sign up with Google'),
+                            label: Text(
+                              isResolving
+                                  ? 'Setting up your account…'
+                                  : 'Sign up with Google',
+                            ),
                           ),
                         ],
                       ),
