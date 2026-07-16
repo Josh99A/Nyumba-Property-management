@@ -15,11 +15,91 @@ Flutter for web, Android, and iOS. It serves four actor experiences:
 - tenants view balances and documents, pay rent, and submit maintenance requests;
 - prospective clients browse public listings, contact landlords, and apply for units.
 
-The checked-in app is an implementation baseline using Sembast and local demo
-identities/data. Firebase packages, rules, indexes, and command contracts exist,
-but no project credentials, generated `firebase_options.dart`, production Cloud
-Functions, or real payment integration are committed. Do not present demo behavior
-as server-confirmed production behavior.
+The checked-in app runs against a real development Firebase project
+(`nyumba-property-management`). Cloud Functions, rules, indexes, and the callable
+command router are implemented and deployed by CI from `main`. Per-environment
+Firebase config (`firebase_options.dart`, `google-services.json`, `.firebaserc`)
+is generated locally and git-ignored; regenerate with FlutterFire rather than
+inventing values.
+
+Not yet real, and not to be presented as real:
+
+- **Payments.** No mobile-money provider is integrated. `payment.initiate`
+  enqueues a job whose adapter registry is empty, so initiation fails closed
+  with `providerNotConfigured`. Provider choice, fees, reconciliation, and the
+  webhook contract are TBD.
+- **App Check.** Attestation is active on web (the dev project's reCAPTCHA v3
+  site key is wired into the deploy workflow) but **enforcement is off** —
+  follow the sequence in `docs/architecture/README.md` before flipping
+  `ENFORCE_APP_CHECK`. iOS App Attest is deferred: it needs a paid Apple
+  Developer team, without which no iOS build can ship anyway.
+- **Tenant, prospect, and admin remote pulls.** Landlords pull `property`,
+  `unit`, `listing` (canonical) plus `tenancy` and `payment` (via
+  `landlordPortals` read models). Every other scope pulls nothing — see "Known
+  model divergence" below.
+- **Admin user management and plan drafts.** Local-only working state.
+
+Demo sessions seed local fixtures and use a stub gateway. Never present demo
+behavior, or an unsynced local write, as server-confirmed.
+
+## Known model divergence
+
+The Flutter aggregates and the Firestore collections were designed separately
+and do not correspond one-to-one. This is the single largest source of latent
+bugs in the repository; read this before touching sync.
+
+Only `property`, `unit`, and `listing` ever had a canonical server shape the
+client's mappers accept. Every other pull wrote raw server JSON into a local
+store whose mapper then threw a `FormatException` on the next read — so tenant,
+prospect, and admin sync never worked; it only looked like it did.
+
+- Client `Tenancy` is one aggregate (tenant + lease + balance). The server has
+  `tenantRecords` and `leases`. Writes are reconciled by the composite
+  `tenancy.establish` command; reads by the `landlordPortals` projection.
+- Client `RentPayment` carries denormalized `tenantName`/`unitLabel`/
+  `propertyName`; server `payments` carry none of them. Same resolution.
+- Client `LeaseDocument` is a locally rendered index; server `documents` are
+  uploaded files with a storage path and checksum. Unrelated things, similar
+  names — now separate stores.
+- `ApplicationMapper` wants `applicantName`/`unitId`/`propertyId`; server
+  `applications` store `displayName` and no unit or property. **Unresolved.**
+- `MaintenanceRequestMapper` wants `reference`/`landlordId`/`location`/
+  `reporterName`; `NoticeMapper` wants `reference`/`audience`/`status` against a
+  projection carrying `publishState`. **Unresolved.**
+
+`RemotePullGateway._toLocalShape` translates only `unit` and `listing`. Do not
+register a pull for a type until it has a shape the client's mapper accepts;
+`FirestoreRemotePullGateway.landlordReadSource` throws for anything unclassified
+rather than defaulting to the canonical collection.
+
+The intended fix for the unresolved rows is a server-owned read model, as with
+`landlordPortals/{uid}/tenancies|payments`. **It is not a mechanical reshape of
+the tenant/client projections:** those are security whitelists that deliberately
+withhold `landlordId` and unit/property IDs from tenants and prospects, and the
+client's models currently require exactly those fields. Reconciling that is a
+product and security decision.
+
+`landlordPortals` projections are shaped in the *client's* field names, and
+nothing type-checks across the two languages. `test/core/landlord_projection_shape_test.dart`
+is what holds that contract — update it with any projection change.
+
+Two known limits of these projections, both from denormalizing:
+
+- **They go stale on edits elsewhere.** `landlordTenancyProjection` copies
+  `unitLabel` and `propertyName`, but `unit.update` and `property.update` do not
+  rewrite the tenancy rows that embedded them, so a renamed property shows its
+  old name on another device until the tenancy is touched. `lease.end` and
+  `tenant.claimInvite` likewise do not refresh `status`/`tenantUserId`. A
+  fan-out job keyed on the owning aggregate is the fix.
+- **They only exist going forward.** Tenancies created before the projections
+  shipped have no `landlordPortals` document, and `payment.recordAgainstTenancy`
+  skips the projection write when the tenancy view is absent. Existing data needs
+  a backfill before a landlord sees it on a second device.
+
+An aggregate with no command that can accept it must be written with
+`OfflineDatabase.putLocalEntity` and carry `SyncMetadata.local()`. Never enqueue
+an outbox entry no handler can satisfy: it fails permanently and silently, and
+the UI goes on showing "pending" forever.
 
 ## Repository ownership map
 
@@ -178,6 +258,14 @@ flutter analyze
 flutter test
 flutter build web --release
 flutter build apk --debug
+```
+
+And from `firebase/functions/` for any backend change:
+
+```sh
+npm run typecheck
+npm test            # unit tests, including the job-registry coverage check
+npm run test:emulator   # rules + command integration against the emulator
 ```
 
 On macOS with Xcode configured, also run:

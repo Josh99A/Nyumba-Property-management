@@ -121,3 +121,58 @@ The following values must not be hard-coded in Flutter or security rules:
 - **TBD:** local offline retention horizon on device.
 
 Until finalized, backend configuration should fail closed: an unknown plan grants no publishing or unit-creation entitlement, and a missing payment configuration cannot mark a payment successful.
+
+## Enabling App Check and push (operator steps)
+
+Status (2026-07-16): the development project's web reCAPTCHA v3 site key and web
+push VAPID key are registered and wired into the deploy workflow
+(`.github/workflows/ci-cd.yml`). Both values are public by design (they ship in
+the web bundle) but environment-specific — a staging/production workflow must
+register and carry its own. `ENFORCE_APP_CHECK` remains **off**; see the
+enforcement sequence below.
+
+**App Check (web).** Register the web app in Firebase Console → App Check,
+choosing reCAPTCHA v3. Pass the issued site key at build time:
+
+```sh
+flutter build web --release --dart-define=NYUMBA_RECAPTCHA_V3_SITE_KEY=<site-key>
+```
+
+An empty define skips activation entirely, so a local `flutter run` without it
+still works — requests are simply unattested.
+
+**App Check (Android).** Register Play Integrity in the same console screen; no
+build input is needed. **App Check (iOS).** App Attest requires a paid Apple
+Developer team; deferred until one exists — which costs nothing today, because
+iOS cannot be distributed at all without one.
+
+**Enforcement sequence.** Do not flip `ENFORCE_APP_CHECK`
+(`firebase/functions/src/shared/config.ts`) or console enforcement immediately:
+
+1. Deploy with the site key active and Android registered.
+2. Watch App Check request metrics in the console until verified traffic
+   dominates (a day or two of real usage).
+3. Register a **debug token** for local development (console → App Check →
+   Apps → manage debug tokens) — after enforcement, un-attested local runs are
+   rejected.
+4. Flip `ENFORCE_APP_CHECK`, deploy functions, then enable console enforcement
+   for Firestore and Storage.
+
+Enforcing before web + Android are registered rejects every callable command
+from real users. iOS absence is irrelevant while no iOS build can ship.
+
+**Push (web).** Firebase Console → Project settings → Cloud Messaging → Web
+Push certificates → generate a key pair. Pass the public key at build time:
+
+```sh
+flutter build web --release --dart-define=NYUMBA_VAPID_PUBLIC_KEY=<public-key>
+```
+
+Without it, `registerForPush` returns `unavailable` and web push is simply off.
+`web/firebase-messaging-sw.js` reads its Firebase config from the registration
+URL, so it needs no editing per environment.
+
+**Push (iOS).** Requires the same paid Apple Developer account: an APNs auth
+key (`.p8`) uploaded under Cloud Messaging → Apple app configuration, plus Push
+Notifications and Background Modes → Remote notifications in Xcode. Android
+needs nothing beyond `google-services.json`.
