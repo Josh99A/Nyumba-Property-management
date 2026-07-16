@@ -6,7 +6,6 @@ import 'package:nyumba_property_management/core/domain/id_generator.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
-import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
 import 'package:nyumba_property_management/core/offline/uuid_id_generator.dart';
 import 'package:nyumba_property_management/features/subscriptions/data/mappers/subscription_plan_mapper.dart';
 import 'package:nyumba_property_management/features/subscriptions/domain/subscription_plan_draft.dart';
@@ -45,15 +44,13 @@ final class SembastSubscriptionPlanRepository
       enabled: input.enabled,
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.pending(),
+      syncMetadata: const SyncMetadata.local(),
     );
-    await _database.putEntityAndEnqueue(
+    await _database.putLocalEntity(
       entityType: OfflineEntityType.subscriptionPlan,
       entityId: plan.id,
       entity: SubscriptionPlanMapper.toJson(plan),
-      mutationId: _idGenerator.generate(),
-      operation: OutboxOperation.create,
-      createdAt: now,
+      reason: LocalOnlyReason.localWorkspaceOnly,
       createOnly: true,
     );
     return plan;
@@ -71,15 +68,13 @@ final class SembastSubscriptionPlanRepository
       unitLimit: input.unitLimit,
       enabled: input.enabled,
       updatedAt: now,
-      syncMetadata: current.syncMetadata.markPending(),
+      syncMetadata: const SyncMetadata.local(),
     );
-    await _database.putEntityAndEnqueue(
+    await _database.putLocalEntity(
       entityType: OfflineEntityType.subscriptionPlan,
       entityId: updated.id,
       entity: SubscriptionPlanMapper.toJson(updated),
-      mutationId: _idGenerator.generate(),
-      operation: OutboxOperation.update,
-      createdAt: now,
+      reason: LocalOnlyReason.localWorkspaceOnly,
     );
     return updated;
   }

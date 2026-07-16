@@ -156,7 +156,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             status: document.statusLabel,
           ),
           syncStatus: resolveAggregateSyncStatus(
-            entityType: OfflineEntityType.document,
+            entityType: OfflineEntityType.leaseDocument,
             entityId: document.id,
             outbox: outbox,
             syncMetadata: document.syncMetadata,

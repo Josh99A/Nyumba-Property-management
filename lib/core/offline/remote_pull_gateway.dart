@@ -17,6 +17,21 @@ final class RemoteRecord {
   final Map<String, Object?> data;
 }
 
+/// How a pulled entity type is read back.
+///
+/// Not every type has a server collection the client can read directly: a
+/// `Tenancy` spans leases + tenantRecords + units + properties, so the server
+/// publishes a joined read model instead. Naming the source per type keeps the
+/// distinction explicit rather than implied by which argument was passed.
+enum LandlordReadSource {
+  /// A canonical collection filtered by `landlordId`, whose document shape the
+  /// client's mapper accepts directly.
+  canonicalCollection,
+
+  /// A server-owned `landlordPortals/{uid}/...` read model.
+  portalProjection,
+}
+
 abstract interface class RemotePullGateway {
   Stream<List<RemoteRecord>> watchCollection(
     OfflineEntityType entityType, {
@@ -56,9 +71,17 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     } else if (administrativeScope) {
       query = _firestore.collection(_landlordCollection(entityType)).limit(200);
     } else if (landlordId != null) {
-      query = _firestore
-          .collection(_landlordCollection(entityType))
-          .where('landlordId', isEqualTo: landlordId);
+      query = switch (landlordReadSource(entityType)) {
+        LandlordReadSource.portalProjection =>
+          _firestore
+              .collection('landlordPortals')
+              .doc(landlordId)
+              .collection(_landlordPortalSection(entityType)),
+        LandlordReadSource.canonicalCollection =>
+          _firestore
+              .collection(_landlordCollection(entityType))
+              .where('landlordId', isEqualTo: landlordId),
+      };
     } else if (tenantUid != null) {
       query = _firestore
           .collection('tenantPortals')
@@ -92,6 +115,37 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
           .toList(growable: false),
     );
   }
+
+  /// Where a landlord reads [type] from.
+  ///
+  /// Only the types listed here are safe for a landlord to pull. Everything
+  /// else throws below rather than defaulting to the canonical collection:
+  /// `_toLocalShape` translates only what it names, so an unlisted type would
+  /// land raw server JSON in the local store and its mapper would throw on the
+  /// next read — a crash on a screen far from this decision.
+  static LandlordReadSource landlordReadSource(OfflineEntityType type) =>
+      switch (type) {
+        // Canonical shapes the client's mappers already accept.
+        OfflineEntityType.property ||
+        OfflineEntityType.unit ||
+        OfflineEntityType.listing => LandlordReadSource.canonicalCollection,
+        // Joined read models: no single collection can rebuild these.
+        OfflineEntityType.tenancy ||
+        OfflineEntityType.payment => LandlordReadSource.portalProjection,
+        _ => throw ArgumentError(
+          'No landlord read source for ${type.name}. Add a landlordPortals '
+          'projection on the server before pulling it.',
+        ),
+      };
+
+  static String _landlordPortalSection(OfflineEntityType type) =>
+      switch (type) {
+        OfflineEntityType.tenancy => 'tenancies',
+        OfflineEntityType.payment => 'payments',
+        _ => throw ArgumentError(
+          'No landlord portal section for ${type.name}.',
+        ),
+      };
 
   static String _landlordCollection(OfflineEntityType type) => switch (type) {
     OfflineEntityType.property => 'properties',

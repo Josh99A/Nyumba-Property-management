@@ -227,6 +227,12 @@ Future<AppDependencies> createAppDependencies({
 }) async {
   await _previousWorkspaceClosed;
   final database = await openScopedOfflineDatabase('workspace_v3_$scope');
+  if (!seedsDemoData(session)) {
+    // Older builds seeded demo fixtures into the anonymous workspace, and
+    // remote pulls never delete, so returning visitors would keep seeing
+    // "Kololo Garden Court" forever. Real workspaces hold only real data.
+    await database.purgeDemoArtifacts();
+  }
   final properties = SembastPropertyRepository(database: database);
   final units = SembastUnitRepository(database: database);
   final listings = SembastListingRepository(
@@ -282,44 +288,67 @@ Future<AppDependencies> createAppDependencies({
       // Anonymous visitor: the public catalogue is the only readable scope.
     } else if (session.role == AppRole.superAdmin ||
         session.role == AppRole.admin) {
+      // Same constraint as the landlord scope: an administrative pull reads the
+      // canonical collection unfiltered, so it is limited to types whose server
+      // document the client's mapper can actually parse. tenancy, payment,
+      // invoice, maintenance, document, and notice were all pulled here and all
+      // threw on read — `tenantRecords` has no lease term, `payments` has no
+      // tenant or property names, and so on.
+      //
+      // Restoring them needs an administrative read model, the same shape the
+      // landlordPortals projections publish but unscoped by owner.
       for (final type in const [
         OfflineEntityType.property,
         OfflineEntityType.unit,
-        OfflineEntityType.tenancy,
         OfflineEntityType.listing,
-        OfflineEntityType.application,
-        OfflineEntityType.invoice,
-        OfflineEntityType.payment,
-        OfflineEntityType.maintenanceRequest,
-        OfflineEntityType.document,
-        OfflineEntityType.notice,
       ]) {
         remotePullCoordinator.watch(type, administrativeScope: true);
       }
     } else if (session.role == AppRole.landlord) {
+      // Only types with a landlord read source; see
+      // FirestoreRemotePullGateway.landlordReadSource. Tenancies and payments
+      // come from server-owned landlordPortals projections because no canonical
+      // collection can rebuild them. Maintenance, notices, and documents still
+      // have no landlord read shape and are therefore not pulled — a landlord
+      // sees only what this device recorded until those projections exist.
       for (final type in const [
         OfflineEntityType.property,
         OfflineEntityType.unit,
         OfflineEntityType.listing,
+        OfflineEntityType.tenancy,
+        OfflineEntityType.payment,
       ]) {
         remotePullCoordinator.watch(type, landlordId: session.userId);
       }
     } else if (session.role == AppRole.tenant) {
-      for (final type in const [
-        OfflineEntityType.tenancy,
-        OfflineEntityType.invoice,
-        OfflineEntityType.payment,
-        OfflineEntityType.maintenanceRequest,
-        OfflineEntityType.document,
-        OfflineEntityType.notice,
-      ]) {
-        remotePullCoordinator.watch(type, tenantUid: session.userId);
-      }
+      // Deliberately empty. The tenantPortals projections are security
+      // whitelists over single canonical documents, and none of them carries
+      // the shape its Dart mapper demands: MaintenanceRequestMapper requires
+      // reference/landlordId/location/reporterName, NoticeMapper requires
+      // reference/audience/status against a projection that has publishState,
+      // and a tenant Tenancy would need fields spread across leases and
+      // tenantRecords. Pulling them wrote raw server JSON into the local stores
+      // and the next read threw a FormatException, so this never worked — it
+      // only looked like it did.
+      //
+      // Landlord tenancies/payments are fixed by the landlordPortals read
+      // models above. The tenant equivalent is not a copy of that work: the
+      // client's tenant-side models demand landlordId, which these projections
+      // withhold from tenants on purpose. Reconciling that is a product and
+      // security decision, not a mechanical reshape.
+      //
+      // Until then a tenant sees only locally recorded data, which is honest
+      // rather than a crash. See docs/architecture/offline-sync.md.
     } else if (session.role == AppRole.client) {
-      remotePullCoordinator.watch(
-        OfflineEntityType.application,
-        clientUid: session.userId,
-      );
+      // Also empty, for the same reason: clientApplicationProjection publishes
+      // displayName/email/phone, while ApplicationMapper requires
+      // applicantName/applicantEmail/applicantPhone plus unitId, propertyId,
+      // and applicantId — fields the projection does not carry and, for the
+      // unit and property IDs, deliberately withholds from a prospect who has
+      // only ever seen a public listing.
+      //
+      // A prospect still sees applications this device submitted; they just do
+      // not follow them to another device yet.
     }
     await syncEngine.syncPending(maxMutations: 200);
   }

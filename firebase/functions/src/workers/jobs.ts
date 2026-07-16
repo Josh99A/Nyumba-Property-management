@@ -15,10 +15,20 @@ import {
   purgeDocument,
 } from './media-publication';
 import { fanoutNotice } from './notice-fanout';
+import { deliverContactRequest, notifyLandlordApplication } from './notifications';
+import { initiatePayment } from './payment-provider';
+import { renderReceipt } from './receipt-render';
+import { generateReport } from './report-generation';
 import { unpublishLandlordListings } from './unpublish-landlord';
 
 type JobProcessor = (payload: Record<string, unknown>) => Promise<void>;
 
+/**
+ * Every job type any command can enqueue must be registered here. An enqueued
+ * type with no processor burns JOB_MAX_ATTEMPTS and dies in dead_letter without
+ * ever surfacing to a user, so `commandEnqueuedJobTypes` in the tests asserts
+ * this map covers the full set.
+ */
 const processors = new Map<string, JobProcessor>([
   ['publishListingMedia', publishListingMedia],
   ['cleanupListingMedia', cleanupListingMedia],
@@ -26,7 +36,15 @@ const processors = new Map<string, JobProcessor>([
   ['purgeDocument', purgeDocument],
   ['noticeFanout', fanoutNotice],
   ['unpublishLandlordListings', unpublishLandlordListings],
+  ['initiatePayment', initiatePayment],
+  ['renderReceipt', renderReceipt],
+  ['notifyLandlordApplication', notifyLandlordApplication],
+  ['deliverContactRequest', deliverContactRequest],
+  ['generateReport', generateReport],
 ]);
+
+/** Visible for tests, which assert no command enqueues an unregistered type. */
+export const registeredJobTypes: ReadonlySet<string> = new Set(processors.keys());
 
 async function claimJob(jobId: string): Promise<Record<string, unknown> | null> {
   const db = getFirestore();

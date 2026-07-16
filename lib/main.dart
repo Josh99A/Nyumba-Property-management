@@ -7,10 +7,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
 import 'firebase_options.dart';
 
-// TODO(release): replace through environment-specific build configuration
-// after the web app is registered in Firebase App Check. Never commit a real
-// production site key to the environment-neutral firebase/ directory.
-const _webRecaptchaV3SiteKey = 'TBD_RECAPTCHA_V3_SITE_KEY';
+/// reCAPTCHA v3 site key for web App Check, supplied at build time:
+///
+/// ```sh
+/// flutter build web --release --dart-define=NYUMBA_RECAPTCHA_V3_SITE_KEY=<key>
+/// ```
+///
+/// Empty by default, which disables activation. A site key is not a secret (it
+/// ships in the page), but it *is* environment-specific: staging and production
+/// register different keys, so hard-coding one here would silently point a
+/// production build at the wrong project's App Check. Each deploy workflow
+/// carries the key for the project it deploys to — the development key lives in
+/// `.github/workflows/ci-cd.yml`. See `docs/architecture/README.md` for the
+/// registration steps.
+const _webRecaptchaV3SiteKey = String.fromEnvironment(
+  'NYUMBA_RECAPTCHA_V3_SITE_KEY',
+);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,12 +44,19 @@ Future<void> _initializeFirebase() async {
       );
     }
     await Firebase.initializeApp(options: options);
-    // Activation is pointless (and noisy) until the platforms are registered
-    // with App Check; the backend keeps enforcement off until then.
-    if (_webRecaptchaV3SiteKey.startsWith('TBD')) return;
+    // Push registration deliberately does not happen here: it names a user, and
+    // no one is signed in yet. SessionController registers once a verified
+    // session resolves.
+    //
+    // Web activation needs a site key for this environment. Android and iOS
+    // carry no such build input, so they activate whenever the platform is
+    // registered; the backend keeps enforcement off until every platform is.
+    if (kIsWeb && _webRecaptchaV3SiteKey.isEmpty) return;
     try {
       await FirebaseAppCheck.instance.activate(
-        providerWeb: ReCaptchaV3Provider(_webRecaptchaV3SiteKey),
+        providerWeb: kIsWeb
+            ? ReCaptchaV3Provider(_webRecaptchaV3SiteKey)
+            : null,
         providerAndroid: const AndroidPlayIntegrityProvider(),
         providerApple: const AppleAppAttestProvider(),
       );

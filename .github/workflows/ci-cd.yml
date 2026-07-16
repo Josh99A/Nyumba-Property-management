@@ -36,9 +36,41 @@ jobs:
 
       - run: flutter test
 
+  backend:
+    name: Backend unit, rules & emulator tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase/functions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: firebase/functions/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      # Runs against the emulator on a throwaway project id, so no credentials
+      # are needed and nothing can touch a real environment. This is what
+      # actually exercises firestore.rules and storage.rules.
+      - name: Rules and command integration tests
+        run: npm run test:emulator
+
   deploy-web:
     name: Deploy web to Firebase Hosting
-    needs: test
+    needs: [test, backend]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
@@ -55,7 +87,16 @@ jobs:
 
       - run: flutter pub get
 
-      - run: flutter build web --release
+      # Both values are public by design — they ship inside the web bundle —
+      # but they are environment-specific, so they live here next to the
+      # project this workflow deploys to (nyumba-property-management), not in
+      # lib/ or firebase/. A staging/production workflow must carry its own.
+      # reCAPTCHA activates App Check attestation; the VAPID key enables web
+      # push subscription. Omitting either silently disables that feature.
+      - run: >
+          flutter build web --release
+          --dart-define=NYUMBA_RECAPTCHA_V3_SITE_KEY=6LdRlVYtAAAAAKAkcfXuHygDKDSt3vJyG2ENw_oB
+          --dart-define=NYUMBA_VAPID_PUBLIC_KEY=BKQYbVoQQawYMdYbHLSuiozTWxQZXdzZ2C6k_uzUqoHfMOFwCuYhiCx2gxK2Y5IT0RWjR4k5fB9YSGim82SKsys
 
       - name: Deploy to Firebase Hosting (live)
         uses: FirebaseExtended/action-hosting-deploy@v0
@@ -64,6 +105,53 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: nyumba-property-management
           channelId: live
+
+  deploy-backend:
+    name: Deploy rules, indexes & functions
+    needs: [test, backend]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: firebase/functions/package-lock.json
+
+      - run: npm ci
+        working-directory: firebase/functions
+
+      # Written outside the workspace so a later step cannot pick it up as a
+      # build input, and removed regardless of outcome below.
+      - name: Write deploy credentials
+        run: |
+          install -m 600 /dev/null "$RUNNER_TEMP/service-account.json"
+          cat <<'CREDENTIALS' > "$RUNNER_TEMP/service-account.json"
+          ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          CREDENTIALS
+
+      # Rules, indexes, and functions were previously never deployed by CI, so
+      # the security boundary in this repository could silently differ from the
+      # one actually enforced in the project.
+      #
+      # Needs a service account with Firebase Admin, Cloud Functions Admin, and
+      # Service Account User on nyumba-property-management.
+      # Invoked through the binary `npm ci` installed above, so the deploy runs
+      # the exact firebase-tools version pinned in functions/package-lock.json
+      # rather than whatever npx resolves at run time.
+      - name: Deploy
+        run: functions/node_modules/.bin/firebase deploy --only firestore:rules,firestore:indexes,storage,functions --project nyumba-property-management --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+
+      - name: Remove deploy credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/service-account.json"
 
   build-android:
     name: Build Android APK

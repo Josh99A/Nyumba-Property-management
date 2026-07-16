@@ -28,6 +28,16 @@ service cloud.firestore {
         && data.ownerId == request.auth.uid;
     }
 
+    function hasActiveLandlordAccount(landlordId) {
+      let account = get(/databases/$(database)/documents/landlordAccounts/$(landlordId)).data;
+      return account.approvalStatus == 'approved';
+    }
+
+    function hasActiveSubscription(landlordId) {
+      let sub = get(/databases/$(database)/documents/subscriptions/$(landlordId)).data;
+      return sub.status == 'active' || sub.status == 'trialing';
+    }
+
     // Documents are readable only while published and unexpired. `get`
     // evaluates real data, so the timestamp type is checked explicitly. For
     // `list`, the engine cannot statically prove `is timestamp`; the range
@@ -161,6 +171,28 @@ service cloud.firestore {
 
     match /clientPortals/{clientUid}/{portalDocument=**} {
       allow read: if isSelf(clientUid) || isPlatformAdmin();
+      allow write: if false;
+    }
+
+    // Landlord read models. Unlike the tenant/client portals these withhold
+    // nothing the landlord could not already read from the canonical
+    // collections; they exist because a client Tenancy is a join across leases,
+    // tenantRecords, units, and properties that only the server can perform.
+    // Still server-owned and read-only: they are written by the same command
+    // transaction as the canonical documents they mirror.
+    match /landlordPortals/{landlordId} {
+      allow read: if isPlatformAdmin()
+        || (isSelf(landlordId)
+          && hasActiveLandlordAccount(landlordId)
+          && hasActiveSubscription(landlordId));
+      allow write: if false;
+    }
+
+    match /landlordPortals/{landlordId}/{portalDocument=**} {
+      allow read: if isPlatformAdmin()
+        || (isSelf(landlordId)
+          && hasActiveLandlordAccount(landlordId)
+          && hasActiveSubscription(landlordId));
       allow write: if false;
     }
 

@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
-import { COLLECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
+import { COLLECTIONS, LANDLORD_PORTAL_SECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { idSchema, nonNegativeMoney, optionalShortText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
-import { tenantLeaseProjection } from '../shared/projections';
+import { landlordTenancyProjection, tenantLeaseProjection } from '../shared/projections';
 
 // Invite emails are stored lowercased so tenant.claimInvite can match the
 // verified token email with an exact Firestore equality query.
@@ -152,6 +152,166 @@ export const tenantClaimInvite: CommandHandler<Record<string, never>> = {
     };
   },
 };
+
+const tenancyEstablishSchema = strictPayload({
+  unitId: idSchema,
+  displayName: shortText,
+  email: inviteEmail,
+  phone: z.string().trim().min(7).max(32),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+  monthlyRentMinor: nonNegativeMoney,
+  depositMinor: nonNegativeMoney.optional(),
+  openingBalanceMinor: nonNegativeMoney.optional(),
+});
+
+/** Derives the tenant record ID owned by a tenancy, so a retry rebuilds it. */
+export function tenantRecordIdFor(tenancyId: string): string {
+  return `${tenancyId}_tenant`;
+}
+
+/**
+ * Establishes a whole tenancy in one transaction: the tenant record, an active
+ * lease, the unit's occupancy flip, and an opening-balance invoice when the
+ * landlord carried a debt forward.
+ *
+ * The Flutter client models a tenancy as a single aggregate (tenant identity +
+ * lease + balance), so it can only produce one outbox entry and one idempotency
+ * key for the whole act. Splitting that into tenant.invite -> lease.create ->
+ * lease.activate on the client would mean three commands per entry, which the
+ * at-least-once outbox contract cannot express safely. This composite keeps one
+ * entry mapped to one command while the server still owns occupancy invariants.
+ *
+ * The lease ID is the client's tenancy ID; the tenant record hangs off it by a
+ * derived ID so a replay after a lost response rebuilds the same two documents.
+ */
+export const tenancyEstablish: CommandHandler<z.infer<typeof tenancyEstablishSchema>> = {
+  payloadSchema: tenancyEstablishSchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'create',
+  async apply({ tx, db, actor, cmd, now }) {
+    const landlord = await requireActiveLandlord(tx, db, actor);
+    if (Date.parse(cmd.payload.startDate) >= Date.parse(cmd.payload.endDate)) {
+      throw new DomainError('VALIDATION_FAILED', { fields: ['startDate', 'endDate'] });
+    }
+    const tenancyId = cmd.aggregateId!;
+    const tenantRecordId = tenantRecordIdFor(tenancyId);
+    const leaseRef = db.collection(COLLECTIONS.leases).doc(tenancyId);
+    const tenantRef = db.collection(COLLECTIONS.tenantRecords).doc(tenantRecordId);
+    const unitRef = db.collection(COLLECTIONS.units).doc(cmd.payload.unitId);
+    const [leaseSnap, tenantSnap, unitSnap] = await Promise.all([
+      tx.get(leaseRef),
+      tx.get(tenantRef),
+      tx.get(unitRef),
+    ]);
+    requireAbsent(leaseSnap);
+    requireAbsent(tenantSnap);
+    const unit = requireAggregate<{ version: number; landlordId: string; occupancyStatus: string; propertyId: string; label?: string }>(unitSnap, undefined);
+    requireOwnedByLandlord(unit, landlord.landlordId);
+    if (unit.occupancyStatus !== 'vacant') {
+      throw new DomainError('ALREADY_EXISTS', { reason: 'unitOccupied' });
+    }
+    // Read for the landlord projection's denormalized labels. Must happen
+    // before the first write below: a transaction cannot read after it writes.
+    const propertySnap = await tx.get(db.collection(COLLECTIONS.properties).doc(unit.propertyId));
+    const property = requireAggregate<{ version: number; landlordId: string; name?: string }>(propertySnap, undefined);
+    requireOwnedByLandlord(property, landlord.landlordId);
+
+    tx.create(tenantRef, {
+      ...newAggregate(tenantRecordId, now),
+      landlordId: landlord.landlordId,
+      inviteState: 'pending',
+      tenantUserUid: null,
+      displayName: cmd.payload.displayName,
+      email: cmd.payload.email,
+      phone: cmd.payload.phone,
+    });
+    tx.create(leaseRef, {
+      ...newAggregate(tenancyId, now),
+      landlordId: landlord.landlordId,
+      tenantRecordId,
+      tenantUserUid: null,
+      unitId: cmd.payload.unitId,
+      startDate: cmd.payload.startDate,
+      endDate: cmd.payload.endDate,
+      monthlyRentMinor: cmd.payload.monthlyRentMinor,
+      depositMinor: cmd.payload.depositMinor ?? 0,
+      currency: 'UGX',
+      status: 'active',
+      activatedAt: now,
+    });
+    tx.update(unitRef, {
+      occupancyStatus: 'occupied',
+      activeLeaseId: tenancyId,
+      ...bumpVersion(unit, now),
+    });
+
+    // An opening balance is a real debt, so it becomes a real invoice rather
+    // than a client-authored number. Everything downstream derives the
+    // tenancy balance from open invoices, so this is what makes it settleable.
+    const openingBalanceMinor = cmd.payload.openingBalanceMinor ?? 0;
+    if (openingBalanceMinor > 0) {
+      const invoiceId = openingInvoiceIdFor(tenancyId);
+      const invoice = {
+        ...newAggregate(invoiceId, now),
+        landlordId: landlord.landlordId,
+        leaseId: tenancyId,
+        tenantUserUid: null,
+        dueDate: cmd.payload.startDate,
+        period: 'Opening balance',
+        lineItems: [{ description: 'Balance carried forward', amountMinor: openingBalanceMinor }],
+        memo: null,
+        totalMinor: openingBalanceMinor,
+        balanceMinor: openingBalanceMinor,
+        currency: 'UGX',
+        status: 'due',
+      };
+      tx.create(db.collection(COLLECTIONS.invoices).doc(invoiceId), invoice);
+    }
+
+    // The landlord read model. Without it, a landlord signing in on a second
+    // device has no collection it can reconstruct a Tenancy from: the identity
+    // lives on tenantRecords, the term on leases, and the labels on unit and
+    // property.
+    tx.set(
+      db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId)
+        .collection(LANDLORD_PORTAL_SECTIONS.tenancies).doc(tenancyId),
+      landlordTenancyProjection({
+        leaseId: tenancyId,
+        version: 1,
+        landlordId: landlord.landlordId,
+        tenantUserUid: null,
+        propertyId: unit.propertyId,
+        unitId: cmd.payload.unitId,
+        tenantName: cmd.payload.displayName,
+        email: cmd.payload.email,
+        phone: cmd.payload.phone,
+        unitLabel: unit.label ?? 'Unit',
+        propertyName: property.name ?? 'Property',
+        monthlyRentMinor: cmd.payload.monthlyRentMinor,
+        balanceMinor: openingBalanceMinor,
+        leaseStart: cmd.payload.startDate,
+        leaseEnd: cmd.payload.endDate,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
+
+    return {
+      status: 'applied',
+      aggregateId: tenancyId,
+      serverVersion: 1,
+      safeResult: { tenantRecordId },
+      changedFields: ['status', 'activatedAt', 'occupancyStatus'],
+    };
+  },
+};
+
+/** Opening-balance invoices use a derived ID so a replay cannot double-bill. */
+export function openingInvoiceIdFor(tenancyId: string): string {
+  return `${tenancyId}_opening`;
+}
 
 const leaseCreateSchema = strictPayload({
   unitId: idSchema,

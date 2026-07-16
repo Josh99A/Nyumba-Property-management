@@ -25,8 +25,10 @@ export const COLLECTIONS = {
   backendJobDedupe: 'backendJobDedupe',
   providerEvents: 'providerEvents',
   backendConfig: 'backendConfig',
+  deviceTokenOwners: 'deviceTokenOwners',
   tenantPortals: 'tenantPortals',
   clientPortals: 'clientPortals',
+  landlordPortals: 'landlordPortals',
 } as const;
 
 export const TENANT_PORTAL_SECTIONS = {
@@ -42,4 +44,9 @@ export const TENANT_PORTAL_SECTIONS = {
 export const CLIENT_PORTAL_SECTIONS = {
   applications: 'applications',
   contactRequests: 'contactRequests',
+} as const;
+
+export const LANDLORD_PORTAL_SECTIONS = {
+  tenancies: 'tenancies',
+  payments: 'payments',
 } as const;

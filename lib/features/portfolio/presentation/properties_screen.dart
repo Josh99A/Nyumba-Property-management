@@ -14,6 +14,8 @@ import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../auth/domain/user_session.dart';
+import '../../subscriptions/application/subscription_providers.dart';
+import '../../subscriptions/domain/landlord_entitlement.dart';
 import '../application/portfolio_use_cases.dart';
 import '../domain/property.dart';
 import '../domain/unit.dart';
@@ -416,15 +418,77 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
   }
 }
 
-class _PortfolioUsage extends StatelessWidget {
+/// Plan usage, shown only when the server has told us what the plan is.
+///
+/// This previously hard-coded a 50-unit "Pro plan" for every landlord, which
+/// was a number no server ever agreed to — and directly contradicted its own
+/// dialog copy about entitlements never being decided locally.
+class _PortfolioUsage extends ConsumerWidget {
   const _PortfolioUsage({required this.units});
 
   final List<Unit> units;
 
   @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(landlordEntitlementProvider).value;
+    return switch (state) {
+      // Nothing to say yet, or nothing to say at all (demo/non-landlord).
+      null || EntitlementNotApplicable() => const SizedBox.shrink(),
+      EntitlementUnavailable(:final reason) => _UsageShell(
+        title: 'Plan unavailable',
+        trailing: Text(
+          '${units.length} rental spaces',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        detail: reason,
+        dialogTitle: 'Plan unavailable',
+        dialogMessage:
+            '$reason You have ${units.length} rental space(s). Nyumba shows '
+            'limits only once the server confirms your plan, so nothing here '
+            'is guessed while it is unavailable.',
+      ),
+      EntitlementKnown(:final entitlement) => _UsageShell(
+        title: entitlement.isTrialing
+            ? '${entitlement.displayName} plan · trial'
+            : '${entitlement.displayName} plan',
+        trailing: Text(
+          '${units.length} of ${entitlement.unitLimit} rental spaces',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        progress: entitlement.unitLimit == 0
+            ? 1
+            : (units.length / entitlement.unitLimit).clamp(0, 1).toDouble(),
+        dialogTitle: '${entitlement.displayName} plan usage',
+        dialogMessage:
+            '${units.length} of ${entitlement.unitLimit} rental spaces are '
+            'currently in use, and up to ${entitlement.activeListingLimit} '
+            'listings can be advertised at once. These limits come from your '
+            'subscription on the server and are enforced there; this workspace '
+            'never changes them locally.',
+      ),
+    };
+  }
+}
+
+class _UsageShell extends StatelessWidget {
+  const _UsageShell({
+    required this.title,
+    required this.trailing,
+    required this.dialogTitle,
+    required this.dialogMessage,
+    this.progress,
+    this.detail,
+  });
+
+  final String title;
+  final Widget trailing;
+  final String dialogTitle;
+  final String dialogMessage;
+  final double? progress;
+  final String? detail;
+
+  @override
   Widget build(BuildContext context) {
-    const limit = 50;
-    final usage = (units.length / limit).clamp(0, 1).toDouble();
     return NyumbaSurface(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -445,24 +509,29 @@ class _PortfolioUsage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Pro plan',
+                        title,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                     ),
-                    Text(
-                      '${units.length} of $limit rental spaces',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                    trailing,
                   ],
                 ),
                 const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: usage,
-                  minHeight: 6,
-                  borderRadius: BorderRadius.circular(4),
-                  color: context.nyumba.sageGreen,
-                  backgroundColor: context.nyumba.sageTint,
-                ),
+                if (progress != null)
+                  LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    borderRadius: BorderRadius.circular(4),
+                    color: context.nyumba.sageGreen,
+                    backgroundColor: context.nyumba.sageTint,
+                  )
+                else if (detail != null)
+                  Text(
+                    detail!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.mutedInk,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -471,11 +540,8 @@ class _PortfolioUsage extends StatelessWidget {
             TextButton(
               onPressed: () => showNyumbaInfoDialog(
                 context,
-                title: 'Pro plan usage',
-                message:
-                    '${units.length} of $limit rental spaces are currently in use. '
-                    'Plan changes require server-owned billing configuration; '
-                    'this workspace will never change entitlements locally.',
+                title: dialogTitle,
+                message: dialogMessage,
                 icon: Icons.workspace_premium_outlined,
               ),
               child: const Text('View plan'),

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import { COLLECTIONS } from '../shared/collections';
@@ -38,6 +39,90 @@ export const profileUpdate: CommandHandler<z.infer<typeof profileSchema>> = {
       aggregateId: actor.uid,
       serverVersion: current.version + 1,
       changedFields: Object.keys(changes),
+    };
+  },
+};
+
+const registerDeviceSchema = strictPayload({
+  // FCM tokens are long and opaque; bound the length rather than the alphabet.
+  token: z.string().trim().min(32).max(4_096),
+  platform: z.enum(['web', 'android', 'ios', 'macos', 'windows', 'linux']),
+});
+
+/** Beyond this, the oldest registration is dropped. */
+const MAX_DEVICE_TOKENS = 10;
+
+/**
+ * Registers this device's FCM token against the signed-in user.
+ *
+ * A callable rather than a direct write because `users/{uid}` denies all client
+ * writes: the document also carries `role`, so letting a client touch it at all
+ * would hand it a lever on its own authorization.
+ *
+ * Idempotent on the token, which matters because the client re-registers on
+ * every launch and FCM hands back the same token until it rotates.
+ *
+ * A token identifies a physical device, so it may belong to at most one
+ * account at a time: `deviceTokenOwners/{sha256(token)}` records the current
+ * owner, and registering here transactionally revokes the token from the
+ * previous account. Without that, a shared device would keep delivering user
+ * A's notifications after user B signs in on it.
+ */
+export const profileRegisterDevice: CommandHandler<z.infer<typeof registerDeviceSchema>> = {
+  payloadSchema: registerDeviceSchema,
+  aggregateIdMode: 'forbidden',
+  expectedVersionMode: 'none',
+  async apply({ tx, db, actor, cmd, now }) {
+    const ref = db.collection(COLLECTIONS.users).doc(actor.uid);
+    const ownerRef = db.collection(COLLECTIONS.deviceTokenOwners)
+      .doc(createHash('sha256').update(cmd.payload.token).digest('hex'));
+    const [snapshot, ownerSnap] = await Promise.all([tx.get(ref), tx.get(ownerRef)]);
+    const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, undefined);
+
+    // Reads must precede the first write, so the previous owner's document is
+    // loaded here even though its update is buffered below.
+    const previousOwnerUid = ownerSnap.data()?.uid;
+    let previousOwner: { ref: FirebaseFirestore.DocumentReference; kept: unknown[]; version: number } | null = null;
+    if (typeof previousOwnerUid === 'string' && previousOwnerUid !== actor.uid) {
+      const previousRef = db.collection(COLLECTIONS.users).doc(previousOwnerUid);
+      const previousSnap = await tx.get(previousRef);
+      const previousData = previousSnap.data();
+      if (previousSnap.exists && previousData && Array.isArray(previousData.deviceTokens)) {
+        const kept = (previousData.deviceTokens as { token?: unknown }[]).filter(
+          (entry) => !(typeof entry === 'object' && entry !== null && entry.token === cmd.payload.token),
+        );
+        if (kept.length !== previousData.deviceTokens.length) {
+          previousOwner = { ref: previousRef, kept, version: Number(previousData.version ?? 1) };
+        }
+      }
+    }
+
+    const existing = Array.isArray(current.deviceTokens)
+      ? (current.deviceTokens as { token?: unknown }[]).filter(
+        (entry): entry is { token: string; platform: string; updatedAt: unknown } =>
+          typeof entry === 'object' && entry !== null && typeof entry.token === 'string',
+      )
+      : [];
+    // Re-registering moves the token to the newest slot rather than duplicating
+    // it, so the cap evicts genuinely stale devices instead of this one.
+    const others = existing.filter((entry) => entry.token !== cmd.payload.token);
+    const next = [...others, { token: cmd.payload.token, platform: cmd.payload.platform, updatedAt: now }]
+      .slice(-MAX_DEVICE_TOKENS);
+
+    if (previousOwner) {
+      tx.update(previousOwner.ref, {
+        deviceTokens: previousOwner.kept,
+        ...bumpVersion({ version: previousOwner.version }, now),
+      });
+    }
+    tx.set(ownerRef, { uid: actor.uid, platform: cmd.payload.platform, updatedAt: now });
+    tx.update(ref, { deviceTokens: next, ...bumpVersion(current, now) });
+    return {
+      status: 'applied',
+      aggregateId: actor.uid,
+      serverVersion: current.version + 1,
+      safeResult: { deviceCount: next.length },
+      changedFields: ['deviceTokens'],
     };
   },
 };
