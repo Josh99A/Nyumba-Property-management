@@ -391,9 +391,9 @@ describe('command router', () => {
 
   it('lets a payment-pending landlord select a plan but never activate themselves', async () => {
     await seedLandlord({ subscription: 'pending_payment' });
-    const select = await executeCommandCore(db, landlord, envelope('command_sub_01', 'subscription.selectPlan', landlord.uid, 1, { tier: 'Pro' }), now);
+    const select = await executeCommandCore(db, landlord, envelope('command_sub_01', 'subscription.selectPlan', landlord.uid, 1, { tier: 'pro' }), now);
     expect(select).toMatchObject({ status: 'applied' });
-    expect((await db.doc(`subscriptions/${landlord.uid}`).get()).data()).toMatchObject({ tier: 'Pro', status: 'pending_payment' });
+    expect((await db.doc(`subscriptions/${landlord.uid}`).get()).data()).toMatchObject({ tier: 'pro', status: 'pending_payment' });
 
     const unknownTier = await executeCommandCore(db, landlord, envelope('command_sub_02', 'subscription.selectPlan', landlord.uid, 2, { tier: 'Gold' }), now);
     expect(unknownTier).toMatchObject({ status: 'rejected', error: { code: 'ENTITLEMENT_MISSING' } });
@@ -416,7 +416,7 @@ describe('command router', () => {
     const confirm = await executeCommandCore(db, admin, envelope('command_sub_05', 'subscription.confirmPayment', landlord.uid, 1, { reference: 'MoMo TX 998877' }), now);
     expect(confirm).toMatchObject({ status: 'applied' });
     expect((await db.doc(`subscriptions/${landlord.uid}`).get()).data()).toMatchObject({
-      status: 'active', tier: 'Starter', paymentReference: 'MoMo TX 998877',
+      status: 'active', tier: 'starter', paymentReference: 'MoMo TX 998877',
     });
 
     const after = await executeCommandCore(db, landlord, envelope('command_sub_06', 'unit.create', 'unit_234567', 0, unitPayload('A2')), now);
@@ -424,7 +424,7 @@ describe('command router', () => {
 
     // Tier changes on a live subscription are billing events; self-service ends
     // at activation.
-    const lateSwitch = await executeCommandCore(db, landlord, envelope('command_sub_07', 'subscription.selectPlan', landlord.uid, 2, { tier: 'Pro' }), now);
+    const lateSwitch = await executeCommandCore(db, landlord, envelope('command_sub_07', 'subscription.selectPlan', landlord.uid, 2, { tier: 'pro' }), now);
     expect(lateSwitch).toMatchObject({ status: 'rejected', error: { code: 'VALIDATION_FAILED' } });
   });
 
