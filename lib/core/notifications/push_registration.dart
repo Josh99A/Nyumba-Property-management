@@ -61,7 +61,8 @@ Future<PushRegistration> registerForPush({
     // On Apple platforms the APNs token can lag the permission grant; without
     // it getToken throws rather than waiting. Skipping is correct — the next
     // launch has it.
-    final isApple = defaultTargetPlatform == TargetPlatform.iOS ||
+    final isApple =
+        defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS;
     if (isApple && !kIsWeb) {
       final apnsToken = await instance.getAPNSToken();

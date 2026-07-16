@@ -71,9 +71,7 @@ RemoteMutation _mutationFor(
   // Enough of a payload for any mapping to read; absent keys map to null,
   // which is what a real sparse aggregate would produce anyway. Focused
   // payload-contract tests below pass the aggregate fields they exercise.
-  Map<String, Object?> payload = const <String, Object?>{
-    '_expectedVersion': 3,
-  },
+  Map<String, Object?> payload = const <String, Object?>{'_expectedVersion': 3},
 }) => RemoteMutation(
   mutationId: 'mutation-1',
   entityType: entityType,

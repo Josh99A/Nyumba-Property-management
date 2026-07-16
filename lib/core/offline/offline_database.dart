@@ -81,22 +81,23 @@ final class OfflineDatabase {
       // local lease document index rows, and admin account directory from
       // user profile settings. This migration is idempotent: re-running it
       // on an already-migrated database is safe.
-      if (storedVersion == null || (storedVersion is int && storedVersion < 1)) {
+      if (storedVersion == null ||
+          (storedVersion is int && storedVersion < 1)) {
         final legacyDocuments = stringMapStoreFactory.store('documents');
         final legacyUserProfiles = stringMapStoreFactory.store('user_profiles');
 
         final documentsSnaps = await legacyDocuments.find(transaction);
         for (final snap in documentsSnaps) {
-          await _entityStore(OfflineEntityType.leaseDocument)
-              .record(snap.key)
-              .put(transaction, snap.value);
+          await _entityStore(
+            OfflineEntityType.leaseDocument,
+          ).record(snap.key).put(transaction, snap.value);
         }
 
         final userProfileSnaps = await legacyUserProfiles.find(transaction);
         for (final snap in userProfileSnaps) {
-          await _entityStore(OfflineEntityType.managedUser)
-              .record(snap.key)
-              .put(transaction, snap.value);
+          await _entityStore(
+            OfflineEntityType.managedUser,
+          ).record(snap.key).put(transaction, snap.value);
         }
 
         // Clear legacy stores after successful migration.
@@ -109,6 +110,61 @@ final class OfflineDatabase {
       });
     });
   }
+
+  /// Identity fields that can mark a record as belonging to a demo fixture.
+  static const _demoIdentityFields = [
+    'landlordId',
+    'tenantId',
+    'tenantUserId',
+    'applicantId',
+    'userId',
+    'targetUserId',
+  ];
+
+  static bool _isDemoRecord(Map<String, Object?> record) =>
+      _demoIdentityFields.any((field) {
+        final value = record[field];
+        return value is String && value.startsWith('demo-');
+      });
+
+  /// Deletes every demo-fixture record and its outbox intents from this
+  /// workspace. Returns the number of records removed.
+  ///
+  /// Older builds seeded demo data ("Kololo Garden Court", owner
+  /// `demo-landlord-001`) into the *anonymous* workspace, and the workspace
+  /// name never changed — so a visitor from that era still has demo listings
+  /// in IndexedDB that remote pulls will never remove, because pulls only
+  /// merge. Real workspaces must contain only real data: this sweep runs on
+  /// every non-demo open and is cheap once clean (a read per store, no
+  /// writes).
+  ///
+  /// The `demo-` prefix is unambiguous ownership evidence: real identities are
+  /// Firebase UIDs or client UUIDs, neither of which can start with `demo-`.
+  Future<int> purgeDemoArtifacts() => database.transaction((transaction) async {
+    var removed = 0;
+    for (final type in OfflineEntityType.values) {
+      final store = _entityStore(type);
+      final snapshots = await store.find(transaction);
+      for (final snapshot in snapshots) {
+        if (_isDemoRecord(snapshot.value)) {
+          await store.record(snapshot.key).delete(transaction);
+          removed++;
+        }
+      }
+    }
+    // Seeding went through the normal repository path, so each fixture also
+    // enqueued a sync intent. Those must go with their records: left behind,
+    // they would forever retry commands for aggregates that no longer exist.
+    final outboxSnapshots = await _outboxStore.find(transaction);
+    for (final snapshot in outboxSnapshots) {
+      final payload = snapshot.value['payload'];
+      if (payload is Map && _isDemoRecord(Map<String, Object?>.from(payload))) {
+        await _outboxStore.record(snapshot.key).delete(transaction);
+        removed++;
+      }
+    }
+    return removed;
+  });
 
   StoreRef<String, Map<String, Object?>> _entityStore(OfflineEntityType type) =>
       stringMapStoreFactory.store(type.storeName);

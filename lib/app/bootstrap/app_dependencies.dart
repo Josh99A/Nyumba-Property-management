@@ -227,6 +227,12 @@ Future<AppDependencies> createAppDependencies({
 }) async {
   await _previousWorkspaceClosed;
   final database = await openScopedOfflineDatabase('workspace_v3_$scope');
+  if (!seedsDemoData(session)) {
+    // Older builds seeded demo fixtures into the anonymous workspace, and
+    // remote pulls never delete, so returning visitors would keep seeing
+    // "Kololo Garden Court" forever. Real workspaces hold only real data.
+    await database.purgeDemoArtifacts();
+  }
   final properties = SembastPropertyRepository(database: database);
   final units = SembastUnitRepository(database: database);
   final listings = SembastListingRepository(
