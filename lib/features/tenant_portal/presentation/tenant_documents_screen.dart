@@ -118,16 +118,18 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
         recipient: payment.tenantName,
         propertyName: payment.propertyName,
         unitLabel: payment.unitLabel,
-        printable: PrintableDocumentData(
-          title: 'Receipt',
-          number: reference,
-          recipient: payment.tenantName,
-          property: payment.propertyName,
-          unit: payment.unitLabel,
-          amountMinor: payment.amountMinor,
-          date: payment.paidOn,
-          status: issued ? 'Received' : 'Awaiting confirmation',
-        ),
+        printable: issued
+            ? PrintableDocumentData(
+                title: 'Receipt',
+                number: reference,
+                recipient: payment.tenantName,
+                property: payment.propertyName,
+                unit: payment.unitLabel,
+                amountMinor: payment.amountMinor,
+                date: payment.paidOn,
+                status: 'Received',
+              )
+            : null,
       ),
     );
   }

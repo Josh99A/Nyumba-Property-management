@@ -70,6 +70,31 @@ export const profileRegisterDevice: CommandHandler<z.infer<typeof registerDevice
     const snapshot = await tx.get(ref);
     const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, undefined);
 
+    // Find and revoke this token from any other user account before registering
+    // it here, ensuring single-account ownership across the collection.
+    const otherUsersQuery = db.collection(COLLECTIONS.users)
+      .where('deviceTokens', 'array-contains-any', [{ token: cmd.payload.token }])
+      .limit(5);
+    const otherUsersSnap = await tx.get(otherUsersQuery);
+    for (const otherDoc of otherUsersSnap.docs) {
+      if (otherDoc.id === actor.uid) continue;
+      const otherData = otherDoc.data();
+      const otherTokens = Array.isArray(otherData.deviceTokens)
+        ? (otherData.deviceTokens as { token?: unknown }[]).filter(
+          (entry): entry is { token: string; platform: string; updatedAt: unknown } =>
+            typeof entry === 'object' && entry !== null && typeof entry.token === 'string',
+        )
+        : [];
+      const revokedTokens = otherTokens.filter((entry) => entry.token !== cmd.payload.token);
+      if (revokedTokens.length !== otherTokens.length) {
+        tx.update(otherDoc.ref, {
+          deviceTokens: revokedTokens,
+          version: Number(otherData.version ?? 1) + 1,
+          updatedAt: now,
+        });
+      }
+    }
+
     const existing = Array.isArray(current.deviceTokens)
       ? (current.deviceTokens as { token?: unknown }[]).filter(
         (entry): entry is { token: string; platform: string; updatedAt: unknown } =>

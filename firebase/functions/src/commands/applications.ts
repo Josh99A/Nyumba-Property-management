@@ -102,9 +102,10 @@ export const contactSubmit: CommandHandler<z.infer<typeof contactSchema>> = {
     const privateListing = privateSnap.data();
     if (!listingSnap.exists || listing?.status !== 'published' || !privateSnap.exists) throw new DomainError('NOT_FOUND');
     if (recent.size >= 5) throw new DomainError('RATE_LIMITED', { retryAfterSeconds: 3600 });
+    const landlordId = privateListing?.landlordId ?? null;
     const contact = {
       ...newAggregate(cmd.aggregateId!, now), listingId: cmd.payload.listingId,
-      landlordId: privateListing?.landlordId, requesterUid: actor.uid,
+      landlordId, requesterUid: actor.uid,
       displayName: cmd.payload.displayName, email: cmd.payload.email, phone: cmd.payload.phone ?? null,
       message: cmd.payload.message, deliveryState: 'pending',
     };
@@ -115,7 +116,7 @@ export const contactSubmit: CommandHandler<z.infer<typeof contactSchema>> = {
     // Coerced to null: Firestore rejects an undefined field value outright, so
     // an owner-less listing would abort the whole command rather than produce a
     // job the worker can mark undeliverable.
-    createJob(tx, db, `${cmd.commandId}_notify`, 'deliverContactRequest', { contactRequestId: cmd.aggregateId!, landlordId: privateListing?.landlordId ?? null }, now);
+    createJob(tx, db, `${cmd.commandId}_notify`, 'deliverContactRequest', { contactRequestId: cmd.aggregateId!, landlordId }, now);
     return { status: 'accepted', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: ['deliveryState'] };
   },
 };

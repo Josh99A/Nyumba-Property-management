@@ -13,11 +13,11 @@ import { notifyUser } from '../shared/messaging';
 export async function notifyLandlordApplication(payload: Record<string, unknown>): Promise<void> {
   const db = getFirestore();
   const applicationId = String(payload.applicationId);
-  const landlordId = String(payload.landlordId);
   const snapshot = await db.collection(COLLECTIONS.applications).doc(applicationId).get();
   if (!snapshot.exists) return;
   const application = snapshot.data()!;
   if (application.isDeleted === true || application.status === 'withdrawn') return;
+  const landlordId = String(application.landlordId);
 
   await notifyUser(landlordId, {
     title: 'New application',
@@ -53,7 +53,8 @@ export async function deliverContactRequest(payload: Record<string, unknown>): P
     version: Number(contact.version ?? 1) + 1,
     updatedAt: now,
   };
-  await ref.update({
+  const batch = db.batch();
+  batch.update(ref, {
     deliveryState,
     deliveredAt: landlordId ? now : null,
     version: next.version,
@@ -63,13 +64,16 @@ export async function deliverContactRequest(payload: Record<string, unknown>): P
   // `requesterUid` is what contact.submit writes and what keys the prospect's
   // portal; there is no `clientUid` field on a contact request.
   if (typeof contact.requesterUid === 'string') {
-    await db
-      .collection(COLLECTIONS.clientPortals)
-      .doc(contact.requesterUid)
-      .collection(CLIENT_PORTAL_SECTIONS.contactRequests)
-      .doc(contactRequestId)
-      .set(clientContactProjection(next));
+    batch.set(
+      db
+        .collection(COLLECTIONS.clientPortals)
+        .doc(contact.requesterUid)
+        .collection(CLIENT_PORTAL_SECTIONS.contactRequests)
+        .doc(contactRequestId),
+      clientContactProjection(next),
+    );
   }
+  await batch.commit();
   if (!landlordId) return;
 
   await notifyUser(landlordId, {

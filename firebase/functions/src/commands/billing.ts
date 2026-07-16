@@ -64,10 +64,20 @@ export const paymentRecordManual: CommandHandler<z.infer<typeof manualPaymentSch
     const invoiceRef = db.collection(COLLECTIONS.invoices).doc(cmd.payload.invoiceId);
     const [paymentSnap, invoiceSnap] = await Promise.all([tx.get(paymentRef), tx.get(invoiceRef)]);
     requireAbsent(paymentSnap);
-    const invoice = requireAggregate<{ version: number; landlordId: string; balanceMinor: number; tenantUserUid?: string | null }>(invoiceSnap, undefined);
+    const invoice = requireAggregate<{ version: number; landlordId: string; balanceMinor: number; tenantUserUid?: string | null; leaseId?: string }>(invoiceSnap, undefined);
     requireOwnedByLandlord(invoice, landlord.landlordId);
     if (cmd.payload.amountMinor > invoice.balanceMinor) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'amountExceedsBalance' });
+    }
+    if (!invoice.leaseId) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'invoiceMissingLeaseId' });
+    }
+    const tenancyViewRef = db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId)
+      .collection(LANDLORD_PORTAL_SECTIONS.tenancies).doc(invoice.leaseId);
+    const tenancyViewSnap = await tx.get(tenancyViewRef);
+    const tenancyView = tenancyViewSnap.data();
+    if (!tenancyView) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'tenancyViewUnavailable' });
     }
     const receiptNumber = landlord.account.receiptCounter + 1;
     const receiptId = `${cmd.aggregateId!}_receipt`;
@@ -99,6 +109,33 @@ export const paymentRecordManual: CommandHandler<z.infer<typeof manualPaymentSch
         ...invoice, balanceMinor: nextBalance, status: nextStatus, ...bumpVersion(invoice, now),
       }));
     }
+    const landlordPortal = db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId);
+    const outstandingBeforeMinor = invoice.balanceMinor;
+    const remainingBalanceMinor = nextBalance;
+    tx.set(
+      landlordPortal.collection(LANDLORD_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!),
+      landlordPaymentProjection({
+        paymentId: cmd.aggregateId!,
+        version: 1,
+        landlordId: landlord.landlordId,
+        tenancyId: invoice.leaseId,
+        receiptNumber: formatReceiptNumber(receiptNumber),
+        tenantName: String(tenancyView.tenantName ?? ''),
+        unitLabel: String(tenancyView.unitLabel ?? ''),
+        propertyName: String(tenancyView.propertyName ?? ''),
+        amountMinor: cmd.payload.amountMinor,
+        method: cmd.payload.method,
+        period: '',
+        paidOn: now,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
+    tx.update(tenancyViewRef, {
+      balanceMinor: remainingBalanceMinor,
+      version: Number(tenancyView.version ?? 1) + 1,
+      updatedAt: now,
+    });
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, safeResult: { receiptId, receiptNumber: formatReceiptNumber(receiptNumber) }, changedFields: ['status', 'confirmedAt', 'allocations', 'receiptId'] };
   },
 };
@@ -155,7 +192,13 @@ export const paymentRecordAgainstTenancy: CommandHandler<z.infer<typeof recordAg
     const [paymentSnap, leaseSnap, invoiceSnap, tenancyViewSnap] = await Promise.all([
       tx.get(paymentRef),
       tx.get(leaseRef),
-      tx.get(db.collection(COLLECTIONS.invoices).where('leaseId', '==', cmd.payload.tenancyId).limit(50)),
+      tx.get(db.collection(COLLECTIONS.invoices)
+        .where('leaseId', '==', cmd.payload.tenancyId)
+        .where('isDeleted', '!=', true)
+        .where('balanceMinor', '>', 0)
+        .orderBy('balanceMinor')
+        .orderBy('dueDate')
+        .limit(50)),
       tx.get(tenancyViewRef),
     ]);
     requireAbsent(paymentSnap);
@@ -163,11 +206,16 @@ export const paymentRecordAgainstTenancy: CommandHandler<z.infer<typeof recordAg
     requireOwnedByLandlord(lease, landlord.landlordId);
     if (lease.status !== 'active') throw new DomainError('VALIDATION_FAILED', { reason: 'leaseNotActive' });
     const tenancyView = tenancyViewSnap.data();
+    if (!tenancyView) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'tenancyViewUnavailable' });
+    }
 
     const openInvoices = invoiceSnap.docs
       .map((doc) => doc.data() as OpenInvoice)
-      .filter((invoice) => invoice.isDeleted !== true && invoice.balanceMinor > 0)
       .sort((left, right) => left.dueDate.localeCompare(right.dueDate));
+    if (invoiceSnap.size >= 50) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'tooManyOpenInvoices' });
+    }
     const outstandingBeforeMinor = openInvoices.reduce(
       (total, invoice) => total + invoice.balanceMinor,
       0,
@@ -246,37 +294,35 @@ export const paymentRecordAgainstTenancy: CommandHandler<z.infer<typeof recordAg
     // needs, and is also where the landlord's balance is corrected: the device
     // decremented its own copy optimistically, and this is the value that
     // overwrites it.
-    if (tenancyView) {
-      const landlordPortal = db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId);
-      // Surplus beyond what was owed is a credit, not a negative balance, so
-      // only the allocated part reduces the outstanding total.
-      const allocatedMinor = cmd.payload.amountMinor - unallocatedMinor;
-      const remainingBalanceMinor = outstandingBeforeMinor - allocatedMinor;
-      tx.set(
-        landlordPortal.collection(LANDLORD_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!),
-        landlordPaymentProjection({
-          paymentId: cmd.aggregateId!,
-          version: 1,
-          landlordId: landlord.landlordId,
-          tenancyId: cmd.payload.tenancyId,
-          receiptNumber: formatReceiptNumber(receiptNumber),
-          tenantName: String(tenancyView.tenantName ?? ''),
-          unitLabel: String(tenancyView.unitLabel ?? ''),
-          propertyName: String(tenancyView.propertyName ?? ''),
-          amountMinor: cmd.payload.amountMinor,
-          method: cmd.payload.method,
-          period: cmd.payload.period,
-          paidOn: now,
-          createdAt: now,
-          updatedAt: now,
-        }),
-      );
-      tx.update(tenancyViewRef, {
-        balanceMinor: remainingBalanceMinor,
-        version: Number(tenancyView.version ?? 1) + 1,
+    const landlordPortal = db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId);
+    // Surplus beyond what was owed is a credit, not a negative balance, so
+    // only the allocated part reduces the outstanding total.
+    const allocatedMinor = cmd.payload.amountMinor - unallocatedMinor;
+    const remainingBalanceMinor = outstandingBeforeMinor - allocatedMinor;
+    tx.set(
+      landlordPortal.collection(LANDLORD_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!),
+      landlordPaymentProjection({
+        paymentId: cmd.aggregateId!,
+        version: 1,
+        landlordId: landlord.landlordId,
+        tenancyId: cmd.payload.tenancyId,
+        receiptNumber: formatReceiptNumber(receiptNumber),
+        tenantName: String(tenancyView.tenantName ?? ''),
+        unitLabel: String(tenancyView.unitLabel ?? ''),
+        propertyName: String(tenancyView.propertyName ?? ''),
+        amountMinor: cmd.payload.amountMinor,
+        method: cmd.payload.method,
+        period: cmd.payload.period,
+        paidOn: now,
+        createdAt: now,
         updatedAt: now,
-      });
-    }
+      }),
+    );
+    tx.update(tenancyViewRef, {
+      balanceMinor: remainingBalanceMinor,
+      version: Number(tenancyView.version ?? 1) + 1,
+      updatedAt: now,
+    });
     return {
       status: 'applied',
       aggregateId: cmd.aggregateId!,

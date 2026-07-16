@@ -123,17 +123,21 @@ async function update(
   const db = getFirestore();
   const now = Timestamp.now();
   const next = { ...payment, ...changes, version: Number(payment.version ?? 1) + 1, updatedAt: now };
-  await db.collection(COLLECTIONS.payments).doc(paymentId).update({
+  const batch = db.batch();
+  batch.update(db.collection(COLLECTIONS.payments).doc(paymentId), {
     ...changes,
     version: next.version,
     updatedAt: now,
   });
   if (typeof payment.tenantUserUid === 'string') {
-    await db
-      .collection(COLLECTIONS.tenantPortals)
-      .doc(payment.tenantUserUid)
-      .collection(TENANT_PORTAL_SECTIONS.payments)
-      .doc(paymentId)
-      .set(tenantPaymentProjection(next));
+    batch.set(
+      db
+        .collection(COLLECTIONS.tenantPortals)
+        .doc(payment.tenantUserUid)
+        .collection(TENANT_PORTAL_SECTIONS.payments)
+        .doc(paymentId),
+      tenantPaymentProjection(next),
+    );
   }
+  await batch.commit();
 }

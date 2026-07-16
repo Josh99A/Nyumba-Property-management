@@ -74,6 +74,36 @@ final class OfflineDatabase {
           'schema $schemaVersion.',
         );
       }
+
+      // Migrate legacy store names to new aliases (schema version 1).
+      // `documents` became `lease_documents` and `user_profiles` became
+      // `managed_users` to disambiguate server-owned uploaded files from
+      // local lease document index rows, and admin account directory from
+      // user profile settings. This migration is idempotent: re-running it
+      // on an already-migrated database is safe.
+      if (storedVersion == null || (storedVersion is int && storedVersion < 1)) {
+        final legacyDocuments = stringMapStoreFactory.store('documents');
+        final legacyUserProfiles = stringMapStoreFactory.store('user_profiles');
+
+        final documentsSnaps = await legacyDocuments.find(transaction);
+        for (final snap in documentsSnaps) {
+          await _entityStore(OfflineEntityType.leaseDocument)
+              .record(snap.key)
+              .put(transaction, snap.value);
+        }
+
+        final userProfileSnaps = await legacyUserProfiles.find(transaction);
+        for (final snap in userProfileSnaps) {
+          await _entityStore(OfflineEntityType.managedUser)
+              .record(snap.key)
+              .put(transaction, snap.value);
+        }
+
+        // Clear legacy stores after successful migration.
+        await legacyDocuments.delete(transaction);
+        await legacyUserProfiles.delete(transaction);
+      }
+
       await _metadataStore.record('schema').put(transaction, <String, Object?>{
         'version': schemaVersion,
       });

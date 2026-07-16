@@ -62,6 +62,9 @@ export async function notifyUser(
       data: content.data ?? {},
       android: { priority: 'high' },
       apns: { payload: { aps: { sound: 'default' } } },
+      ...(content.data?.route
+        ? { webpush: { fcmOptions: { link: content.data.route } } }
+        : {}),
     });
   } catch {
     // A transport-level failure tells us nothing about individual tokens.
