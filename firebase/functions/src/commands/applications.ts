@@ -112,7 +112,10 @@ export const contactSubmit: CommandHandler<z.infer<typeof contactSchema>> = {
     // The requester projection must not reveal the landlord's UID; the public
     // listing only exposes an opaque contact token.
     tx.set(db.collection(COLLECTIONS.clientPortals).doc(actor.uid).collection(CLIENT_PORTAL_SECTIONS.contactRequests).doc(cmd.aggregateId!), clientContactProjection(contact));
-    createJob(tx, db, `${cmd.commandId}_notify`, 'deliverContactRequest', { contactRequestId: cmd.aggregateId!, landlordId: privateListing?.landlordId }, now);
+    // Coerced to null: Firestore rejects an undefined field value outright, so
+    // an owner-less listing would abort the whole command rather than produce a
+    // job the worker can mark undeliverable.
+    createJob(tx, db, `${cmd.commandId}_notify`, 'deliverContactRequest', { contactRequestId: cmd.aggregateId!, landlordId: privateListing?.landlordId ?? null }, now);
     return { status: 'accepted', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: ['deliveryState'] };
   },
 };

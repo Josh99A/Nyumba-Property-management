@@ -1,20 +1,21 @@
 import type { CommandHandler } from '../shared/handlers';
 import { landlordApprove, landlordReinstate, landlordSuspend } from './admin';
 import { applicationSubmit, applicationWithdraw, contactSubmit } from './applications';
-import { invoiceGenerate, paymentInitiate, paymentRecordManual, receiptRegenerate } from './billing';
+import { invoiceGenerate, paymentInitiate, paymentRecordAgainstTenancy, paymentRecordManual, receiptRegenerate } from './billing';
 import { noticePublish } from './communication';
 import { documentDelete, documentFinalizeUpload } from './documents';
-import { landlordOnboard, profileUpdate } from './identity';
+import { landlordOnboard, profileRegisterDevice, profileUpdate } from './identity';
 import { maintenanceAddComment, maintenanceCreate, maintenanceUpdateStatus } from './maintenance';
 import { listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from './listings';
 import { propertyArchive, propertyCreate, propertyUpdate, unitArchive, unitCreate, unitRestore, unitUpdate } from './portfolio';
 import { reportRequest } from './reports';
-import { leaseActivate, leaseCreate, leaseEnd, tenantClaimInvite, tenantInvite, tenantUpdate } from './tenancy';
+import { leaseActivate, leaseCreate, leaseEnd, tenancyEstablish, tenantClaimInvite, tenantInvite, tenantUpdate } from './tenancy';
 
 // Payload types are enforced by each handler's strict runtime schema before
 // the untyped registry boundary is crossed.
 export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['profile.update', profileUpdate],
+  ['profile.registerDevice', profileRegisterDevice],
   ['landlord.onboard', landlordOnboard],
   ['landlord.approve', landlordApprove],
   ['landlord.suspend', landlordSuspend],
@@ -32,8 +33,12 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['lease.create', leaseCreate],
   ['lease.activate', leaseActivate],
   ['lease.end', leaseEnd],
+  // Composite of tenant.invite + lease.create + lease.activate, so the client's
+  // single Tenancy aggregate maps to one command and one idempotency key.
+  ['tenancy.establish', tenancyEstablish],
   ['invoice.generate', invoiceGenerate],
   ['payment.recordManual', paymentRecordManual],
+  ['payment.recordAgainstTenancy', paymentRecordAgainstTenancy],
   ['payment.initiate', paymentInitiate],
   ['receipt.regenerate', receiptRegenerate],
   ['maintenance.create', maintenanceCreate],

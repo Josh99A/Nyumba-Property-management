@@ -42,6 +42,57 @@ export const profileUpdate: CommandHandler<z.infer<typeof profileSchema>> = {
   },
 };
 
+const registerDeviceSchema = strictPayload({
+  // FCM tokens are long and opaque; bound the length rather than the alphabet.
+  token: z.string().trim().min(32).max(4_096),
+  platform: z.enum(['web', 'android', 'ios', 'macos', 'windows', 'linux']),
+});
+
+/** Beyond this, the oldest registration is dropped. */
+const MAX_DEVICE_TOKENS = 10;
+
+/**
+ * Registers this device's FCM token against the signed-in user.
+ *
+ * A callable rather than a direct write because `users/{uid}` denies all client
+ * writes: the document also carries `role`, so letting a client touch it at all
+ * would hand it a lever on its own authorization.
+ *
+ * Idempotent on the token, which matters because the client re-registers on
+ * every launch and FCM hands back the same token until it rotates.
+ */
+export const profileRegisterDevice: CommandHandler<z.infer<typeof registerDeviceSchema>> = {
+  payloadSchema: registerDeviceSchema,
+  aggregateIdMode: 'forbidden',
+  expectedVersionMode: 'none',
+  async apply({ tx, db, actor, cmd, now }) {
+    const ref = db.collection(COLLECTIONS.users).doc(actor.uid);
+    const snapshot = await tx.get(ref);
+    const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, undefined);
+
+    const existing = Array.isArray(current.deviceTokens)
+      ? (current.deviceTokens as { token?: unknown }[]).filter(
+        (entry): entry is { token: string; platform: string; updatedAt: unknown } =>
+          typeof entry === 'object' && entry !== null && typeof entry.token === 'string',
+      )
+      : [];
+    // Re-registering moves the token to the newest slot rather than duplicating
+    // it, so the cap evicts genuinely stale devices instead of this one.
+    const others = existing.filter((entry) => entry.token !== cmd.payload.token);
+    const next = [...others, { token: cmd.payload.token, platform: cmd.payload.platform, updatedAt: now }]
+      .slice(-MAX_DEVICE_TOKENS);
+
+    tx.update(ref, { deviceTokens: next, ...bumpVersion(current, now) });
+    return {
+      status: 'applied',
+      aggregateId: actor.uid,
+      serverVersion: current.version + 1,
+      safeResult: { deviceCount: next.length },
+      changedFields: ['deviceTokens'],
+    };
+  },
+};
+
 const onboardSchema = strictPayload({
   businessName: optionalShortText,
   phone: z.string().trim().min(7).max(32),

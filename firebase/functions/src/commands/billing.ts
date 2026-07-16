@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
-import { COLLECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
+import { COLLECTIONS, LANDLORD_PORTAL_SECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { createJob, idSchema, nonNegativeMoney, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
 import {
+  landlordPaymentProjection,
   tenantInvoiceProjection,
   tenantPaymentProjection,
   tenantReceiptProjection,
@@ -80,8 +81,8 @@ export const paymentRecordManual: CommandHandler<z.infer<typeof manualPaymentSch
     };
     const receipt = {
       ...newAggregate(receiptId, now), landlordId: landlord.landlordId, paymentId: cmd.aggregateId!,
-      tenantUserUid: invoice.tenantUserUid ?? null, receiptNumber, amountMinor: cmd.payload.amountMinor,
-      currency: 'UGX', issuedAt: now, renderState: 'pending',
+      tenantUserUid: invoice.tenantUserUid ?? null, receiptNumber: formatReceiptNumber(receiptNumber),
+      amountMinor: cmd.payload.amountMinor, currency: 'UGX', issuedAt: now, renderState: 'pending',
     };
     tx.create(paymentRef, payment);
     tx.create(db.collection(COLLECTIONS.receipts).doc(receiptId), receipt);
@@ -89,6 +90,7 @@ export const paymentRecordManual: CommandHandler<z.infer<typeof manualPaymentSch
     tx.update(db.collection(COLLECTIONS.landlordAccounts).doc(landlord.landlordId), {
       receiptCounter: receiptNumber, ...bumpVersion(landlord.account, now),
     });
+    createJob(tx, db, `${cmd.commandId}_render`, 'renderReceipt', { receiptId }, now);
     if (invoice.tenantUserUid) {
       const portal = db.collection(COLLECTIONS.tenantPortals).doc(invoice.tenantUserUid);
       tx.set(portal.collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!), tenantPaymentProjection(payment));
@@ -97,9 +99,198 @@ export const paymentRecordManual: CommandHandler<z.infer<typeof manualPaymentSch
         ...invoice, balanceMinor: nextBalance, status: nextStatus, ...bumpVersion(invoice, now),
       }));
     }
-    return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, safeResult: { receiptId, receiptNumber }, changedFields: ['status', 'confirmedAt', 'allocations', 'receiptId'] };
+    return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, safeResult: { receiptId, receiptNumber: formatReceiptNumber(receiptNumber) }, changedFields: ['status', 'confirmedAt', 'allocations', 'receiptId'] };
   },
 };
+
+const recordAgainstTenancySchema = strictPayload({
+  tenancyId: idSchema,
+  amountMinor: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  method: z.enum(['cash', 'bank_transfer', 'mtn_momo', 'airtel_money']),
+  period: shortText,
+  reference: z.string().trim().max(200).optional(),
+});
+
+interface OpenInvoice {
+  id: string;
+  version: number;
+  balanceMinor: number;
+  dueDate: string;
+  status: string;
+  isDeleted?: boolean;
+}
+
+/**
+ * Records rent received against a tenancy, without the landlord ever issuing an
+ * invoice by hand.
+ *
+ * Nyumba's product model is a running tenancy balance, not an invoice ledger:
+ * landlords record cash/MoMo as it arrives. Invoices remain the server's
+ * internal accounting unit (they are what makes a balance settleable and
+ * auditable), so this command allocates the payment across the tenancy's open
+ * invoices oldest-first.
+ *
+ * Nothing in the product accrues rent into new invoices, so once the opening
+ * balance is settled a payment has nothing to settle and is retained in full as
+ * `creditMinor`. That is deliberate: the money was genuinely received but is not
+ * owed against anything, and the client floors its tenancy balance at zero, so
+ * both sides agree the balance is nil. Introducing periodic rent invoices is a
+ * product decision, not something this command should invent.
+ *
+ * The receipt number comes from the landlord's server-side counter. A client
+ * cannot author one: two offline devices would mint the same number.
+ */
+export const paymentRecordAgainstTenancy: CommandHandler<z.infer<typeof recordAgainstTenancySchema>> = {
+  payloadSchema: recordAgainstTenancySchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'create',
+  async apply({ tx, db, actor, cmd, now }) {
+    const landlord = await requireActiveLandlord(tx, db, actor);
+    const paymentRef = db.collection(COLLECTIONS.payments).doc(cmd.aggregateId!);
+    const leaseRef = db.collection(COLLECTIONS.leases).doc(cmd.payload.tenancyId);
+    const tenancyViewRef = db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId)
+      .collection(LANDLORD_PORTAL_SECTIONS.tenancies).doc(cmd.payload.tenancyId);
+
+    // Every read must precede the first buffered write in a transaction.
+    const [paymentSnap, leaseSnap, invoiceSnap, tenancyViewSnap] = await Promise.all([
+      tx.get(paymentRef),
+      tx.get(leaseRef),
+      tx.get(db.collection(COLLECTIONS.invoices).where('leaseId', '==', cmd.payload.tenancyId).limit(50)),
+      tx.get(tenancyViewRef),
+    ]);
+    requireAbsent(paymentSnap);
+    const lease = requireAggregate<{ version: number; landlordId: string; status: string; tenantUserUid?: string | null }>(leaseSnap, undefined);
+    requireOwnedByLandlord(lease, landlord.landlordId);
+    if (lease.status !== 'active') throw new DomainError('VALIDATION_FAILED', { reason: 'leaseNotActive' });
+    const tenancyView = tenancyViewSnap.data();
+
+    const openInvoices = invoiceSnap.docs
+      .map((doc) => doc.data() as OpenInvoice)
+      .filter((invoice) => invoice.isDeleted !== true && invoice.balanceMinor > 0)
+      .sort((left, right) => left.dueDate.localeCompare(right.dueDate));
+    const outstandingBeforeMinor = openInvoices.reduce(
+      (total, invoice) => total + invoice.balanceMinor,
+      0,
+    );
+
+    // Allocate oldest-first. A landlord recording cash they physically hold
+    // must never be rejected for exceeding the outstanding balance, so any
+    // surplus is retained as an explicit credit rather than refused. This
+    // mirrors the client, which already floors a tenancy balance at zero.
+    const allocations: { invoiceId: string; amountMinor: number }[] = [];
+    let unallocatedMinor = cmd.payload.amountMinor;
+    for (const invoice of openInvoices) {
+      if (unallocatedMinor <= 0) break;
+      const applied = Math.min(unallocatedMinor, invoice.balanceMinor);
+      const nextBalance = invoice.balanceMinor - applied;
+      allocations.push({ invoiceId: invoice.id, amountMinor: applied });
+      unallocatedMinor -= applied;
+      tx.update(db.collection(COLLECTIONS.invoices).doc(invoice.id), {
+        balanceMinor: nextBalance,
+        status: nextBalance === 0 ? 'paid' : 'part_paid',
+        ...bumpVersion(invoice, now),
+      });
+      if (lease.tenantUserUid) {
+        tx.set(
+          db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid)
+            .collection(TENANT_PORTAL_SECTIONS.invoices).doc(invoice.id),
+          tenantInvoiceProjection({ ...invoice, balanceMinor: nextBalance, status: nextBalance === 0 ? 'paid' : 'part_paid', ...bumpVersion(invoice, now) }),
+        );
+      }
+    }
+
+    const receiptNumber = landlord.account.receiptCounter + 1;
+    const receiptId = `${cmd.aggregateId!}_receipt`;
+    const payment = {
+      ...newAggregate(cmd.aggregateId!, now),
+      landlordId: landlord.landlordId,
+      leaseId: cmd.payload.tenancyId,
+      invoiceId: allocations[0]?.invoiceId ?? null,
+      tenantUserUid: lease.tenantUserUid ?? null,
+      amountMinor: cmd.payload.amountMinor,
+      currency: 'UGX',
+      method: cmd.payload.method,
+      period: cmd.payload.period,
+      reference: cmd.payload.reference ?? null,
+      status: 'confirmed',
+      confirmedAt: now,
+      allocations,
+      creditMinor: unallocatedMinor,
+      receiptId,
+    };
+    const receipt = {
+      ...newAggregate(receiptId, now),
+      landlordId: landlord.landlordId,
+      paymentId: cmd.aggregateId!,
+      tenantUserUid: lease.tenantUserUid ?? null,
+      receiptNumber: formatReceiptNumber(receiptNumber),
+      amountMinor: cmd.payload.amountMinor,
+      currency: 'UGX',
+      issuedAt: now,
+      renderState: 'pending',
+    };
+    tx.create(paymentRef, payment);
+    tx.create(db.collection(COLLECTIONS.receipts).doc(receiptId), receipt);
+    tx.update(db.collection(COLLECTIONS.landlordAccounts).doc(landlord.landlordId), {
+      receiptCounter: receiptNumber,
+      ...bumpVersion(landlord.account, now),
+    });
+    createJob(tx, db, `${cmd.commandId}_render`, 'renderReceipt', { receiptId }, now);
+    if (lease.tenantUserUid) {
+      const portal = db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid);
+      tx.set(portal.collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!), tenantPaymentProjection(payment));
+      tx.set(portal.collection(TENANT_PORTAL_SECTIONS.receipts).doc(receiptId), tenantReceiptProjection(receipt));
+    }
+
+    // Landlord read models. The tenancy view carries the names this payment
+    // needs, and is also where the landlord's balance is corrected: the device
+    // decremented its own copy optimistically, and this is the value that
+    // overwrites it.
+    if (tenancyView) {
+      const landlordPortal = db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId);
+      // Surplus beyond what was owed is a credit, not a negative balance, so
+      // only the allocated part reduces the outstanding total.
+      const allocatedMinor = cmd.payload.amountMinor - unallocatedMinor;
+      const remainingBalanceMinor = outstandingBeforeMinor - allocatedMinor;
+      tx.set(
+        landlordPortal.collection(LANDLORD_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!),
+        landlordPaymentProjection({
+          paymentId: cmd.aggregateId!,
+          version: 1,
+          landlordId: landlord.landlordId,
+          tenancyId: cmd.payload.tenancyId,
+          receiptNumber: formatReceiptNumber(receiptNumber),
+          tenantName: String(tenancyView.tenantName ?? ''),
+          unitLabel: String(tenancyView.unitLabel ?? ''),
+          propertyName: String(tenancyView.propertyName ?? ''),
+          amountMinor: cmd.payload.amountMinor,
+          method: cmd.payload.method,
+          period: cmd.payload.period,
+          paidOn: now,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      );
+      tx.update(tenancyViewRef, {
+        balanceMinor: remainingBalanceMinor,
+        version: Number(tenancyView.version ?? 1) + 1,
+        updatedAt: now,
+      });
+    }
+    return {
+      status: 'applied',
+      aggregateId: cmd.aggregateId!,
+      serverVersion: 1,
+      safeResult: { receiptId, receiptNumber: formatReceiptNumber(receiptNumber), creditMinor: unallocatedMinor },
+      changedFields: ['status', 'confirmedAt', 'allocations', 'receiptId'],
+    };
+  },
+};
+
+/** Stable, landlord-scoped receipt reference, e.g. `NYB-RCP-00842`. */
+export function formatReceiptNumber(counter: number): string {
+  return `NYB-RCP-${String(counter).padStart(5, '0')}`;
+}
 
 const initiateSchema = strictPayload({
   leaseId: idSchema,
