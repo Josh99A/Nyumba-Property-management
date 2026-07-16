@@ -23,6 +23,7 @@ import '../features/marketplace/presentation/public_listings_screen.dart';
 import '../features/portfolio/presentation/properties_screen.dart';
 import '../features/portfolio/presentation/property_detail_screen.dart';
 import '../features/profile/presentation/profile_settings_screen.dart';
+import '../features/subscriptions/presentation/landlord_subscription_screen.dart';
 import '../features/tenant_portal/presentation/tenant_documents_screen.dart';
 import '../features/tenant_portal/presentation/tenant_home_screen.dart';
 import '../features/tenant_portal/presentation/tenant_maintenance_screen.dart';
@@ -76,7 +77,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: false,
     refreshListenable: refreshNotifier,
     redirect: (context, state) =>
-        _redirect(ref.read(sessionControllerProvider), state.uri.path),
+        redirectForSession(ref.read(sessionControllerProvider), state.uri.path),
     errorBuilder: (context, state) => _RouteNotFoundScreen(
       message: state.error?.toString() ?? 'Page not found',
     ),
@@ -96,6 +97,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
         pageBuilder: (context, state) =>
             _transitionPage(state: state, child: const OnboardingScreen()),
+      ),
+      GoRoute(
+        path: '/subscription',
+        pageBuilder: (context, state) => _transitionPage(
+          state: state,
+          child: const LandlordSubscriptionScreen(),
+        ),
       ),
       GoRoute(
         path: '/explore',
@@ -257,7 +265,8 @@ class _RouterRefreshNotifier extends ChangeNotifier {
   void refresh() => notifyListeners();
 }
 
-String? _redirect(UserSession? session, String path) {
+@visibleForTesting
+String? redirectForSession(UserSession? session, String path) {
   final publicPath =
       path == '/' ||
       path == '/sign-in' ||
@@ -271,14 +280,23 @@ String? _redirect(UserSession? session, String path) {
   final needsOnboarding =
       session.role == AppRole.client && !session.isAnonymous && !session.isDemo;
   final home = switch (session.role) {
-    AppRole.landlord => '/dashboard',
+    AppRole.landlord =>
+      session.hasConfirmedSubscription ? '/dashboard' : '/subscription',
     AppRole.tenant => '/tenant',
     AppRole.superAdmin || AppRole.admin => '/admin',
     AppRole.client => needsOnboarding ? '/onboarding' : '/explore',
   };
   if (path == '/sign-in' || path == '/sign-up') return home;
   if (path == '/onboarding') return needsOnboarding ? null : home;
+  if (path == '/subscription') {
+    return session.role == AppRole.landlord && !session.hasConfirmedSubscription
+        ? null
+        : home;
+  }
   if (publicPath) return null;
+  if (session.role == AppRole.landlord && !session.hasConfirmedSubscription) {
+    return '/subscription';
+  }
 
   final adminPath = path == '/admin' || path.startsWith('/admin/');
   final portfolioPath =

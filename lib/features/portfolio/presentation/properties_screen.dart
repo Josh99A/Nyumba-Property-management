@@ -448,9 +448,7 @@ class _PortfolioUsage extends ConsumerWidget {
             'is guessed while it is unavailable.',
       ),
       EntitlementKnown(:final entitlement) => _UsageShell(
-        title: entitlement.isTrialing
-            ? '${entitlement.displayName} plan · trial'
-            : '${entitlement.displayName} plan',
+        title: '${entitlement.displayName} plan',
         trailing: Text(
           '${units.length} of ${entitlement.unitLimit} rental spaces',
           style: Theme.of(context).textTheme.bodySmall,

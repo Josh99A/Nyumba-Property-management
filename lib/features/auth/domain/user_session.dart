@@ -12,6 +12,16 @@ extension AppRolePresentation on AppRole {
 
 enum AccountStatus { active, pendingApproval, suspended }
 
+enum LandlordSubscriptionStatus {
+  notApplicable,
+  pendingPayment,
+  active,
+  pastDue,
+  canceled,
+  expired,
+  unavailable,
+}
+
 class UserSession {
   const UserSession({
     required this.userId,
@@ -20,6 +30,8 @@ class UserSession {
     required this.role,
     this.phone = '+256772000100',
     this.accountStatus = AccountStatus.active,
+    this.subscriptionStatus = LandlordSubscriptionStatus.notApplicable,
+    this.subscriptionTier,
     this.emailVerified = true,
     this.isAnonymous = false,
     this.isDemo = false,
@@ -31,6 +43,8 @@ class UserSession {
   final AppRole role;
   final String phone;
   final AccountStatus accountStatus;
+  final LandlordSubscriptionStatus subscriptionStatus;
+  final String? subscriptionTier;
   final bool emailVerified;
   final bool isAnonymous;
   final bool isDemo;
@@ -41,6 +55,11 @@ class UserSession {
     return trimmed.split(RegExp(r'\s+')).first;
   }
 
+  bool get hasConfirmedSubscription =>
+      role != AppRole.landlord ||
+      isDemo ||
+      subscriptionStatus == LandlordSubscriptionStatus.active;
+
   UserSession copyWith({String? displayName, String? email, String? phone}) =>
       UserSession(
         userId: userId,
@@ -49,8 +68,27 @@ class UserSession {
         phone: phone ?? this.phone,
         role: role,
         accountStatus: accountStatus,
+        subscriptionStatus: subscriptionStatus,
+        subscriptionTier: subscriptionTier,
         emailVerified: emailVerified,
         isAnonymous: isAnonymous,
         isDemo: isDemo,
       );
+
+  UserSession withSubscription({
+    required LandlordSubscriptionStatus status,
+    required String? tier,
+  }) => UserSession(
+    userId: userId,
+    displayName: displayName,
+    email: email,
+    phone: phone,
+    role: role,
+    accountStatus: accountStatus,
+    subscriptionStatus: status,
+    subscriptionTier: tier,
+    emailVerified: emailVerified,
+    isAnonymous: isAnonymous,
+    isDemo: isDemo,
+  );
 }

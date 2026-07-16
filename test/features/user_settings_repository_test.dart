@@ -69,6 +69,54 @@ void main() {
     },
   );
 
+  test('a phone-less account can still save its settings', () async {
+    // Accounts created through Google or email sign-in carry no phone number,
+    // and the server's profile.update schema treats phone as optional. This
+    // save previously threw "Use a valid Uganda phone number", which surfaced
+    // as "Appearance could not be saved" whenever such an account touched the
+    // theme toggle — the appearance setting persists through this same record.
+    final saved = await repository.save(
+      UserSettings(
+        userId: 'landlord-uid-1',
+        displayName: 'Joshua Mugisha',
+        email: 'joshua@example.com',
+        phone: '',
+        themePreference: ThemePreference.dark,
+        emailNotifications: true,
+        pushNotifications: true,
+        rentReminders: true,
+        maintenanceUpdates: true,
+        updatedAt: now,
+        syncMetadata: const SyncMetadata.pending(),
+      ),
+    );
+    expect(saved.themePreference, ThemePreference.dark);
+    expect(saved.phone, isEmpty);
+    expect(await database.outboxCount(), 1);
+  });
+
+  test('a present but invalid phone is still rejected', () async {
+    await expectLater(
+      repository.save(
+        UserSettings(
+          userId: 'landlord-uid-1',
+          displayName: 'Joshua Mugisha',
+          email: 'joshua@example.com',
+          phone: '123',
+          themePreference: ThemePreference.system,
+          emailNotifications: true,
+          pushNotifications: true,
+          rentReminders: true,
+          maintenanceUpdates: true,
+          updatedAt: now,
+          syncMetadata: const SyncMetadata.pending(),
+        ),
+      ),
+      throwsA(isA<FormatException>()),
+    );
+    expect(await database.outboxCount(), 0);
+  });
+
   test('invalid contact details are rejected before persistence', () async {
     await expectLater(
       repository.save(

@@ -62,7 +62,7 @@ final landlordEntitlementProvider = StreamProvider<EntitlementState>((
         yield const EntitlementUnavailable('This subscription is incomplete.');
         continue;
       }
-      if (status != 'active' && status != 'trialing') {
+      if (status != 'active') {
         yield EntitlementUnavailable('This subscription is $status.');
         continue;
       }

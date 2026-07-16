@@ -39,7 +39,14 @@ final class UserSettings {
     if (!emailPattern.hasMatch(normalizedEmail)) {
       throw const FormatException('Enter a valid email address.');
     }
-    if (!NyumbaMarket.isValidPhone(phone)) {
+    // A missing phone is a legitimate state, not an invalid one: accounts
+    // created through Google or email sign-in carry no number, and the server's
+    // profile.update schema treats phone as optional. Requiring one here held
+    // every other setting hostage — a phone-less account could not even change
+    // its theme, because the appearance toggle saves through this same record.
+    final normalizedPhone = phone.trim();
+    if (normalizedPhone.isNotEmpty &&
+        !NyumbaMarket.isValidPhone(normalizedPhone)) {
       throw const FormatException('Use a valid Uganda phone number.');
     }
   }
