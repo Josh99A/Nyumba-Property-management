@@ -54,6 +54,16 @@ export async function notifyUser(
   const tokens = readTokens(user.deviceTokens);
   if (tokens.length === 0) return { sent: 0, pruned: 0 };
 
+  // Browser-displayed web notifications do nothing on click unless FCM is
+  // given an explicit link; native platforms route through the app's own
+  // message handlers instead. The hosting origin is derived from the project
+  // the function runs in, keeping project identifiers out of the repository.
+  const project = process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT;
+  const route = content.data?.route;
+  const webpush = project && route
+    ? { fcmOptions: { link: new URL(route, `https://${project}.web.app`).href } }
+    : undefined;
+
   let response;
   try {
     response = await getMessaging().sendEachForMulticast({
@@ -62,6 +72,7 @@ export async function notifyUser(
       data: content.data ?? {},
       android: { priority: 'high' },
       apns: { payload: { aps: { sound: 'default' } } },
+      ...(webpush ? { webpush } : {}),
     });
   } catch {
     // A transport-level failure tells us nothing about individual tokens.

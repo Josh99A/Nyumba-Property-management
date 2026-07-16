@@ -573,10 +573,14 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
   }
 
   Future<void> _showReceipt(RentPayment payment, String status) {
+    // Only a server-issued receipt may present itself as one; a payment the
+    // device merely recorded stays framed as a pending payment record even
+    // when its local status already reads as settled.
+    final issued = payment.hasIssuedReceipt;
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(status == 'Paid' ? 'Payment receipt' : 'Payment details'),
+        title: Text(issued ? 'Payment receipt' : 'Payment details'),
         content: SizedBox(
           width: 440,
           child: Column(
@@ -619,7 +623,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Close'),
           ),
-          if (status == 'Paid')
+          if (issued)
             FilledButton.icon(
               onPressed: () => _printReceipt(payment),
               icon: const Icon(Icons.print_outlined),

@@ -67,15 +67,19 @@ const _neverEnqueued = <OfflineEntityType, String>{
 
 RemoteMutation _mutationFor(
   OfflineEntityType entityType,
-  OutboxOperation operation,
-) => RemoteMutation(
+  OutboxOperation operation, {
+  // Enough of a payload for any mapping to read; absent keys map to null,
+  // which is what a real sparse aggregate would produce anyway. Focused
+  // payload-contract tests below pass the aggregate fields they exercise.
+  Map<String, Object?> payload = const <String, Object?>{
+    '_expectedVersion': 3,
+  },
+}) => RemoteMutation(
   mutationId: 'mutation-1',
   entityType: entityType,
   entityId: 'aggregate-1',
   operation: operation,
-  // Enough of a payload for any mapping to read; absent keys map to null,
-  // which is what a real sparse aggregate would produce anyway.
-  payload: const <String, Object?>{'_expectedVersion': 3},
+  payload: payload,
   idempotencyKey: 'mutation-1',
   clientCreatedAt: DateTime.utc(2026, 7, 16),
 );
@@ -122,6 +126,85 @@ void main() {
       // command or explicitly local-only, so it cannot be added and silently
       // start failing sync.
       expect(covered, containsAll(OfflineEntityType.values));
+    });
+
+    // Command names alone cannot catch a broken field mapping: an envelope
+    // that reaches the right handler with the wrong keys fails zod validation
+    // server-side and the mutation dies as permanentlyFailed. These pin the
+    // payload contracts for the two money-bearing commands.
+    test('tenancy.establish maps the client tenancy fields', () {
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.tenancy,
+          OutboxOperation.create,
+          payload: const <String, Object?>{
+            'unitId': 'unit-1',
+            'tenantName': 'Sandra Nakato',
+            'email': 'sandra@example.ug',
+            'phone': '+256700000001',
+            'leaseStart': '2026-01-01T00:00:00.000Z',
+            'leaseEnd': '2026-12-31T00:00:00.000Z',
+            'monthlyRentMinor': 90000000,
+            'balanceMinor': 250000,
+          },
+        ),
+      );
+      expect(envelope['expectedVersion'], 0);
+      expect(envelope['payload'], const <String, Object?>{
+        'unitId': 'unit-1',
+        'displayName': 'Sandra Nakato',
+        'email': 'sandra@example.ug',
+        'phone': '+256700000001',
+        'startDate': '2026-01-01T00:00:00.000Z',
+        'endDate': '2026-12-31T00:00:00.000Z',
+        'monthlyRentMinor': 90000000,
+        'openingBalanceMinor': 250000,
+      });
+    });
+
+    test('tenancy.establish omits an absent opening balance', () {
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.tenancy,
+          OutboxOperation.create,
+          payload: const <String, Object?>{
+            'unitId': 'unit-1',
+            'tenantName': 'Sandra Nakato',
+            'email': 'sandra@example.ug',
+            'phone': '+256700000001',
+            'leaseStart': '2026-01-01T00:00:00.000Z',
+            'leaseEnd': '2026-12-31T00:00:00.000Z',
+            'monthlyRentMinor': 90000000,
+          },
+        ),
+      );
+      final payload = envelope['payload'] as Map<String, Object?>;
+      // The command schema rejects unknown keys and a null here would fail
+      // zod's int check, so the key must be absent, not null.
+      expect(payload.containsKey('openingBalanceMinor'), isFalse);
+    });
+
+    test('payment.recordAgainstTenancy maps and snake_cases the payment', () {
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.payment,
+          OutboxOperation.create,
+          payload: const <String, Object?>{
+            'tenancyId': 'lease-1',
+            'amountMinor': 500000,
+            'method': 'mtnMomo',
+            'period': 'July 2026',
+          },
+        ),
+      );
+      expect(envelope['payload'], const <String, Object?>{
+        'tenancyId': 'lease-1',
+        'amountMinor': 500000,
+        // The client's camelCase method enum must arrive as the command
+        // schema's snake_case value or the whole payment is rejected.
+        'method': 'mtn_momo',
+        'period': 'July 2026',
+      });
     });
 
     test('rejects an unmapped mutation without retrying forever', () {

@@ -43,29 +43,36 @@ final landlordEntitlementProvider = StreamProvider<EntitlementState>((
   }
 
   final firestore = FirebaseFirestore.instance;
-  await for (final subscription
-      in firestore
-          .collection('subscriptions')
-          .doc(session.userId)
-          .snapshots()) {
-    final data = subscription.data();
-    if (!subscription.exists || data == null) {
-      yield const EntitlementUnavailable(
-        'No subscription on this account yet.',
-      );
-      continue;
+  try {
+    await for (final subscription
+        in firestore
+            .collection('subscriptions')
+            .doc(session.userId)
+            .snapshots()) {
+      final data = subscription.data();
+      if (!subscription.exists || data == null) {
+        yield const EntitlementUnavailable(
+          'No subscription on this account yet.',
+        );
+        continue;
+      }
+      final tier = data['tier'];
+      final status = data['status'];
+      if (tier is! String || tier.isEmpty || status is! String) {
+        yield const EntitlementUnavailable('This subscription is incomplete.');
+        continue;
+      }
+      if (status != 'active' && status != 'trialing') {
+        yield EntitlementUnavailable('This subscription is $status.');
+        continue;
+      }
+      yield await _readPlan(firestore, tier: tier, status: status);
     }
-    final tier = data['tier'];
-    final status = data['status'];
-    if (tier is! String || tier.isEmpty || status is! String) {
-      yield const EntitlementUnavailable('This subscription is incomplete.');
-      continue;
-    }
-    if (status != 'active' && status != 'trialing') {
-      yield EntitlementUnavailable('This subscription is $status.');
-      continue;
-    }
-    yield await _readPlan(firestore, tier: tier, status: status);
+  } on FirebaseException {
+    // A denied or failed subscription stream fails closed, exactly like the
+    // catalog read below: an AsyncError would leave screens with no
+    // entitlement answer at all, and guessing a limit is not an option.
+    yield const EntitlementUnavailable('Subscription status is unavailable.');
   }
 });
 

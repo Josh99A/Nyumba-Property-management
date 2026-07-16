@@ -27,6 +27,12 @@ export async function renderReceipt(payload: Record<string, unknown>): Promise<v
   if (receipt.renderState === 'rendered') return;
 
   const landlordId = String(receipt.landlordId);
+  // The issue date is a financial fact the payment command wrote; substituting
+  // the render time would fabricate it. A receipt without one is corrupt and
+  // must fail the job loudly rather than produce a plausible-looking record.
+  if (!(receipt.issuedAt instanceof Timestamp)) {
+    throw new Error(`Receipt ${receiptId} has no server-owned issuedAt timestamp; refusing to render.`);
+  }
   const paymentSnap = await db.collection(COLLECTIONS.payments).doc(String(receipt.paymentId)).get();
   const payment = paymentSnap.data() ?? {};
 
@@ -34,7 +40,7 @@ export async function renderReceipt(payload: Record<string, unknown>): Promise<v
     receiptNumber: String(receipt.receiptNumber ?? receiptId),
     amountMinor: Number(receipt.amountMinor ?? 0),
     currency: String(receipt.currency ?? CURRENCY),
-    issuedAt: toDate(receipt.issuedAt),
+    issuedAt: receipt.issuedAt.toDate(),
     method: String(payment.method ?? 'unknown'),
     period: String(payment.period ?? ''),
     reference: typeof payment.reference === 'string' ? payment.reference : null,
@@ -68,7 +74,10 @@ export async function renderReceipt(payload: Record<string, unknown>): Promise<v
     version: Number(receipt.version ?? 1) + 1,
     updatedAt: now,
   };
-  await receiptRef.update({
+  // One batch, so a retry after a partial failure can never leave the
+  // canonical render state and the tenant's portal disagreeing.
+  const batch = db.batch();
+  batch.update(receiptRef, {
     renderState: 'rendered',
     storagePath,
     tenantStoragePath,
@@ -77,13 +86,16 @@ export async function renderReceipt(payload: Record<string, unknown>): Promise<v
     updatedAt: now,
   });
   if (typeof receipt.tenantUserUid === 'string') {
-    await db
-      .collection(COLLECTIONS.tenantPortals)
-      .doc(receipt.tenantUserUid)
-      .collection(TENANT_PORTAL_SECTIONS.receipts)
-      .doc(receiptId)
-      .set(tenantReceiptProjection(next));
+    batch.set(
+      db
+        .collection(COLLECTIONS.tenantPortals)
+        .doc(receipt.tenantUserUid)
+        .collection(TENANT_PORTAL_SECTIONS.receipts)
+        .doc(receiptId),
+      tenantReceiptProjection(next),
+    );
   }
+  await batch.commit();
 }
 
 interface ReceiptView {
@@ -149,9 +161,4 @@ function row(doc: PDFKit.PDFDocument, label: string, value: string): void {
 function formatMoney(amountMinor: number, currency: string): string {
   const major = amountMinor / 100;
   return `${currency} ${major.toLocaleString('en-UG', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-}
-
-function toDate(value: unknown): Date {
-  if (value instanceof Timestamp) return value.toDate();
-  return new Date();
 }

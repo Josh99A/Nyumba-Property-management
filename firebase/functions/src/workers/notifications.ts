@@ -13,13 +13,15 @@ import { notifyUser } from '../shared/messaging';
 export async function notifyLandlordApplication(payload: Record<string, unknown>): Promise<void> {
   const db = getFirestore();
   const applicationId = String(payload.applicationId);
-  const landlordId = String(payload.landlordId);
   const snapshot = await db.collection(COLLECTIONS.applications).doc(applicationId).get();
   if (!snapshot.exists) return;
   const application = snapshot.data()!;
   if (application.isDeleted === true || application.status === 'withdrawn') return;
+  // The canonical record names the recipient; the job payload carries the same
+  // value but is never treated as the authority on who owns the application.
+  if (typeof application.landlordId !== 'string' || !application.landlordId) return;
 
-  await notifyUser(landlordId, {
+  await notifyUser(application.landlordId, {
     title: 'New application',
     body: `${String(application.displayName ?? 'A prospect')} applied to one of your listings.`,
     data: { route: '/listings', applicationId, listingId: String(application.listingId ?? '') },
@@ -43,7 +45,8 @@ export async function deliverContactRequest(payload: Record<string, unknown>): P
   const contact = snapshot.data()!;
   if (contact.deliveryState === 'delivered' || contact.deliveryState === 'undeliverable') return;
 
-  const landlordId = typeof payload.landlordId === 'string' ? payload.landlordId : null;
+  // The canonical record, not the job payload, says who owns the listing.
+  const landlordId = typeof contact.landlordId === 'string' ? contact.landlordId : null;
   const deliveryState = landlordId ? 'delivered' : 'undeliverable';
   const now = Timestamp.now();
   const next = {
@@ -53,23 +56,28 @@ export async function deliverContactRequest(payload: Record<string, unknown>): P
     version: Number(contact.version ?? 1) + 1,
     updatedAt: now,
   };
-  await ref.update({
+  // One batch, so a retry after a partial failure can never leave the
+  // canonical delivery state and the prospect's portal disagreeing.
+  const batch = db.batch();
+  batch.update(ref, {
     deliveryState,
     deliveredAt: landlordId ? now : null,
     version: next.version,
     updatedAt: now,
   });
-
   // `requesterUid` is what contact.submit writes and what keys the prospect's
   // portal; there is no `clientUid` field on a contact request.
   if (typeof contact.requesterUid === 'string') {
-    await db
-      .collection(COLLECTIONS.clientPortals)
-      .doc(contact.requesterUid)
-      .collection(CLIENT_PORTAL_SECTIONS.contactRequests)
-      .doc(contactRequestId)
-      .set(clientContactProjection(next));
+    batch.set(
+      db
+        .collection(COLLECTIONS.clientPortals)
+        .doc(contact.requesterUid)
+        .collection(CLIENT_PORTAL_SECTIONS.contactRequests)
+        .doc(contactRequestId),
+      clientContactProjection(next),
+    );
   }
+  await batch.commit();
   if (!landlordId) return;
 
   await notifyUser(landlordId, {

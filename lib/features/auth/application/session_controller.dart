@@ -87,6 +87,11 @@ final authCommandGatewayProvider = FutureProvider<FirebaseRemoteSyncGateway>(
 
 class SessionController extends Notifier<UserSession?> {
   StreamSubscription<User?>? _authSubscription;
+
+  /// Keeps push registration current across FCM token rotations for the
+  /// lifetime of one authenticated session; cancelled whenever that session
+  /// ends so a rotated token is never registered against a signed-out user.
+  StreamSubscription<String>? _tokenRotationSubscription;
   var _generation = 0;
   var _noticeSequence = 0;
 
@@ -100,10 +105,13 @@ class SessionController extends Notifier<UserSession?> {
     ref.onDispose(() {
       _generation++;
       unawaited(_authSubscription?.cancel());
+      _cancelTokenRotationWatch();
     });
     if (Firebase.apps.isEmpty) return null;
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
       final generation = ++_generation;
+      // Whatever session the rotation watcher was serving has ended.
+      _cancelTokenRotationWatch();
       if (user == null) {
         state = null;
         return;
@@ -337,6 +345,17 @@ class SessionController extends Notifier<UserSession?> {
         gateway: () => ref.read(authCommandGatewayProvider.future),
       ),
     );
+    // FCM can rotate the token mid-session; re-register each rotation for as
+    // long as this authenticated session lasts.
+    _cancelTokenRotationWatch();
+    _tokenRotationSubscription = watchTokenRotation(
+      gateway: () => ref.read(authCommandGatewayProvider.future),
+    );
+  }
+
+  void _cancelTokenRotationWatch() {
+    unawaited(_tokenRotationSubscription?.cancel());
+    _tokenRotationSubscription = null;
   }
 
   /// Returns the first name to greet, or null when nothing should be

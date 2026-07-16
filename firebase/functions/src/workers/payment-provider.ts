@@ -114,7 +114,11 @@ async function failPayment(
   });
 }
 
-/** Writes the canonical payment and mirrors it to the tenant's portal. */
+/**
+ * Writes the canonical payment and mirrors it to the tenant's portal in one
+ * batch, so a retry after a partial failure can never leave the two views of
+ * the payment disagreeing.
+ */
 async function update(
   paymentId: string,
   payment: FirebaseFirestore.DocumentData,
@@ -123,17 +127,21 @@ async function update(
   const db = getFirestore();
   const now = Timestamp.now();
   const next = { ...payment, ...changes, version: Number(payment.version ?? 1) + 1, updatedAt: now };
-  await db.collection(COLLECTIONS.payments).doc(paymentId).update({
+  const batch = db.batch();
+  batch.update(db.collection(COLLECTIONS.payments).doc(paymentId), {
     ...changes,
     version: next.version,
     updatedAt: now,
   });
   if (typeof payment.tenantUserUid === 'string') {
-    await db
-      .collection(COLLECTIONS.tenantPortals)
-      .doc(payment.tenantUserUid)
-      .collection(TENANT_PORTAL_SECTIONS.payments)
-      .doc(paymentId)
-      .set(tenantPaymentProjection(next));
+    batch.set(
+      db
+        .collection(COLLECTIONS.tenantPortals)
+        .doc(payment.tenantUserUid)
+        .collection(TENANT_PORTAL_SECTIONS.payments)
+        .doc(paymentId),
+      tenantPaymentProjection(next),
+    );
   }
+  await batch.commit();
 }

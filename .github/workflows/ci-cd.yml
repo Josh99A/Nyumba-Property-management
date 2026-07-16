@@ -141,8 +141,11 @@ jobs:
       #
       # Needs a service account with Firebase Admin, Cloud Functions Admin, and
       # Service Account User on nyumba-property-management.
+      # Invoked through the binary `npm ci` installed above, so the deploy runs
+      # the exact firebase-tools version pinned in functions/package-lock.json
+      # rather than whatever npx resolves at run time.
       - name: Deploy
-        run: npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage,functions --project nyumba-property-management --non-interactive
+        run: functions/node_modules/.bin/firebase deploy --only firestore:rules,firestore:indexes,storage,functions --project nyumba-property-management --non-interactive
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
 

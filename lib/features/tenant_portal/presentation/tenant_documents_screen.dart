@@ -44,8 +44,8 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
 
   _TenantDocument _applyOverrides(_TenantDocument document) {
     return document.copyWith(
-      favorite: _favoriteOverrides[document.reference],
-      offline: _offlineOverrides[document.reference],
+      favorite: _favoriteOverrides[document.overrideKey],
+      offline: _offlineOverrides[document.overrideKey],
     );
   }
 
@@ -101,6 +101,9 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
       _TenantDocument(
         title: 'Rent receipt — ${payment.period}',
         reference: reference,
+        // Unissued payments share the placeholder reference, so view
+        // preferences key on the payment itself.
+        keyOverride: payment.id,
         category: 'Receipts',
         date: DateFormat('d MMM y').format(payment.paidOn.toLocal()),
         size: '—',
@@ -118,16 +121,21 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
         recipient: payment.tenantName,
         propertyName: payment.propertyName,
         unitLabel: payment.unitLabel,
-        printable: PrintableDocumentData(
-          title: 'Receipt',
-          number: reference,
-          recipient: payment.tenantName,
-          property: payment.propertyName,
-          unit: payment.unitLabel,
-          amountMinor: payment.amountMinor,
-          date: payment.paidOn,
-          status: issued ? 'Received' : 'Awaiting confirmation',
-        ),
+        // No printable artifact until the server issues the receipt: printing
+        // an unconfirmed payment would hand a tenant an official-looking
+        // document asserting something the server has not agreed to.
+        printable: issued
+            ? PrintableDocumentData(
+                title: 'Receipt',
+                number: reference,
+                recipient: payment.tenantName,
+                property: payment.propertyName,
+                unit: payment.unitLabel,
+                amountMinor: payment.amountMinor,
+                date: payment.paidOn,
+                status: 'Received',
+              )
+            : null,
       ),
     );
   }
@@ -344,7 +352,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
 
   void _toggleFavorite(_TenantDocument document) {
     setState(() {
-      _favoriteOverrides[document.reference] = !document.favorite;
+      _favoriteOverrides[document.overrideKey] = !document.favorite;
     });
     showTenantMessage(
       context,
@@ -356,7 +364,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
 
   void _toggleOffline(_TenantDocument document) {
     setState(() {
-      _offlineOverrides[document.reference] = !document.offline;
+      _offlineOverrides[document.overrideKey] = !document.offline;
     });
     showTenantMessage(
       context,
@@ -932,7 +940,14 @@ class _TenantDocument {
     required this.propertyName,
     required this.unitLabel,
     this.printable,
+    this.keyOverride,
   });
+
+  /// Stable identity for per-user view preferences when the displayed
+  /// reference is not unique (unissued receipts share a placeholder).
+  final String? keyOverride;
+
+  String get overrideKey => keyOverride ?? reference;
 
   final String title;
   final String reference;
@@ -953,6 +968,7 @@ class _TenantDocument {
     return _TenantDocument(
       title: title,
       reference: reference,
+      keyOverride: keyOverride,
       category: category,
       date: date,
       size: size,

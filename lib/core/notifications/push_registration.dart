@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
@@ -56,9 +58,12 @@ Future<PushRegistration> registerForPush({
       return PushRegistration.permissionDenied;
     }
 
-    // On iOS the APNs token can lag the permission grant; without it getToken
-    // throws rather than waiting. Skipping is correct — the next launch has it.
-    if (defaultTargetPlatform == TargetPlatform.iOS && !kIsWeb) {
+    // On Apple platforms the APNs token can lag the permission grant; without
+    // it getToken throws rather than waiting. Skipping is correct — the next
+    // launch has it.
+    final isApple = defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS;
+    if (isApple && !kIsWeb) {
       final apnsToken = await instance.getAPNSToken();
       if (apnsToken == null) return PushRegistration.unavailable;
     }
@@ -86,4 +91,39 @@ Future<PushRegistration> registerForPush({
     );
     return PushRegistration.registrationFailed;
   }
+}
+
+/// Keeps a signed-in session registered across FCM token rotations.
+///
+/// FCM can rotate the token mid-session; without this, pushes silently stop
+/// reaching the device until the next launch re-registers. The caller owns the
+/// returned subscription and must cancel it when the authenticated session
+/// ends, so a rotated token is never registered against a signed-out user.
+StreamSubscription<String> watchTokenRotation({
+  required Future<FirebaseRemoteSyncGateway> Function() gateway,
+  FirebaseMessaging? messaging,
+}) {
+  final instance = messaging ?? FirebaseMessaging.instance;
+  return instance.onTokenRefresh.listen((token) async {
+    if (token.isEmpty) return;
+    try {
+      await (await gateway()).sendCommand(
+        type: 'profile.registerDevice',
+        payload: <String, Object?>{
+          'token': token,
+          'platform': currentClientPlatform,
+        },
+      );
+    } on Object catch (error, stackTrace) {
+      // Same contract as registerForPush: push is a courtesy channel, and a
+      // failed re-registration must never surface as an app error.
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'Nyumba push registration',
+        ),
+      );
+    }
+  });
 }

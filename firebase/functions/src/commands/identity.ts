@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import { COLLECTIONS } from '../shared/collections';
@@ -60,6 +61,12 @@ const MAX_DEVICE_TOKENS = 10;
  *
  * Idempotent on the token, which matters because the client re-registers on
  * every launch and FCM hands back the same token until it rotates.
+ *
+ * A token identifies a physical device, so it may belong to at most one
+ * account at a time: `deviceTokenOwners/{sha256(token)}` records the current
+ * owner, and registering here transactionally revokes the token from the
+ * previous account. Without that, a shared device would keep delivering user
+ * A's notifications after user B signs in on it.
  */
 export const profileRegisterDevice: CommandHandler<z.infer<typeof registerDeviceSchema>> = {
   payloadSchema: registerDeviceSchema,
@@ -67,8 +74,28 @@ export const profileRegisterDevice: CommandHandler<z.infer<typeof registerDevice
   expectedVersionMode: 'none',
   async apply({ tx, db, actor, cmd, now }) {
     const ref = db.collection(COLLECTIONS.users).doc(actor.uid);
-    const snapshot = await tx.get(ref);
+    const ownerRef = db.collection(COLLECTIONS.deviceTokenOwners)
+      .doc(createHash('sha256').update(cmd.payload.token).digest('hex'));
+    const [snapshot, ownerSnap] = await Promise.all([tx.get(ref), tx.get(ownerRef)]);
     const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, undefined);
+
+    // Reads must precede the first write, so the previous owner's document is
+    // loaded here even though its update is buffered below.
+    const previousOwnerUid = ownerSnap.data()?.uid;
+    let previousOwner: { ref: FirebaseFirestore.DocumentReference; kept: unknown[]; version: number } | null = null;
+    if (typeof previousOwnerUid === 'string' && previousOwnerUid !== actor.uid) {
+      const previousRef = db.collection(COLLECTIONS.users).doc(previousOwnerUid);
+      const previousSnap = await tx.get(previousRef);
+      const previousData = previousSnap.data();
+      if (previousSnap.exists && previousData && Array.isArray(previousData.deviceTokens)) {
+        const kept = (previousData.deviceTokens as { token?: unknown }[]).filter(
+          (entry) => !(typeof entry === 'object' && entry !== null && entry.token === cmd.payload.token),
+        );
+        if (kept.length !== previousData.deviceTokens.length) {
+          previousOwner = { ref: previousRef, kept, version: Number(previousData.version ?? 1) };
+        }
+      }
+    }
 
     const existing = Array.isArray(current.deviceTokens)
       ? (current.deviceTokens as { token?: unknown }[]).filter(
@@ -82,6 +109,13 @@ export const profileRegisterDevice: CommandHandler<z.infer<typeof registerDevice
     const next = [...others, { token: cmd.payload.token, platform: cmd.payload.platform, updatedAt: now }]
       .slice(-MAX_DEVICE_TOKENS);
 
+    if (previousOwner) {
+      tx.update(previousOwner.ref, {
+        deviceTokens: previousOwner.kept,
+        ...bumpVersion({ version: previousOwner.version }, now),
+      });
+    }
+    tx.set(ownerRef, { uid: actor.uid, platform: cmd.payload.platform, updatedAt: now });
     tx.update(ref, { deviceTokens: next, ...bumpVersion(current, now) });
     return {
       status: 'applied',
