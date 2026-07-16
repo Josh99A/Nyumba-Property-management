@@ -4,7 +4,7 @@ import { requirePlatformAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { loadEntitlements, planForTier } from '../shared/config';
 import { DomainError } from '../shared/errors';
-import { optionalShortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import { shortText, strictPayload, type CommandHandler } from '../shared/handlers';
 
 interface SubscriptionRecord {
   version: number;
@@ -50,7 +50,7 @@ export const subscriptionSelectPlan: CommandHandler<z.infer<typeof selectPlanSch
 };
 
 const confirmPaymentSchema = strictPayload({
-  reference: optionalShortText,
+  reference: shortText,
   tier: z.string().trim().min(1).max(40).optional(),
 });
 
@@ -60,10 +60,12 @@ const confirmPaymentSchema = strictPayload({
  * Platform staff only, through the same audited command path as
  * `landlord.approve`; the signed billing webhook will call this exact
  * transition once provider integration exists. A landlord can never confirm
- * their own payment. `tier` records what was actually paid for when it
- * differs from what the landlord selected, and is validated against the
- * server-owned entitlement config so an activation can never point at a plan
- * the backend would then refuse to serve.
+ * their own payment. A non-blank `reference` (the provider transaction ID, or
+ * the manual payment reference an operator holds) is required, so every
+ * activation carries an audit trail of what money justified it. `tier` records
+ * what was actually paid for when it differs from what the landlord selected,
+ * and is validated against the server-owned entitlement config so an
+ * activation can never point at a plan the backend would then refuse to serve.
  */
 export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPaymentSchema>> = {
   payloadSchema: confirmPaymentSchema,
@@ -85,7 +87,7 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
       tier,
       status: 'active',
       activatedAt: now,
-      paymentReference: cmd.payload.reference ?? null,
+      paymentReference: cmd.payload.reference,
       ...bumpVersion(subscription, now),
     });
     return {

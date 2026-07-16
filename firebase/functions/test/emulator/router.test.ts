@@ -42,7 +42,7 @@ async function seedLandlord(options: { approval?: string; subscription?: string;
   });
   if (subscription !== 'missing') {
     batch.set(db.doc(`subscriptions/${landlord.uid}`), {
-      id: landlord.uid, tier: 'Starter', status: subscription,
+      id: landlord.uid, tier: 'starter', status: subscription,
       version: 1, createdAt: now, updatedAt: now, isDeleted: false,
     });
   }
@@ -50,8 +50,8 @@ async function seedLandlord(options: { approval?: string; subscription?: string;
     batch.set(db.doc('backendConfig/entitlements'), {
       version: 1,
       plans: {
-        Starter: { unitLimit: options.limit ?? 2, activeListingLimit: 2, advertising: options.advertising ?? true },
-        Pro: { unitLimit: 50, activeListingLimit: 25, advertising: true },
+        starter: { unitLimit: options.limit ?? 2, activeListingLimit: 2, advertising: options.advertising ?? true },
+        pro: { unitLimit: 50, activeListingLimit: 25, advertising: true },
       },
     });
   }
@@ -398,7 +398,7 @@ describe('command router', () => {
     const unknownTier = await executeCommandCore(db, landlord, envelope('command_sub_02', 'subscription.selectPlan', landlord.uid, 2, { tier: 'Gold' }), now);
     expect(unknownTier).toMatchObject({ status: 'rejected', error: { code: 'ENTITLEMENT_MISSING' } });
 
-    const selfConfirm = await executeCommandCore(db, landlord, envelope('command_sub_03', 'subscription.confirmPayment', landlord.uid, 2, {}), now);
+    const selfConfirm = await executeCommandCore(db, landlord, envelope('command_sub_03', 'subscription.confirmPayment', landlord.uid, 2, { reference: 'MoMo TX 100' }), now);
     expect(selfConfirm).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
     expect((await db.doc(`subscriptions/${landlord.uid}`).get()).data()).toMatchObject({ status: 'pending_payment' });
   });
@@ -407,6 +407,11 @@ describe('command router', () => {
     await seedLandlord({ subscription: 'pending_payment' });
     const before = await executeCommandCore(db, landlord, envelope('command_sub_04', 'unit.create', 'unit_123456', 0, unitPayload()), now);
     expect(before).toMatchObject({ status: 'rejected', error: { code: 'SUBSCRIPTION_INACTIVE' } });
+
+    // Activation must carry a payment reference; a blank one is rejected so the
+    // audit trail always records what money justified opening the workspace.
+    const noReference = await executeCommandCore(db, admin, envelope('command_sub_04b', 'subscription.confirmPayment', landlord.uid, 1, {}), now);
+    expect(noReference).toMatchObject({ status: 'rejected', error: { code: 'VALIDATION_FAILED' } });
 
     const confirm = await executeCommandCore(db, admin, envelope('command_sub_05', 'subscription.confirmPayment', landlord.uid, 1, { reference: 'MoMo TX 998877' }), now);
     expect(confirm).toMatchObject({ status: 'applied' });

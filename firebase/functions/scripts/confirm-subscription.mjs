@@ -5,11 +5,12 @@
  * with a receipt and audit event, exactly as for an in-app platform admin.
  *
  * Usage:
- *   node scripts/confirm-subscription.mjs <email> [--tier <tier>] [--reference <text>] [--project <projectId>]
+ *   node scripts/confirm-subscription.mjs <email> --reference <text> [--tier <tier>] [--project <projectId>]
  *
- * `--tier` overrides the tier the landlord selected (validated against
- * backendConfig/entitlements); `--reference` records the manual payment
- * reference, e.g. a mobile-money transaction ID.
+ * `--reference` is required and records the payment that justifies activation
+ * (e.g. a mobile-money transaction ID); the command rejects a blank one so
+ * every activation is auditable. `--tier` overrides the tier the landlord
+ * selected (validated against backendConfig/entitlements).
  *
  * Run `npm run build` first (imports the compiled router from lib/).
  */
@@ -27,8 +28,10 @@ const flag = (name) => {
 };
 const projectId = flag('project') ?? process.env.GOOGLE_CLOUD_PROJECT ?? 'nyumba-property-management';
 
-if (!email) {
-  console.error('Usage: node scripts/confirm-subscription.mjs <email> [--tier <tier>] [--reference <text>]');
+const reference = flag('reference');
+if (!email || !reference || !reference.trim()) {
+  console.error('Usage: node scripts/confirm-subscription.mjs <email> --reference <text> [--tier <tier>]');
+  console.error('--reference is required: record the payment (e.g. a mobile-money transaction ID) that justifies activation.');
   process.exit(1);
 }
 
@@ -42,7 +45,6 @@ if (!subscription.exists) {
 }
 
 const tier = flag('tier');
-const reference = flag('reference');
 const operator = { uid: 'ops_script_admin', email: null, platformAdmin: true, superAdmin: false, emailVerified: true, signInProvider: null };
 const response = await executeCommandCore(db, operator, {
   commandId: `opscmd_${randomUUID().replaceAll('-', '')}`,
@@ -51,8 +53,8 @@ const response = await executeCommandCore(db, operator, {
   aggregateId: user.uid,
   expectedVersion: subscription.data().version,
   payload: {
+    reference: reference.trim(),
     ...(tier ? { tier } : {}),
-    ...(reference ? { reference } : {}),
   },
   client: { installationId: 'ops_script_00000000', appVersion: '0.0.0', platform: 'web' },
 });
