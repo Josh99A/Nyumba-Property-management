@@ -20,12 +20,12 @@ interface ReportTable {
 export async function generateReport(payload: Record<string, unknown>): Promise<void> {
   const db = getFirestore();
   const reportId = String(payload.reportId);
-  const landlordId = String(payload.landlordId);
   const ref = db.collection(COLLECTIONS.reportSnapshots).doc(reportId);
   const snapshot = await ref.get();
   if (!snapshot.exists) return;
   const report = snapshot.data()!;
   if (report.state === 'ready') return;
+  const landlordId = String(report.landlordId);
 
   const from = String(report.from);
   const to = String(report.to);
@@ -69,14 +69,29 @@ async function build(
   to: string,
 ): Promise<ReportTable> {
   const db = getFirestore();
-  const owned = (collection: string) =>
-    db.collection(collection).where('landlordId', '==', landlordId).limit(5_000);
-  const live = (docs: FirebaseFirestore.QueryDocumentSnapshot[]) =>
-    docs.map((doc) => doc.data()).filter((row) => row.isDeleted !== true);
+  const QUERY_LIMIT = 5_000;
+  const owned = async (collection: string): Promise<FirebaseFirestore.DocumentData[]> => {
+    const allDocs: FirebaseFirestore.DocumentData[] = [];
+    let query = db.collection(collection).where('landlordId', '==', landlordId).limit(QUERY_LIMIT);
+    let snapshot = await query.get();
+    while (!snapshot.empty) {
+      allDocs.push(...snapshot.docs.map((doc) => doc.data()));
+      if (snapshot.size < QUERY_LIMIT) break;
+      if (snapshot.size >= QUERY_LIMIT) {
+        throw new Error(`Report query limit exceeded: more than ${QUERY_LIMIT} records in ${collection}.`);
+      }
+      const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+      query = query.startAfter(lastDoc);
+      snapshot = await query.get();
+    }
+    return allDocs;
+  };
+  const live = (docs: FirebaseFirestore.DocumentData[]) =>
+    docs.filter((row) => row.isDeleted !== true);
 
   switch (reportType) {
     case 'rent_roll': {
-      const leases = live((await owned(COLLECTIONS.leases).get()).docs)
+      const leases = live(await owned(COLLECTIONS.leases))
         .filter((lease) => lease.status === 'active');
       return {
         title: 'Rent roll',
@@ -88,7 +103,7 @@ async function build(
       };
     }
     case 'arrears': {
-      const invoices = live((await owned(COLLECTIONS.invoices).get()).docs)
+      const invoices = live(await owned(COLLECTIONS.invoices))
         .filter((invoice) => Number(invoice.balanceMinor ?? 0) > 0);
       return {
         title: 'Arrears',
@@ -100,7 +115,7 @@ async function build(
       };
     }
     case 'occupancy': {
-      const units = live((await owned(COLLECTIONS.units).get()).docs);
+      const units = live(await owned(COLLECTIONS.units));
       return {
         title: 'Occupancy',
         headers: ['Unit', 'Property', 'Label', 'Status', 'Active lease'],
@@ -111,7 +126,7 @@ async function build(
       };
     }
     case 'payments': {
-      const payments = live((await owned(COLLECTIONS.payments).get()).docs)
+      const payments = live(await owned(COLLECTIONS.payments))
         .filter((payment) => withinRange(payment.confirmedAt, from, to));
       return {
         title: 'Payments',
@@ -123,7 +138,7 @@ async function build(
       };
     }
     case 'maintenance': {
-      const requests = live((await owned(COLLECTIONS.maintenanceRequests).get()).docs)
+      const requests = live(await owned(COLLECTIONS.maintenanceRequests))
         .filter((request) => withinRange(request.createdAt, from, to));
       return {
         title: 'Maintenance',

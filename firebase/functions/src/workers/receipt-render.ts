@@ -68,7 +68,8 @@ export async function renderReceipt(payload: Record<string, unknown>): Promise<v
     version: Number(receipt.version ?? 1) + 1,
     updatedAt: now,
   };
-  await receiptRef.update({
+  const batch = db.batch();
+  batch.update(receiptRef, {
     renderState: 'rendered',
     storagePath,
     tenantStoragePath,
@@ -77,13 +78,16 @@ export async function renderReceipt(payload: Record<string, unknown>): Promise<v
     updatedAt: now,
   });
   if (typeof receipt.tenantUserUid === 'string') {
-    await db
-      .collection(COLLECTIONS.tenantPortals)
-      .doc(receipt.tenantUserUid)
-      .collection(TENANT_PORTAL_SECTIONS.receipts)
-      .doc(receiptId)
-      .set(tenantReceiptProjection(next));
+    batch.set(
+      db
+        .collection(COLLECTIONS.tenantPortals)
+        .doc(receipt.tenantUserUid)
+        .collection(TENANT_PORTAL_SECTIONS.receipts)
+        .doc(receiptId),
+      tenantReceiptProjection(next),
+    );
   }
+  await batch.commit();
 }
 
 interface ReceiptView {
@@ -153,5 +157,5 @@ function formatMoney(amountMinor: number, currency: string): string {
 
 function toDate(value: unknown): Date {
   if (value instanceof Timestamp) return value.toDate();
-  return new Date();
+  throw new Error('Receipt issuedAt is missing or invalid; refusing to fabricate timestamp.');
 }
