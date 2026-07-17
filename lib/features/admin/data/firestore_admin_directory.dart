@@ -70,11 +70,36 @@ final class FirestoreAdminDirectory implements AdminDirectoryRepository {
     required Map<String, Map<String, Object?>> landlordAccounts,
     required Map<String, Map<String, Object?>> subscriptions,
   }) {
+    // Firebase Auth enforces one live account per email, but deleting an
+    // account leaves its profile document behind and a re-registration mints
+    // a new UID — so a tester who recreated their account appears once per
+    // life. Among documents sharing an email only the newest can still be
+    // live; the older ones are orphans by construction and are dropped.
+    final newestUidByEmail = <String, String>{};
+    final createdAtByUid = <String, DateTime>{};
+    for (final entry in users.entries) {
+      if (entry.value['isDeleted'] == true) continue;
+      final email = _text(entry.value['email'])?.toLowerCase();
+      if (email == null) continue;
+      final createdAt =
+          _date(entry.value['createdAt']) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      createdAtByUid[entry.key] = createdAt;
+      final current = newestUidByEmail[email];
+      if (current == null || createdAt.isAfter(createdAtByUid[current]!)) {
+        newestUidByEmail[email] = entry.key;
+      }
+    }
+
     final result = <PlatformAccount>[];
     for (final entry in users.entries) {
       final uid = entry.key;
       final data = entry.value;
       if (data['isDeleted'] == true) continue;
+      final normalizedEmail = _text(data['email'])?.toLowerCase();
+      if (normalizedEmail != null && newestUidByEmail[normalizedEmail] != uid) {
+        continue;
+      }
 
       final email = _text(data['email']) ?? '';
       final displayName =

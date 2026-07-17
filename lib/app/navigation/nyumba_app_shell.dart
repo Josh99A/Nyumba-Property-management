@@ -833,31 +833,36 @@ void _showMoreDestinations(
     context: context,
     showDragHandle: true,
     builder: (context) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
-              child: Text(
-                'More',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 10),
+            child: Text('More', style: Theme.of(context).textTheme.titleLarge),
+          ),
+          // Staff sessions route eight destinations through this sheet, more
+          // than a phone-height sheet can show at once, so the list scrolls
+          // within the sheet instead of overflowing past it.
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              children: [
+                for (final destination in destinations)
+                  ListTile(
+                    leading: Icon(destination.icon),
+                    title: Text(destination.label),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.go(destination.path);
+                    },
+                  ),
+              ],
             ),
-            for (final destination in destinations)
-              ListTile(
-                leading: Icon(destination.icon),
-                title: Text(destination.label),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go(destination.path);
-                },
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     ),
   );
