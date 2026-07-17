@@ -33,11 +33,17 @@ Not yet real, and not to be presented as real:
   follow the sequence in `docs/architecture/README.md` before flipping
   `ENFORCE_APP_CHECK`. iOS App Attest is deferred: it needs a paid Apple
   Developer team, without which no iOS build can ship anyway.
-- **Tenant, prospect, and admin remote pulls.** Landlords pull `property`,
-  `unit`, `listing` (canonical) plus `tenancy` and `payment` (via
-  `landlordPortals` read models). Every other scope pulls nothing — see "Known
-  model divergence" below.
-- **Admin user management and plan drafts.** Local-only working state.
+- **Tenant and prospect remote pulls.** Landlords pull `property`, `unit`,
+  `listing` (canonical) plus `tenancy` and `payment` (via `landlordPortals`
+  read models). Tenant and prospect scopes pull nothing — see "Known model
+  divergence" below.
+- **Admin plan drafts.** Local-only working state. The admin *account
+  directory* is real: live admin sessions stream `users`/`landlordAccounts`/
+  `subscriptions`/`auditLogs` directly (admin-read-only by rule, no local
+  mirror — see `FirestoreAdminDirectory`), and act through the audited
+  `landlord.approve|suspend|reinstate` and `subscription.confirmPayment`
+  commands. There is still no command that creates a user or suspends a
+  non-landlord account, and the app does not pretend otherwise.
 
 Demo sessions seed local fixtures and use a stub gateway. Never present demo
 behavior, or an unsynced local write, as server-confirmed.

@@ -168,12 +168,13 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
       return matchesQuery && matchesCategory && matchesFavorite;
     }).toList();
     final offlineCount = documents.where((document) => document.offline).length;
-    final pinned = documents.isEmpty
-        ? null
-        : documents.firstWhere(
-            (document) => document.category == 'Lease',
-            orElse: () => documents.first,
-          );
+    // Only a real lease document may occupy the pinned lease hero. Falling
+    // back to an arbitrary first document rendered, say, a clearance-letter
+    // request under an "Open lease" button.
+    final pinnableLeases = documents.where(
+      (document) => document.category == 'Lease',
+    );
+    final pinned = pinnableLeases.isEmpty ? null : pinnableLeases.first;
     return TenantPage(
       title: 'Documents',
       description: 'View, print, and keep important tenancy records together.',
@@ -637,21 +638,21 @@ class _PinnedLeaseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Current tenancy agreement',
+                      document.title,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: Colors.white.withValues(alpha: .75),
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Acacia Heights • Apartment A-12',
+                      '${document.propertyName} • ${document.unitLabel}',
                       style: Theme.of(
                         context,
                       ).textTheme.titleLarge?.copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '1 Jan – 31 Dec 2026 • Signed by both parties',
+                      '${document.date} • ${document.status}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.white.withValues(alpha: .72),
                       ),

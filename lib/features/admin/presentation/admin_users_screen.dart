@@ -2,20 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/offline/aggregate_sync_status.dart';
-import '../../../core/offline/offline_entity.dart';
-import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
-import '../../../core/presentation/sync_state_badge.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
+import '../application/admin_directory_providers.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_action.dart';
 import '../domain/managed_user.dart';
+import '../domain/platform_account.dart';
 import 'widgets/admin_components.dart';
 
 class AdminUsersScreen extends ConsumerStatefulWidget {
@@ -32,65 +29,78 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final source = ref.watch(adminDirectorySourceProvider);
     final session = ref.watch(sessionControllerProvider);
-    final usersValue = ref.watch(managedUsersProvider);
-    final actions =
-        ref.watch(adminActionsProvider).value ?? const <AdminActionRecord>[];
-    final outbox =
-        ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
-    final accounts = usersValue.value ?? const <ManagedUser>[];
+    final accountsValue = ref.watch(platformAccountsProvider);
+    final accounts = accountsValue.value ?? const <PlatformAccount>[];
 
     final query = _query.trim().toLowerCase();
     final filtered = accounts.where((account) {
       final matchesQuery =
           query.isEmpty ||
-          account.name.toLowerCase().contains(query) ||
+          account.displayName.toLowerCase().contains(query) ||
           account.email.toLowerCase().contains(query) ||
-          account.location.toLowerCase().contains(query);
-      final matchesRole = _role == 'All roles' || account.role == _role;
+          (account.businessName?.toLowerCase().contains(query) ?? false) ||
+          (account.location?.toLowerCase().contains(query) ?? false);
+      final matchesRole = _role == 'All roles' || account.roleLabel == _role;
       final matchesStatus =
           _status == 'All statuses' || account.status.label == _status;
       return matchesQuery && matchesRole && matchesStatus;
     }).toList();
+
     final activeCount = accounts
-        .where((account) => account.status == ManagedUserStatus.active)
+        .where((account) => account.status == PlatformAccountStatus.active)
+        .length;
+    final pendingCount = accounts
+        .where(
+          (account) => account.status == PlatformAccountStatus.pendingApproval,
+        )
+        .length;
+    final invitedCount = accounts
+        .where((account) => account.status == PlatformAccountStatus.invited)
         .length;
     final suspendedCount = accounts
-        .where((account) => account.status == ManagedUserStatus.suspended)
+        .where((account) => account.status == PlatformAccountStatus.suspended)
         .length;
 
-    AggregateSyncStatus statusOf(ManagedUser account) =>
-        resolveAggregateSyncStatus(
-          entityType: OfflineEntityType.userProfile,
-          entityId: account.id,
-          outbox: outbox,
-          syncMetadata: account.syncMetadata,
-        );
-    bool canManage(ManagedUser account) =>
+    bool canManage(PlatformAccount account) =>
         session != null &&
-        account.id != session.userId &&
-        AuthorizationPolicy.canManageAccountRole(session.role, account.role);
+        account.uid != session.userId &&
+        AuthorizationPolicy.canManageAccountRole(
+          session.role,
+          account.roleLabel,
+        );
 
     return AdminPage(
       title: 'Users & access',
-      description: 'Review accounts, roles, verification, and platform access.',
+      description: source == AdminDirectorySource.live
+          ? 'Live server directory of every account, with audited actions.'
+          : 'Review accounts, roles, verification, and platform access.',
       secondaryAction: OutlinedButton.icon(
         onPressed: () => _exportUsers(filtered),
         icon: const Icon(Icons.download_outlined),
         label: const Text('Export'),
       ),
-      primaryAction: FilledButton.icon(
-        onPressed: _inviteUser,
-        icon: const Icon(Icons.person_add_alt_1_rounded),
-        label: const Text('Invite user'),
-      ),
+      primaryAction: source == AdminDirectorySource.demo
+          ? FilledButton.icon(
+              onPressed: _inviteDemoUser,
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: const Text('Invite user'),
+            )
+          : OutlinedButton.icon(
+              onPressed: _explainProvisioning,
+              icon: const Icon(Icons.info_outline_rounded),
+              label: const Text('How accounts are created'),
+            ),
       children: [
         AdminMetricGrid(
           children: [
             AdminMetricCard(
               label: 'All accounts',
               value: '${accounts.length}',
-              caption: 'In this presentation workspace',
+              caption: source == AdminDirectorySource.live
+                  ? 'Live from the server directory'
+                  : 'In this local demo workspace',
               icon: Icons.groups_2_outlined,
               tone: context.nyumba.midnightNavy,
             ),
@@ -99,18 +109,26 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               value: '$activeCount',
               caption: accounts.isEmpty
                   ? 'No accounts yet'
-                  : '${(activeCount / accounts.length * 100).round()}% of users',
+                  : '${(activeCount / accounts.length * 100).round()}% of accounts',
               icon: Icons.verified_user_outlined,
               tone: context.nyumba.sageDark,
             ),
-            AdminMetricCard(
-              label: 'Invitations pending',
-              value:
-                  '${accounts.where((item) => item.status == ManagedUserStatus.invited).length}',
-              caption: 'Resend from the account menu',
-              icon: Icons.mark_email_unread_outlined,
-              tone: context.nyumba.terracottaDark,
-            ),
+            if (source == AdminDirectorySource.demo)
+              AdminMetricCard(
+                label: 'Invitations pending',
+                value: '$invitedCount',
+                caption: 'Resend from the account menu',
+                icon: Icons.mark_email_unread_outlined,
+                tone: context.nyumba.terracottaDark,
+              )
+            else
+              AdminMetricCard(
+                label: 'Pending approval',
+                value: '$pendingCount',
+                caption: 'Landlord applications awaiting review',
+                icon: Icons.pending_actions_outlined,
+                tone: context.nyumba.terracottaDark,
+              ),
             AdminMetricCard(
               label: 'Suspended',
               value: '$suspendedCount',
@@ -132,7 +150,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                       : 320,
                   child: TextField(
                     decoration: const InputDecoration(
-                      hintText: 'Search name, email, or district',
+                      hintText: 'Search name, email, or business',
                       prefixIcon: Icon(Icons.search_rounded),
                     ),
                     onChanged: (value) => setState(() => _query = value),
@@ -144,14 +162,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                       : 180,
                   child: _FilterDropdown(
                     value: _role,
-                    values: const [
-                      'All roles',
-                      'Super Admin',
-                      'Admin',
-                      'Landlord',
-                      'Tenant',
-                      'Client',
-                    ],
+                    values: const ['All roles', 'Landlord', 'Tenant', 'Client'],
                     icon: Icons.badge_outlined,
                     onChanged: (value) => setState(() => _role = value),
                   ),
@@ -159,14 +170,17 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 SizedBox(
                   width: constraints.maxWidth < 640
                       ? constraints.maxWidth
-                      : 180,
+                      : 200,
                   child: _FilterDropdown(
                     value: _status,
-                    values: const [
+                    values: [
                       'All statuses',
-                      'Active',
-                      'Invited',
-                      'Suspended',
+                      PlatformAccountStatus.active.label,
+                      if (source == AdminDirectorySource.demo)
+                        PlatformAccountStatus.invited.label
+                      else
+                        PlatformAccountStatus.pendingApproval.label,
+                      PlatformAccountStatus.suspended.label,
                     ],
                     icon: Icons.tune_rounded,
                     onChanged: (value) => setState(() => _status = value),
@@ -186,16 +200,30 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        if (usersValue.isLoading && accounts.isEmpty)
+        if (source == AdminDirectorySource.unavailable)
+          const NyumbaSurface(
+            child: AdminEmptyState(
+              title: 'Account directory is unavailable',
+              message:
+                  'The directory reads live from the server and needs a '
+                  'configured Firebase project and an administrator session.',
+              icon: Icons.cloud_off_outlined,
+            ),
+          )
+        else if (accountsValue.isLoading && accounts.isEmpty)
           const Padding(
             padding: EdgeInsets.all(40),
             child: Center(child: CircularProgressIndicator()),
           )
-        else if (usersValue.hasError && accounts.isEmpty)
+        else if (accountsValue.hasError && accounts.isEmpty)
           NyumbaSurface(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('Could not load accounts: ${usersValue.error}'),
+            child: AdminEmptyState(
+              title: 'Could not load the account directory',
+              message:
+                  'The live directory could not be read: '
+                  '${accountsValue.error}. There is deliberately no offline '
+                  'copy of other people’s accounts on this device.',
+              icon: Icons.error_outline_rounded,
             ),
           )
         else
@@ -214,10 +242,16 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                       ),
-                      const StatusBadge(
-                        label: 'Role-based access',
-                        tone: BadgeTone.info,
-                        icon: Icons.lock_outline_rounded,
+                      StatusBadge(
+                        label: source == AdminDirectorySource.live
+                            ? 'Live server data'
+                            : 'Local demo data',
+                        tone: source == AdminDirectorySource.live
+                            ? BadgeTone.success
+                            : BadgeTone.warning,
+                        icon: source == AdminDirectorySource.live
+                            ? Icons.cloud_done_outlined
+                            : Icons.science_outlined,
                       ),
                     ],
                   ),
@@ -225,12 +259,19 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 const Divider(),
                 if (filtered.isEmpty)
                   AdminEmptyState(
-                    title: 'No users match these filters',
-                    message: 'Try another name, role, or account status.',
-                    action: OutlinedButton(
-                      onPressed: _clearFilters,
-                      child: const Text('Clear filters'),
-                    ),
+                    title: accounts.isEmpty
+                        ? 'No accounts yet'
+                        : 'No users match these filters',
+                    message: accounts.isEmpty
+                        ? 'Accounts appear here as soon as people sign in to '
+                              'Nyumba.'
+                        : 'Try another name, role, or account status.',
+                    action: accounts.isEmpty
+                        ? null
+                        : OutlinedButton(
+                            onPressed: _clearFilters,
+                            child: const Text('Clear filters'),
+                          ),
                   )
                 else
                   LayoutBuilder(
@@ -245,7 +286,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                             ) ...[
                               _UserCard(
                                 account: filtered[index],
-                                syncStatus: statusOf(filtered[index]),
+                                source: source,
                                 canManage: canManage(filtered[index]),
                                 onAction: (action) =>
                                     _handleAction(action, filtered[index]),
@@ -267,35 +308,37 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                             headingRowHeight: 48,
                             dataRowMinHeight: 66,
                             dataRowMaxHeight: 74,
-                            columns: const [
-                              DataColumn(label: Text('User')),
-                              DataColumn(label: Text('Role')),
-                              DataColumn(label: Text('Location')),
-                              DataColumn(label: Text('Status')),
-                              DataColumn(label: Text('Sync')),
-                              DataColumn(label: Text('Last active')),
-                              DataColumn(label: Text('')),
+                            columns: [
+                              const DataColumn(label: Text('User')),
+                              const DataColumn(label: Text('Role')),
+                              const DataColumn(label: Text('Status')),
+                              if (source == AdminDirectorySource.live)
+                                const DataColumn(label: Text('Subscription'))
+                              else
+                                const DataColumn(label: Text('Location')),
+                              const DataColumn(label: Text('Joined')),
+                              const DataColumn(label: Text('')),
                             ],
                             rows: [
                               for (final account in filtered)
                                 DataRow(
                                   cells: [
                                     DataCell(_UserIdentity(account: account)),
-                                    DataCell(Text(account.role)),
-                                    DataCell(Text(account.location)),
+                                    DataCell(Text(account.roleLabel)),
                                     DataCell(
                                       _AccountStatusBadge(account.status),
                                     ),
-                                    DataCell(
-                                      SyncStateBadge(
-                                        status: statusOf(account),
-                                        compact: false,
-                                      ),
-                                    ),
-                                    DataCell(Text(account.lastActiveLabel)),
+                                    if (source == AdminDirectorySource.live)
+                                      DataCell(
+                                        _SubscriptionCell(account: account),
+                                      )
+                                    else
+                                      DataCell(Text(account.location ?? '—')),
+                                    DataCell(Text(account.joinedLabel)),
                                     DataCell(
                                       _AccountMenu(
                                         account: account,
+                                        source: source,
                                         canManage: canManage(account),
                                         onAction: (action) =>
                                             _handleAction(action, account),
@@ -315,7 +358,11 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     vertical: 12,
                   ),
                   child: Text(
-                    'Showing locally available account records • changes sync automatically',
+                    source == AdminDirectorySource.live
+                        ? 'Streaming from the server • admin actions are '
+                              'audited server-side and need a connection'
+                        : 'Local demo records • nothing on this page reaches '
+                              'a server',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -323,23 +370,32 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
             ),
           ),
         const SizedBox(height: 20),
-        _AdminAuditPanel(actions: actions, outbox: outbox),
+        if (source == AdminDirectorySource.live)
+          _ServerAuditPanel(events: ref.watch(adminAuditEventsProvider))
+        else
+          _LocalAuditPanel(
+            actions:
+                ref.watch(adminActionsProvider).value ??
+                const <AdminActionRecord>[],
+          ),
       ],
     );
   }
 
-  Future<void> _exportUsers(List<ManagedUser> accounts) async {
+  Future<void> _exportUsers(List<PlatformAccount> accounts) async {
     final rows = <String>[
-      'id,name,email,role,location,status,last_active,joined',
+      'id,name,email,role,status,subscription_tier,subscription_status,joined',
       for (final account in accounts)
         [
-          account.reference,
-          account.name,
+          account.uid,
+          account.displayName,
           account.email,
-          account.role,
-          account.location,
+          account.roleLabel,
           account.status.label,
-          account.lastActiveLabel,
+          account.subscriptionTier ?? '',
+          account.subscriptionStatus == PlatformSubscriptionStatus.none
+              ? ''
+              : account.subscriptionStatus.label,
           account.joinedLabel,
         ].map(csvCell).join(','),
     ];
@@ -362,7 +418,156 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     });
   }
 
-  Future<void> _inviteUser() async {
+  void _explainProvisioning() {
+    showNyumbaInfoDialog(
+      context,
+      title: 'How accounts are created',
+      message:
+          'People create their own accounts by signing in to Nyumba: '
+          'landlords self-register and then apply for approval, tenants are '
+          'invited by their landlord from the Tenants screen, and prospects '
+          'sign in while browsing. Administrator privileges are granted '
+          'outside the app with the audited ops script '
+          '(firebase/functions/scripts/grant-admin.mjs), so no one can mint '
+          'an admin from a stolen session.',
+      icon: Icons.info_outline_rounded,
+    );
+  }
+
+  void _handleAction(String action, PlatformAccount account) {
+    switch (action) {
+      case 'view':
+        _showAccount(account);
+      case 'approve':
+        _runLandlordAction(
+          account,
+          title: 'Approve this landlord?',
+          body:
+              '${account.displayName} will be able to open their workspace '
+              'once their subscription is active.',
+          confirmLabel: 'Approve landlord',
+          reasonCodes: approveReasonCodes,
+          run: (commands, reason) =>
+              commands.approveLandlord(account: account, reasonCode: reason),
+          successMessage:
+              'Landlord approval for ${account.displayName} applied.',
+        );
+      case 'suspend':
+        _runLandlordAction(
+          account,
+          title: 'Suspend this landlord?',
+          body:
+              '${account.displayName} will lose access and their public '
+              'listings will be taken down. Their records are retained.',
+          confirmLabel: 'Suspend landlord',
+          reasonCodes: suspendReasonCodes,
+          run: (commands, reason) =>
+              commands.suspendLandlord(account: account, reasonCode: reason),
+          successMessage: 'Suspension of ${account.displayName} applied.',
+        );
+      case 'reinstate':
+        _runLandlordAction(
+          account,
+          title: 'Restore this landlord?',
+          body: '${account.displayName} will be able to sign in again.',
+          confirmLabel: 'Restore access',
+          reasonCodes: reinstateReasonCodes,
+          run: (commands, reason) =>
+              commands.reinstateLandlord(account: account, reasonCode: reason),
+          successMessage: 'Access restored for ${account.displayName}.',
+        );
+      case 'demo-status':
+        _changeDemoStatus(account);
+      case 'demo-resend':
+        _resendDemoInvitation(account);
+    }
+  }
+
+  /// Runs one audited landlord transition: confirm, pick the reason code the
+  /// server will record, then send the command and report the real outcome.
+  Future<void> _runLandlordAction(
+    PlatformAccount account, {
+    required String title,
+    required String body,
+    required String confirmLabel,
+    required List<String> reasonCodes,
+    required Future<void> Function(AdminAccountCommands, String reason) run,
+    required String successMessage,
+  }) async {
+    var reason = reasonCodes.first;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(title),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(body),
+                const SizedBox(height: 16),
+                Text(
+                  'Reason recorded in the audit log',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                const SizedBox(height: 4),
+                RadioGroup<String>(
+                  groupValue: reason,
+                  onChanged: (value) =>
+                      setDialogState(() => reason = value ?? reason),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final code in reasonCodes)
+                        RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text(_reasonLabel(code)),
+                          value: code,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(confirmLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await run(ref.read(adminAccountCommandsProvider), reason);
+      if (mounted) showAdminMessage(context, successMessage);
+    } on Object catch (error) {
+      if (mounted) {
+        showAdminMessage(context, 'The server rejected the action: $error');
+      }
+    }
+  }
+
+  static String _reasonLabel(String code) => switch (code) {
+    'IDENTITY_VERIFIED' => 'Identity verified',
+    'COMPLIANCE_APPROVED' => 'Compliance approved',
+    'POLICY_VIOLATION' => 'Policy violation',
+    'FRAUD_RISK' => 'Fraud risk',
+    'APPEAL_APPROVED' => 'Appeal approved',
+    'ADMIN_CORRECTION' => 'Administrative correction',
+    _ => code,
+  };
+
+  Future<void> _inviteDemoUser() async {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
     var role = 'Landlord';
@@ -414,15 +619,15 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
-                      Icons.info_outline_rounded,
+                      Icons.science_outlined,
                       size: 18,
-                      color: context.nyumba.midnightNavy,
+                      color: context.nyumba.terracottaDark,
                     ),
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
-                        'The invitation can be queued offline and will send '
-                        'when connectivity returns.',
+                        'Demo only: this entry stays on this device and no '
+                        'invitation email is sent.',
                       ),
                     ),
                   ],
@@ -449,7 +654,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 Navigator.pop(dialogContext, true);
               },
               icon: const Icon(Icons.send_rounded),
-              label: const Text('Send invite'),
+              label: const Text('Add to demo directory'),
             ),
           ],
         ),
@@ -465,11 +670,14 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           ),
         );
         if (mounted) {
-          showAdminMessage(context, 'Invitation queued for ${user.email}.');
+          showAdminMessage(
+            context,
+            'Demo directory entry added for ${user.email}.',
+          );
         }
       } on Object catch (error) {
         if (mounted) {
-          showAdminMessage(context, 'Could not queue the invitation: $error');
+          showAdminMessage(context, 'Could not add the entry: $error');
         }
       }
     }
@@ -477,47 +685,37 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     emailController.dispose();
   }
 
-  void _handleAction(String action, ManagedUser account) {
-    switch (action) {
-      case 'view':
-        _showAccount(account);
-      case 'status':
-        _changeStatus(account);
-      case 'resend':
-        _resendInvitation(account);
-    }
-  }
-
-  Future<void> _resendInvitation(ManagedUser account) async {
+  Future<void> _resendDemoInvitation(PlatformAccount account) async {
     try {
       await ref.read(changeUserStatusProvider)(
-        userId: account.id,
+        userId: account.uid,
         status: ManagedUserStatus.invited,
       );
       if (mounted) {
         showAdminMessage(
           context,
-          'Invitation for ${account.email} queued to resend.',
+          'Demo invitation for ${account.email} refreshed locally.',
         );
       }
     } on Object catch (error) {
       if (mounted) {
-        showAdminMessage(context, 'Could not resend the invitation: $error');
+        showAdminMessage(context, 'Could not update the entry: $error');
       }
     }
   }
 
-  Future<void> _changeStatus(ManagedUser account) async {
-    final isSuspended = account.status == ManagedUserStatus.suspended;
+  Future<void> _changeDemoStatus(PlatformAccount account) async {
+    final isSuspended = account.status == PlatformAccountStatus.suspended;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(isSuspended ? 'Restore access?' : 'Suspend this user?'),
         content: Text(
           isSuspended
-              ? '${account.name} will be able to sign in again.'
-              : '${account.name} will be signed out and blocked from Nyumba. '
-                    'Their records will be retained.',
+              ? '${account.displayName} will be marked active in this demo '
+                    'workspace.'
+              : '${account.displayName} will be marked suspended in this demo '
+                    'workspace.',
         ),
         actions: [
           TextButton(
@@ -534,7 +732,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     if (confirmed != true || !mounted) return;
     try {
       await ref.read(changeUserStatusProvider)(
-        userId: account.id,
+        userId: account.uid,
         status: isSuspended
             ? ManagedUserStatus.active
             : ManagedUserStatus.suspended,
@@ -543,18 +741,18 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         showAdminMessage(
           context,
           isSuspended
-              ? 'Access restore for ${account.name} queued to sync.'
-              : 'Suspension of ${account.name} queued to sync.',
+              ? '${account.displayName} marked active locally.'
+              : '${account.displayName} marked suspended locally.',
         );
       }
     } on Object catch (error) {
       if (mounted) {
-        showAdminMessage(context, 'Could not update the account: $error');
+        showAdminMessage(context, 'Could not update the entry: $error');
       }
     }
   }
 
-  Future<void> _showAccount(ManagedUser account) {
+  Future<void> _showAccount(PlatformAccount account) {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -567,18 +765,18 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
             children: [
               Row(
                 children: [
-                  AdminAvatar(name: account.name, radius: 27),
+                  AdminAvatar(name: account.displayName, radius: 27),
                   const SizedBox(width: 13),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          account.name,
+                          account.displayName,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         Text(
-                          account.email,
+                          account.email.isEmpty ? '—' : account.email,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
@@ -588,14 +786,27 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 ],
               ),
               const SizedBox(height: 22),
-              _AccountFact(label: 'User ID', value: account.reference),
-              _AccountFact(label: 'Role', value: account.role),
-              _AccountFact(label: 'Location', value: account.location),
+              _AccountFact(label: 'User ID', value: account.uid),
+              _AccountFact(label: 'Role', value: account.roleLabel),
+              if (account.businessName != null)
+                _AccountFact(label: 'Business', value: account.businessName!),
+              if (account.location != null)
+                _AccountFact(label: 'Location', value: account.location!),
+              if (account.subscriptionStatus != PlatformSubscriptionStatus.none)
+                _AccountFact(
+                  label: 'Subscription',
+                  value:
+                      '${account.subscriptionTier ?? 'No tier'} · '
+                      '${account.subscriptionStatus.label}',
+                ),
               _AccountFact(label: 'Joined', value: account.joinedLabel),
-              _AccountFact(
-                label: 'Last active',
-                value: account.lastActiveLabel,
-              ),
+              if (account.lastActiveLabel != null)
+                _AccountFact(
+                  label: 'Last active',
+                  value: account.lastActiveLabel!,
+                ),
+              if (account.isLocalOnly)
+                _AccountFact(label: 'Record', value: 'Local demo entry'),
             ],
           ),
         ),
@@ -610,23 +821,115 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   }
 }
 
-/// Local view of the append-only admin audit trail, including whether each
-/// record has reached the server yet.
-class _AdminAuditPanel extends StatelessWidget {
-  const _AdminAuditPanel({required this.actions, required this.outbox});
+/// The server-owned audit trail — the authoritative history of admin actions,
+/// written by the backend inside each command's transaction.
+class _ServerAuditPanel extends StatelessWidget {
+  const _ServerAuditPanel({required this.events});
 
-  final List<AdminActionRecord> actions;
-  final List<OutboxEntry> outbox;
+  final AsyncValue<List<AdminAuditEvent>> events;
 
   @override
   Widget build(BuildContext context) {
     return AdminPanel(
-      title: 'Recent admin activity',
-      subtitle: 'Append-only audit trail of account operations',
+      title: 'Recent platform activity',
+      subtitle: 'Server-owned audit log — append-only, admin-read-only',
+      child: switch (events) {
+        AsyncValue(hasValue: true, :final value) when value!.isEmpty =>
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text('No audited commands recorded yet.'),
+          ),
+        AsyncValue(hasValue: true, :final value) => Column(
+          children: [
+            for (var index = 0; index < value!.length && index < 8; index++)
+              _AuditEventRow(
+                event: value[index],
+                showDivider: index < value.length - 1 && index < 7,
+              ),
+          ],
+        ),
+        AsyncValue(:final error?) => Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text('Could not read the audit log: $error'),
+        ),
+        _ => const Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      },
+    );
+  }
+}
+
+class _AuditEventRow extends StatelessWidget {
+  const _AuditEventRow({required this.event, required this.showDivider});
+
+  final AdminAuditEvent event;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) {
+    final rejected = event.outcome == 'rejected';
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(
+              rejected ? Icons.block_outlined : Icons.verified_outlined,
+              size: 20,
+              color: rejected ? context.nyumba.danger : context.nyumba.sageDark,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.reasonCode == null
+                        ? event.action
+                        : '${event.action} · ${event.reasonCode}',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  Text(
+                    'by ${event.actorIsAdmin ? 'admin ' : ''}'
+                    '${_shortUid(event.actorUid)}'
+                    '${event.aggregateId == null ? '' : ' · on ${_shortUid(event.aggregateId!)}'}'
+                    ' · ${DateFormat('d MMM, HH:mm').format(event.at.toLocal())}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            StatusBadge(
+              label: event.outcome,
+              tone: rejected ? BadgeTone.danger : BadgeTone.success,
+            ),
+          ],
+        ),
+        if (showDivider) const Divider(height: 24),
+      ],
+    );
+  }
+
+  static String _shortUid(String uid) =>
+      uid.length <= 10 ? uid : '${uid.substring(0, 8)}…';
+}
+
+/// Demo-only history of local directory edits.
+class _LocalAuditPanel extends StatelessWidget {
+  const _LocalAuditPanel({required this.actions});
+
+  final List<AdminActionRecord> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminPanel(
+      title: 'Recent demo activity',
+      subtitle: 'Local history of edits to this demo directory',
       child: actions.isEmpty
           ? const Padding(
               padding: EdgeInsets.all(12),
-              child: Text('No administrative actions recorded yet.'),
+              child: Text('No local directory edits recorded yet.'),
             )
           : Column(
               children: [
@@ -656,13 +959,9 @@ class _AdminAuditPanel extends StatelessWidget {
                           ],
                         ),
                       ),
-                      SyncStateBadge(
-                        status: resolveAggregateSyncStatus(
-                          entityType: OfflineEntityType.adminAction,
-                          entityId: actions[index].id,
-                          outbox: outbox,
-                          syncMetadata: actions[index].syncMetadata,
-                        ),
+                      const StatusBadge(
+                        label: 'Local only',
+                        tone: BadgeTone.neutral,
                       ),
                     ],
                   ),
@@ -694,7 +993,7 @@ class _FilterDropdown extends StatelessWidget {
       decoration: InputDecoration(prefixIcon: Icon(icon), isDense: true),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: value,
+          value: values.contains(value) ? value : values.first,
           isDense: true,
           isExpanded: true,
           items: [
@@ -713,22 +1012,55 @@ class _FilterDropdown extends StatelessWidget {
 class _UserIdentity extends StatelessWidget {
   const _UserIdentity({required this.account});
 
-  final ManagedUser account;
+  final PlatformAccount account;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AdminAvatar(name: account.name),
+        AdminAvatar(name: account.displayName),
         const SizedBox(width: 11),
         Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(account.name, style: Theme.of(context).textTheme.labelLarge),
-            Text(account.email, style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              account.displayName,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            Text(
+              account.email.isEmpty ? '—' : account.email,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SubscriptionCell extends StatelessWidget {
+  const _SubscriptionCell({required this.account});
+
+  final PlatformAccount account;
+
+  @override
+  Widget build(BuildContext context) {
+    if (account.subscriptionStatus == PlatformSubscriptionStatus.none) {
+      return const Text('—');
+    }
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          account.subscriptionTier ?? 'No tier',
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        Text(
+          account.subscriptionStatus.label,
+          style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );
@@ -738,13 +1070,13 @@ class _UserIdentity extends StatelessWidget {
 class _UserCard extends StatelessWidget {
   const _UserCard({
     required this.account,
-    required this.syncStatus,
+    required this.source,
     required this.canManage,
     required this.onAction,
   });
 
-  final ManagedUser account;
-  final AggregateSyncStatus syncStatus;
+  final PlatformAccount account;
+  final AdminDirectorySource source;
   final bool canManage;
   final ValueChanged<String> onAction;
 
@@ -755,18 +1087,18 @@ class _UserCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AdminAvatar(name: account.name, radius: 20),
+          AdminAvatar(name: account.displayName, radius: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  account.name,
+                  account.displayName,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 Text(
-                  account.email,
+                  account.email.isEmpty ? '—' : account.email,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 8),
@@ -775,13 +1107,25 @@ class _UserCard extends StatelessWidget {
                   runSpacing: 7,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    StatusBadge(label: account.role, tone: BadgeTone.info),
+                    StatusBadge(label: account.roleLabel, tone: BadgeTone.info),
                     _AccountStatusBadge(account.status),
-                    SyncStateBadge(status: syncStatus),
-                    Text(
-                      account.location,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                    if (account.subscriptionStatus !=
+                        PlatformSubscriptionStatus.none)
+                      StatusBadge(
+                        label:
+                            '${account.subscriptionTier ?? 'No tier'} · '
+                            '${account.subscriptionStatus.label}',
+                        tone:
+                            account.subscriptionStatus ==
+                                PlatformSubscriptionStatus.active
+                            ? BadgeTone.success
+                            : BadgeTone.warning,
+                      ),
+                    if (account.location != null)
+                      Text(
+                        account.location!,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                   ],
                 ),
               ],
@@ -789,6 +1133,7 @@ class _UserCard extends StatelessWidget {
           ),
           _AccountMenu(
             account: account,
+            source: source,
             canManage: canManage,
             onAction: onAction,
           ),
@@ -801,16 +1146,19 @@ class _UserCard extends StatelessWidget {
 class _AccountMenu extends StatelessWidget {
   const _AccountMenu({
     required this.account,
+    required this.source,
     required this.canManage,
     required this.onAction,
   });
 
-  final ManagedUser account;
+  final PlatformAccount account;
+  final AdminDirectorySource source;
   final bool canManage;
   final ValueChanged<String> onAction;
 
   @override
   Widget build(BuildContext context) {
+    final live = source == AdminDirectorySource.live;
     return PopupMenuButton<String>(
       tooltip: 'Account actions',
       onSelected: onAction,
@@ -823,27 +1171,59 @@ class _AccountMenu extends StatelessWidget {
             title: Text('View account'),
           ),
         ),
-        if (canManage && account.status == ManagedUserStatus.invited)
+        // Live actions exist only where the server has a command: landlord
+        // approval-state transitions. Tenants and prospects have no
+        // server-side suspend today, so no control pretends otherwise.
+        if (live && canManage && account.isLandlord)
+          switch (account.status) {
+            PlatformAccountStatus.pendingApproval => const PopupMenuItem(
+              value: 'approve',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.verified_user_outlined),
+                title: Text('Approve landlord'),
+              ),
+            ),
+            PlatformAccountStatus.suspended => const PopupMenuItem(
+              value: 'reinstate',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.lock_open_outlined),
+                title: Text('Restore access'),
+              ),
+            ),
+            _ => const PopupMenuItem(
+              value: 'suspend',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.person_off_outlined),
+                title: Text('Suspend access'),
+              ),
+            ),
+          }
+        else if (!live &&
+            canManage &&
+            account.status == PlatformAccountStatus.invited)
           const PopupMenuItem(
-            value: 'resend',
+            value: 'demo-resend',
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.forward_to_inbox_outlined),
               title: Text('Resend invitation'),
             ),
           )
-        else if (canManage)
+        else if (!live && canManage)
           PopupMenuItem(
-            value: 'status',
+            value: 'demo-status',
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(
-                account.status == ManagedUserStatus.suspended
+                account.status == PlatformAccountStatus.suspended
                     ? Icons.lock_open_outlined
                     : Icons.person_off_outlined,
               ),
               title: Text(
-                account.status == ManagedUserStatus.suspended
+                account.status == PlatformAccountStatus.suspended
                     ? 'Restore access'
                     : 'Suspend access',
               ),
@@ -858,16 +1238,17 @@ class _AccountMenu extends StatelessWidget {
 class _AccountStatusBadge extends StatelessWidget {
   const _AccountStatusBadge(this.status);
 
-  final ManagedUserStatus status;
+  final PlatformAccountStatus status;
 
   @override
   Widget build(BuildContext context) {
     return StatusBadge(
       label: status.label,
       tone: switch (status) {
-        ManagedUserStatus.active => BadgeTone.success,
-        ManagedUserStatus.invited => BadgeTone.warning,
-        ManagedUserStatus.suspended => BadgeTone.danger,
+        PlatformAccountStatus.active => BadgeTone.success,
+        PlatformAccountStatus.pendingApproval ||
+        PlatformAccountStatus.invited => BadgeTone.warning,
+        PlatformAccountStatus.suspended => BadgeTone.danger,
       },
     );
   }
@@ -884,6 +1265,7 @@ class _AccountFact extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 11),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 110,

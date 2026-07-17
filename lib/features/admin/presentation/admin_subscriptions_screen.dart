@@ -1,24 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/offline/aggregate_sync_status.dart';
-import '../../../core/offline/offline_entity.dart';
-import '../../../core/offline/outbox_entry.dart';
-import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
-import '../../../core/presentation/sync_state_badge.dart';
 import '../../subscriptions/application/subscription_providers.dart';
 import '../../subscriptions/domain/subscription_plan_draft.dart';
+import '../application/admin_directory_providers.dart';
+import '../domain/platform_account.dart';
 import 'widgets/admin_components.dart';
 
 (Color, IconData) _tierVisual(BuildContext context, String tier) =>
-    switch (tier) {
-      'Starter' => (context.nyumba.sageDark, Icons.home_work_outlined),
-      'Pro' => (context.nyumba.midnightNavy, Icons.rocket_launch_outlined),
-      'Premium' => (
+    switch (tier.toLowerCase()) {
+      'starter' => (context.nyumba.sageDark, Icons.home_work_outlined),
+      'pro' => (context.nyumba.midnightNavy, Icons.rocket_launch_outlined),
+      'premium' => (
         context.nyumba.terracottaDark,
         Icons.workspace_premium_outlined,
       ),
@@ -35,39 +31,254 @@ class AdminSubscriptionsScreen extends ConsumerStatefulWidget {
 
 class _AdminSubscriptionsScreenState
     extends ConsumerState<AdminSubscriptionsScreen> {
-  String _billingView = 'Monthly';
-
   @override
   Widget build(BuildContext context) {
+    final source = ref.watch(adminDirectorySourceProvider);
+    return switch (source) {
+      AdminDirectorySource.live => _buildLive(context),
+      AdminDirectorySource.demo => _buildDemo(context),
+      AdminDirectorySource.unavailable => const AdminPage(
+        showsDemoData: false,
+        title: 'Subscriptions',
+        description: 'Monitor landlord subscriptions and confirm payments.',
+        children: [
+          NyumbaSurface(
+            child: AdminEmptyState(
+              title: 'Subscription data is unavailable',
+              message:
+                  'Subscription records are server-owned and need a '
+                  'configured Firebase project and an administrator session.',
+              icon: Icons.cloud_off_outlined,
+            ),
+          ),
+        ],
+      ),
+    };
+  }
+
+  // ---------------------------------------------------------------------
+  // Live: real server-owned subscription documents and audited actions.
+  // ---------------------------------------------------------------------
+
+  Widget _buildLive(BuildContext context) {
+    final accountsValue = ref.watch(platformAccountsProvider);
+    final accounts = accountsValue.value ?? const <PlatformAccount>[];
+    final withSubscription = accounts
+        .where((a) => a.subscriptionStatus != PlatformSubscriptionStatus.none)
+        .toList(growable: false);
+
+    int countOf(Set<PlatformSubscriptionStatus> statuses) => withSubscription
+        .where((a) => statuses.contains(a.subscriptionStatus))
+        .length;
+
+    final active = countOf(const {PlatformSubscriptionStatus.active});
+    final awaiting = countOf(const {
+      PlatformSubscriptionStatus.pendingPayment,
+      PlatformSubscriptionStatus.trialing,
+    });
+    final pastDue = countOf(const {PlatformSubscriptionStatus.pastDue});
+    final ended = countOf(const {
+      PlatformSubscriptionStatus.canceled,
+      PlatformSubscriptionStatus.expired,
+    });
+
+    final needsConfirmation = withSubscription
+        .where(
+          (a) => const {
+            PlatformSubscriptionStatus.pendingPayment,
+            PlatformSubscriptionStatus.trialing,
+            PlatformSubscriptionStatus.pastDue,
+          }.contains(a.subscriptionStatus),
+        )
+        .toList(growable: false);
+
+    return AdminPage(
+      showsDemoData: false,
+      title: 'Subscriptions',
+      description:
+          'Live server-owned subscription records. Activation is an audited '
+          'staff action against a payment reference.',
+      children: [
+        if (accountsValue.isLoading && accounts.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(40),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (accountsValue.hasError && accounts.isEmpty)
+          NyumbaSurface(
+            child: AdminEmptyState(
+              title: 'Could not load subscriptions',
+              message:
+                  'The server directory could not be read: '
+                  '${accountsValue.error}.',
+              icon: Icons.error_outline_rounded,
+            ),
+          )
+        else ...[
+          AdminMetricGrid(
+            children: [
+              AdminMetricCard(
+                label: 'Active subscriptions',
+                value: '$active',
+                caption: 'Payment confirmed and workspace open',
+                icon: Icons.workspace_premium_outlined,
+                tone: context.nyumba.sageDark,
+              ),
+              AdminMetricCard(
+                label: 'Awaiting payment',
+                value: '$awaiting',
+                caption: 'Confirm below once money is verified',
+                icon: Icons.hourglass_bottom_rounded,
+                tone: context.nyumba.terracottaDark,
+              ),
+              AdminMetricCard(
+                label: 'Past due',
+                value: '$pastDue',
+                caption: 'Renewal payment outstanding',
+                icon: Icons.warning_amber_rounded,
+                tone: context.nyumba.danger,
+              ),
+              AdminMetricCard(
+                label: 'Canceled or expired',
+                value: '$ended',
+                caption: 'Read access preserved, no new capacity',
+                icon: Icons.cancel_outlined,
+                tone: context.nyumba.midnightNavy,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _PendingPaymentsPanel(
+            accounts: needsConfirmation,
+            onConfirm: _confirmPayment,
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final mix = _LiveTierMix(accounts: withSubscription);
+              const catalog = _ServerCatalogPanel();
+              if (constraints.maxWidth < 960) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [mix, const SizedBox(height: 20), catalog],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 5, child: mix),
+                  const SizedBox(width: 20),
+                  const Expanded(flex: 6, child: catalog),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          _SubscriptionActivityPanel(
+            events: ref.watch(adminAuditEventsProvider),
+          ),
+        ],
+        const SizedBox(height: 20),
+        const _CommercialGuardrails(),
+      ],
+    );
+  }
+
+  Future<void> _confirmPayment(PlatformAccount account) async {
+    final referenceController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Confirm payment for ${account.displayName}?'),
+        content: SizedBox(
+          width: 440,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This activates the ${account.subscriptionTier ?? 'selected'} '
+                'plan and opens the landlord workspace. Only confirm against '
+                'money you have actually verified.',
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: referenceController,
+                decoration: const InputDecoration(
+                  labelText: 'Payment reference (required)',
+                  hintText: 'Provider transaction ID or manual reference',
+                  prefixIcon: Icon(Icons.receipt_long_outlined),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (referenceController.text.trim().isEmpty) {
+                showAdminMessage(
+                  dialogContext,
+                  'A payment reference is required for the audit trail.',
+                );
+                return;
+              }
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('Confirm payment'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      try {
+        await ref
+            .read(adminAccountCommandsProvider)
+            .confirmSubscriptionPayment(
+              account: account,
+              reference: referenceController.text,
+            );
+        if (mounted) {
+          showAdminMessage(
+            context,
+            'Subscription for ${account.displayName} activated.',
+          );
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          showAdminMessage(
+            context,
+            'The server rejected the confirmation: $error',
+          );
+        }
+      }
+    }
+    referenceController.dispose();
+  }
+
+  // ---------------------------------------------------------------------
+  // Demo: seeded local plan drafts, clearly labelled as such.
+  // ---------------------------------------------------------------------
+
+  Widget _buildDemo(BuildContext context) {
     final plansValue = ref.watch(subscriptionPlansProvider);
-    final outbox =
-        ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
     final plans = plansValue.value ?? const <SubscriptionPlanDraft>[];
     final subscriberTotal = plans.fold<int>(
       0,
       (total, plan) => total + plan.subscribers,
     );
+    final draftMrrMinor = plans.fold<int>(
+      0,
+      (total, plan) => total + plan.monthlyPriceMinor * plan.subscribers,
+    );
+
     return AdminPage(
       title: 'Subscriptions',
-      description:
-          'Configure plan drafts and monitor recurring platform revenue.',
-      secondaryAction: _BillingViewSelector(
-        value: _billingView,
-        onChanged: (value) => setState(() => _billingView = value),
-      ),
-      primaryAction: FilledButton.icon(
-        onPressed: () => showNyumbaInfoDialog(
-          context,
-          title: 'Billing settings',
-          message:
-              'Plan drafts can be edited on this screen. Provider credentials, '
-              'prices, tax calculation, and billing intervals remain '
-              'server-owned and are not configured in this demo.',
-          icon: Icons.settings_outlined,
-        ),
-        icon: const Icon(Icons.settings_outlined),
-        label: const Text('Billing settings'),
-      ),
+      description: 'Configure local plan drafts for the demo workspace.',
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
@@ -83,13 +294,14 @@ class _AdminSubscriptionsScreenState
                 Icons.edit_note_rounded,
                 color: context.nyumba.terracottaDark,
               ),
-              SizedBox(width: 11),
-              Expanded(
+              const SizedBox(width: 11),
+              const Expanded(
                 child: Text(
-                  'Subscriptions apply to landlords and property managers only; '
-                  'tenant and prospective-client access is always free. Prices '
-                  'and limits below are working drafts — edits are local to '
-                  'this demo until final commercial terms are approved.',
+                  'Subscriptions apply to landlords and property managers '
+                  'only; tenant and prospective-client access is always free. '
+                  'Everything below is seeded demo working state — real '
+                  'prices, entitlements, and subscriber counts are '
+                  'server-owned.',
                 ),
               ),
             ],
@@ -99,35 +311,18 @@ class _AdminSubscriptionsScreenState
         AdminMetricGrid(
           children: [
             AdminMetricCard(
-              label: 'Active subscriptions',
+              label: 'Seeded subscribers',
               value: '$subscriberTotal',
-              caption: '89.6% of verified landlords',
-              trend: '+7.9%',
+              caption: 'Sum of the demo plan fixtures',
               icon: Icons.workspace_premium_outlined,
               tone: context.nyumba.midnightNavy,
             ),
             AdminMetricCard(
-              label: 'Monthly recurring revenue',
-              value: 'UGX 295M',
-              caption: 'Draft plan rates applied',
-              trend: '+12.7%',
+              label: 'Draft monthly revenue',
+              value: formatAdminUgx(draftMrrMinor ~/ 100),
+              caption: 'Draft prices × seeded subscribers',
               icon: Icons.account_balance_wallet_outlined,
               tone: context.nyumba.sageDark,
-            ),
-            AdminMetricCard(
-              label: 'Trial conversions',
-              value: '68.4%',
-              caption: 'Last 30 days',
-              trend: '+3.2%',
-              icon: Icons.trending_up_rounded,
-              tone: context.nyumba.terracottaDark,
-            ),
-            AdminMetricCard(
-              label: 'Payment attention',
-              value: '14',
-              caption: '8 retrying • 6 past due',
-              icon: Icons.warning_amber_rounded,
-              tone: context.nyumba.danger,
             ),
           ],
         ),
@@ -140,7 +335,7 @@ class _AdminSubscriptionsScreenState
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
-            const StatusBadge(label: '4 tiers', tone: BadgeTone.info),
+            StatusBadge(label: '${plans.length} tiers', tone: BadgeTone.info),
           ],
         ),
         const SizedBox(height: 12),
@@ -176,13 +371,6 @@ class _AdminSubscriptionsScreenState
                       width: width,
                       child: _PlanCard(
                         plan: plan,
-                        annual: _billingView == 'Annual',
-                        syncStatus: resolveAggregateSyncStatus(
-                          entityType: OfflineEntityType.subscriptionPlan,
-                          entityId: plan.id,
-                          outbox: outbox,
-                          syncMetadata: plan.syncMetadata,
-                        ),
                         onEdit: () => _editPlan(plan),
                       ),
                     ),
@@ -191,30 +379,9 @@ class _AdminSubscriptionsScreenState
             },
           ),
         const SizedBox(height: 20),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final mix = _RevenueMix(plans: plans);
-            const health = _SubscriptionHealth();
-            if (constraints.maxWidth < 960) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [mix, const SizedBox(height: 20), health],
-              );
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 6, child: mix),
-                const SizedBox(width: 20),
-                const Expanded(flex: 5, child: health),
-              ],
-            );
-          },
-        ),
+        _DemoTierMix(plans: plans),
         const SizedBox(height: 20),
         const _CommercialGuardrails(),
-        const SizedBox(height: 20),
-        const _RecentSubscriptionActivity(),
       ],
     );
   }
@@ -304,10 +471,7 @@ class _AdminSubscriptionsScreenState
           ),
         );
         if (mounted) {
-          showAdminMessage(
-            context,
-            '${plan.tier} draft saved locally and queued to sync.',
-          );
+          showAdminMessage(context, '${plan.tier} draft saved on this device.');
         }
       } on Object catch (error) {
         if (mounted) {
@@ -320,65 +484,286 @@ class _AdminSubscriptionsScreenState
   }
 }
 
-class _BillingViewSelector extends StatelessWidget {
-  const _BillingViewSelector({required this.value, required this.onChanged});
+/// Subscriptions the staff can act on, with the audited confirm-payment flow.
+class _PendingPaymentsPanel extends StatelessWidget {
+  const _PendingPaymentsPanel({
+    required this.accounts,
+    required this.onConfirm,
+  });
 
-  final String value;
-  final ValueChanged<String> onChanged;
+  final List<PlatformAccount> accounts;
+  final ValueChanged<PlatformAccount> onConfirm;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: context.nyumba.surface,
-        border: Border.all(color: context.nyumba.outline),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final item in const ['Monthly', 'Annual'])
-            Padding(
-              padding: const EdgeInsets.only(right: 2),
-              child: ChoiceChip(
-                label: Text(item),
-                selected: value == item,
-                showCheckmark: false,
-                onSelected: (_) => onChanged(item),
-              ),
+    return AdminPanel(
+      title: 'Awaiting payment confirmation',
+      subtitle:
+          'Activation requires a verified payment reference and is recorded '
+          'in the audit log',
+      child: accounts.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('No subscriptions are waiting on a payment.'),
+            )
+          : Column(
+              children: [
+                for (var index = 0; index < accounts.length; index++) ...[
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final account = accounts[index];
+                      final identity = Row(
+                        children: [
+                          AdminAvatar(name: account.displayName),
+                          const SizedBox(width: 11),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  account.displayName,
+                                  style: Theme.of(context).textTheme.labelLarge,
+                                ),
+                                Text(
+                                  '${account.subscriptionTier ?? 'No tier selected'}'
+                                  ' · ${account.subscriptionStatus.label}'
+                                  '${account.email.isEmpty ? '' : ' · ${account.email}'}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                      final action = FilledButton.icon(
+                        onPressed: () => onConfirm(account),
+                        icon: const Icon(Icons.price_check_rounded, size: 18),
+                        label: const Text('Confirm payment'),
+                      );
+                      if (constraints.maxWidth < 560) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            identity,
+                            const SizedBox(height: 10),
+                            action,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: identity),
+                          const SizedBox(width: 16),
+                          action,
+                        ],
+                      );
+                    },
+                  ),
+                  if (index < accounts.length - 1) const Divider(height: 26),
+                ],
+              ],
             ),
-        ],
-      ),
+    );
+  }
+}
+
+class _LiveTierMix extends StatelessWidget {
+  const _LiveTierMix({required this.accounts});
+
+  final List<PlatformAccount> accounts;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeByTier = <String, int>{};
+    for (final account in accounts) {
+      if (account.subscriptionStatus != PlatformSubscriptionStatus.active) {
+        continue;
+      }
+      final tier = account.subscriptionTier ?? 'unknown';
+      activeByTier[tier] = (activeByTier[tier] ?? 0) + 1;
+    }
+    final total = activeByTier.values.fold<int>(0, (a, b) => a + b);
+    final tiers = activeByTier.keys.toList()..sort();
+    return AdminPanel(
+      title: 'Active subscriptions by tier',
+      subtitle: 'Counted from the live subscription documents',
+      child: total == 0
+          ? const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('No active subscriptions yet.'),
+            )
+          : Column(
+              children: [
+                for (var index = 0; index < tiers.length; index++) ...[
+                  AdminProgressRow(
+                    label: tiers[index],
+                    value: activeByTier[tiers[index]]! / total,
+                    trailing:
+                        '${activeByTier[tiers[index]]} · '
+                        '${(activeByTier[tiers[index]]! / total * 100).round()}%',
+                    color: _tierVisual(context, tiers[index]).$1,
+                  ),
+                  if (index < tiers.length - 1) const SizedBox(height: 18),
+                ],
+              ],
+            ),
+    );
+  }
+}
+
+/// The public server-owned plan catalog — the entitlements landlords actually
+/// get. Prices are deliberately absent until commercial terms are final.
+class _ServerCatalogPanel extends ConsumerWidget {
+  const _ServerCatalogPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final catalog = ref.watch(publicPlanCatalogProvider);
+    return AdminPanel(
+      title: 'Server plan catalog',
+      subtitle: 'planCatalog documents — server-owned, read-only here',
+      child: switch (catalog) {
+        AsyncValue(hasValue: true, :final value) when value!.isEmpty =>
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text(
+              'No public catalog entries are published yet. Entitlements '
+              'fail closed until the catalog is seeded.',
+            ),
+          ),
+        AsyncValue(hasValue: true, :final value) => Column(
+          children: [
+            for (final (index, plan) in value!.values.indexed) ...[
+              Row(
+                children: [
+                  Icon(
+                    _tierVisual(context, plan.tier).$2,
+                    size: 20,
+                    color: _tierVisual(context, plan.tier).$1,
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          plan.displayName,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        Text(
+                          plan.capacityLabel ??
+                              'Up to ${plan.unitLimit} rental spaces · '
+                                  '${plan.activeListingLimit} active listings',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const StatusBadge(label: 'Public', tone: BadgeTone.info),
+                ],
+              ),
+              if (index < value.length - 1) const Divider(height: 24),
+            ],
+          ],
+        ),
+        AsyncValue(:final error?) => Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text('Could not read the plan catalog: $error'),
+        ),
+        _ => const Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      },
+    );
+  }
+}
+
+/// Billing events from the server audit log, filtered to subscription
+/// commands. Empty is the honest state until staff actions or webhooks occur.
+class _SubscriptionActivityPanel extends StatelessWidget {
+  const _SubscriptionActivityPanel({required this.events});
+
+  final AsyncValue<List<AdminAuditEvent>> events;
+
+  @override
+  Widget build(BuildContext context) {
+    final subscriptionEvents =
+        events.value
+            ?.where((event) => event.action.startsWith('subscription.'))
+            .toList(growable: false) ??
+        const <AdminAuditEvent>[];
+    return AdminPanel(
+      title: 'Recent subscription activity',
+      subtitle: 'From the server audit log',
+      child: events.isLoading && !events.hasValue
+          ? const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : subscriptionEvents.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('No subscription commands in the recent audit log.'),
+            )
+          : Column(
+              children: [
+                for (
+                  var index = 0;
+                  index < subscriptionEvents.length && index < 6;
+                  index++
+                ) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        subscriptionEvents[index].outcome == 'rejected'
+                            ? Icons.block_outlined
+                            : Icons.price_check_rounded,
+                        size: 18,
+                        color: subscriptionEvents[index].outcome == 'rejected'
+                            ? context.nyumba.danger
+                            : context.nyumba.sageDark,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          subscriptionEvents[index].action,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ),
+                      StatusBadge(
+                        label: subscriptionEvents[index].outcome,
+                        tone: subscriptionEvents[index].outcome == 'rejected'
+                            ? BadgeTone.danger
+                            : BadgeTone.success,
+                      ),
+                    ],
+                  ),
+                  if (index < subscriptionEvents.length - 1 && index < 5)
+                    const Divider(height: 22),
+                ],
+              ],
+            ),
     );
   }
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({
-    required this.plan,
-    required this.annual,
-    required this.syncStatus,
-    required this.onEdit,
-  });
+  const _PlanCard({required this.plan, required this.onEdit});
 
   final SubscriptionPlanDraft plan;
-  final bool annual;
-  final AggregateSyncStatus syncStatus;
   final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     final (color, icon) = _tierVisual(context, plan.tier);
     final custom = plan.monthlyPriceMinor == 0;
-    final monthlyWhole = plan.monthlyPriceMinor ~/ 100;
-    final amount = annual ? (monthlyWhole * 10.2).round() : monthlyWhole;
     return NyumbaSurface(
       borderColor: plan.recommended
           ? context.nyumba.midnightNavy
           : context.nyumba.outline,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 310),
+        constraints: const BoxConstraints(minHeight: 290),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -404,8 +789,7 @@ class _PlanCard extends StatelessWidget {
                   const StatusBadge(label: 'Popular', tone: BadgeTone.info),
               ],
             ),
-            const SizedBox(height: 17),
-            const SizedBox(height: 5),
+            const SizedBox(height: 12),
             Text(plan.tagline, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 14),
             Row(
@@ -413,7 +797,9 @@ class _PlanCard extends StatelessWidget {
               children: [
                 Flexible(
                   child: Text(
-                    custom ? 'Custom' : formatAdminUgx(amount),
+                    custom
+                        ? 'Custom'
+                        : formatAdminUgx(plan.monthlyPriceMinor ~/ 100),
                     style: Theme.of(
                       context,
                     ).textTheme.headlineSmall?.copyWith(color: color),
@@ -423,21 +809,12 @@ class _PlanCard extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 5, bottom: 3),
                     child: Text(
-                      annual ? '/year' : '/month',
+                      '/month (draft)',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
               ],
             ),
-            if (annual && !custom) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Illustrative 15% annual saving',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: context.nyumba.sageDark),
-              ),
-            ],
             const SizedBox(height: 18),
             _PlanFeature(
               icon: Icons.apartment_outlined,
@@ -455,17 +832,15 @@ class _PlanCard extends StatelessWidget {
             ),
             _PlanFeature(icon: Icons.support_agent_rounded, text: plan.support),
             const Spacer(),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    '${plan.subscribers} subscribers',
+                    '${plan.subscribers} seeded subscribers',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
-                SyncStateBadge(status: syncStatus),
-                const SizedBox(width: 6),
                 StatusBadge(
                   label: plan.enabled ? 'Available' : 'Hidden',
                   tone: plan.enabled ? BadgeTone.success : BadgeTone.neutral,
@@ -508,8 +883,8 @@ class _PlanFeature extends StatelessWidget {
   }
 }
 
-class _RevenueMix extends StatelessWidget {
-  const _RevenueMix({required this.plans});
+class _DemoTierMix extends StatelessWidget {
+  const _DemoTierMix({required this.plans});
 
   final List<SubscriptionPlanDraft> plans;
 
@@ -517,8 +892,8 @@ class _RevenueMix extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = plans.fold<int>(0, (sum, item) => sum + item.subscribers);
     return AdminPanel(
-      title: 'Subscriber mix',
-      subtitle: 'Share of active subscriptions by tier',
+      title: 'Seeded subscriber mix',
+      subtitle: 'Share of the demo fixtures by tier',
       child: total == 0
           ? const Padding(
               padding: EdgeInsets.all(12),
@@ -538,88 +913,6 @@ class _RevenueMix extends StatelessWidget {
                 ],
               ],
             ),
-    );
-  }
-}
-
-class _SubscriptionHealth extends StatelessWidget {
-  const _SubscriptionHealth();
-
-  @override
-  Widget build(BuildContext context) {
-    return AdminPanel(
-      title: 'Subscription health',
-      subtitle: 'Renewals and trials requiring attention',
-      child: Column(
-        children: [
-          _HealthLine(
-            label: 'Renewing in 7 days',
-            value: '83',
-            icon: Icons.autorenew_rounded,
-            color: context.nyumba.midnightNavy,
-          ),
-          Divider(height: 25),
-          _HealthLine(
-            label: 'Trials ending this week',
-            value: '26',
-            icon: Icons.hourglass_bottom_rounded,
-            color: context.nyumba.terracottaDark,
-          ),
-          Divider(height: 25),
-          _HealthLine(
-            label: 'Payment retries queued',
-            value: '8',
-            icon: Icons.sync_problem_outlined,
-            color: context.nyumba.danger,
-          ),
-          Divider(height: 25),
-          _HealthLine(
-            label: 'Cancelled this month',
-            value: '11',
-            icon: Icons.cancel_outlined,
-            color: context.nyumba.mutedInk,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HealthLine extends StatelessWidget {
-  const _HealthLine({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: .1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 20, color: color),
-        ),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Text(label, style: Theme.of(context).textTheme.labelLarge),
-        ),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(color: color),
-        ),
-      ],
     );
   }
 }
@@ -690,103 +983,6 @@ class _GuardrailLine extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
-        ),
-      ],
-    );
-  }
-}
-
-class _RecentSubscriptionActivity extends StatelessWidget {
-  const _RecentSubscriptionActivity();
-
-  @override
-  Widget build(BuildContext context) {
-    return AdminPanel(
-      title: 'Recent subscription activity',
-      subtitle: 'Latest upgrades, renewals, and payment events',
-      trailing: TextButton.icon(
-        onPressed: () => showNyumbaInfoDialog(
-          context,
-          title: 'Subscription ledger',
-          message:
-              'Acacia Homes Ltd — upgraded to Premium — 12 min ago\n'
-              'Kololo Property Co. — renewal recorded — 1 h ago\n'
-              'Lakeview Estates — payment awaiting confirmation — 3 h ago',
-          icon: Icons.receipt_long_outlined,
-        ),
-        iconAlignment: IconAlignment.end,
-        icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-        label: const Text('View ledger'),
-      ),
-      child: const Column(
-        children: [
-          _SubscriptionEvent(
-            business: 'Acacia Homes Ltd',
-            event: 'Upgraded Pro to Premium',
-            amount: 'UGX 700,000',
-            time: '12 min ago',
-            tone: BadgeTone.success,
-          ),
-          Divider(height: 25),
-          _SubscriptionEvent(
-            business: 'Kololo Property Co.',
-            event: 'Premium renewed',
-            amount: 'UGX 700,000',
-            time: '48 min ago',
-            tone: BadgeTone.info,
-          ),
-          Divider(height: 25),
-          _SubscriptionEvent(
-            business: 'Coastline Lettings',
-            event: 'Renewal payment retrying',
-            amount: 'UGX 80,000',
-            time: '2 hr ago',
-            tone: BadgeTone.warning,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SubscriptionEvent extends StatelessWidget {
-  const _SubscriptionEvent({
-    required this.business,
-    required this.event,
-    required this.amount,
-    required this.time,
-    required this.tone,
-  });
-
-  final String business;
-  final String event;
-  final String amount;
-  final String time;
-  final BadgeTone tone;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        AdminAvatar(name: business),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(business, style: Theme.of(context).textTheme.labelLarge),
-              Text(event, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(amount, style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 3),
-            StatusBadge(label: time, tone: tone),
-          ],
         ),
       ],
     );

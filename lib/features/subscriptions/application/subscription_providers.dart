@@ -146,52 +146,52 @@ final class PublicPlanFacts {
 /// The publicly advertised plans, keyed by tier ID. Empty while offline,
 /// unseeded, or running without Firebase — the UI must say "unavailable"
 /// instead of quoting a limit the server never published.
-final publicPlanCatalogProvider = StreamProvider<Map<String, PublicPlanFacts>>(
-  (ref) async* {
-    if (Firebase.apps.isEmpty) {
-      yield const {};
-      return;
-    }
-    try {
-      // Rules permit a public list only when bounded to 20 documents.
-      await for (final snapshot
-          in FirebaseFirestore.instance
-              .collection('planCatalog')
-              .where('isPublic', isEqualTo: true)
-              .limit(20)
-              .snapshots()) {
-        final plans = <String, PublicPlanFacts>{};
-        for (final document in snapshot.docs) {
-          final data = document.data();
-          final displayName = data['displayName'];
-          final unitLimit = data['unitLimit'];
-          final activeListingLimit = data['activeListingLimit'];
-          if (displayName is! String ||
-              displayName.isEmpty ||
-              unitLimit is! int ||
-              activeListingLimit is! int) {
-            continue;
-          }
-          final tagline = data['tagline'];
-          final capacityLabel = data['capacityLabel'];
-          plans[document.id] = PublicPlanFacts(
-            tier: document.id,
-            displayName: displayName,
-            unitLimit: unitLimit,
-            activeListingLimit: activeListingLimit,
-            tagline: tagline is String && tagline.isNotEmpty ? tagline : null,
-            capacityLabel: capacityLabel is String && capacityLabel.isNotEmpty
-                ? capacityLabel
-                : null,
-          );
+final publicPlanCatalogProvider = StreamProvider<Map<String, PublicPlanFacts>>((
+  ref,
+) async* {
+  if (Firebase.apps.isEmpty) {
+    yield const {};
+    return;
+  }
+  try {
+    // Rules permit a public list only when bounded to 20 documents.
+    await for (final snapshot
+        in FirebaseFirestore.instance
+            .collection('planCatalog')
+            .where('isPublic', isEqualTo: true)
+            .limit(20)
+            .snapshots()) {
+      final plans = <String, PublicPlanFacts>{};
+      for (final document in snapshot.docs) {
+        final data = document.data();
+        final displayName = data['displayName'];
+        final unitLimit = data['unitLimit'];
+        final activeListingLimit = data['activeListingLimit'];
+        if (displayName is! String ||
+            displayName.isEmpty ||
+            unitLimit is! int ||
+            activeListingLimit is! int) {
+          continue;
         }
-        yield plans;
+        final tagline = data['tagline'];
+        final capacityLabel = data['capacityLabel'];
+        plans[document.id] = PublicPlanFacts(
+          tier: document.id,
+          displayName: displayName,
+          unitLimit: unitLimit,
+          activeListingLimit: activeListingLimit,
+          tagline: tagline is String && tagline.isNotEmpty ? tagline : null,
+          capacityLabel: capacityLabel is String && capacityLabel.isNotEmpty
+              ? capacityLabel
+              : null,
+        );
       }
-    } on FirebaseException {
-      yield const {};
+      yield plans;
     }
-  },
-);
+  } on FirebaseException {
+    yield const {};
+  }
+});
 
 final selectSubscriptionPlanProvider = Provider<SelectSubscriptionPlan>(
   SelectSubscriptionPlan.new,

@@ -25,9 +25,10 @@ import 'package:nyumba_property_management/features/admin/domain/managed_user.da
 /// scripts/`.
 ///
 /// This previously enqueued outbox entries anyway, which failed permanently and
-/// invisibly. Rebuilding the directory on pulled `users`/`landlordAccounts`
-/// documents keyed by UID is the real fix; until then it must not pretend to
-/// sync.
+/// invisibly. Live admin sessions no longer read this store at all: they
+/// stream the real directory through `FirestoreAdminDirectory`. This
+/// repository now serves only explicit demo workspaces, and it must not
+/// pretend to sync.
 final class SembastManagedUserRepository implements ManagedUserRepository {
   SembastManagedUserRepository({
     required OfflineDatabase database,

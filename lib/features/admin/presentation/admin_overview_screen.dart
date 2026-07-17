@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
@@ -9,83 +10,70 @@ import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
 import '../../portfolio/domain/property.dart';
 import '../../portfolio/domain/unit.dart';
+import '../application/admin_directory_providers.dart';
+import '../domain/platform_account.dart';
 import 'widgets/admin_components.dart';
 
-class AdminOverviewScreen extends ConsumerStatefulWidget {
+class AdminOverviewScreen extends ConsumerWidget {
   const AdminOverviewScreen({super.key});
 
   @override
-  ConsumerState<AdminOverviewScreen> createState() =>
-      _AdminOverviewScreenState();
-}
-
-class _AdminOverviewScreenState extends ConsumerState<AdminOverviewScreen> {
-  /// Counts the administrative scope actually pulled from the server.
-  ///
-  /// Landlord and unit totals are real: an admin session mirrors every property
-  /// and unit. Revenue and subscription totals need a server-side aggregation
-  /// job that does not exist yet, so they are reported as unavailable rather
-  /// than invented — a wrong number here is worse than no number.
-  _AdminOverviewMetrics get _metrics {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final source = ref.watch(adminDirectorySourceProvider);
+    final accountsValue = ref.watch(platformAccountsProvider);
+    final accounts = accountsValue.value ?? const <PlatformAccount>[];
     final properties =
         ref.watch(portfolioPropertiesProvider).value ?? const <Property>[];
     final units = ref.watch(portfolioUnitsProvider).value ?? const <Unit>[];
-    return _AdminOverviewMetrics(
-      landlords: properties.map((p) => p.landlordId).toSet().length,
-      units: units.length,
-      monthlyRevenue: null,
-      activeSubscriptions: null,
-    );
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    final metrics = _metrics;
+    final live = source == AdminDirectorySource.live;
+    final activeSubscriptions = accounts
+        .where((a) => a.subscriptionStatus == PlatformSubscriptionStatus.active)
+        .length;
+    final pendingApprovals = accounts
+        .where((a) => a.status == PlatformAccountStatus.pendingApproval)
+        .toList(growable: false);
+
     return AdminPage(
       // Nothing on this page is seeded any more: it shows real counts or says
       // plainly that a figure is unavailable.
       showsDemoData: false,
       title: 'Platform overview',
       description: 'Monitor adoption, approvals, and service health.',
-      primaryAction: FilledButton.icon(
-        onPressed: _refresh,
-        icon: const Icon(Icons.refresh_rounded),
-        label: const Text('Refresh data'),
-      ),
       children: [
         AdminMetricGrid(
           children: [
             AdminMetricCard(
               label: 'Landlords with a portfolio',
-              value: '${metrics.landlords}',
+              value: '${properties.map((p) => p.landlordId).toSet().length}',
               caption: 'Owners of at least one property',
               icon: Icons.real_estate_agent_outlined,
               tone: context.nyumba.midnightNavy,
             ),
             AdminMetricCard(
               label: 'Managed rental spaces',
-              value: '${metrics.units}',
+              value: '${units.length}',
               caption: 'Across every landlord',
               icon: Icons.apartment_rounded,
               tone: context.nyumba.sageDark,
             ),
             AdminMetricCard(
-              label: 'Subscription revenue',
-              value: metrics.monthlyRevenue == null
-                  ? '—'
-                  : formatAdminUgx(metrics.monthlyRevenue!),
-              caption: 'Needs server reporting',
-              icon: Icons.payments_outlined,
+              label: 'Active subscriptions',
+              value: live ? '$activeSubscriptions' : '—',
+              caption: live
+                  ? 'Payment-confirmed landlord workspaces'
+                  : 'Needs a live admin session',
+              icon: Icons.workspace_premium_outlined,
               tone: context.nyumba.terracottaDark,
             ),
             AdminMetricCard(
-              label: 'Active subscriptions',
-              value: metrics.activeSubscriptions == null
-                  ? '—'
-                  : '${metrics.activeSubscriptions}',
-              caption: 'Needs server reporting',
-              icon: Icons.workspace_premium_outlined,
-              tone: context.nyumba.sageDark,
+              label: 'Pending approvals',
+              value: live ? '${pendingApprovals.length}' : '—',
+              caption: live
+                  ? 'Landlord applications awaiting review'
+                  : 'Needs a live admin session',
+              icon: Icons.pending_actions_outlined,
+              tone: context.nyumba.danger,
             ),
           ],
         ),
@@ -120,8 +108,12 @@ class _AdminOverviewScreenState extends ConsumerState<AdminOverviewScreen> {
         const SizedBox(height: 20),
         LayoutBuilder(
           builder: (context, constraints) {
-            const approvals = _ApprovalPanel();
-            const activity = _AdminActivityPanel();
+            final approvals = _ApprovalPanel(
+              live: live,
+              accountsValue: accountsValue,
+              pending: pendingApprovals,
+            );
+            final activity = _AdminActivityPanel(live: live);
             if (constraints.maxWidth < 980) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -131,21 +123,15 @@ class _AdminOverviewScreenState extends ConsumerState<AdminOverviewScreen> {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(flex: 7, child: approvals),
+                Expanded(flex: 7, child: approvals),
                 const SizedBox(width: 20),
-                const Expanded(flex: 4, child: activity),
+                Expanded(flex: 4, child: activity),
               ],
             );
           },
         ),
       ],
     );
-  }
-
-  void _refresh() {
-    // The mirror refreshes itself from the server listeners; this only
-    // acknowledges the tap.
-    showAdminMessage(context, 'Platform data refreshed from the local cache.');
   }
 }
 
@@ -255,58 +241,183 @@ class _SystemHealth extends StatelessWidget {
   }
 }
 
+/// The real landlord approval queue, actioned through the audited
+/// `landlord.approve` command from the Users screen.
 class _ApprovalPanel extends StatelessWidget {
-  const _ApprovalPanel();
-
-  @override
-  Widget build(BuildContext context) {
-    return const AdminPanel(
-      title: 'Landlord approvals',
-      subtitle: 'Applications awaiting a decision',
-      child: AdminEmptyState(
-        title: 'Approvals are not available in the app yet',
-        message:
-            'Landlord accounts are server-owned and are not mirrored to this '
-            'client, so the queue cannot be shown. Approve with '
-            'scripts/approve-landlord.mjs until this is wired up.',
-        icon: Icons.verified_user_outlined,
-      ),
-    );
-  }
-}
-
-class _AdminActivityPanel extends StatelessWidget {
-  const _AdminActivityPanel();
-
-  @override
-  Widget build(BuildContext context) {
-    return const AdminPanel(
-      title: 'Platform activity',
-      subtitle: 'Recent security and billing events',
-      child: AdminEmptyState(
-        title: 'Activity feed is not available yet',
-        message:
-            'Platform events come from the server audit log, which this client '
-            'does not mirror yet.',
-        icon: Icons.history_toggle_off_outlined,
-      ),
-    );
-  }
-}
-
-class _AdminOverviewMetrics {
-  const _AdminOverviewMetrics({
-    required this.landlords,
-    required this.units,
-    required this.monthlyRevenue,
-    required this.activeSubscriptions,
+  const _ApprovalPanel({
+    required this.live,
+    required this.accountsValue,
+    required this.pending,
   });
 
-  final int landlords;
-  final int units;
+  final bool live;
+  final AsyncValue<List<PlatformAccount>> accountsValue;
+  final List<PlatformAccount> pending;
 
-  /// Null until a server-side reporting job exists. Platform-wide money must
-  /// never be totalled on a client from a partial mirror.
-  final int? monthlyRevenue;
-  final int? activeSubscriptions;
+  @override
+  Widget build(BuildContext context) {
+    if (!live) {
+      return const AdminPanel(
+        title: 'Landlord approvals',
+        subtitle: 'Applications awaiting a decision',
+        child: AdminEmptyState(
+          title: 'Approvals need a live admin session',
+          message:
+              'The approval queue reads server-owned landlord accounts, which '
+              'a demo workspace does not hold.',
+          icon: Icons.verified_user_outlined,
+        ),
+      );
+    }
+    return AdminPanel(
+      title: 'Landlord approvals',
+      subtitle: 'Applications awaiting a decision',
+      trailing: TextButton.icon(
+        onPressed: () => context.go('/admin/users'),
+        iconAlignment: IconAlignment.end,
+        icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+        label: const Text('Review in Users'),
+      ),
+      child: switch ((accountsValue, pending)) {
+        (AsyncValue(isLoading: true, hasValue: false), _) => const Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        (AsyncValue(:final error?), _) when !accountsValue.hasValue => Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text('Could not load the approval queue: $error'),
+        ),
+        (_, []) => const Padding(
+          padding: EdgeInsets.all(12),
+          child: Text('No landlord applications are waiting right now.'),
+        ),
+        _ => Column(
+          children: [
+            for (var index = 0; index < pending.length && index < 6; index++)
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      AdminAvatar(name: pending[index].displayName),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              pending[index].businessName == null
+                                  ? pending[index].displayName
+                                  : '${pending[index].displayName} · '
+                                        '${pending[index].businessName}',
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                            Text(
+                              '${pending[index].email.isEmpty ? 'No email' : pending[index].email}'
+                              ' · joined ${pending[index].joinedLabel}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const StatusBadge(
+                        label: 'Pending',
+                        tone: BadgeTone.warning,
+                      ),
+                    ],
+                  ),
+                  if (index < pending.length - 1 && index < 5)
+                    const Divider(height: 24),
+                ],
+              ),
+          ],
+        ),
+      },
+    );
+  }
+}
+
+/// Live view of the server-owned audit log.
+class _AdminActivityPanel extends ConsumerWidget {
+  const _AdminActivityPanel({required this.live});
+
+  final bool live;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!live) {
+      return const AdminPanel(
+        title: 'Platform activity',
+        subtitle: 'Recent security and billing events',
+        child: AdminEmptyState(
+          title: 'Activity feed needs a live admin session',
+          message:
+              'Platform events come from the server audit log, which a demo '
+              'workspace cannot read.',
+          icon: Icons.history_toggle_off_outlined,
+        ),
+      );
+    }
+    final events = ref.watch(adminAuditEventsProvider);
+    return AdminPanel(
+      title: 'Platform activity',
+      subtitle: 'Server audit log, newest first',
+      child: switch (events) {
+        AsyncValue(hasValue: true, :final value) when value!.isEmpty =>
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text('No audited commands recorded yet.'),
+          ),
+        AsyncValue(hasValue: true, :final value) => Column(
+          children: [
+            for (var index = 0; index < value!.length && index < 6; index++)
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        value[index].outcome == 'rejected'
+                            ? Icons.block_outlined
+                            : Icons.verified_outlined,
+                        size: 18,
+                        color: value[index].outcome == 'rejected'
+                            ? context.nyumba.danger
+                            : context.nyumba.sageDark,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              value[index].action,
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                            Text(
+                              DateFormat(
+                                'd MMM, HH:mm',
+                              ).format(value[index].at.toLocal()),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (index < value.length - 1 && index < 5)
+                    const Divider(height: 20),
+                ],
+              ),
+          ],
+        ),
+        AsyncValue(:final error?) => Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text('Could not read the audit log: $error'),
+        ),
+        _ => const Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      },
+    );
+  }
 }
