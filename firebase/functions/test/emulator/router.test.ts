@@ -85,6 +85,12 @@ describe('command router', () => {
   it('updates profile preferences without a local version and marks only the actor inbox read', async () => {
     await db.doc(`users/${landlord.uid}`).set({
       id: landlord.uid, displayName: 'Landlord', role: 'landlord', status: 'active',
+      notifications: {
+        email: true,
+        push: false,
+        rentReminders: false,
+        maintenanceUpdates: true,
+      },
       version: 1, createdAt: now, updatedAt: now, isDeleted: false,
     });
     await db.doc(`notificationInboxes/${landlord.uid}/items/inbox_1234`).set({
@@ -105,7 +111,15 @@ describe('command router', () => {
     expect(await executeCommandCore(db, landlord, profileCommand, now)).toMatchObject({
       status: 'applied', serverVersion: 2,
     });
-    expect((await db.doc(`users/${landlord.uid}`).get()).data()?.locale).toBe('sw');
+    expect((await db.doc(`users/${landlord.uid}`).get()).data()).toMatchObject({
+      locale: 'sw',
+      notifications: {
+        email: false,
+        push: true,
+        rentReminders: false,
+        maintenanceUpdates: true,
+      },
+    });
 
     const unsupportedLocaleBase = envelope(
       'command_profile_bad_locale',
@@ -249,7 +263,15 @@ describe('command router', () => {
     const archive = envelope('command_user_arch_2', 'user.archive', landlord.uid, 1, { reasonCode: 'POLICY_VIOLATION' });
     expect(await executeCommandCore(db, superAdmin, archive, now)).toMatchObject({ status: 'accepted' });
     expect((await db.doc(`users/${landlord.uid}`).get()).data()).toMatchObject({ status: 'archived', archiveReasonCode: 'POLICY_VIOLATION', version: 2 });
-    expect((await db.doc('backendJobs/command_user_arch_2_disable').get()).data()).toMatchObject({ type: 'setAuthUserDisabled', payload: { uid: landlord.uid, disabled: true } });
+    expect((await db.doc('backendJobs/command_user_arch_2_disable').get()).data()).toMatchObject({
+      type: 'setAuthUserDisabled',
+      payload: {
+        uid: landlord.uid,
+        disabled: true,
+        expectedUserVersion: 2,
+        expectedUserStatus: 'archived',
+      },
+    });
     expect((await db.doc('backendJobs/command_user_arch_2_unpublish').get()).data()).toMatchObject({ type: 'unpublishLandlordListings' });
     const again = envelope('command_user_arch_3', 'user.archive', landlord.uid, 2, { reasonCode: 'POLICY_VIOLATION' });
     expect(await executeCommandCore(db, superAdmin, again, now)).toMatchObject({
@@ -260,7 +282,15 @@ describe('command router', () => {
     const restore = envelope('command_user_rest_1', 'user.restore', landlord.uid, 2, { reasonCode: 'APPEAL_APPROVED' });
     expect(await executeCommandCore(db, superAdmin, restore, now)).toMatchObject({ status: 'accepted' });
     expect((await db.doc(`users/${landlord.uid}`).get()).data()).toMatchObject({ status: 'active', archiveReasonCode: null, version: 3 });
-    expect((await db.doc('backendJobs/command_user_rest_1_enable').get()).data()).toMatchObject({ type: 'setAuthUserDisabled', payload: { uid: landlord.uid, disabled: false } });
+    expect((await db.doc('backendJobs/command_user_rest_1_enable').get()).data()).toMatchObject({
+      type: 'setAuthUserDisabled',
+      payload: {
+        uid: landlord.uid,
+        disabled: false,
+        expectedUserVersion: 3,
+        expectedUserStatus: 'active',
+      },
+    });
 
     // Delete from the archive tombstones the profile and enqueues Auth deletion.
     const rearchive = envelope('command_user_arch_4', 'user.archive', landlord.uid, 3, { reasonCode: 'USER_REQUESTED' });

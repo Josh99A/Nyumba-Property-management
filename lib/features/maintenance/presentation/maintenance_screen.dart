@@ -60,7 +60,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                 primaryAction: FilledButton.icon(
                   onPressed: () => _showNewRequest(context, units, properties),
                   icon: const Icon(Icons.add_rounded),
-                  label: const Text('New request'),
+                  label: const Text.localized('New request'),
                 ),
               ),
               const SizedBox(height: 24),
@@ -72,7 +72,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                 error: (error, stack) => NyumbaSurface(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text('Could not load maintenance requests: $error'),
+                    child: Text.localized(
+                      'Could not load maintenance requests: $error',
+                    ),
                   ),
                 ),
                 data: (requests) => _buildLoaded(context, requests, outbox),
@@ -116,7 +118,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    Text.localized(
                       'Work orders',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
@@ -133,7 +135,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                           'Urgent',
                         ])
                           ChoiceChip(
-                            label: Text(filter),
+                            label: Text.localized(filter),
                             selected: _filter == filter,
                             onSelected: (_) => setState(() => _filter = filter),
                           ),
@@ -147,7 +149,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                 const Padding(
                   padding: EdgeInsets.all(36),
                   child: Center(
-                    child: Text('No work orders match this filter.'),
+                    child: Text.localized('No work orders match this filter.'),
                   ),
                 )
               else
@@ -186,7 +188,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
+            content: Text.localized(
               next == MaintenanceStatus.resolved
                   ? '${request.reference} marked resolved locally — awaiting sync.'
                   : '${request.reference} moved to in progress — awaiting sync.',
@@ -196,9 +198,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
       }
     } on Object catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not update: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text.localized('Could not update: $error')),
+        );
       }
     }
   }
@@ -207,7 +209,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     final assignee = await showDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: Text('Assign ${request.reference}'),
+        title: Text.localized('Assign ${request.reference}'),
         children: [
           for (final contractor in const [
             'Kato Electricals',
@@ -216,7 +218,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
           ])
             SimpleDialogOption(
               onPressed: () => Navigator.pop(context, contractor),
-              child: Text(contractor),
+              child: Text.localized(contractor),
             ),
         ],
       ),
@@ -234,9 +236,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
       );
     } on Object catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          this.context,
-        ).showSnackBar(SnackBar(content: Text('Could not assign: $error')));
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          SnackBar(content: Text.localized('Could not assign: $error')),
+        );
       }
     }
   }
@@ -260,7 +262,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     if (options.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
+          content: Text.localized(
             'Add a property and rental space before logging a request.',
           ),
         ),
@@ -278,7 +280,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Create maintenance request'),
+          title: const Text.localized('Create maintenance request'),
           content: SizedBox(
             width: 480,
             child: Form(
@@ -296,7 +298,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                         for (final option in options)
                           DropdownMenuItem(
                             value: option.unit.id,
-                            child: Text(option.label),
+                            child: Text.localized(option.label),
                           ),
                       ],
                       onChanged: (value) {
@@ -348,15 +350,15 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                       items: const [
                         DropdownMenuItem(
                           value: MaintenancePriority.normal,
-                          child: Text('Normal'),
+                          child: Text.localized('Normal'),
                         ),
                         DropdownMenuItem(
                           value: MaintenancePriority.high,
-                          child: Text('High'),
+                          child: Text.localized('High'),
                         ),
                         DropdownMenuItem(
                           value: MaintenancePriority.urgent,
-                          child: Text('Urgent'),
+                          child: Text.localized('Urgent'),
                         ),
                       ],
                       onChanged: (value) {
@@ -373,7 +375,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () {
@@ -381,7 +383,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                   Navigator.pop(context, true);
                 }
               },
-              child: const Text('Save request'),
+              child: const Text.localized('Save request'),
             ),
           ],
         ),
@@ -404,7 +406,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
         if (mounted) {
           ScaffoldMessenger.of(this.context).showSnackBar(
             const SnackBar(
-              content: Text(
+              content: Text.localized(
                 'Request saved locally and added to the sync queue.',
               ),
             ),
@@ -413,7 +415,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
       } on Object catch (error) {
         if (mounted) {
           ScaffoldMessenger.of(this.context).showSnackBar(
-            SnackBar(content: Text('Could not save the request: $error')),
+            SnackBar(
+              content: Text.localized('Could not save the request: $error'),
+            ),
           );
         }
       }
@@ -485,13 +489,13 @@ class _MaintenanceSummary extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      Text.localized(
                         '${item.$2}',
                         style: Theme.of(
                           context,
                         ).textTheme.headlineSmall?.copyWith(color: item.$4),
                       ),
-                      Text(
+                      Text.localized(
                         item.$1,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
@@ -526,11 +530,16 @@ class _WorkOrderRow extends StatelessWidget {
       tooltip: context.tr('Work order actions'),
       onSelected: (value) => value == 'assign' ? onAssign() : onAdvance(),
       itemBuilder: (_) => [
-        const PopupMenuItem(value: 'assign', child: Text('Assign contractor')),
+        const PopupMenuItem(
+          value: 'assign',
+          child: Text.localized('Assign contractor'),
+        ),
         if (!request.status.isTerminal)
           PopupMenuItem(
             value: 'advance',
-            child: Text(request.status.isOpen ? 'Start work' : 'Mark resolved'),
+            child: Text.localized(
+              request.status.isOpen ? 'Start work' : 'Mark resolved',
+            ),
           ),
       ],
     );
@@ -571,7 +580,7 @@ class _WorkOrderRow extends StatelessWidget {
                 ),
                 Expanded(
                   flex: 3,
-                  child: Text(
+                  child: Text.localized(
                     request.assignee ?? 'Unassigned',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
@@ -594,10 +603,16 @@ class _WorkOrderDetails extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(request.title, style: Theme.of(context).textTheme.titleSmall),
+        Text.localized(
+          request.title,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
         const SizedBox(height: 3),
-        Text(request.location, style: Theme.of(context).textTheme.bodySmall),
-        Text(
+        Text.localized(
+          request.location,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        Text.localized(
           '${request.reference} · ${request.reporterName} · '
           '${DateFormat('d MMM, HH:mm').format(request.reportedAt.toLocal())}',
           style: Theme.of(context).textTheme.bodySmall,

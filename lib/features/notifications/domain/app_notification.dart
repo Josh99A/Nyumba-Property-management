@@ -41,7 +41,13 @@ final class AppNotification {
       'route': route.startsWith('/') && route.length <= 200
           ? null
           : 'must be an app-relative route',
-      'readAt': isRead && readAt == null ? 'is required when read' : null,
+      'readAt': isRead
+          ? readAt == null
+                ? 'is required when read'
+                : null
+          : readAt != null
+          ? 'must be absent when unread'
+          : null,
     });
   }
 

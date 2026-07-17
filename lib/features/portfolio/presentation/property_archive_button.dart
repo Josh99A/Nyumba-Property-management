@@ -26,7 +26,7 @@ class PropertyArchiveButton extends StatelessWidget {
         side: BorderSide(color: context.nyumba.danger),
       ),
       icon: const Icon(Icons.archive_outlined, size: 18),
-      label: const Text('Archive property'),
+      label: const Text.localized('Archive property'),
     );
   }
 
@@ -35,8 +35,8 @@ class PropertyArchiveButton extends StatelessWidget {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Archive rental spaces first'),
-          content: Text(
+          title: const Text.localized('Archive rental spaces first'),
+          content: Text.localized(
             '$propertyName still has $activeRentalSpaceCount active '
             '${activeRentalSpaceCount == 1 ? 'rental space' : 'rental spaces'}. '
             'End any active tenancy, unpublish its listing, and archive each '
@@ -45,7 +45,7 @@ class PropertyArchiveButton extends StatelessWidget {
           actions: [
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Got it'),
+              child: const Text.localized('Got it'),
             ),
           ],
         ),
@@ -56,22 +56,22 @@ class PropertyArchiveButton extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Archive $propertyName?'),
-        content: const Text(
+        title: Text.localized('Archive $propertyName?'),
+        content: const Text.localized(
           'The archive request will be queued. The property stays marked as '
           'archive pending until the server confirms it.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text.localized('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
               backgroundColor: context.nyumba.danger,
             ),
-            child: const Text('Archive property'),
+            child: const Text.localized('Archive property'),
           ),
         ],
       ),

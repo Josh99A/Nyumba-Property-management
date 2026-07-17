@@ -22,6 +22,15 @@ final class NoticeMapper {
 
   static Notice fromJson(Map<String, Object?> json) {
     final reader = JsonReader(json);
+    final audienceTypeName = reader.optionalString('audienceType');
+    final audienceType = audienceTypeName == null
+        ? NoticeAudienceType.allActiveTenants
+        : NoticeAudienceType.values.firstWhere(
+            (value) => value.name == audienceTypeName,
+            orElse: () => throw FormatException(
+              'Unsupported notice audience type: $audienceTypeName.',
+            ),
+          );
     return Notice(
       id: reader.requiredString('id'),
       reference: reader.requiredString('reference'),
@@ -29,10 +38,7 @@ final class NoticeMapper {
       title: reader.requiredString('title'),
       body: reader.requiredString('body'),
       audience: reader.requiredString('audience'),
-      audienceType: NoticeAudienceType.values.firstWhere(
-        (value) => value.name == reader.optionalString('audienceType'),
-        orElse: () => NoticeAudienceType.allActiveTenants,
-      ),
+      audienceType: audienceType,
       audienceId: reader.optionalString('audienceId'),
       status: reader.enumValue('status', NoticeStatus.values),
       createdAt: reader.requiredDate('createdAt'),

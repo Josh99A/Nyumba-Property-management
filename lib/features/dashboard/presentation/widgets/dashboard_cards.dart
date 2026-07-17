@@ -72,7 +72,10 @@ class KpiCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: Theme.of(context).textTheme.bodySmall),
+                    Text.localized(
+                      label,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                     const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
@@ -93,7 +96,7 @@ class KpiCard extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          Text(caption, style: Theme.of(context).textTheme.bodySmall),
+          Text.localized(caption, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
@@ -146,7 +149,7 @@ class OccupancyCard extends StatelessWidget {
             },
           ),
           const SizedBox(height: 14),
-          Text(
+          Text.localized(
             'Occupancy rate across all properties',
             style: Theme.of(context).textTheme.bodySmall,
           ),
@@ -213,9 +216,9 @@ class _LegendItem extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
+            Text.localized(label, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 2),
-            Text(
+            Text.localized(
               value,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: valueColor,
@@ -306,12 +309,12 @@ class _AmountSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        Text.localized(
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
         ),
         const SizedBox(height: 3),
-        Text(
+        Text.localized(
           amount,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: color,
@@ -352,7 +355,7 @@ class _LineLegend extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        Text(label, style: Theme.of(context).textTheme.labelSmall),
+        Text.localized(label, style: Theme.of(context).textTheme.labelSmall),
       ],
     );
   }
@@ -381,7 +384,7 @@ class RecentPaymentsCard extends StatelessWidget {
               title: 'Recent payments',
               trailing: TextButton(
                 onPressed: onViewAll,
-                child: const Text('View all'),
+                child: const Text.localized('View all'),
               ),
             ),
           ),
@@ -400,23 +403,27 @@ class RecentPaymentsCard extends StatelessWidget {
                   horizontalMargin: 20,
                   columnSpacing: 30,
                   columns: const [
-                    DataColumn(label: Text('Tenant')),
-                    DataColumn(label: Text('Rental space')),
-                    DataColumn(label: Text('Property')),
-                    DataColumn(label: Text('Amount')),
-                    DataColumn(label: Text('Date')),
-                    DataColumn(label: Text('Status')),
+                    DataColumn(label: Text.localized('Tenant')),
+                    DataColumn(label: Text.localized('Rental space')),
+                    DataColumn(label: Text.localized('Property')),
+                    DataColumn(label: Text.localized('Amount')),
+                    DataColumn(label: Text.localized('Date')),
+                    DataColumn(label: Text.localized('Status')),
                   ],
                   rows: payments
                       .map(
                         (payment) => DataRow(
                           cells: [
-                            DataCell(Text(payment.tenant)),
-                            DataCell(Text(payment.unit)),
-                            DataCell(Text(payment.property)),
-                            DataCell(Text(formatUgx(payment.amountMinor))),
+                            DataCell(Text.localized(payment.tenant)),
+                            DataCell(Text.localized(payment.unit)),
+                            DataCell(Text.localized(payment.property)),
                             DataCell(
-                              Text(DateFormat('d MMM y').format(payment.date)),
+                              Text.localized(formatUgx(payment.amountMinor)),
+                            ),
+                            DataCell(
+                              Text.localized(
+                                DateFormat('d MMM y').format(payment.date),
+                              ),
                             ),
                             DataCell(_PaymentBadge(state: payment.state)),
                           ],
@@ -434,7 +441,7 @@ class RecentPaymentsCard extends StatelessWidget {
                 onPressed: onViewAll,
                 iconAlignment: IconAlignment.end,
                 icon: const Icon(Icons.arrow_forward_rounded, size: 17),
-                label: const Text('View all payments'),
+                label: const Text.localized('View all payments'),
               ),
             ),
           ),
@@ -476,11 +483,11 @@ class _PaymentListRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                Text.localized(
                   payment.tenant,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                Text(
+                Text.localized(
                   '${payment.unit} · ${payment.property}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -494,13 +501,13 @@ class _PaymentListRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
+                Text.localized(
                   formatUgx(payment.amountMinor),
                   style: Theme.of(context).textTheme.labelLarge,
                   textAlign: TextAlign.end,
                 ),
                 const SizedBox(height: 3),
-                Text(
+                Text.localized(
                   DateFormat('d MMM').format(payment.date),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -560,7 +567,7 @@ class MaintenanceCard extends StatelessWidget {
               title: 'Maintenance',
               trailing: TextButton(
                 onPressed: onViewAll,
-                child: const Text('View all'),
+                child: const Text.localized('View all'),
               ),
             ),
           ),
@@ -572,7 +579,7 @@ class MaintenanceCard extends StatelessWidget {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const StatusBadge(label: 'Urgent (3)', tone: BadgeTone.info),
-                Text(
+                Text.localized(
                   'Open (3)',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: context.nyumba.midnightNavy,
@@ -619,13 +626,16 @@ class _MaintenanceRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.title, style: Theme.of(context).textTheme.titleSmall),
+                Text.localized(
+                  item.title,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(height: 2),
-                Text(
+                Text.localized(
                   '${item.unit} · ${item.property}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                Text(
+                Text.localized(
                   'Reported ${relativeTime(item.reportedAt)} by ${item.reportedBy}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -688,17 +698,17 @@ class ActivityCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          Text.localized(
                             item.title,
                             style: Theme.of(context).textTheme.labelMedium,
                           ),
                           const SizedBox(height: 3),
-                          Text(
+                          Text.localized(
                             item.detail,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                           const SizedBox(height: 6),
-                          Text(
+                          Text.localized(
                             relativeTime(item.at),
                             style: Theme.of(
                               context,
@@ -717,7 +727,7 @@ class ActivityCard extends StatelessWidget {
               onPressed: () => showDialog<void>(
                 context: context,
                 builder: (dialogContext) => AlertDialog(
-                  title: const Text('Activity history'),
+                  title: const Text.localized('Activity history'),
                   content: SizedBox(
                     width: 480,
                     child: ListView.separated(
@@ -729,8 +739,8 @@ class ActivityCard extends StatelessWidget {
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: Icon(item.icon, color: item.tone),
-                          title: Text(item.title),
-                          subtitle: Text(
+                          title: Text.localized(item.title),
+                          subtitle: Text.localized(
                             '${item.detail}\n${relativeTime(item.at)}',
                           ),
                         );
@@ -740,14 +750,14 @@ class ActivityCard extends StatelessWidget {
                   actions: [
                     FilledButton(
                       onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text('Close'),
+                      child: const Text.localized('Close'),
                     ),
                   ],
                 ),
               ),
               iconAlignment: IconAlignment.end,
               icon: const Icon(Icons.arrow_forward_rounded, size: 17),
-              label: const Text('View all activity'),
+              label: const Text.localized('View all activity'),
             ),
           ),
         ],

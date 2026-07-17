@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme/nyumba_colors.dart';
 import '../../core/offline/outbox_entry.dart';
+import '../../core/localization/generated/app_localizations.dart';
 import '../../core/presentation/cloud_status_badge.dart';
 import '../../core/presentation/motion.dart';
 import '../../core/presentation/nyumba_logo.dart';
@@ -160,7 +161,8 @@ class NyumbaAppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionControllerProvider);
     if (session == null) return child;
-    ref.listen(pushInteractionProvider, (_, next) {
+    final copy = AppLocalizations.of(context)!;
+    ref.listen(pushInteractionProvider(copy.newNotification), (_, next) {
       next.whenData((interaction) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!context.mounted) return;
@@ -170,7 +172,7 @@ class NyumbaAppShell extends ConsumerWidget {
           }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
+              content: Text.localized(
                 interaction.body.isEmpty
                     ? interaction.title
                     : '${interaction.title}: ${interaction.body}',
@@ -393,7 +395,7 @@ class _SidebarItemState extends State<_SidebarItem> {
                               color: foreground,
                             ) ??
                             TextStyle(color: foreground),
-                        child: Text(widget.destination.label),
+                        child: Text.localized(widget.destination.label),
                       ),
                     ),
                   ],
@@ -488,7 +490,7 @@ class _SidebarSyncStatus extends ConsumerWidget {
             if (!collapsed) ...[
               const SizedBox(width: 9),
               Expanded(
-                child: Text(
+                child: Text.localized(
                   message,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -525,7 +527,7 @@ class _SidebarProfile extends StatelessWidget {
           value: 'profile',
           child: ListTile(
             leading: Icon(Icons.manage_accounts_outlined),
-            title: Text('Profile settings'),
+            title: Text.localized('Profile settings'),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -533,7 +535,7 @@ class _SidebarProfile extends StatelessWidget {
           value: 'sign-out',
           child: ListTile(
             leading: Icon(Icons.logout_rounded),
-            title: Text('Sign out'),
+            title: Text.localized('Sign out'),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -555,13 +557,13 @@ class _SidebarProfile extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    Text.localized(
                       session.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelMedium,
                     ),
-                    Text(
+                    Text.localized(
                       session.role.label,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -595,7 +597,7 @@ class _DesktopTopBar extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
+            child: Text.localized(
               '${_greeting()}, ${session.firstName}',
               style: Theme.of(context).textTheme.titleLarge,
             ),
@@ -609,14 +611,17 @@ class _DesktopTopBar extends StatelessWidget {
                   final query = value.trim().toLowerCase();
                   if (query.isEmpty) return;
                   final matches = destinations.where(
-                    (item) => item.label.toLowerCase().contains(query),
+                    (item) =>
+                        context.tr(item.label).toLowerCase().contains(query),
                   );
                   if (matches.isNotEmpty) {
                     context.go(matches.first.path);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('No workspace page matches "$value".'),
+                        content: Text.localized(
+                          'No workspace page matches "$value".',
+                        ),
                       ),
                     );
                   }
@@ -699,7 +704,7 @@ class _MobileShell extends ConsumerWidget {
                 value: 'profile',
                 child: ListTile(
                   leading: Icon(Icons.manage_accounts_outlined),
-                  title: Text('Profile settings'),
+                  title: Text.localized('Profile settings'),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -707,7 +712,7 @@ class _MobileShell extends ConsumerWidget {
                 value: 'sign-out',
                 child: ListTile(
                   leading: Icon(Icons.logout_rounded),
-                  title: Text('Sign out'),
+                  title: Text.localized('Sign out'),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -783,7 +788,7 @@ class _Avatar extends StatelessWidget {
               size: radius * 1.1,
               color: scheme.onPrimary,
             )
-          : Text(
+          : Text.localized(
               initials,
               style: Theme.of(
                 context,
@@ -824,7 +829,10 @@ void _showMoreDestinations(
         children: [
           Padding(
             padding: const EdgeInsetsDirectional.fromSTEB(24, 4, 24, 10),
-            child: Text('More', style: Theme.of(context).textTheme.titleLarge),
+            child: Text.localized(
+              'More',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
           ),
           // Staff sessions route eight destinations through this sheet, more
           // than a phone-height sheet can show at once, so the list scrolls
@@ -837,7 +845,7 @@ void _showMoreDestinations(
                 for (final destination in destinations)
                   ListTile(
                     leading: Icon(destination.icon),
-                    title: Text(destination.label),
+                    title: Text.localized(destination.label),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () {
                       Navigator.pop(context);

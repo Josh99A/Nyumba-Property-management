@@ -106,7 +106,7 @@ class _AdminAccessOperationsScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
+              Text.localized(
                 'Filter resources',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
@@ -117,7 +117,7 @@ class _AdminAccessOperationsScreenState
                 children: [
                   for (final filter in _AccessFilter.values)
                     ChoiceChip(
-                      label: Text(filter.label),
+                      label: Text.localized(filter.label),
                       selected: _filter == filter,
                       onSelected: (_) => setState(() => _filter = filter),
                     ),
@@ -132,7 +132,7 @@ class _AdminAccessOperationsScreenState
             child: Padding(
               padding: EdgeInsets.all(28),
               child: Center(
-                child: Text('No resources match this access filter.'),
+                child: Text.localized('No resources match this access filter.'),
               ),
             ),
           )
@@ -212,7 +212,7 @@ class _RoleAccessHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                Text.localized(
                   '${role.label} permissions',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
@@ -220,7 +220,7 @@ class _RoleAccessHero extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
+                Text.localized(
                   isSuperAdmin
                       ? 'Full operational access, including privileged-role '
                             'management. Audit history remains read-only and '
@@ -291,12 +291,12 @@ class _ResourceAccessCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      Text.localized(
                         definition.label,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 3),
-                      Text(
+                      Text.localized(
                         _scopeFor(role, definition.resource),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
@@ -325,11 +325,11 @@ class _ResourceAccessCard extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: () => context.go(definition.route!),
                   icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                  label: const Text('Open workspace'),
+                  label: const Text.localized('Open workspace'),
                 ),
               )
             else
-              Text(
+              Text.localized(
                 operations.isEmpty
                     ? 'This area is protected for ${role.label}.'
                     : 'Managed through controlled server operations.',
@@ -398,7 +398,7 @@ class _OperationChip extends StatelessWidget {
                   : context.nyumba.mutedInk,
             ),
             const SizedBox(width: 5),
-            Text(
+            Text.localized(
               label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: allowed

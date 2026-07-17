@@ -39,7 +39,7 @@ class AdminReportsScreen extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsetsDirectional.fromSTEB(24, 0, 24, 24),
-                child: Text(
+                child: Text.localized(
                   'Per-landlord figures on the landlord dashboard are derived '
                   'from that landlord’s own records and are real today.',
                   textAlign: TextAlign.center,

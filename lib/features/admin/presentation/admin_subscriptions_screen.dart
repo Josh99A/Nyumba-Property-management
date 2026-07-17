@@ -192,14 +192,14 @@ class _AdminSubscriptionsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Confirm payment for ${account.displayName}?'),
+        title: Text.localized('Confirm payment for ${account.displayName}?'),
         content: SizedBox(
           width: 440,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              Text.localized(
                 'This activates the ${account.subscriptionTier ?? 'selected'} '
                 'plan and opens the landlord workspace. Only confirm against '
                 'money you have actually verified.',
@@ -221,7 +221,7 @@ class _AdminSubscriptionsScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: const Text.localized('Cancel'),
           ),
           FilledButton(
             onPressed: () {
@@ -234,7 +234,7 @@ class _AdminSubscriptionsScreenState
               }
               Navigator.pop(dialogContext, true);
             },
-            child: const Text('Confirm payment'),
+            child: const Text.localized('Confirm payment'),
           ),
         ],
       ),
@@ -301,7 +301,7 @@ class _AdminSubscriptionsScreenState
               ),
               const SizedBox(width: 11),
               const Expanded(
-                child: Text(
+                child: Text.localized(
                   'Subscriptions apply to landlords and property managers '
                   'only; tenant and prospective-client access is always free. '
                   'Everything below is seeded demo working state — real '
@@ -335,7 +335,7 @@ class _AdminSubscriptionsScreenState
         Row(
           children: [
             Expanded(
-              child: Text(
+              child: Text.localized(
                 'Draft plan configuration',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
@@ -353,7 +353,9 @@ class _AdminSubscriptionsScreenState
           NyumbaSurface(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('Could not load plan drafts: ${plansValue.error}'),
+              child: Text.localized(
+                'Could not load plan drafts: ${plansValue.error}',
+              ),
             ),
           )
         else
@@ -401,7 +403,7 @@ class _AdminSubscriptionsScreenState
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Edit ${plan.tier} draft'),
+          title: Text.localized('Edit ${plan.tier} draft'),
           content: SizedBox(
             width: 450,
             child: Column(
@@ -427,8 +429,8 @@ class _AdminSubscriptionsScreenState
                 const SizedBox(height: 10),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Plan available'),
-                  subtitle: const Text(
+                  title: const Text.localized('Plan available'),
+                  subtitle: const Text.localized(
                     'Shown as selectable during subscription',
                   ),
                   value: enabled,
@@ -440,7 +442,7 @@ class _AdminSubscriptionsScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () {
@@ -457,7 +459,7 @@ class _AdminSubscriptionsScreenState
                 }
                 Navigator.pop(dialogContext, true);
               },
-              child: const Text('Save draft'),
+              child: const Text.localized('Save draft'),
             ),
           ],
         ),
@@ -509,7 +511,9 @@ class _PendingPaymentsPanel extends StatelessWidget {
       child: accounts.isEmpty
           ? const Padding(
               padding: EdgeInsets.all(12),
-              child: Text('No subscriptions are waiting on a payment.'),
+              child: Text.localized(
+                'No subscriptions are waiting on a payment.',
+              ),
             )
           : Column(
               children: [
@@ -525,11 +529,11 @@ class _PendingPaymentsPanel extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                Text.localized(
                                   account.displayName,
                                   style: Theme.of(context).textTheme.labelLarge,
                                 ),
-                                Text(
+                                Text.localized(
                                   '${account.subscriptionTier ?? 'No tier selected'}'
                                   ' · ${account.subscriptionStatus.label}'
                                   '${account.email.isEmpty ? '' : ' · ${account.email}'}',
@@ -543,7 +547,7 @@ class _PendingPaymentsPanel extends StatelessWidget {
                       final action = FilledButton.icon(
                         onPressed: () => onConfirm(account),
                         icon: const Icon(Icons.price_check_rounded, size: 18),
-                        label: const Text('Confirm payment'),
+                        label: const Text.localized('Confirm payment'),
                       );
                       if (constraints.maxWidth < 560) {
                         return Column(
@@ -595,7 +599,7 @@ class _LiveTierMix extends StatelessWidget {
       child: total == 0
           ? const Padding(
               padding: EdgeInsets.all(12),
-              child: Text('No active subscriptions yet.'),
+              child: Text.localized('No active subscriptions yet.'),
             )
           : Column(
               children: [
@@ -631,7 +635,7 @@ class _ServerCatalogPanel extends ConsumerWidget {
         AsyncValue(hasValue: true, :final value) when value!.isEmpty =>
           const Padding(
             padding: EdgeInsets.all(12),
-            child: Text(
+            child: Text.localized(
               'No public catalog entries are published yet. Entitlements '
               'fail closed until the catalog is seeded.',
             ),
@@ -651,11 +655,11 @@ class _ServerCatalogPanel extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        Text.localized(
                           plan.displayName,
                           style: Theme.of(context).textTheme.labelLarge,
                         ),
-                        Text(
+                        Text.localized(
                           plan.capacityLabel ??
                               'Up to ${plan.unitLimit} rental spaces · '
                                   '${plan.activeListingLimit} active listings',
@@ -673,7 +677,7 @@ class _ServerCatalogPanel extends ConsumerWidget {
         ),
         AsyncValue(:final error?) => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text('Could not read the plan catalog: $error'),
+          child: Text.localized('Could not read the plan catalog: $error'),
         ),
         _ => const Padding(
           padding: EdgeInsets.all(24),
@@ -709,7 +713,9 @@ class _SubscriptionActivityPanel extends StatelessWidget {
           : subscriptionEvents.isEmpty
           ? const Padding(
               padding: EdgeInsets.all(12),
-              child: Text('No subscription commands in the recent audit log.'),
+              child: Text.localized(
+                'No subscription commands in the recent audit log.',
+              ),
             )
           : Column(
               children: [
@@ -731,7 +737,7 @@ class _SubscriptionActivityPanel extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
+                        child: Text.localized(
                           subscriptionEvents[index].action,
                           style: Theme.of(context).textTheme.labelLarge,
                         ),
@@ -785,7 +791,7 @@ class _PlanCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 11),
                 Expanded(
-                  child: Text(
+                  child: Text.localized(
                     plan.tier,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
@@ -795,13 +801,16 @@ class _PlanCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(plan.tagline, style: Theme.of(context).textTheme.bodySmall),
+            Text.localized(
+              plan.tagline,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 14),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Flexible(
-                  child: Text(
+                  child: Text.localized(
                     custom
                         ? 'Custom'
                         : formatAdminUgx(plan.monthlyPriceMinor ~/ 100),
@@ -816,7 +825,7 @@ class _PlanCard extends StatelessWidget {
                       start: 5,
                       bottom: 3,
                     ),
-                    child: Text(
+                    child: Text.localized(
                       '/month (draft)',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -844,7 +853,7 @@ class _PlanCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
+                  child: Text.localized(
                     '${plan.subscribers} seeded subscribers',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
@@ -859,7 +868,7 @@ class _PlanCard extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onEdit,
               icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text('Edit draft'),
+              label: const Text.localized('Edit draft'),
             ),
           ],
         ),
@@ -883,7 +892,10 @@ class _PlanFeature extends StatelessWidget {
           Icon(icon, size: 18, color: context.nyumba.mutedInk),
           const SizedBox(width: 9),
           Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+            child: Text.localized(
+              text,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
         ],
       ),
@@ -905,7 +917,7 @@ class _DemoTierMix extends StatelessWidget {
       child: total == 0
           ? const Padding(
               padding: EdgeInsets.all(12),
-              child: Text('No subscription data yet.'),
+              child: Text.localized('No subscription data yet.'),
             )
           : Column(
               children: [
@@ -990,7 +1002,10 @@ class _GuardrailLine extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+          child: Text.localized(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ),
       ],
     );

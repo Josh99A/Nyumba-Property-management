@@ -171,7 +171,7 @@
     "legacy_df0a5aac1933":  "Obuwandiike obukola",
     "legacy_59a5c54d5f44":  "Obuwandiike obukola okusinziira ku mutendera",
     "legacy_bbdb3cafea65":  "Abapangisa abakola ennyo",
-    "legacy_35aa97b5d006":  "Activity feed yeetaaga live admin session",
+    "legacy_35aa97b5d006":  "Olukalala lw’ebikolebwa lwetaaga omuddukanya abe ayungiddwa ku seva",
     "legacy_409c81e0b451":  "Okwongerako ebifaananyi 1–5. Ekifaananyi ekisookerwako kye kisooka okulabika.",
     "legacy_19271cc17a6a":  "Okwongerako ekifo n’ekifo eky’okupangisa nga tonnawandiika kusaba.",
     "legacy_65da21f513a4":  "Yongera ku bupangisa nga tonnaba kukola kiwandiiko kya mupangisa.",
@@ -194,7 +194,7 @@
     "legacy_af57182af6cc":  "Omuzigo A1",
     "legacy_1eecee53eeeb":  "Endabika teyasobodde kulokolebwa. Nsaba oddemu ogezeeko.",
     "legacy_4ad9787575c1":  "Okusaba nga kulindiridde okusalawo",
-    "legacy_5afdb4123634":  "Approvals zeetaaga live admin session",
+    "legacy_5afdb4123634":  "Okukkiriza kwetaaga omuddukanya abe ayungiddwa ku seva",
     "legacy_7e69169c53b0":  "Okiriza landiroodi ono?",
     "legacy_0e45076864a6":  "Nga. latitude (eky’okwesalirawo) .",
     "legacy_6f3f9072548b":  "Nga. longitude (eky’okwesalirawo) .",
@@ -279,7 +279,7 @@
     "legacy_ab50eb11b4d4":  "Obuwanvu bwa wansi (m2) .",
     "legacy_58b3246548b0":  "Ku muliro, akabi ak’amangu, oba embeera ey’amangu ey’obujjanjabi ey’amaanyi, .",
     "legacy_677c7571b991":  "Okuva mu kiwandiiko ky\u0027okubala ebitabo bya seva",
-    "legacy_ae4f7a8cbc1a":  "Full CRUD",
+    "legacy_ae4f7a8cbc1a":  "Okutondawo, okusoma, okukyusa n’okusiimula byonna",
     "legacy_40c6b37a520b":  "Okukola ebbago ly’ekitundu eritaliiko mukono",
     "legacy_840a9ed3cdca":  "Okukola invoice",
     "legacy_d069a9dcd1a8":  "Yakolebwa kkampuni ya Nyumba Property Management",
@@ -614,4 +614,134 @@
     ,"cloudOfflineMessage": "Tekisobola kutuuka ku Nyumba cloud. Kiraga ebikuumiddwa ku kyuma kino."
     ,"cloudDemoMessage": "Tekikwataganye na pulogekiti ya Nyumba. Bino biwandiiko bya kulabirako ebiri ku kyuma."
     ,"locationAvailableOnRequest": "Ekifo kiweebwa nga kisabiddwa"
+    ,"appearanceSavingOnDevice": "Kiterekebwa ku kyuma kino…"
+    ,"appearanceAppliedOnDevice": "Kikozeseddwa era kiterekeddwa ku kyuma kino."
+    ,"appearanceSaveTryAgain": "Endabika teyasobodde kuterekebwa. Ddamu ogezeeko."
+    ,"appearanceSaveFailed": "Enteekateeka y’endabika eno teyasobodde kuterekebwa."
+    ,"emailDeliveryNotConfigured": "Okuweereza ku imeyilo tekunnateekebwateekebwa."
+    ,"occupancySemantics": "Ebitundu {percentage} ku kikumi eby’ebifo eby’okupangisa birimu abapangisa"
+    ,"@occupancySemantics": {"description": "Screen-reader description for the occupancy chart.", "placeholders": {"percentage": {"type": "int"}}}
+    ,"unreadNotifications": "{count, plural, =1{Obubaka 1 obutasomeddwa} other{Obubaka {count} obutasomeddwa}}"
+    ,"@unreadNotifications": {"description": "Tooltip for the notification bell.", "placeholders": {"count": {"type": "int"}}}
+    ,"closeNotifications": "Ggalawo obubaka"
+    ,"notificationSyncDescription": "Ebipya bikuumibwa ku kyuma kino era bituukana ng’oddamu okuyungibwa."
+    ,"notificationLoadFailed": "Obubaka tebwasobodde kutikkibwa"
+    ,"notificationLocalDataAvailable": "Ebikwata ku kyuma kino ebiriwo bikyaliwo."
+    ,"noNotificationsYet": "Tewali bubaka bunaatuuka"
+    ,"newNotificationsWillAppear": "Ebipya ebya akawunti bijja kulabika wano."
+    ,"notificationMarkReadFailed": "Obubaka buno tebusobodde kuteekebwa nti busomeddwa."
+    ,"newNotification": "Obubaka obupya"
+    ,"confirmed": "Kikakasiddwa"
+    ,"awaitingSync": "Kirindirira okutuukana"
+    ,"paymentStatusDate": "{date} · {status}"
+    ,"@paymentStatusDate": {"description": "Payment date followed by its confirmation state.", "placeholders": {"date": {"type": "String"}, "status": {"type": "String"}}}
+    ,"enterValidAmount": "Yingiza omuwendo omutuufu"
+    ,"giveNoticeClearTitle": "Wa obubaka omutwe ogutegeerekeka"
+    ,"writeNoticeContent": "Wandiika ebiri mu bubaka"
+    ,"couldNotCreateDocument": "Ekiwandiiko tekyasobodde kutondebwa: {error}"
+    ,"@couldNotCreateDocument": {"placeholders": {"error": {"type": "String"}}}
+    ,"loadingProperties": "Eby’obugagga bitikkibwa…"
+    ,"propertiesLoadBeforeNotice": "Eby’obugagga tebiyasobodde kutikkibwa. Ddamu ogezeeko nga tonnateeka bubaka mu lunyiriri."
+    ,"couldNotQueueNotice": "Obubaka tebwasobodde kuteekebwa mu lunyiriri: {error}"
+    ,"@couldNotQueueNotice": {"placeholders": {"error": {"type": "String"}}}
+    ,"enterListingTitle": "Yingiza omutwe gw’olukalala"
+    ,"addUsefulDescription": "Yongerako ennyonnyola ey’omugaso"
+    ,"enterValidRentAmount": "Yingiza omuwendo gw’obupangisa omutuufu"
+    ,"enterCity": "Yingiza ekibuga"
+    ,"enterNeighborhood": "Yingiza ekitundu"
+    ,"enterClearTitle": "Yingiza omutwe ogutegeerekeka"
+    ,"addMoreDetail": "Yongerako ebisingawo katono"
+    ,"enterPublicNeighborhood": "Yingiza ekitundu ekirabibwa bonna"
+    ,"enterPhoneOrEmail": "Yingiza essimu oba imeyilo ey’okuweerezaako ebibuuzo"
+    ,"useUganda256": "Kozesa enkola ya Uganda eya +256"
+    ,"enterValidEmailShort": "Yingiza imeyilo entuufu"
+    ,"enterPositiveWholeNumber": "Yingiza namba enzijuvu esukka ku ziro"
+    ,"enterNonNegativeNumber": "Yingiza ziro oba namba esukka ku ziro"
+    ,"enterValueRange": "Yingiza omuwendo okuva ku {minimum} okutuuka ku {maximum}"
+    ,"@enterValueRange": {"placeholders": {"minimum": {"type": "double"}, "maximum": {"type": "double"}}}
+    ,"enterLandlordAccountId": "Yingiza ID ya akawunti ya landiroodi"
+    ,"enterPropertyName": "Yingiza erinnya ly’eky’obugagga"
+    ,"enterStreetAddress": "Yingiza endagiriro y’oluguudo"
+    ,"enterCityTown": "Yingiza ekibuga oba tawuni"
+    ,"addPropertyPhoto": "Yongerako waakiri ekifaananyi kimu eky’eky’obugagga."
+    ,"enterRentalSpaceLabel": "Yingiza erinnya oba namba y’ekifo eky’okupangisa"
+    ,"requiredField": "Kyetaagisa"
+    ,"maintenanceDetailError": "Yongerako omutwe ogutegeerekeka n’ebisingawo katono."
+    ,"maintenanceTenancyMissing": "Tetunnasobola kufuna bupangisa bwo, n’olwekyo okusaba kuno tekulina gye kugenda. Kujja kukola landiroodi wo ng’amaze okukakasa endagaano yo."
+    ,"maintenanceSaved": "{reference} kiterekeddwa era kiteekeddwa mu lunyiriri lw’okutuukana."
+    ,"@maintenanceSaved": {"placeholders": {"reference": {"type": "String"}}}
+    ,"maintenanceSaveFailed": "Okusaba tekusobodde kuterekebwa: {error}"
+    ,"@maintenanceSaveFailed": {"placeholders": {"error": {"type": "String"}}}
+    ,"pdfIssuedTo": "Kiweereddwa"
+    ,"pdfProperty": "Ekintu ky’obupangisa"
+    ,"pdfDate": "Olunaku"
+    ,"pdfPaymentReceived": "Okusasula kufuniddwa"
+    ,"pdfRentDue": "Obupangisa obusasulwa"
+    ,"pdfDescription": "Ennyonnyola"
+    ,"pdfBillingPeriod": "Ekiseera ky’okusasula"
+    ,"pdfAmount": "Omuwendo"
+    ,"pdfMonthlyRent": "Obupangisa bwa buli mwezi"
+    ,"pdfGeneratedBy": "Kikoleddwa Enzirukanya y’Ebyobupangisa eya Nyumba"
+    ,"pdfKeepForRecords": "Kuuma ekiwandiiko kino mu biwandiiko byo."
+    ,"pdfReceipt": "Lisiiti"
+    ,"pdfInvoice": "Invoyisi"
+    ,"pdfLease": "Endagaano y’obupangisa"
+    ,"pdfNotice": "Obubaka"
+    ,"pdfRentStatement": "Ekiwandiiko ky’obupangisa"
+    ,"pdfPaymentRecord": "Ekiwandiiko ky’okusasula"
+    ,"pdfTenantNotice": "Obubaka eri omupangisa"
+    ,"pdfNotYetIssued": "Tekinnafulumizibwa"
+    ,"pdfPaid": "Kisasuddwa"
+    ,"pdfDue": "Kisasulwa"
+    ,"pdfReceived": "Kifuniddwa"
+    ,"pdfSigned": "Kissiddwako omukono"
+    ,"pdfDraft": "Ebbago"
+    ,"pdfQueuedToSend": "Kirindirira okuweerezebwa"
+    ,"pdfAwaitingConfirmation": "Kirindirira okukakasibwa"
+    ,"pdfRecordedPayments": "{count, plural, =1{Okusasula 1 okuwandiikiddwa} other{Okusasula {count} okuwandiikiddwa}}"
+    ,"@pdfRecordedPayments": {"description": "Dynamic PDF payment-count label.", "placeholders": {"count": {"type": "int"}}}
+    ,"subscriptionPaymentConfirmedWorkspace": "Okusasula kukakasiddwa. Ekifo kyo eky'omupangisa kati kisobola okukozesebwa."
+    ,"subscriptionPaymentNotConfirmed": "Okusasula tekunnakakasibwa."
+    ,"subscriptionPlanSelected": "Enteekateeka ya {planName} erondeddwa. Ekifo kyo kijja kuggulwawo ng'okusasula kwakakasiddwa."
+    ,"@subscriptionPlanSelected": {"placeholders": {"planName": {"type": "String"}}}
+    ,"subscriptionActiveTitle": "Okwewandiisa kwo kukola"
+    ,"subscriptionActiveDescription": "Okusasula kwo kukakasiddwa. Kati osobola okuyingira mu kifo kyo eky'omupangisa."
+    ,"subscriptionGateDescription": "Ekifo kyo kiggulwawo amangu ddala nga Nyumba ekakasizza okusasula kw'okwewandiisa. Abapangisa n'abanoonya ennyumba basigala nga bakozesa bwereere."
+    ,"subscriptionTiers": "Emitendera gy'okwewandiisa"
+    ,"subscriptionChangeActivePlanDescription": "Okukyusa enteekateeka ekola kukolebwa n'okusasula kwo okuddako — tuukirira obuyambi bwa Nyumba."
+    ,"subscriptionChoosePlanDescription": "Londa enteekateeka esaanira eby'obugagga byo. Osobola okugikyusa okutuusa okusasula lwe kukakasibwa, era omuwendo gukakasibwa naawe nga tonnasasula."
+    ,"subscriptionPlanCapacityUnavailable": "Ebikwata ku busobozi bw'enteekateeka tebifuniddwa kati, n'olwekyo tebiragiddwa — tewali kiteeberezebwa ku kyuma kino."
+    ,"subscriptionPaymentConfirmed": "Okusasula kukakasiddwa"
+    ,"subscriptionAwaitingPaymentConfirmation": "Kirindirira okukakasibwa kw'okusasula"
+    ,"subscriptionPaymentPastDue": "Okusasula kuyise ku kiseera"
+    ,"subscriptionCanceled": "Okwewandiisa kusaziddwamu"
+    ,"subscriptionExpired": "Okwewandiisa kuweddeko"
+    ,"subscriptionStatusUnavailable": "Embeera y'okwewandiisa tefuniddwa"
+    ,"subscriptionRequired": "Okwewandiisa kwetaagisa"
+    ,"subscriptionSelectedPlanName": "erondeddwa"
+    ,"subscriptionPendingMessage": "Enteekateeka yo eya {plan} eterekeddwa, naye tewali kusasula kukakasiddwa."
+    ,"@subscriptionPendingMessage": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionPastDueMessage": "Okusasula kw'enteekateeka yo eya {plan} kuyise ku kiseera. Kusasule ekifo kisigale nga kiggule."
+    ,"@subscriptionPastDueMessage": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionCanceledMessage": "Okwewandiisa okupya okusasuliddwa kwetaagisa nga tonnayingira mu kifo."
+    ,"subscriptionExpiredMessage": "Ddamu okwewandiisa nga tonnayingira mu kifo."
+    ,"subscriptionActiveMessage": "Okusasula kw'enteekateeka yo eya {plan} kukakasiddwa."
+    ,"@subscriptionActiveMessage": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionUnverifiedMessage": "Nyumba tesobodde kukakasa kwewandiisa kukola era okusasuliddwa ku akawunti eno."
+    ,"subscriptionHowToPay": "Okusasulira munda mu pulogulaamu kujja mangu. Okukola kati, sasula ng'oyita mu {methods}, oweereze ennamba y'okutunda eri obuyambi bwa Nyumba era olage email y'akawunti yo. Ekifo kyo kiggulwawo amangu ddala nga okusasula kukakasiddwa — teweetaaga kusigala ku muko guno."
+    ,"@subscriptionHowToPay": {"placeholders": {"methods": {"type": "String"}}}
+    ,"subscriptionHowToPayWithEmail": "Okusasulira munda mu pulogulaamu kujja mangu. Okukola kati, sasula ng'oyita mu {methods}, oweereze ennamba y'okutunda eri obuyambi bwa Nyumba era olage email y'akawunti yo ({email}). Ekifo kyo kiggulwawo amangu ddala nga okusasula kukakasiddwa — teweetaaga kusigala ku muko guno."
+    ,"@subscriptionHowToPayWithEmail": {"placeholders": {"methods": {"type": "String"}, "email": {"type": "String"}}}
+    ,"subscriptionEnterWorkspace": "Yingira mu kifo"
+    ,"subscriptionCheckPaymentStatus": "Kebera embeera y'okusasula"
+    ,"subscriptionPlanCapacity": "Okutuuka ku bifo {unitLimit} eby'okupangisa · eby'okulanga {listingLimit} ebikola"
+    ,"@subscriptionPlanCapacity": {"placeholders": {"unitLimit": {"type": "int"}, "listingLimit": {"type": "int"}}}
+    ,"subscriptionStarterPlan": "Entandikwa"
+    ,"subscriptionProPlan": "Pro"
+    ,"subscriptionPremiumPlan": "Premium"
+    ,"subscriptionEnterprisePlan": "Enterprise"
+    ,"subscriptionStarterAudience": "Bannannyini nnyumba ssekinnoomu n'ebitono"
+    ,"subscriptionProAudience": "Bannannyini nnyumba abakula n'ebibinja ebitono"
+    ,"subscriptionPremiumAudience": "Abaddukanya eby'obugagga abakugu"
+    ,"subscriptionEnterpriseAudience": "Ebitongole, amatendekero ne kampuni ennene"
 }

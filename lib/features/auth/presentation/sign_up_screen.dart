@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/google_g_logo.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/nyumba_logo.dart';
@@ -127,12 +128,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       ],
                     ),
                     const SizedBox(height: 36),
-                    Text(
+                    Text.localized(
                       'Create your landlord account',
                       style: Theme.of(context).textTheme.headlineLarge,
                     ),
                     const SizedBox(height: 10),
-                    Text(
+                    Text.localized(
                       'Manage properties, tenants, and payments in one calm '
                       'workspace. Tenants are invited by their landlord and '
                       'do not need to register.',
@@ -234,7 +235,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                       color: Colors.white,
                                     ),
                                   )
-                                : const Text('Create account'),
+                                : const Text.localized('Create account'),
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
@@ -246,11 +247,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Icon(
-                                    Icons.g_mobiledata_rounded,
-                                    size: 26,
-                                  ),
-                            label: Text(
+                                : const GoogleGLogo(),
+                            label: Text.localized(
                               isResolving
                                   ? 'Setting up your account…'
                                   : 'Sign up with Google',
@@ -262,7 +260,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     const SizedBox(height: 18),
                     TextButton(
                       onPressed: () => context.go('/sign-in'),
-                      child: const Text('Already have an account? Sign in'),
+                      child: const Text.localized(
+                        'Already have an account? Sign in',
+                      ),
                     ),
                   ],
                 ),

@@ -176,6 +176,22 @@ void main() {
           'maintenanceUpdates': true,
         },
       });
+
+      final localeOnly = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.userProfile,
+          OutboxOperation.update,
+          payload: const <String, Object?>{'locale': 'sw'},
+        ),
+      );
+      expect(localeOnly.containsKey('expectedVersion'), isFalse);
+      expect(localeOnly['payload'], <String, Object?>{'locale': 'sw'});
+      expect(
+        (localeOnly['payload'] as Map<String, Object?>).containsKey(
+          'notifications',
+        ),
+        isFalse,
+      );
     });
 
     test('notice publication preserves a property audience', () {
@@ -197,6 +213,43 @@ void main() {
         'audience': 'property',
         'audienceId': 'property_1234',
       });
+
+      expect(
+        () => gateway.buildEnvelope(
+          _mutationFor(
+            OfflineEntityType.notice,
+            OutboxOperation.create,
+            payload: const <String, Object?>{
+              'title': 'Unsupported audience',
+              'body': 'This payload must not silently broaden its audience.',
+              'audienceType': 'building',
+              'audienceId': 'building_1234',
+            },
+          ),
+        ),
+        throwsA(
+          isA<RemoteSyncException>().having(
+            (error) => error.retryable,
+            'retryable',
+            isFalse,
+          ),
+        ),
+      );
+      expect(
+        () => gateway.buildEnvelope(
+          _mutationFor(
+            OfflineEntityType.notice,
+            OutboxOperation.create,
+            payload: const <String, Object?>{
+              'title': 'All tenants',
+              'body': 'This payload has an inconsistent audience selector.',
+              'audienceType': 'allActiveTenants',
+              'audienceId': 'property_1234',
+            },
+          ),
+        ),
+        throwsA(isA<RemoteSyncException>()),
+      );
     });
 
     test('tenancy.establish omits openingBalanceMinor when null', () {

@@ -8,6 +8,7 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/theme_mode_controller.dart';
 import '../../../core/domain/sync_metadata.dart';
+import '../../../core/localization/generated/app_localizations.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/responsive.dart';
@@ -44,6 +45,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   bool _saving = false;
   bool _savingAppearance = false;
   String? _appearanceMessage;
+  bool _appearanceSaveSucceeded = false;
 
   @override
   void initState() {
@@ -80,7 +82,9 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     if (loadError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Saved settings could not be loaded on this device.'),
+          content: Text.localized(
+            'Saved settings could not be loaded on this device.',
+          ),
         ),
       );
     }
@@ -126,7 +130,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
+          content: Text.localized(
             'Settings saved on this device and queued for confirmation.',
           ),
         ),
@@ -135,12 +139,14 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ).showSnackBar(SnackBar(content: Text.localized(error.message)));
     } on Object {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Settings could not be saved. Your edits are intact.'),
+          content: Text.localized(
+            'Settings could not be saved. Your edits are intact.',
+          ),
         ),
       );
     } finally {
@@ -150,11 +156,13 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
 
   Future<void> _selectAppearance(ThemePreference preference) async {
     if (_themePreference == preference) return;
+    final copy = AppLocalizations.of(context)!;
     final previous = _themePreference;
     setState(() {
       _themePreference = preference;
       _savingAppearance = true;
-      _appearanceMessage = 'Saving on this device…';
+      _appearanceSaveSucceeded = false;
+      _appearanceMessage = copy.appearanceSavingOnDevice;
     });
     ref.read(themePreferenceProvider.notifier).select(preference);
 
@@ -169,7 +177,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           email: current?.email ?? session.email,
           phone: current?.phone ?? session.phone,
           themePreference: preference,
-          language: current?.language ?? ref.read(localePreferenceProvider),
+          language: ref.read(localePreferenceProvider),
           emailNotifications:
               current?.emailNotifications ?? _emailNotifications,
           pushNotifications: current?.pushNotifications ?? _pushNotifications,
@@ -184,7 +192,10 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       ref.read(themePreferenceProvider.notifier).load(preference);
       setState(() {
         _savingAppearance = false;
-        _appearanceMessage = 'Applied and saved on this device.';
+        _appearanceSaveSucceeded = true;
+        _appearanceMessage = AppLocalizations.of(
+          context,
+        )!.appearanceAppliedOnDevice;
       });
     } on Object catch (error) {
       if (!mounted || _themePreference != preference) return;
@@ -194,15 +205,16 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       // theme changes for every account created without one.
       final reason = error is FormatException && error.message.isNotEmpty
           ? error.message
-          : 'Appearance could not be saved. Please try again.';
+          : AppLocalizations.of(context)!.appearanceSaveTryAgain;
       setState(() {
         _themePreference = previous;
         _savingAppearance = false;
-        _appearanceMessage = 'Could not save this appearance setting.';
+        _appearanceSaveSucceeded = false;
+        _appearanceMessage = AppLocalizations.of(context)!.appearanceSaveFailed;
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(reason)));
+      ).showSnackBar(SnackBar(content: Text.localized(reason)));
     }
   }
 
@@ -237,7 +249,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.save_outlined),
-                label: Text(_saving ? 'Saving…' : 'Save changes'),
+                label: Text.localized(_saving ? 'Saving…' : 'Save changes'),
               ),
             ),
             const SizedBox(height: 24),
@@ -347,11 +359,11 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    Text.localized(
                       'Account role',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    Text(
+                    Text.localized(
                       role[0].toUpperCase() + role.substring(1),
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
@@ -392,17 +404,17 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 ButtonSegment(
                   value: ThemePreference.system,
                   icon: Icon(Icons.brightness_auto_outlined),
-                  label: Text('System'),
+                  label: Text.localized('System'),
                 ),
                 ButtonSegment(
                   value: ThemePreference.light,
                   icon: Icon(Icons.light_mode_outlined),
-                  label: Text('Light'),
+                  label: Text.localized('Light'),
                 ),
                 ButtonSegment(
                   value: ThemePreference.dark,
                   icon: Icon(Icons.dark_mode_outlined),
-                  label: Text('Dark'),
+                  label: Text.localized('Dark'),
                 ),
               ],
               selected: {_themePreference},
@@ -419,17 +431,17 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     )
                   else
                     Icon(
-                      _appearanceMessage!.startsWith('Applied')
+                      _appearanceSaveSucceeded
                           ? Icons.check_circle_outline_rounded
                           : Icons.error_outline_rounded,
                       size: 17,
-                      color: _appearanceMessage!.startsWith('Applied')
+                      color: _appearanceSaveSucceeded
                           ? context.nyumba.sageDark
                           : context.nyumba.danger,
                     ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
+                    child: Text.localized(
                       _appearanceMessage!,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -470,7 +482,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               title: 'Email notifications',
               subtitle: _emailDeliveryConfigured
                   ? 'Receive important account updates by email.'
-                  : 'Email delivery is not configured yet.',
+                  : AppLocalizations.of(context)!.emailDeliveryNotConfigured,
               value: _emailNotifications,
               onChanged: _emailDeliveryConfigured
                   ? (value) => setState(() => _emailNotifications = value)
@@ -507,8 +519,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     required ValueChanged<bool>? onChanged,
   }) => SwitchListTile.adaptive(
     contentPadding: EdgeInsets.zero,
-    title: Text(title, style: Theme.of(context).textTheme.titleSmall),
-    subtitle: Text(subtitle),
+    title: Text.localized(title, style: Theme.of(context).textTheme.titleSmall),
+    subtitle: Text.localized(subtitle),
     value: value,
     onChanged: onChanged,
   );

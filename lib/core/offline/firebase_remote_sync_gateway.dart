@@ -168,6 +168,49 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
     List<String> stagedPaths(int limit) => _stringList(
       payload['stagedImagePaths'] ?? payload['imageUrls'],
     ).where((path) => path.startsWith('uploads/')).take(limit).toList();
+    final notificationPreferences = <String, Object?>{
+      if (payload['emailNotifications'] != null)
+        'email': payload['emailNotifications'],
+      if (payload['pushNotifications'] != null)
+        'push': payload['pushNotifications'],
+      if (payload['rentReminders'] != null)
+        'rentReminders': payload['rentReminders'],
+      if (payload['maintenanceUpdates'] != null)
+        'maintenanceUpdates': payload['maintenanceUpdates'],
+    };
+
+    _RemoteCommand noticePublicationCommand() {
+      final audienceType = payload['audienceType'];
+      final audience = switch (audienceType) {
+        null || 'allActiveTenants' => 'all_active_tenants',
+        'property' => 'property',
+        'lease' => 'lease',
+        _ => throw RemoteSyncException(
+          'Unsupported notice audience type: $audienceType.',
+          retryable: false,
+        ),
+      };
+      final audienceId = payload['audienceId'];
+      if (audience == 'all_active_tenants' && audienceId != null) {
+        throw const RemoteSyncException(
+          'All-tenant notices cannot include an audience ID.',
+          retryable: false,
+        );
+      }
+      if (audience != 'all_active_tenants' &&
+          (audienceId is! String || audienceId.trim().isEmpty)) {
+        throw const RemoteSyncException(
+          'Scoped notices require an audience ID.',
+          retryable: false,
+        );
+      }
+      return _RemoteCommand('notice.publish', <String, Object?>{
+        'title': payload['title'],
+        'body': payload['body'],
+        'audience': audience,
+        'audienceId': ?audienceId,
+      });
+    }
 
     return switch ((mutation.entityType, mutation.operation)) {
       (OfflineEntityType.userProfile, OutboxOperation.update) => _RemoteCommand(
@@ -175,12 +218,8 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         <String, Object?>{
           ...pick(['displayName', 'phone']),
           ...pick(['locale']),
-          'notifications': <String, Object?>{
-            'email': payload['emailNotifications'] ?? true,
-            'push': payload['pushNotifications'] ?? true,
-            'rentReminders': payload['rentReminders'] ?? true,
-            'maintenanceUpdates': payload['maintenanceUpdates'] ?? true,
-          },
+          if (notificationPreferences.isNotEmpty)
+            'notifications': notificationPreferences,
         },
       ),
       (OfflineEntityType.property, OutboxOperation.create) => _RemoteCommand(
@@ -338,17 +377,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
           if (payload['statusNote'] != null) 'note': payload['statusNote'],
         }),
       (OfflineEntityType.notice, OutboxOperation.create) =>
-        _RemoteCommand('notice.publish', <String, Object?>{
-          'title': payload['title'],
-          'body': payload['body'],
-          'audience': switch (payload['audienceType']) {
-            'property' => 'property',
-            'lease' => 'lease',
-            _ => 'all_active_tenants',
-          },
-          if (payload['audienceId'] != null)
-            'audienceId': payload['audienceId'],
-        }),
+        noticePublicationCommand(),
       (OfflineEntityType.notification, OutboxOperation.update) =>
         const _RemoteCommand('notification.markRead', <String, Object?>{}),
       _ => throw RemoteSyncException(

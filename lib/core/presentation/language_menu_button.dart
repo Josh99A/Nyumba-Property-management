@@ -28,7 +28,9 @@ class LanguageMenuButton extends ConsumerWidget {
         } on Object {
           if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.l10n.key('languageSaveFailed'))),
+            SnackBar(
+              content: Text.localized(context.l10n.key('languageSaveFailed')),
+            ),
           );
         }
       },
@@ -45,7 +47,7 @@ class LanguageMenuButton extends ConsumerWidget {
                       : null,
                 ),
                 const SizedBox(width: 10),
-                Text(language.nativeName),
+                Text.localized(language.nativeName),
               ],
             ),
           ),
@@ -66,13 +68,13 @@ class LanguageMenuButton extends ConsumerWidget {
           child: Row(
             mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
             children: [
-              const Icon(Icons.language_rounded, size: 20),
+              const Icon(Icons.translate_rounded, size: 20),
               if (!compact) ...[
                 const SizedBox(width: 9),
                 if (expanded)
-                  Expanded(child: Text(selected.nativeName))
+                  Expanded(child: Text.localized(selected.nativeName))
                 else
-                  Text(selected.nativeName),
+                  Text.localized(selected.nativeName),
               ],
               if (!compact) const Icon(Icons.arrow_drop_down_rounded),
             ],

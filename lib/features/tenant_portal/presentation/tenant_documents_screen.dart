@@ -190,12 +190,12 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
           '$offlineCount documents are stored for offline access.',
         ),
         icon: const Icon(Icons.offline_pin_outlined),
-        label: const Text('Offline files'),
+        label: const Text.localized('Offline files'),
       ),
       primaryAction: FilledButton.icon(
         onPressed: _requestDocument,
         icon: const Icon(Icons.note_add_outlined),
-        label: const Text('Request document'),
+        label: const Text.localized('Request document'),
       ),
       children: [
         TenantMetricGrid(
@@ -270,14 +270,14 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
                     'Reports',
                   ])
                     ChoiceChip(
-                      label: Text(category),
+                      label: Text.localized(category),
                       selected: _category == category,
                       showCheckmark: false,
                       onSelected: (_) => setState(() => _category = category),
                     ),
                   FilterChip(
                     avatar: const Icon(Icons.star_outline_rounded, size: 18),
-                    label: const Text('Starred'),
+                    label: const Text.localized('Starred'),
                     selected: _favoritesOnly,
                     onSelected: (value) =>
                         setState(() => _favoritesOnly = value),
@@ -291,7 +291,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
         Row(
           children: [
             Expanded(
-              child: Text(
+              child: Text.localized(
                 '${filtered.length} document${filtered.length == 1 ? '' : 's'}',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
@@ -312,7 +312,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
               icon: Icons.folder_off_outlined,
               action: OutlinedButton(
                 onPressed: _clearFilters,
-                child: const Text('Clear filters'),
+                child: const Text.localized('Clear filters'),
               ),
             ),
           )
@@ -388,14 +388,14 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Request a document'),
+          title: const Text.localized('Request a document'),
           content: SizedBox(
             width: 470,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
+                Text.localized(
                   'Document type',
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
@@ -411,7 +411,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
                       'Other',
                     ])
                       ChoiceChip(
-                        label: Text(item),
+                        label: Text.localized(item),
                         selected: type == item,
                         showCheckmark: false,
                         onSelected: (_) => setDialogState(() => type = item),
@@ -442,7 +442,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
                     ),
                     SizedBox(width: 8),
                     Expanded(
-                      child: Text(
+                      child: Text.localized(
                         'The request saves locally and will send to your '
                         'property manager when connected.',
                       ),
@@ -455,12 +455,12 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton.icon(
               onPressed: () => Navigator.pop(dialogContext, true),
               icon: const Icon(Icons.send_rounded),
-              label: const Text('Send request'),
+              label: const Text.localized('Send request'),
             ),
           ],
         ),
@@ -525,11 +525,11 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          Text.localized(
                             document.title,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          Text(
+                          Text.localized(
                             '${document.reference} • ${document.date}',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
@@ -564,7 +564,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
                           ? null
                           : () => _shareDocument(document),
                       icon: const Icon(Icons.download_outlined),
-                      label: const Text('Download / share'),
+                      label: const Text.localized('Download / share'),
                     ),
                     const SizedBox(width: 9),
                     FilledButton.icon(
@@ -572,7 +572,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
                           ? null
                           : () => _printDocument(document),
                       icon: const Icon(Icons.print_outlined),
-                      label: const Text('Print'),
+                      label: const Text.localized('Print'),
                     ),
                   ],
                 ),
@@ -645,21 +645,21 @@ class _PinnedLeaseCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    Text.localized(
                       document.title,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: Colors.white.withValues(alpha: .75),
                       ),
                     ),
                     const SizedBox(height: 3),
-                    Text(
+                    Text.localized(
                       '${document.propertyName} • ${document.unitLabel}',
                       style: Theme.of(
                         context,
                       ).textTheme.titleLarge?.copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    Text.localized(
                       '${document.date} • ${document.status}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.white.withValues(alpha: .72),
@@ -677,7 +677,7 @@ class _PinnedLeaseCard extends StatelessWidget {
             ),
             onPressed: onOpen,
             icon: const Icon(Icons.visibility_outlined),
-            label: const Text('Open lease'),
+            label: const Text.localized('Open lease'),
           );
           if (constraints.maxWidth < 650) {
             return Column(
@@ -759,12 +759,12 @@ class _DocumentCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 15),
-            Text(
+            Text.localized(
               document.title,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 4),
-            Text(
+            Text.localized(
               '${document.reference} • ${document.date}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -783,7 +783,7 @@ class _DocumentCard extends StatelessWidget {
             const SizedBox(height: 28),
             Row(
               children: [
-                Text(
+                Text.localized(
                   '${document.format} • ${document.size}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -800,11 +800,11 @@ class _DocumentCard extends StatelessWidget {
                   itemBuilder: (context) => [
                     const PopupMenuItem(
                       value: 'open',
-                      child: Text('Open document'),
+                      child: Text.localized('Open document'),
                     ),
                     PopupMenuItem(
                       value: 'offline',
-                      child: Text(
+                      child: Text.localized(
                         document.offline
                             ? 'Remove offline copy'
                             : 'Make available offline',
@@ -849,7 +849,7 @@ class _DocumentPreview extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
+                child: Text.localized(
                   'NYUMBA PROPERTY MANAGEMENT',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: context.nyumba.midnightNavy,
@@ -860,19 +860,19 @@ class _DocumentPreview extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 26),
-          Text(
+          Text.localized(
             document.title.toUpperCase(),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
-          Text(
+          Text.localized(
             document.reference,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 28),
-          Text(document.description),
+          Text.localized(document.description),
           const SizedBox(height: 18),
           TenantInfoRow(
             icon: Icons.person_outline_rounded,
@@ -894,7 +894,7 @@ class _DocumentPreview extends StatelessWidget {
           const SizedBox(height: 26),
           Container(height: 1, color: context.nyumba.outline),
           const SizedBox(height: 13),
-          Text(
+          Text.localized(
             'Verified digital copy • ${document.reference}',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,

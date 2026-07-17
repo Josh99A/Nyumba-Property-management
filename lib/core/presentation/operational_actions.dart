@@ -16,12 +16,12 @@ Future<void> showNyumbaInfoDialog(
     context: context,
     builder: (dialogContext) => AlertDialog(
       icon: Icon(icon),
-      title: Text(title),
-      content: Text(message),
+      title: Text.localized(title),
+      content: Text.localized(message),
       actions: [
         FilledButton(
           onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Done'),
+          child: const Text.localized('Done'),
         ),
       ],
     ),

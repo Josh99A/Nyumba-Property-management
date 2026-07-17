@@ -71,7 +71,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                 primaryAction: FilledButton.icon(
                   onPressed: () => _showAddTenant(context, units, properties),
                   icon: const Icon(Icons.person_add_alt_1_rounded),
-                  label: const Text('Add tenant'),
+                  label: const Text.localized('Add tenant'),
                 ),
               ),
               const SizedBox(height: 24),
@@ -83,7 +83,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                 error: (error, stack) => NyumbaSurface(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text('Could not load tenants: $error'),
+                    child: Text.localized('Could not load tenants: $error'),
                   ),
                 ),
                 data: (tenancies) => _buildLoaded(context, tenancies, outbox),
@@ -171,7 +171,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
+                      child: Text.localized(
                         'Tenant directory',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
@@ -195,7 +195,9 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
               if (filtered.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(36),
-                  child: Center(child: Text('No tenants match your search.')),
+                  child: Center(
+                    child: Text.localized('No tenants match your search.'),
+                  ),
                 )
               else
                 for (final tenancy in filtered)
@@ -229,7 +231,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
     if (vacantUnits.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
+          content: Text.localized(
             'No vacant rental spaces are available for a new tenancy.',
           ),
         ),
@@ -246,7 +248,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add tenant'),
+          title: const Text.localized('Add tenant'),
           content: SizedBox(
             width: 460,
             child: Form(
@@ -292,7 +294,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                       for (final unit in vacantUnits)
                         DropdownMenuItem(
                           value: unit.id,
-                          child: Text(
+                          child: Text.localized(
                             '${unit.displayName} · '
                             '${propertyById[unit.propertyId]?.name ?? 'Property'}',
                           ),
@@ -314,7 +316,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () {
@@ -322,7 +324,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                   Navigator.pop(context, true);
                 }
               },
-              child: const Text('Create tenant'),
+              child: const Text.localized('Create tenant'),
             ),
           ],
         ),
@@ -352,7 +354,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(this.context).showSnackBar(
             const SnackBar(
-              content: Text(
+              content: Text.localized(
                 'Tenant saved locally. Invitation will send when online.',
               ),
             ),
@@ -361,7 +363,9 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
       } on Object catch (error) {
         if (mounted) {
           ScaffoldMessenger.of(this.context).showSnackBar(
-            SnackBar(content: Text('Could not create the tenancy: $error')),
+            SnackBar(
+              content: Text.localized('Could not create the tenancy: $error'),
+            ),
           );
         }
       }
@@ -398,13 +402,16 @@ class _TenantMetric extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              Text.localized(
                 value,
                 style: Theme.of(
                   context,
                 ).textTheme.headlineSmall?.copyWith(color: tone),
               ),
-              Text(label, style: Theme.of(context).textTheme.bodySmall),
+              Text.localized(
+                label,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         ],
@@ -458,7 +465,9 @@ class _TenantRow extends StatelessWidget {
                 Expanded(flex: 4, child: _TenantIdentity(tenancy: tenancy)),
                 Expanded(
                   flex: 3,
-                  child: Text('${tenancy.unitLabel} · ${tenancy.propertyName}'),
+                  child: Text.localized(
+                    '${tenancy.unitLabel} · ${tenancy.propertyName}',
+                  ),
                 ),
                 Expanded(
                   flex: 2,
@@ -469,7 +478,7 @@ class _TenantRow extends StatelessWidget {
                 ),
                 Expanded(
                   flex: 2,
-                  child: Text(
+                  child: Text.localized(
                     'Ends ${DateFormat('d MMM y').format(tenancy.leaseEnd.toLocal())}',
                   ),
                 ),
@@ -489,7 +498,7 @@ Future<void> _showTenantDetails(BuildContext context, Tenancy tenancy) {
   return showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: Text(tenancy.tenantName),
+      title: Text.localized(tenancy.tenantName),
       content: SizedBox(
         width: 440,
         child: Column(
@@ -497,21 +506,25 @@ Future<void> _showTenantDetails(BuildContext context, Tenancy tenancy) {
           children: [
             ListTile(
               leading: const Icon(Icons.home_outlined),
-              title: Text('${tenancy.unitLabel} · ${tenancy.propertyName}'),
-              subtitle: Text(
+              title: Text.localized(
+                '${tenancy.unitLabel} · ${tenancy.propertyName}',
+              ),
+              subtitle: Text.localized(
                 '${DateFormat('d MMM y').format(tenancy.leaseStart.toLocal())} – '
                 '${DateFormat('d MMM y').format(tenancy.leaseEnd.toLocal())}',
               ),
             ),
             ListTile(
               leading: const Icon(Icons.email_outlined),
-              title: Text(tenancy.email),
-              subtitle: Text(tenancy.phone),
+              title: Text.localized(tenancy.email),
+              subtitle: Text.localized(tenancy.phone),
             ),
             ListTile(
               leading: const Icon(Icons.account_balance_wallet_outlined),
-              title: Text(_ugx.format(tenancy.monthlyRentMinor / 100)),
-              subtitle: Text(
+              title: Text.localized(
+                _ugx.format(tenancy.monthlyRentMinor / 100),
+              ),
+              subtitle: Text.localized(
                 tenancy.balanceDue
                     ? '${_ugx.format(tenancy.balanceMinor / 100)} awaiting payment'
                     : 'Balance up to date',
@@ -523,7 +536,7 @@ Future<void> _showTenantDetails(BuildContext context, Tenancy tenancy) {
       actions: [
         FilledButton(
           onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Close'),
+          child: const Text.localized('Close'),
         ),
       ],
     ),
@@ -549,7 +562,7 @@ class _TenantIdentity extends StatelessWidget {
         CircleAvatar(
           backgroundColor: context.nyumba.navyTint,
           foregroundColor: context.nyumba.midnightNavy,
-          child: Text(
+          child: Text.localized(
             initials,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: context.nyumba.midnightNavy,
@@ -561,11 +574,11 @@ class _TenantIdentity extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              Text.localized(
                 tenancy.tenantName,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
-              Text(
+              Text.localized(
                 tenancy.email,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

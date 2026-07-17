@@ -101,7 +101,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 primaryAction: FilledButton.icon(
                   onPressed: () => _createDocument(context, tenancies),
                   icon: const Icon(Icons.note_add_outlined),
-                  label: const Text('Create document'),
+                  label: const Text.localized('Create document'),
                 ),
               ),
               const SizedBox(height: 24),
@@ -113,7 +113,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 error: (error, stack) => NyumbaSurface(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text('Could not load documents: $error'),
+                    child: Text.localized('Could not load documents: $error'),
                   ),
                 ),
                 data: (documents) => _buildLoaded(
@@ -232,7 +232,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   'Notice',
                 ])
                   ChoiceChip(
-                    label: Text(filter),
+                    label: Text.localized(filter),
                     selected: _filter == filter,
                     onSelected: (_) => setState(() => _filter = filter),
                   ),
@@ -243,7 +243,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           if (filtered.isEmpty)
             const Padding(
               padding: EdgeInsets.all(40),
-              child: Center(child: Text('No documents in this category yet.')),
+              child: Center(
+                child: Text.localized('No documents in this category yet.'),
+              ),
             )
           else
             for (final entry in filtered)
@@ -265,7 +267,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     } on Object catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not print ${entry.number}: $error')),
+          SnackBar(
+            content: Text.localized('Could not print ${entry.number}: $error'),
+          ),
         );
       }
     } finally {
@@ -280,7 +284,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     } on Object catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not share ${entry.number}: $error')),
+          SnackBar(
+            content: Text.localized('Could not share ${entry.number}: $error'),
+          ),
         );
       }
     } finally {
@@ -299,7 +305,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
+              Text.localized(
                 'Create document',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
@@ -309,8 +315,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 leading: const CircleAvatar(
                   child: Icon(Icons.receipt_long_outlined),
                 ),
-                title: const Text('Rent invoice'),
-                subtitle: const Text('Create a local draft awaiting sync'),
+                title: const Text.localized('Rent invoice'),
+                subtitle: const Text.localized(
+                  'Create a local draft awaiting sync',
+                ),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
                   Navigator.pop(context);
@@ -325,8 +333,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 leading: const CircleAvatar(
                   child: Icon(Icons.handshake_outlined),
                 ),
-                title: const Text('Lease agreement'),
-                subtitle: const Text('Generate an unsigned local draft'),
+                title: const Text.localized('Lease agreement'),
+                subtitle: const Text.localized(
+                  'Generate an unsigned local draft',
+                ),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
                   Navigator.pop(context);
@@ -345,7 +355,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                     color: context.nyumba.midnightNavy,
                   ),
                 ),
-                title: const Text('Tenant notice'),
+                title: const Text.localized('Tenant notice'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
                   Navigator.pop(context);
@@ -366,7 +376,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     if (tenancies.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Add a tenancy before creating a tenant document.'),
+          content: Text.localized(
+            'Add a tenancy before creating a tenant document.',
+          ),
         ),
       );
       return;
@@ -382,7 +394,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Create ${type.label.toLowerCase()} draft'),
+          title: Text.localized('Create ${type.label.toLowerCase()} draft'),
           content: SizedBox(
             width: 470,
             child: Form(
@@ -429,13 +441,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                           (value ?? '').replaceAll(',', '').trim(),
                         );
                         return parsed == null || parsed <= 0
-                            ? 'Enter a valid amount'
+                            ? context.tr('Enter a valid amount')
                             : null;
                       },
                     ),
                   ],
                   const SizedBox(height: 14),
-                  const Text(
+                  const Text.localized(
                     'This creates a local draft and queues it for server '
                     'confirmation. It is not yet issued or signed.',
                   ),
@@ -446,7 +458,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () {
@@ -454,7 +466,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   Navigator.pop(dialogContext, true);
                 }
               },
-              child: const Text('Save draft'),
+              child: const Text.localized('Save draft'),
             ),
           ],
         ),
@@ -480,7 +492,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
+              content: Text.localized(
                 '${type.label} draft saved locally and queued to sync.',
               ),
             ),
@@ -489,7 +501,11 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       } on Object catch (error) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not create the document: $error')),
+            SnackBar(
+              content: Text(
+                context.tr('Could not create the document: $error'),
+              ),
+            ),
           );
         }
       }
@@ -501,105 +517,134 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     final formKey = GlobalKey<FormState>();
     final title = TextEditingController();
     final body = TextEditingController();
-    final properties =
-        ref
-            .read(portfolioPropertiesProvider)
-            .value
-            ?.where((property) => !property.isArchived)
-            .toList(growable: false) ??
-        const <Property>[];
     var audienceId = '';
+    Property? selectedProperty;
+    final allTenantsLabel = context.tr('All tenants');
     final created = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('New tenant notice'),
-          content: SizedBox(
-            width: 480,
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    controller: title,
-                    decoration: InputDecoration(labelText: context.tr('Title')),
-                    validator: (value) => (value?.trim().length ?? 0) < 4
-                        ? 'Give the notice a clear title'
-                        : null,
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: body,
-                    minLines: 3,
-                    maxLines: 6,
-                    decoration: InputDecoration(
-                      labelText: context.tr('Notice text'),
-                      alignLabelWithHint: true,
-                    ),
-                    validator: (value) => (value?.trim().length ?? 0) < 10
-                        ? 'Write the notice content'
-                        : null,
-                  ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    initialValue: audienceId,
-                    decoration: InputDecoration(
-                      labelText: context.tr('Audience'),
-                    ),
-                    // Only this landlord's own properties can be addressed; a
-                    // fixed list would offer estates they do not own.
-                    items: [
-                      const DropdownMenuItem(
-                        value: '',
-                        child: Text('All tenants'),
-                      ),
-                      for (final property in properties)
-                        DropdownMenuItem(
-                          value: property.id,
-                          child: Text(property.name),
+      builder: (dialogContext) => Consumer(
+        builder: (context, ref, _) {
+          final propertiesValue = ref.watch(portfolioPropertiesProvider);
+          final properties =
+              propertiesValue.value
+                  ?.where((property) => !property.isArchived)
+                  .toList(growable: false) ??
+              const <Property>[];
+          final portfolioResolved = propertiesValue.hasValue;
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: const Text.localized('New tenant notice'),
+              content: SizedBox(
+                width: 480,
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextFormField(
+                        controller: title,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Title'),
                         ),
+                        validator: (value) => (value?.trim().length ?? 0) < 4
+                            ? context.tr('Give the notice a clear title')
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: body,
+                        minLines: 3,
+                        maxLines: 6,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Notice text'),
+                          alignLabelWithHint: true,
+                        ),
+                        validator: (value) => (value?.trim().length ?? 0) < 10
+                            ? context.tr('Write the notice content')
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+                      if (!portfolioResolved && propertiesValue.isLoading) ...[
+                        const LinearProgressIndicator(),
+                        const SizedBox(height: 10),
+                        Text.localized('Loading properties…'),
+                      ] else if (!portfolioResolved &&
+                          propertiesValue.hasError) ...[
+                        Text.localized(
+                          'Properties could not be loaded. Try again before queuing this notice.',
+                          style: TextStyle(color: context.nyumba.danger),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      DropdownButtonFormField<String>(
+                        initialValue: audienceId,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Audience'),
+                        ),
+                        // Only this landlord's own properties can be addressed; a
+                        // fixed list would offer estates they do not own.
+                        items: [
+                          const DropdownMenuItem(
+                            value: '',
+                            child: Text.localized('All tenants'),
+                          ),
+                          for (final property in properties)
+                            DropdownMenuItem(
+                              value: property.id,
+                              child: Text(property.name),
+                            ),
+                        ],
+                        onChanged: !portfolioResolved
+                            ? null
+                            : (value) {
+                                if (value != null) {
+                                  setDialogState(() {
+                                    audienceId = value;
+                                    selectedProperty = null;
+                                    for (final property in properties) {
+                                      if (property.id == value) {
+                                        selectedProperty = property;
+                                        break;
+                                      }
+                                    }
+                                  });
+                                }
+                              },
+                      ),
                     ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() => audienceId = value);
-                      }
-                    },
                   ),
-                ],
+                ),
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text.localized('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: !portfolioResolved
+                      ? null
+                      : () {
+                          if (formKey.currentState!.validate()) {
+                            Navigator.pop(context, true);
+                          }
+                        },
+                  child: const Text.localized('Queue notice'),
+                ),
+              ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  Navigator.pop(context, true);
-                }
-              },
-              child: const Text('Queue notice'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
     if (created == true) {
       try {
-        Property? selectedProperty;
-        for (final property in properties) {
-          if (property.id == audienceId) selectedProperty = property;
-        }
         await ref.read(createNoticeProvider)(
           CreateNoticeInput(
             landlordId: _landlordId,
             title: title.text.trim(),
             body: body.text.trim(),
-            audience: selectedProperty?.name ?? 'All tenants',
+            audience: selectedProperty?.name ?? allTenantsLabel,
             audienceType: selectedProperty == null
                 ? NoticeAudienceType.allActiveTenants
                 : NoticeAudienceType.property,
@@ -609,7 +654,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
+              content: Text.localized(
                 'Notice queued locally. It sends after the next sync.',
               ),
             ),
@@ -618,7 +663,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       } on Object catch (error) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not queue the notice: $error')),
+            SnackBar(
+              content: Text(context.tr('Could not queue the notice: $error')),
+            ),
           );
         }
       }

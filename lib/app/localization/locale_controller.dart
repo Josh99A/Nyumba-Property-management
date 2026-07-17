@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/domain/sync_metadata.dart';
@@ -31,6 +33,83 @@ final localePreferenceProvider =
     NotifierProvider<LocalePreferenceController, AppLanguage>(
       LocalePreferenceController.new,
     );
+
+enum LocaleReconciliationStatus { idle, pending, confirmed, rejected }
+
+final class LocaleReconciliationState {
+  const LocaleReconciliationState({
+    this.status = LocaleReconciliationStatus.idle,
+    this.userId,
+    this.error,
+  });
+
+  final LocaleReconciliationStatus status;
+  final String? userId;
+  final Object? error;
+}
+
+final localeReconciliationProvider =
+    NotifierProvider<LocaleReconciliationController, LocaleReconciliationState>(
+      LocaleReconciliationController.new,
+    );
+
+/// Owns the observable outcome of reconciling the device locale to the
+/// server profile. A rejected attempt stays retryable for the same session;
+/// callers do not need to wait for another auth-state transition.
+class LocaleReconciliationController
+    extends Notifier<LocaleReconciliationState> {
+  int _generation = 0;
+
+  @override
+  LocaleReconciliationState build() => const LocaleReconciliationState();
+
+  void reconcileCurrentSession() {
+    final session = ref.read(sessionControllerProvider);
+    final generation = ++_generation;
+    if (session == null || session.isDemo || session.isAnonymous) {
+      state = LocaleReconciliationState(
+        status: LocaleReconciliationStatus.confirmed,
+        userId: session?.userId,
+      );
+      return;
+    }
+    final userId = session.userId;
+    state = LocaleReconciliationState(
+      status: LocaleReconciliationStatus.pending,
+      userId: userId,
+    );
+    unawaited(_run(userId, generation));
+  }
+
+  void retry() {
+    if (state.status != LocaleReconciliationStatus.rejected) return;
+    final session = ref.read(sessionControllerProvider);
+    if (session == null || session.userId != state.userId) return;
+    reconcileCurrentSession();
+  }
+
+  Future<void> _run(String userId, int generation) async {
+    try {
+      await ref.read(localePreferenceProvider.notifier).reconcileServerLocale();
+      if (generation != _generation) return;
+      final session = ref.read(sessionControllerProvider);
+      if (session?.userId != userId) return;
+      state = LocaleReconciliationState(
+        status: LocaleReconciliationStatus.confirmed,
+        userId: userId,
+      );
+    } on Object catch (error) {
+      if (generation != _generation) return;
+      final session = ref.read(sessionControllerProvider);
+      if (session?.userId != userId) return;
+      state = LocaleReconciliationState(
+        status: LocaleReconciliationStatus.rejected,
+        userId: userId,
+        error: error,
+      );
+    }
+  }
+}
 
 class LocalePreferenceController extends Notifier<AppLanguage> {
   String? _activeUserId;
@@ -87,7 +166,7 @@ class LocalePreferenceController extends Notifier<AppLanguage> {
     await ref.read(deviceLanguageProvider.notifier).select(language);
 
     final session = ref.read(sessionControllerProvider);
-    if (session == null) return;
+    if (session == null || session.isDemo || session.isAnonymous) return;
 
     final current = await ref.read(loadUserSettingsProvider)(session.userId);
     final settings = current == null

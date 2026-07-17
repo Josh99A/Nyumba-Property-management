@@ -87,18 +87,18 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       secondaryAction: OutlinedButton.icon(
         onPressed: () => _exportUsers(filtered),
         icon: const Icon(Icons.download_outlined),
-        label: const Text('Export'),
+        label: const Text.localized('Export'),
       ),
       primaryAction: source == AdminDirectorySource.demo
           ? FilledButton.icon(
               onPressed: _inviteDemoUser,
               icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: const Text('Invite user'),
+              label: const Text.localized('Invite user'),
             )
           : OutlinedButton.icon(
               onPressed: _explainProvisioning,
               icon: const Icon(Icons.info_outline_rounded),
-              label: const Text('How accounts are created'),
+              label: const Text.localized('How accounts are created'),
             ),
       children: [
         AdminMetricGrid(
@@ -210,7 +210,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                   TextButton.icon(
                     onPressed: _clearFilters,
                     icon: const Icon(Icons.close_rounded, size: 18),
-                    label: const Text('Clear'),
+                    label: const Text.localized('Clear'),
                   ),
               ];
               return Wrap(spacing: 12, runSpacing: 12, children: filters);
@@ -255,7 +255,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(
+                        child: Text.localized(
                           '${filtered.length} user${filtered.length == 1 ? '' : 's'}',
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
@@ -288,7 +288,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                         ? null
                         : OutlinedButton(
                             onPressed: _clearFilters,
-                            child: const Text('Clear filters'),
+                            child: const Text.localized('Clear filters'),
                           ),
                   )
                 else
@@ -328,22 +328,26 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                             dataRowMinHeight: 66,
                             dataRowMaxHeight: 74,
                             columns: [
-                              const DataColumn(label: Text('User')),
-                              const DataColumn(label: Text('Role')),
-                              const DataColumn(label: Text('Status')),
+                              const DataColumn(label: Text.localized('User')),
+                              const DataColumn(label: Text.localized('Role')),
+                              const DataColumn(label: Text.localized('Status')),
                               if (source == AdminDirectorySource.live)
-                                const DataColumn(label: Text('Subscription'))
+                                const DataColumn(
+                                  label: Text.localized('Subscription'),
+                                )
                               else
-                                const DataColumn(label: Text('Location')),
-                              const DataColumn(label: Text('Joined')),
-                              const DataColumn(label: Text('')),
+                                const DataColumn(
+                                  label: Text.localized('Location'),
+                                ),
+                              const DataColumn(label: Text.localized('Joined')),
+                              const DataColumn(label: Text.localized('')),
                             ],
                             rows: [
                               for (final account in filtered)
                                 DataRow(
                                   cells: [
                                     DataCell(_UserIdentity(account: account)),
-                                    DataCell(Text(account.roleLabel)),
+                                    DataCell(Text.localized(account.roleLabel)),
                                     DataCell(
                                       _AccountStatusBadge(account.status),
                                     ),
@@ -352,8 +356,12 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                         _SubscriptionCell(account: account),
                                       )
                                     else
-                                      DataCell(Text(account.location ?? '—')),
-                                    DataCell(Text(account.joinedLabel)),
+                                      DataCell(
+                                        Text.localized(account.location ?? '—'),
+                                      ),
+                                    DataCell(
+                                      Text.localized(account.joinedLabel),
+                                    ),
                                     DataCell(
                                       _AccountMenu(
                                         account: account,
@@ -377,7 +385,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     horizontal: 20,
                     vertical: 12,
                   ),
-                  child: Text(
+                  child: Text.localized(
                     source == AdminDirectorySource.live
                         ? 'Streaming from the server • admin actions are '
                               'audited server-side and need a connection'
@@ -511,7 +519,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           reasonCodes: archiveUserReasonCodes,
           run: (commands, reason) =>
               commands.archiveUser(account: account, reasonCode: reason),
-          successMessage: '${account.displayName} moved to the archive.',
+          successMessage:
+              'Archive request accepted for ${account.displayName}. Sign-in '
+              'disablement and listing cleanup are awaiting confirmation.',
         );
       case 'restore-archived':
         _runAccountAction(
@@ -524,7 +534,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           reasonCodes: restoreUserReasonCodes,
           run: (commands, reason) =>
               commands.restoreUser(account: account, reasonCode: reason),
-          successMessage: '${account.displayName} restored from the archive.',
+          successMessage:
+              'Restore request accepted for ${account.displayName}. Sign-in '
+              'access is awaiting confirmation.',
         );
       case 'delete-permanently':
         _runAccountAction(
@@ -539,7 +551,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           run: (commands, reason) =>
               commands.deleteUser(account: account, reasonCode: reason),
           successMessage:
-              '${account.displayName} permanently deleted from the archive.',
+              'Deletion request accepted for ${account.displayName}. The '
+              'sign-in account deletion is awaiting confirmation.',
         );
       case 'demo-status':
         _changeDemoStatus(account);
@@ -562,21 +575,24 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Change this user\'s role?'),
+          title: const Text.localized('Change this user\'s role?'),
           content: SizedBox(
             width: 440,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                Text.localized(
                   '${account.displayName} is currently a '
                   '${account.roleLabel}. A landlord promotion still needs '
                   'approval and an active subscription before the workspace '
                   'opens.',
                 ),
                 const SizedBox(height: 16),
-                Text('New role', style: Theme.of(context).textTheme.labelLarge),
+                Text.localized(
+                  'New role',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
                 const SizedBox(height: 4),
                 RadioGroup<String>(
                   groupValue: role,
@@ -589,14 +605,14 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                         RadioListTile<String>(
                           contentPadding: EdgeInsets.zero,
                           dense: true,
-                          title: Text(_serverRoleLabel(candidate)),
+                          title: Text.localized(_serverRoleLabel(candidate)),
                           value: candidate,
                         ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
+                Text.localized(
                   'Reason recorded in the audit log',
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
@@ -612,7 +628,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                         RadioListTile<String>(
                           contentPadding: EdgeInsets.zero,
                           dense: true,
-                          title: Text(_reasonLabel(code)),
+                          title: Text.localized(_reasonLabel(code)),
                           value: code,
                         ),
                     ],
@@ -624,11 +640,11 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Change role'),
+              child: const Text.localized('Change role'),
             ),
           ],
         ),
@@ -675,16 +691,16 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(title),
+          title: Text.localized(title),
           content: SizedBox(
             width: 440,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(body),
+                Text.localized(body),
                 const SizedBox(height: 16),
-                Text(
+                Text.localized(
                   'Reason recorded in the audit log',
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
@@ -700,7 +716,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                         RadioListTile<String>(
                           contentPadding: EdgeInsets.zero,
                           dense: true,
-                          title: Text(_reasonLabel(code)),
+                          title: Text.localized(_reasonLabel(code)),
                           value: code,
                         ),
                     ],
@@ -712,7 +728,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               style: destructive
@@ -722,7 +738,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     )
                   : null,
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(confirmLabel),
+              child: Text.localized(confirmLabel),
             ),
           ],
         ),
@@ -767,7 +783,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Invite a user'),
+          title: const Text.localized('Invite a user'),
           content: SizedBox(
             width: 440,
             child: Column(
@@ -808,7 +824,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     ),
                     const SizedBox(width: 8),
                     const Expanded(
-                      child: Text(
+                      child: Text.localized(
                         'Demo only: this entry stays on this device and no '
                         'invitation email is sent.',
                       ),
@@ -821,7 +837,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton.icon(
               onPressed: () {
@@ -837,7 +853,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 Navigator.pop(dialogContext, true);
               },
               icon: const Icon(Icons.send_rounded),
-              label: const Text('Add to demo directory'),
+              label: const Text.localized('Add to demo directory'),
             ),
           ],
         ),
@@ -892,8 +908,10 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isSuspended ? 'Restore access?' : 'Suspend this user?'),
-        content: Text(
+        title: Text.localized(
+          isSuspended ? 'Restore access?' : 'Suspend this user?',
+        ),
+        content: Text.localized(
           isSuspended
               ? '${account.displayName} will be marked active in this demo '
                     'workspace.'
@@ -903,11 +921,13 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text.localized('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(isSuspended ? 'Restore access' : 'Suspend user'),
+            child: Text.localized(
+              isSuspended ? 'Restore access' : 'Suspend user',
+            ),
           ),
         ],
       ),
@@ -939,7 +959,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Account details'),
+        title: const Text.localized('Account details'),
         content: SizedBox(
           width: 460,
           child: Column(
@@ -954,11 +974,11 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        Text.localized(
                           account.displayName,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        Text(
+                        Text.localized(
                           account.email.isEmpty ? '—' : account.email,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
@@ -996,7 +1016,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: const Text.localized('Close'),
           ),
         ],
       ),
@@ -1020,7 +1040,7 @@ class _ServerAuditPanel extends StatelessWidget {
         AsyncValue(hasValue: true, :final value) when value!.isEmpty =>
           const Padding(
             padding: EdgeInsets.all(12),
-            child: Text('No audited commands recorded yet.'),
+            child: Text.localized('No audited commands recorded yet.'),
           ),
         AsyncValue(hasValue: true, :final value) => Column(
           children: [
@@ -1033,7 +1053,7 @@ class _ServerAuditPanel extends StatelessWidget {
         ),
         AsyncValue(:final error?) => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text('Could not read the audit log: $error'),
+          child: Text.localized('Could not read the audit log: $error'),
         ),
         _ => const Padding(
           padding: EdgeInsets.all(24),
@@ -1067,13 +1087,13 @@ class _AuditEventRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  Text.localized(
                     event.reasonCode == null
                         ? event.action
                         : '${event.action} · ${event.reasonCode}',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
-                  Text(
+                  Text.localized(
                     'by ${event.actorIsAdmin ? 'admin ' : ''}'
                     '${_shortUid(event.actorUid)}'
                     '${event.aggregateId == null ? '' : ' · on ${_shortUid(event.aggregateId!)}'}'
@@ -1112,7 +1132,7 @@ class _LocalAuditPanel extends StatelessWidget {
       child: actions.isEmpty
           ? const Padding(
               padding: EdgeInsets.all(12),
-              child: Text('No local directory edits recorded yet.'),
+              child: Text.localized('No local directory edits recorded yet.'),
             )
           : Column(
               children: [
@@ -1129,11 +1149,11 @@ class _LocalAuditPanel extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            Text.localized(
                               '${actions[index].action} · ${actions[index].targetName}',
                               style: Theme.of(context).textTheme.labelLarge,
                             ),
-                            Text(
+                            Text.localized(
                               '${actions[index].reference} · by '
                               '${actions[index].performedBy} · '
                               '${DateFormat('d MMM, HH:mm').format(actions[index].performedAt.toLocal())}',
@@ -1181,7 +1201,7 @@ class _FilterDropdown extends StatelessWidget {
           isExpanded: true,
           items: [
             for (final item in values)
-              DropdownMenuItem(value: item, child: Text(item)),
+              DropdownMenuItem(value: item, child: Text.localized(item)),
           ],
           onChanged: (value) {
             if (value != null) onChanged(value);
@@ -1208,11 +1228,11 @@ class _UserIdentity extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            Text.localized(
               account.displayName,
               style: Theme.of(context).textTheme.labelLarge,
             ),
-            Text(
+            Text.localized(
               account.email.isEmpty ? '—' : account.email,
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -1231,17 +1251,17 @@ class _SubscriptionCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (account.subscriptionStatus == PlatformSubscriptionStatus.none) {
-      return const Text('—');
+      return const Text.localized('—');
     }
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        Text.localized(
           account.subscriptionTier ?? 'No tier',
           style: Theme.of(context).textTheme.labelLarge,
         ),
-        Text(
+        Text.localized(
           account.subscriptionStatus.label,
           style: Theme.of(context).textTheme.bodySmall,
         ),
@@ -1278,11 +1298,11 @@ class _UserCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                Text.localized(
                   account.displayName,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                Text(
+                Text.localized(
                   account.email.isEmpty ? '—' : account.email,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -1307,7 +1327,7 @@ class _UserCard extends StatelessWidget {
                             : BadgeTone.warning,
                       ),
                     if (account.location != null)
-                      Text(
+                      Text.localized(
                         account.location!,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
@@ -1357,7 +1377,7 @@ class _AccountMenu extends StatelessWidget {
           child: ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.visibility_outlined),
-            title: Text('View account'),
+            title: Text.localized('View account'),
           ),
         ),
         // Live actions exist only where the server has a command: the
@@ -1372,7 +1392,7 @@ class _AccountMenu extends StatelessWidget {
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.verified_user_outlined),
-                title: Text('Approve landlord'),
+                title: Text.localized('Approve landlord'),
               ),
             ),
             PlatformAccountStatus.suspended => const PopupMenuItem(
@@ -1380,7 +1400,7 @@ class _AccountMenu extends StatelessWidget {
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.lock_open_outlined),
-                title: Text('Restore access'),
+                title: Text.localized('Restore access'),
               ),
             ),
             _ => const PopupMenuItem(
@@ -1388,7 +1408,7 @@ class _AccountMenu extends StatelessWidget {
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.person_off_outlined),
-                title: Text('Suspend access'),
+                title: Text.localized('Suspend access'),
               ),
             ),
           },
@@ -1398,7 +1418,7 @@ class _AccountMenu extends StatelessWidget {
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.manage_accounts_outlined),
-              title: Text('Change role'),
+              title: Text.localized('Change role'),
             ),
           ),
           const PopupMenuItem(
@@ -1406,7 +1426,7 @@ class _AccountMenu extends StatelessWidget {
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.inventory_2_outlined),
-              title: Text('Archive user'),
+              title: Text.localized('Archive user'),
             ),
           ),
         ],
@@ -1416,7 +1436,7 @@ class _AccountMenu extends StatelessWidget {
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.unarchive_outlined),
-              title: Text('Restore from archive'),
+              title: Text.localized('Restore from archive'),
             ),
           ),
           PopupMenuItem(
@@ -1427,7 +1447,7 @@ class _AccountMenu extends StatelessWidget {
                 Icons.delete_forever_outlined,
                 color: context.nyumba.danger,
               ),
-              title: Text(
+              title: Text.localized(
                 'Delete permanently',
                 style: TextStyle(color: context.nyumba.danger),
               ),
@@ -1442,7 +1462,7 @@ class _AccountMenu extends StatelessWidget {
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.forward_to_inbox_outlined),
-              title: Text('Resend invitation'),
+              title: Text.localized('Resend invitation'),
             ),
           )
         else if (!live && canManage)
@@ -1455,7 +1475,7 @@ class _AccountMenu extends StatelessWidget {
                     ? Icons.lock_open_outlined
                     : Icons.person_off_outlined,
               ),
-              title: Text(
+              title: Text.localized(
                 account.status == PlatformAccountStatus.suspended
                     ? 'Restore access'
                     : 'Suspend access',
@@ -1503,10 +1523,16 @@ class _AccountFact extends StatelessWidget {
         children: [
           SizedBox(
             width: 110,
-            child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+            child: Text.localized(
+              label,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
           Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.labelLarge),
+            child: Text.localized(
+              value,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
           ),
         ],
       ),

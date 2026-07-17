@@ -65,7 +65,7 @@ class StatusBadge extends StatelessWidget {
           // A badge is often the trailing item of a tight row, so its label has
           // to be able to give way rather than run past the badge's edge.
           Flexible(
-            child: Text(
+            child: Text.localized(
               label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: foreground,

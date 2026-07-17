@@ -123,25 +123,25 @@ void main() {
         users: {
           'uid-old-client': {
             'displayName': null,
-            'email': 'M.Sadat13@gmail.com',
+            'email': 'REREGISTERED@accounts.test',
             'role': 'client',
             'createdAt': DateTime.utc(2026, 7, 10),
           },
           'uid-old-landlord': {
             'displayName': 'D&T Computech',
-            'email': 'm.sadat13@gmail.com',
+            'email': 'reregistered@accounts.test',
             'role': 'landlord',
             'createdAt': DateTime.utc(2026, 7, 12),
           },
           'uid-live': {
             'displayName': 'D&T Computech',
-            'email': 'm.sadat13@gmail.com',
+            'email': 'reregistered@accounts.test',
             'role': 'landlord',
             'createdAt': DateTime.utc(2026, 7, 16),
           },
           'uid-other': {
             'displayName': 'Someone Else',
-            'email': 'other@example.com',
+            'email': 'other@accounts.test',
             'role': 'client',
           },
         },
@@ -153,7 +153,7 @@ void main() {
 
       expect(accounts, hasLength(2));
       final survivor = accounts.singleWhere(
-        (a) => a.email.toLowerCase() == 'm.sadat13@gmail.com',
+        (a) => a.email.toLowerCase() == 'reregistered@accounts.test',
       );
       expect(survivor.uid, 'uid-live');
       expect(survivor.status, PlatformAccountStatus.pendingApproval);

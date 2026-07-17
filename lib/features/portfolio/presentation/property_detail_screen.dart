@@ -108,7 +108,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             key: const ValueKey('edit-property'),
             onPressed: () => _editProperty(property!),
             icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Edit property'),
+            label: const Text.localized('Edit property'),
           ),
         if (canArchiveProperty && !property.isArchived)
           PropertyArchiveButton(
@@ -139,7 +139,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     TextButton.icon(
                       onPressed: () => context.go('/properties'),
                       icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                      label: const Text('Properties'),
+                      label: const Text.localized('Properties'),
                     ),
                     const SizedBox(height: 8),
                     propertyActions,
@@ -154,7 +154,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         child: TextButton.icon(
                           onPressed: () => context.go('/properties'),
                           icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                          label: const Text('Properties'),
+                          label: const Text.localized('Properties'),
                         ),
                       ),
                     ),
@@ -167,7 +167,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
+                    child: Text.localized(
                       'Rental spaces',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
@@ -176,7 +176,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     FilledButton.icon(
                       onPressed: _showAddUnit,
                       icon: const Icon(Icons.add_rounded),
-                      label: const Text('Add rental space'),
+                      label: const Text.localized('Add rental space'),
                     ),
                 ],
               ),
@@ -192,7 +192,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     'Maintenance',
                   ])
                     ChoiceChip(
-                      label: Text(filter),
+                      label: Text.localized(filter),
                       selected: _filter == filter,
                       onSelected: (_) => setState(() => _filter = filter),
                     ),
@@ -209,7 +209,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(30),
                     child: Center(
-                      child: Text(
+                      child: Text.localized(
                         allUnits.isEmpty
                             ? 'Add the first rental space in this property.'
                             : 'No rental spaces match this filter.',
@@ -271,7 +271,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Edit ${property.name}'),
+          title: Text.localized('Edit ${property.name}'),
           content: SizedBox(
             width: 500,
             child: Form(
@@ -286,7 +286,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         labelText: context.tr('Property name'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 2
-                          ? 'Enter a property name'
+                          ? context.tr('Enter a property name')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -296,7 +296,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         labelText: context.tr('Street address'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 3
-                          ? 'Enter the street address'
+                          ? context.tr('Enter the street address')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -306,7 +306,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         labelText: context.tr('City or town'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? 'Enter a city or town'
+                          ? context.tr('Enter a city or town')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -333,7 +333,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () async {
@@ -353,7 +353,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   setDialogState(() => error = caught.toString());
                 }
               },
-              child: const Text('Save changes'),
+              child: const Text.localized('Save changes'),
             ),
           ],
         ),
@@ -366,7 +366,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     if (updated == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Property changes saved locally and queued to sync.'),
+          content: Text.localized(
+            'Property changes saved locally and queued to sync.',
+          ),
         ),
       );
     }
@@ -388,7 +390,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Add rental space to ${property.name}'),
+          title: Text.localized('Add rental space to ${property.name}'),
           content: SizedBox(
             width: 520,
             child: Form(
@@ -404,7 +406,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         labelText: context.tr('Rental space name or number'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? 'Enter a rental space name or number'
+                          ? context.tr('Enter a rental space name or number')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -417,7 +419,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         for (final item in UnitType.values)
                           DropdownMenuItem(
                             value: item,
-                            child: Text(_titleCase(item.name)),
+                            child: Text.localized(_titleCase(item.name)),
                           ),
                       ],
                       onChanged: (value) {
@@ -437,7 +439,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           value?.replaceAll(',', '') ?? '',
                         );
                         return amount == null || amount <= 0
-                            ? 'Enter a valid rent amount'
+                            ? context.tr('Enter a valid rent amount')
                             : null;
                       },
                     ),
@@ -453,7 +455,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                             ),
                             validator: (value) =>
                                 int.tryParse(value ?? '') == null
-                                ? 'Required'
+                                ? context.tr('Required')
                                 : null,
                           ),
                         ),
@@ -467,7 +469,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                             ),
                             validator: (value) =>
                                 int.tryParse(value ?? '') == null
-                                ? 'Required'
+                                ? context.tr('Required')
                                 : null,
                           ),
                         ),
@@ -483,7 +485,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         for (final item in UnitStatus.values)
                           DropdownMenuItem(
                             value: item,
-                            child: Text(_titleCase(item.name)),
+                            child: Text.localized(_titleCase(item.name)),
                           ),
                       ],
                       onChanged: (value) {
@@ -505,7 +507,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () async {
@@ -529,7 +531,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   setDialogState(() => error = caught.toString());
                 }
               },
-              child: const Text('Save rental space'),
+              child: const Text.localized('Save rental space'),
             ),
           ],
         ),
@@ -542,7 +544,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     if (created == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Rental space saved locally and queued to sync.'),
+          content: Text.localized(
+            'Rental space saved locally and queued to sync.',
+          ),
         ),
       );
     }
@@ -562,7 +566,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Edit ${unit.displayName}'),
+          title: Text.localized('Edit ${unit.displayName}'),
           content: SizedBox(
             width: 520,
             child: Form(
@@ -577,7 +581,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         labelText: context.tr('Rental space name or number'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? 'Enter a rental space name or number'
+                          ? context.tr('Enter a rental space name or number')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -590,7 +594,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         for (final item in UnitType.values)
                           DropdownMenuItem(
                             value: item,
-                            child: Text(_titleCase(item.name)),
+                            child: Text.localized(_titleCase(item.name)),
                           ),
                       ],
                       onChanged: (value) {
@@ -610,7 +614,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           value?.replaceAll(',', '') ?? '',
                         );
                         return amount == null || amount <= 0
-                            ? 'Enter a valid rent amount'
+                            ? context.tr('Enter a valid rent amount')
                             : null;
                       },
                     ),
@@ -626,7 +630,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                             ),
                             validator: (value) =>
                                 int.tryParse(value ?? '') == null
-                                ? 'Required'
+                                ? context.tr('Required')
                                 : null,
                           ),
                         ),
@@ -640,7 +644,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                             ),
                             validator: (value) =>
                                 int.tryParse(value ?? '') == null
-                                ? 'Required'
+                                ? context.tr('Required')
                                 : null,
                           ),
                         ),
@@ -661,7 +665,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () async {
@@ -682,7 +686,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   setDialogState(() => error = caught.toString());
                 }
               },
-              child: const Text('Save changes'),
+              child: const Text.localized('Save changes'),
             ),
           ],
         ),
@@ -695,7 +699,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     if (updated == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
+          content: Text.localized(
             'Rental space changes saved locally and queued to sync.',
           ),
         ),
@@ -721,12 +725,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Rental space cannot be archived yet'),
-          content: Text(blocker!),
+          title: const Text.localized('Rental space cannot be archived yet'),
+          content: Text.localized(blocker!),
           actions: [
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Got it'),
+              child: const Text.localized('Got it'),
             ),
           ],
         ),
@@ -737,22 +741,22 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Archive ${unit.displayName}?'),
-        content: const Text(
+        title: Text.localized('Archive ${unit.displayName}?'),
+        content: const Text.localized(
           'The rental space stays marked as archive pending until the server '
           'confirms it.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text.localized('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
               backgroundColor: context.nyumba.danger,
             ),
-            child: const Text('Archive rental space'),
+            child: const Text.localized('Archive rental space'),
           ),
         ],
       ),
@@ -764,7 +768,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
+          content: Text.localized(
             'Archive queued for ${unit.displayName}; awaiting server confirmation.',
           ),
         ),
@@ -772,7 +776,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     } on Object catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not archive rental space: $error')),
+        SnackBar(
+          content: Text.localized('Could not archive rental space: $error'),
+        ),
       );
     }
   }
@@ -785,7 +791,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       context.go('/properties');
       messenger.showSnackBar(
         SnackBar(
-          content: Text(
+          content: Text.localized(
             'Archive queued for ${property.name}; awaiting server confirmation.',
           ),
         ),
@@ -793,7 +799,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     } on Object catch (error) {
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: Text('Could not archive property: $error')),
+        SnackBar(content: Text.localized('Could not archive property: $error')),
       );
     }
   }
@@ -816,7 +822,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     );
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${draft.title} saved as a local draft.')),
+        SnackBar(
+          content: Text.localized('${draft.title} saved as a local draft.'),
+        ),
       );
       context.go('/listings');
     }
@@ -969,7 +977,7 @@ class _HeroImageState extends State<_HeroImage> {
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(
+                  child: Text.localized(
                     '${_currentIndex + 1}/$imageCount',
                     style: Theme.of(
                       context,
@@ -1056,7 +1064,7 @@ class _HeroContent extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 7),
-          Text(
+          Text.localized(
             '${property.addressLine}, ${property.city}',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
@@ -1105,7 +1113,7 @@ class _HeroMetric extends StatelessWidget {
             context,
           ).textTheme.titleLarge?.copyWith(color: context.nyumba.midnightNavy),
         ),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        Text.localized(label, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }
@@ -1189,12 +1197,12 @@ class _UnitCard extends StatelessWidget {
                     if (canUpdate)
                       const PopupMenuItem(
                         value: 'edit',
-                        child: Text('Edit rental space'),
+                        child: Text.localized('Edit rental space'),
                       ),
                     if (canArchive)
                       const PopupMenuItem(
                         value: 'archive',
-                        child: Text('Archive rental space'),
+                        child: Text.localized('Archive rental space'),
                       ),
                   ],
                 ),
@@ -1203,7 +1211,7 @@ class _UnitCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const SizedBox(height: 4),
-          Text(
+          Text.localized(
             currency.format(unit.monthlyRentMinor / 100),
             style: Theme.of(context).textTheme.titleLarge,
           ),
@@ -1216,7 +1224,7 @@ class _UnitCard extends StatelessWidget {
                 color: context.nyumba.mutedInk,
               ),
               const SizedBox(width: 5),
-              Text(
+              Text.localized(
                 '${unit.bedrooms} bed',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -1227,7 +1235,7 @@ class _UnitCard extends StatelessWidget {
                 color: context.nyumba.mutedInk,
               ),
               const SizedBox(width: 5),
-              Text(
+              Text.localized(
                 '${unit.bathrooms} bath',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -1250,7 +1258,7 @@ class _UnitCard extends StatelessWidget {
                 TextButton.icon(
                   onPressed: onAdvertise,
                   icon: const Icon(Icons.campaign_outlined, size: 18),
-                  label: const Text('Advertise'),
+                  label: const Text.localized('Advertise'),
                 )
               else if (hasListing)
                 const StatusBadge(
@@ -1278,11 +1286,11 @@ class _MissingProperty extends StatelessWidget {
         children: [
           const Icon(Icons.apartment_outlined, size: 50),
           const SizedBox(height: 14),
-          const Text('Property not found'),
+          const Text.localized('Property not found'),
           const SizedBox(height: 14),
           FilledButton(
             onPressed: onBack,
-            child: const Text('Back to properties'),
+            child: const Text.localized('Back to properties'),
           ),
         ],
       ),

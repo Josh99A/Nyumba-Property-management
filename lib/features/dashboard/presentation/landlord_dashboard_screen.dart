@@ -42,7 +42,7 @@ class LandlordDashboardScreen extends ConsumerWidget {
                 primaryAction: FilledButton.icon(
                   onPressed: () => context.go('/properties/new'),
                   icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add property'),
+                  label: const Text.localized('Add property'),
                 ),
               ),
               if (session?.accountStatus == AccountStatus.pendingApproval) ...[
@@ -116,7 +116,7 @@ class _PendingApprovalBanner extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: Text.localized(
               'Your landlord account is awaiting review. You can prepare your '
               'portfolio now; publishing listings and inviting tenants unlock '
               'once an administrator approves the account.',
@@ -303,13 +303,16 @@ class _SyncStatusBar extends ConsumerWidget {
           ),
           const SizedBox(width: 9),
           Expanded(
-            child: Text(message, style: Theme.of(context).textTheme.bodySmall),
+            child: Text.localized(
+              message,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
           TextButton(
             onPressed: () => ScaffoldMessenger.of(
               context,
-            ).showSnackBar(SnackBar(content: Text(message))),
-            child: const Text('Sync status'),
+            ).showSnackBar(SnackBar(content: Text.localized(message))),
+            child: const Text.localized('Sync status'),
           ),
         ],
       ),

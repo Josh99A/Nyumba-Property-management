@@ -68,12 +68,12 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 primaryAction: FilledButton.icon(
                   onPressed: () => _showRecordPayment(context, tenancies),
                   icon: const Icon(Icons.add_card_outlined),
-                  label: const Text('Record payment'),
+                  label: const Text.localized('Record payment'),
                 ),
                 secondaryAction: OutlinedButton.icon(
                   onPressed: () => context.go('/documents'),
                   icon: const Icon(Icons.receipt_long_outlined),
-                  label: const Text('Generate invoices'),
+                  label: const Text.localized('Generate invoices'),
                 ),
               ),
               const SizedBox(height: 24),
@@ -85,7 +85,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 error: (error, stack) => NyumbaSurface(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text('Could not load payments: $error'),
+                    child: Text.localized('Could not load payments: $error'),
                   ),
                 ),
                 data: (payments) =>
@@ -142,7 +142,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
+                      child: Text.localized(
                         'Payment history',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
@@ -174,7 +174,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       'Awaiting sync',
                     ])
                       ChoiceChip(
-                        label: Text(filter),
+                        label: Text.localized(filter),
                         selected: _filter == filter,
                         onSelected: (_) => setState(() => _filter = filter),
                       ),
@@ -185,7 +185,9 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
               if (filtered.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(36),
-                  child: Center(child: Text('No payments match this filter.')),
+                  child: Center(
+                    child: Text.localized('No payments match this filter.'),
+                  ),
                 )
               else if (context.isCompact)
                 for (final payment in filtered)
@@ -202,13 +204,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       horizontalMargin: 20,
                       columnSpacing: 36,
                       columns: const [
-                        DataColumn(label: Text('Receipt')),
-                        DataColumn(label: Text('Tenant')),
-                        DataColumn(label: Text('Rental space')),
-                        DataColumn(label: Text('Amount')),
-                        DataColumn(label: Text('Date')),
-                        DataColumn(label: Text('Method')),
-                        DataColumn(label: Text('Status')),
+                        DataColumn(label: Text.localized('Receipt')),
+                        DataColumn(label: Text.localized('Tenant')),
+                        DataColumn(label: Text.localized('Rental space')),
+                        DataColumn(label: Text.localized('Amount')),
+                        DataColumn(label: Text.localized('Date')),
+                        DataColumn(label: Text.localized('Method')),
+                        DataColumn(label: Text.localized('Status')),
                       ],
                       rows: filtered
                           .map(
@@ -218,32 +220,34 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                 // receipt, so say so rather than inventing one.
                                 DataCell(
                                   payment.receiptNumber == null
-                                      ? Text(
+                                      ? Text.localized(
                                           'Awaiting receipt',
                                           style: TextStyle(
                                             fontStyle: FontStyle.italic,
                                             color: context.nyumba.mutedInk,
                                           ),
                                         )
-                                      : Text(payment.receiptNumber!),
+                                      : Text.localized(payment.receiptNumber!),
                                 ),
-                                DataCell(Text(payment.tenantName)),
+                                DataCell(Text.localized(payment.tenantName)),
                                 DataCell(
-                                  Text(
+                                  Text.localized(
                                     '${payment.unitLabel} · ${payment.propertyName}',
                                   ),
                                 ),
                                 DataCell(
-                                  Text(_formatMinor(payment.amountMinor)),
+                                  Text.localized(
+                                    _formatMinor(payment.amountMinor),
+                                  ),
                                 ),
                                 DataCell(
-                                  Text(
+                                  Text.localized(
                                     DateFormat(
                                       'd MMM y',
                                     ).format(payment.paidOn.toLocal()),
                                   ),
                                 ),
-                                DataCell(Text(payment.method)),
+                                DataCell(Text.localized(payment.method)),
                                 DataCell(
                                   SyncStateBadge(
                                     status: statusOf(payment),
@@ -264,7 +268,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   child: TextButton.icon(
                     onPressed: () => _exportPayments(payments),
                     icon: const Icon(Icons.download_outlined, size: 18),
-                    label: const Text('Export report'),
+                    label: const Text.localized('Export report'),
                   ),
                 ),
               ),
@@ -296,13 +300,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
       );
       if (mounted && saved) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment report exported.')),
+          const SnackBar(content: Text.localized('Payment report exported.')),
         );
       }
     } on Object catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not export report: $error')),
+          SnackBar(content: Text.localized('Could not export report: $error')),
         );
       }
     }
@@ -315,7 +319,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
     if (tenancies.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Add a tenant before recording a payment.'),
+          content: Text.localized('Add a tenant before recording a payment.'),
         ),
       );
       return;
@@ -328,7 +332,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Record payment'),
+          title: const Text.localized('Record payment'),
           content: SizedBox(
             width: 440,
             child: Form(
@@ -345,7 +349,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       for (final tenancy in tenancies)
                         DropdownMenuItem(
                           value: tenancy.id,
-                          child: Text(
+                          child: Text.localized(
                             '${tenancy.tenantName} · ${tenancy.unitLabel}',
                           ),
                         ),
@@ -362,7 +366,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   const SizedBox(height: 6),
                   Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: Text(
+                    child: Text.localized(
                       selected.balanceDue
                           ? 'Outstanding: ${_formatMinor(selected.balanceMinor)}'
                           : 'No outstanding balance',
@@ -393,18 +397,21 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       labelText: context.tr('Payment method'),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                      DropdownMenuItem(
+                        value: 'Cash',
+                        child: Text.localized('Cash'),
+                      ),
                       DropdownMenuItem(
                         value: 'MTN Mobile Money',
-                        child: Text('MTN Mobile Money'),
+                        child: Text.localized('MTN Mobile Money'),
                       ),
                       DropdownMenuItem(
                         value: 'Airtel Money',
-                        child: Text('Airtel Money'),
+                        child: Text.localized('Airtel Money'),
                       ),
                       DropdownMenuItem(
                         value: 'Card (Bank)',
-                        child: Text('Card (Bank)'),
+                        child: Text.localized('Card (Bank)'),
                       ),
                     ],
                     onChanged: (value) {
@@ -418,14 +425,14 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () {
                 if (!formKey.currentState!.validate()) return;
                 Navigator.pop(context, true);
               },
-              child: const Text('Save payment'),
+              child: const Text.localized('Save payment'),
             ),
           ],
         ),
@@ -444,7 +451,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         if (mounted) {
           ScaffoldMessenger.of(this.context).showSnackBar(
             const SnackBar(
-              content: Text(
+              content: Text.localized(
                 'Payment recorded locally and queued to sync — awaiting confirmation.',
               ),
             ),
@@ -453,7 +460,9 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
       } on Object catch (error) {
         if (mounted) {
           ScaffoldMessenger.of(this.context).showSnackBar(
-            SnackBar(content: Text('Could not record the payment: $error')),
+            SnackBar(
+              content: Text.localized('Could not record the payment: $error'),
+            ),
           );
         }
       }
@@ -549,7 +558,7 @@ class FinanceSummary extends StatelessWidget {
                     Icon(item.$3, color: item.$4, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
+                      child: Text.localized(
                         item.$1,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
@@ -560,7 +569,7 @@ class FinanceSummary extends StatelessWidget {
                 FittedBox(
                   alignment: AlignmentDirectional.centerStart,
                   fit: BoxFit.scaleDown,
-                  child: Text(
+                  child: Text.localized(
                     item.$2,
                     style: Theme.of(
                       context,
@@ -568,7 +577,10 @@ class FinanceSummary extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Text(item.$5, style: Theme.of(context).textTheme.bodySmall),
+                Text.localized(
+                  item.$5,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ],
             ),
           ),
@@ -606,11 +618,11 @@ class _CompactFinanceRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                Text.localized(
                   payment.tenantName,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                Text(
+                Text.localized(
                   '${payment.unitLabel} · '
                   '${DateFormat('d MMM').format(payment.paidOn.toLocal())}',
                   style: Theme.of(context).textTheme.bodySmall,
@@ -621,7 +633,7 @@ class _CompactFinanceRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
+              Text.localized(
                 _formatMinor(payment.amountMinor),
                 style: Theme.of(context).textTheme.labelLarge,
               ),

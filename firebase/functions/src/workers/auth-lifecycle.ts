@@ -1,4 +1,6 @@
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { COLLECTIONS } from '../shared/collections';
 
 function isUserNotFound(error: unknown): boolean {
   return (error as { code?: string } | null)?.code === 'auth/user-not-found';
@@ -14,8 +16,21 @@ function isUserNotFound(error: unknown): boolean {
 export async function setAuthUserDisabled(payload: Record<string, unknown>): Promise<void> {
   const uid = String(payload.uid);
   const disabled = payload.disabled === true;
+  const expectedUserVersion = Number(payload.expectedUserVersion);
+  const expectedUserStatus = String(payload.expectedUserStatus);
+  const profile = await getFirestore().collection(COLLECTIONS.users).doc(uid).get();
+  const current = profile.data();
+  // Archive and restore jobs may be delayed independently. Never let an old
+  // disable retry undo a newer restore (or an old enable undo a re-archive).
+  if (!profile.exists ||
+      current?.version !== expectedUserVersion ||
+      current?.status !== expectedUserStatus) {
+    return;
+  }
   try {
-    await getAuth().updateUser(uid, { disabled });
+    const auth = getAuth();
+    const user = await auth.getUser(uid);
+    if (user.disabled !== disabled) await auth.updateUser(uid, { disabled });
     if (disabled) await getAuth().revokeRefreshTokens(uid);
   } catch (error) {
     if (!isUserNotFound(error)) throw error;

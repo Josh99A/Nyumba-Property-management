@@ -610,12 +610,13 @@ class SessionController extends Notifier<UserSession?> {
     final current = state;
     final hasRealFirebaseSession =
         current != null && !current.isDemo && Firebase.apps.isNotEmpty;
-    if (hasRealFirebaseSession) {
-      _cancelTokenRotationWatch();
-      await unregisterFromPush(
-        gateway: () => ref.read(authCommandGatewayProvider.future),
-      );
-    }
+    final shouldUnregisterFromPush =
+        hasRealFirebaseSession && !current.isAnonymous;
+    if (hasRealFirebaseSession) _cancelTokenRotationWatch();
+
+    // Clear private local/session state before any network cleanup. Push token
+    // revocation is best-effort and must never leave the Firebase Auth session
+    // signed in when it fails.
     state = null;
     _generation++;
     _announceArrival = false;
@@ -624,7 +625,15 @@ class SessionController extends Notifier<UserSession?> {
         .read(sessionResolutionProvider.notifier)
         .publish(const SessionResolution());
     if (!hasRealFirebaseSession) return;
-    await FirebaseAuth.instance.signOut();
+    try {
+      if (shouldUnregisterFromPush) {
+        await unregisterFromPush(
+          gateway: () => ref.read(authCommandGatewayProvider.future),
+        );
+      }
+    } finally {
+      await FirebaseAuth.instance.signOut();
+    }
   }
 
   static AppRole _roleFromServer(String? role, bool anonymous) {

@@ -67,7 +67,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
           NyumbaSurface(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('Could not load your tenancy: $error'),
+              child: Text.localized('Could not load your tenancy: $error'),
             ),
           ),
         ],
@@ -131,7 +131,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
       secondaryAction: OutlinedButton.icon(
         onPressed: () => _printStatement(tenancy, payments),
         icon: const Icon(Icons.print_outlined),
-        label: const Text('Print statement'),
+        label: const Text.localized('Print statement'),
       ),
       primaryAction: FilledButton.icon(
         onPressed: paid
@@ -140,7 +140,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
         icon: Icon(
           paid ? Icons.receipt_long_outlined : Icons.payments_outlined,
         ),
-        label: Text(paid ? 'Latest receipt' : 'Record payment'),
+        label: Text.localized(paid ? 'Latest receipt' : 'Record payment'),
       ),
       children: [
         TenantBalanceHero(
@@ -222,12 +222,12 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    Text.localized(
                       'Payment history',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    Text.localized(
                       'Receipts remain available on this device while offline.',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -242,7 +242,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                           'Awaiting sync',
                         ])
                           ChoiceChip(
-                            label: Text(item),
+                            label: Text.localized(item),
                             selected: _filter == item,
                             showCheckmark: false,
                             onSelected: (_) => setState(() => _filter = item),
@@ -259,7 +259,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                   message: 'Payment records with this status will appear here.',
                   action: OutlinedButton(
                     onPressed: () => setState(() => _filter = 'All'),
-                    child: const Text('Show all payments'),
+                    child: const Text.localized('Show all payments'),
                   ),
                 )
               else
@@ -299,13 +299,13 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                           dataRowMinHeight: 58,
                           dataRowMaxHeight: 68,
                           columns: const [
-                            DataColumn(label: Text('Period')),
-                            DataColumn(label: Text('Reference')),
-                            DataColumn(label: Text('Paid on')),
-                            DataColumn(label: Text('Method')),
-                            DataColumn(label: Text('Amount')),
-                            DataColumn(label: Text('Status')),
-                            DataColumn(label: Text('')),
+                            DataColumn(label: Text.localized('Period')),
+                            DataColumn(label: Text.localized('Reference')),
+                            DataColumn(label: Text.localized('Paid on')),
+                            DataColumn(label: Text.localized('Method')),
+                            DataColumn(label: Text.localized('Amount')),
+                            DataColumn(label: Text.localized('Status')),
+                            DataColumn(label: Text.localized('')),
                           ],
                           rows: [
                             for (final payment in filtered)
@@ -315,7 +315,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                                   DataCell(
                                     Text(
                                       payment.receiptNumber ??
-                                          'Awaiting receipt',
+                                          context.tr('Awaiting receipt'),
                                       style: payment.hasIssuedReceipt
                                           ? null
                                           : TextStyle(
@@ -325,7 +325,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                                     ),
                                   ),
                                   DataCell(
-                                    Text(
+                                    Text.localized(
                                       DateFormat(
                                         'd MMM y',
                                       ).format(payment.paidOn.toLocal()),
@@ -333,7 +333,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                                   ),
                                   DataCell(Text(payment.method)),
                                   DataCell(
-                                    Text(
+                                    Text.localized(
                                       formatTenantUgx(
                                         payment.amountMinor ~/ 100,
                                       ),
@@ -386,7 +386,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(
+          title: Text.localized(
             'Record ${DateFormat('MMMM').format(DateTime.now())} rent payment',
           ),
           content: SizedBox(
@@ -403,8 +403,8 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Expanded(child: Text('Amount payable')),
-                      Text(
+                      const Expanded(child: Text.localized('Amount payable')),
+                      Text.localized(
                         formatTenantUgx(tenancy.balanceMinor ~/ 100),
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
@@ -412,14 +412,14 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                const Text.localized(
                   'Paying inside Nyumba is not available yet. Record a '
                   'payment you have already made to your landlord — it is '
                   'saved on this device, sent for confirmation, and a '
                   'receipt is issued once the server accepts it.',
                 ),
                 const SizedBox(height: 17),
-                Text(
+                Text.localized(
                   'How was it paid?',
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
@@ -456,7 +456,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                               color: context.nyumba.midnightNavy,
                             ),
                             const SizedBox(width: 11),
-                            Expanded(child: Text(item)),
+                            Expanded(child: Text.localized(item)),
                             if (method == item)
                               Icon(
                                 Icons.check_circle_rounded,
@@ -473,12 +473,12 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton.icon(
               onPressed: () => Navigator.pop(dialogContext, true),
               icon: const Icon(Icons.edit_note_rounded),
-              label: Text('Record $method payment'),
+              label: Text.localized('Record $method payment'),
             ),
           ],
         ),
@@ -525,7 +525,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(issued ? 'Payment receipt' : 'Payment details'),
+        title: Text.localized(issued ? 'Payment receipt' : 'Payment details'),
         content: SizedBox(
           width: 440,
           child: Column(
@@ -535,7 +535,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
               Center(child: TenantStatusBadge(status: status)),
               const SizedBox(height: 12),
               Center(
-                child: Text(
+                child: Text.localized(
                   formatTenantUgx(payment.amountMinor ~/ 100),
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
@@ -566,13 +566,13 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
+            child: const Text.localized('Close'),
           ),
           if (issued)
             FilledButton.icon(
               onPressed: () => _printReceipt(payment),
               icon: const Icon(Icons.print_outlined),
-              label: const Text('Print receipt'),
+              label: const Text.localized('Print receipt'),
             ),
         ],
       ),
@@ -668,7 +668,7 @@ class _InvoicePanel extends StatelessWidget {
               icon: Icon(
                 paid ? Icons.receipt_long_outlined : Icons.edit_note_rounded,
               ),
-              label: Text(paid ? 'View receipt' : 'Record a payment'),
+              label: Text.localized(paid ? 'View receipt' : 'Record a payment'),
             ),
           ),
         ],
@@ -695,8 +695,8 @@ class _InvoiceLine extends StatelessWidget {
         : Theme.of(context).textTheme.bodyMedium;
     return Row(
       children: [
-        Expanded(child: Text(label, style: style)),
-        Text(amount, style: style),
+        Expanded(child: Text.localized(label, style: style)),
+        Text.localized(amount, style: style),
       ],
     );
   }
@@ -762,7 +762,10 @@ class _PaymentStep extends StatelessWidget {
         ),
         const SizedBox(width: 11),
         Expanded(
-          child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+          child: Text.localized(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ),
       ],
     );
@@ -814,7 +817,7 @@ class _PaymentCard extends StatelessWidget {
                     payment.period,
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  Text(
+                  Text.localized(
                     '${payment.receiptNumber ?? 'Awaiting receipt'} • '
                     '${DateFormat('d MMM y').format(payment.paidOn.toLocal())}',
                     style: Theme.of(context).textTheme.bodySmall,
@@ -826,7 +829,7 @@ class _PaymentCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
+                Text.localized(
                   formatTenantUgx(payment.amountMinor ~/ 100),
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
