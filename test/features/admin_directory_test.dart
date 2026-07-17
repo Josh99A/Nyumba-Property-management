@@ -159,6 +159,35 @@ void main() {
       expect(survivor.status, PlatformAccountStatus.pendingApproval);
     });
 
+    test('an archive on the users document outranks landlord standing', () {
+      final accounts = FirestoreAdminDirectory.combineAccounts(
+        users: {
+          'uid-1': {
+            'displayName': 'Grace Auma',
+            'role': 'landlord',
+            'status': 'archived',
+            'version': 6,
+          },
+          'uid-2': {
+            'displayName': 'Peter Ssali',
+            'role': 'tenant',
+            'status': 'archived',
+            'version': 2,
+          },
+        },
+        landlordAccounts: {
+          'uid-1': {'approvalStatus': 'approved', 'version': 3},
+        },
+        subscriptions: const {},
+      );
+      final landlord = accounts.singleWhere((a) => a.uid == 'uid-1');
+      expect(landlord.status, PlatformAccountStatus.archived);
+      expect(landlord.userVersion, 6);
+      final tenant = accounts.singleWhere((a) => a.uid == 'uid-2');
+      expect(tenant.status, PlatformAccountStatus.archived);
+      expect(tenant.userVersion, 2);
+    });
+
     test('suspension on the users document applies to non-landlords', () {
       final accounts = FirestoreAdminDirectory.combineAccounts(
         users: {

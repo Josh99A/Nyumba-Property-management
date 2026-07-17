@@ -38,6 +38,7 @@ abstract interface class RemotePullGateway {
     String? landlordId,
     String? tenantUid,
     String? clientUid,
+    String? userUid,
     bool publicOnly = false,
     bool administrativeScope = false,
   });
@@ -55,11 +56,22 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     String? landlordId,
     String? tenantUid,
     String? clientUid,
+    String? userUid,
     bool publicOnly = false,
     bool administrativeScope = false,
   }) {
     Query<Map<String, dynamic>> query;
-    if (publicOnly) {
+    if (userUid != null) {
+      if (entityType != OfflineEntityType.notification) {
+        throw ArgumentError('Only notifications use the common user inbox.');
+      }
+      query = _firestore
+          .collection('notificationInboxes')
+          .doc(userUid)
+          .collection('items')
+          .orderBy('createdAt', descending: true)
+          .limit(100);
+    } else if (publicOnly) {
       if (entityType != OfflineEntityType.listing) {
         throw ArgumentError('Only listings have a public read model.');
       }
@@ -94,7 +106,7 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
           .collection(_clientSection(entityType));
     } else {
       throw ArgumentError(
-        'A landlord, tenant, client, administrative, or public scope is required.',
+        'A user, landlord, tenant, client, administrative, or public scope is required.',
       );
     }
 
@@ -257,6 +269,7 @@ final class RemotePullCoordinator {
     String? landlordId,
     String? tenantUid,
     String? clientUid,
+    String? userUid,
     bool publicOnly = false,
     bool administrativeScope = false,
   }) {
@@ -266,6 +279,7 @@ final class RemotePullCoordinator {
           landlordId: landlordId,
           tenantUid: tenantUid,
           clientUid: clientUid,
+          userUid: userUid,
           publicOnly: publicOnly,
           administrativeScope: administrativeScope,
         )

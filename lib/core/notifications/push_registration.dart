@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
@@ -71,6 +73,7 @@ Future<PushRegistration> registerForPush({
 
     final token = await instance.getToken(
       vapidKey: kIsWeb ? _vapidPublicKey : null,
+      serviceWorkerScriptPath: kIsWeb ? _webServiceWorkerPath() : null,
     );
     if (token == null || token.isEmpty) return PushRegistration.unavailable;
 
@@ -92,6 +95,70 @@ Future<PushRegistration> registerForPush({
     );
     return PushRegistration.registrationFailed;
   }
+}
+
+/// Best-effort privacy cleanup performed while the user is still authenticated.
+///
+/// The callable removes the token from the account immediately. Deleting the
+/// local FCM token is the fallback when the callable is unreachable: FCM then
+/// rejects future sends and the backend prunes the dead registration.
+Future<void> unregisterFromPush({
+  required Future<FirebaseRemoteSyncGateway> Function() gateway,
+  FirebaseMessaging? messaging,
+}) async {
+  final instance = messaging ?? FirebaseMessaging.instance;
+  String? token;
+  try {
+    token = await instance.getToken(
+      vapidKey: kIsWeb && _vapidPublicKey.isNotEmpty ? _vapidPublicKey : null,
+      serviceWorkerScriptPath: kIsWeb ? _webServiceWorkerPath() : null,
+    );
+    if (token != null && token.isNotEmpty) {
+      await (await gateway())
+          .sendCommand(
+            type: 'profile.unregisterDevice',
+            payload: <String, Object?>{'token': token},
+          )
+          .timeout(const Duration(seconds: 5));
+    }
+  } on Object catch (error, stackTrace) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stackTrace,
+        library: 'Nyumba push unregistration',
+      ),
+    );
+  } finally {
+    try {
+      await instance.deleteToken();
+    } on Object catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'Nyumba push token cleanup',
+        ),
+      );
+    }
+  }
+}
+
+String _webServiceWorkerPath() {
+  final options = Firebase.app().options;
+  final config = <String, Object?>{
+    'apiKey': options.apiKey,
+    'appId': options.appId,
+    'messagingSenderId': options.messagingSenderId,
+    'projectId': options.projectId,
+    if (options.authDomain != null) 'authDomain': options.authDomain,
+    if (options.storageBucket != null) 'storageBucket': options.storageBucket,
+    if (options.measurementId != null) 'measurementId': options.measurementId,
+  };
+  return Uri(
+    path: '/firebase-messaging-sw.js',
+    queryParameters: <String, String>{'firebaseConfig': jsonEncode(config)},
+  ).toString();
 }
 
 /// Keeps a signed-in session registered across FCM token rotations.

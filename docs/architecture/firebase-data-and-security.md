@@ -30,7 +30,8 @@ All canonical records include `id`, integer `version`, `createdAt`, `updatedAt`,
 
 | Path | Selected fields | Read scope / authority |
 | --- | --- | --- |
-| `users/{uid}` | role, status, safe profile, locale, accessGeneration | self/admin; server writes except command-based profile updates |
+| `users/{uid}` | role, status (`active|suspended|archived`), safe profile, `locale` (`en|lg|sw|ar`), accessGeneration, archive/delete audit fields | self/admin; server writes except command-based profile updates; `archived` and the `isDeleted` tombstone come only from the super-admin `user.archive|restore|delete` commands; absent/invalid legacy locale falls back to English |
+| `notificationInboxes/{uid}/items/{notificationId}` | generic title/body, kind, safe route/entity ID, read state, delivery metadata | UID owner/admin reads; server writes, with owner-only read state through `notification.markRead` |
 | `landlordAccounts/{landlordId}` | ownerUid, approvalStatus, approvalReasonCode, approvedAt, suspendedAt, activeUnitCount | owner/admin; approval and count are server-only |
 | `subscriptions/{landlordId}` | tier, status, provider refs, period dates, entitlementsVersion | owner/admin; billing webhook/server-only |
 | `planCatalog/{tier}` | display name, public price projection, `isPublic` | published plans may be public; server-only writes |
@@ -71,11 +72,20 @@ tenantPortals/{tenantUid}
 clientPortals/{clientUid}
   applications/{applicationId}
   contactRequests/{requestId}
+
+notificationInboxes/{uid}
+  items/{notificationId}
 ```
 
 Projection documents include the canonical ID/version and only fields needed by that actor. They are written idempotently by the same transaction as the canonical mutation when practical, or by an idempotent projector with measurable lag. Removing lease/application access increments the portal root's `accessGeneration` and removes or tombstones affected projections.
 
 Projection rules are UID-path based and all projection writes are denied to clients. A landlord cannot read a tenant portal merely because one of their leases appears in it; the landlord reads the canonical collection instead.
+
+The notification inbox is a separate common projection because its safe shape
+is identical for landlords, tenants, clients, and administrators. FCM is only a
+nudge: the inbox row is created first and remains available when permission is
+denied, a token is stale, or the device was offline. Push payload text stays
+generic and contains only safe routes and opaque aggregate IDs.
 
 ## Public listing projection
 

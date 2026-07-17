@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -23,7 +25,7 @@ class LandlordDashboardScreen extends ConsumerWidget {
     final snapshot = ref.watch(dashboardSnapshotProvider);
     final session = ref.watch(sessionControllerProvider);
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         context.pageGutter,
         26,
         context.pageGutter,

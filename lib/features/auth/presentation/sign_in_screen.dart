@@ -1,9 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/motion.dart';
+import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/toast.dart';
@@ -160,9 +164,14 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              const Align(
+                                alignment: AlignmentDirectional.centerEnd,
+                                child: LanguageMenuButton(),
+                              ),
+                              const SizedBox(height: 24),
                               if (!showBrand) ...[
                                 const Align(
-                                  alignment: Alignment.centerLeft,
+                                  alignment: AlignmentDirectional.centerStart,
                                   child: NyumbaLogo(height: 48),
                                 ),
                                 const SizedBox(height: 46),
@@ -200,8 +209,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                         AutofillHints.email,
                                       ],
                                       textInputAction: TextInputAction.next,
-                                      decoration: const InputDecoration(
-                                        hintText: 'you@example.com',
+                                      decoration: InputDecoration(
+                                        hintText: context.tr('you@example.com'),
                                         prefixIcon: Icon(
                                           Icons.mail_outline_rounded,
                                         ),
@@ -242,14 +251,18 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                       textInputAction: TextInputAction.done,
                                       onFieldSubmitted: (_) => _submit(),
                                       decoration: InputDecoration(
-                                        hintText: 'Enter your password',
+                                        hintText: context.tr(
+                                          'Enter your password',
+                                        ),
                                         prefixIcon: const Icon(
                                           Icons.lock_outline_rounded,
                                         ),
                                         suffixIcon: IconButton(
-                                          tooltip: _obscurePassword
-                                              ? 'Show password'
-                                              : 'Hide password',
+                                          tooltip: context.tr(
+                                            _obscurePassword
+                                                ? 'Show password'
+                                                : 'Hide password',
+                                          ),
                                           onPressed: () => setState(
                                             () => _obscurePassword =
                                                 !_obscurePassword,
@@ -409,7 +422,7 @@ class _BrandPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: double.infinity,
-      padding: const EdgeInsets.fromLTRB(56, 44, 56, 48),
+      padding: const EdgeInsetsDirectional.fromSTEB(56, 44, 56, 48),
       decoration: const BoxDecoration(color: NyumbaColors.midnightNavy),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

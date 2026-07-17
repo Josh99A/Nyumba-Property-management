@@ -23,6 +23,7 @@ enum OfflineEntityType {
   leaseDocument('lease_documents', 75),
 
   notice('notices', 80),
+  notification('app_notifications', 82),
   // `managedUser` is the admin-facing account directory. It is deliberately a
   // separate store from `userProfile`: both once shared `user_profiles`, so an
   // admin who saved their own settings wrote a UserSettings record that the

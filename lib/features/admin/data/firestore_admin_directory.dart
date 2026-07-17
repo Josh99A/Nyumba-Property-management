@@ -109,9 +109,13 @@ final class FirestoreAdminDirectory implements AdminDirectoryRepository {
       final landlordAccount = landlordAccounts[uid];
       final subscription = subscriptions[uid];
 
-      // Landlord standing lives on the landlordAccounts aggregate; the users
-      // document only distinguishes active from suspended for everyone else.
-      final status = landlordAccount != null
+      // A super-admin archive lives on the users document and outranks
+      // everything else; otherwise landlord standing lives on the
+      // landlordAccounts aggregate, and the users document only distinguishes
+      // active from suspended for everyone else.
+      final status = _text(data['status']) == 'archived'
+          ? PlatformAccountStatus.archived
+          : landlordAccount != null
           ? switch (_text(landlordAccount['approvalStatus'])) {
               'pending' => PlatformAccountStatus.pendingApproval,
               'suspended' => PlatformAccountStatus.suspended,
@@ -133,6 +137,7 @@ final class FirestoreAdminDirectory implements AdminDirectoryRepository {
           },
           status: status,
           joinedLabel: _dateLabel(data['createdAt']) ?? 'Unknown',
+          userVersion: _version(data['version']),
           landlordAccountVersion: _version(landlordAccount?['version']),
           businessName: landlordAccount == null
               ? null

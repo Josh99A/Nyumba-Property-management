@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 
 import '../../app/theme/nyumba_colors.dart';
 
@@ -27,7 +30,7 @@ class NyumbaLogo extends StatelessWidget {
 
     return Semantics(
       image: true,
-      label: 'Nyumba Property Management',
+      label: context.tr('Nyumba Property Management'),
       child: SizedBox(
         height: resolvedHeight,
         child: Row(

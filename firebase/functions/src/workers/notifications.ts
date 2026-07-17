@@ -1,7 +1,7 @@
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { COLLECTIONS, CLIENT_PORTAL_SECTIONS } from '../shared/collections';
 import { clientContactProjection } from '../shared/projections';
-import { notifyUser } from '../shared/messaging';
+import { deliverUserNotification } from '../shared/messaging';
 
 /**
  * Tells a landlord a prospect applied to one of their listings.
@@ -21,9 +21,11 @@ export async function notifyLandlordApplication(payload: Record<string, unknown>
   // value but is never treated as the authority on who owns the application.
   if (typeof application.landlordId !== 'string' || !application.landlordId) return;
 
-  await notifyUser(application.landlordId, {
-    title: 'New application',
-    body: `${String(application.displayName ?? 'A prospect')} applied to one of your listings.`,
+  await deliverUserNotification(application.landlordId, {
+    id: `application_${applicationId}`,
+    kind: 'application',
+    templateKey: 'new_application',
+    relatedEntityId: applicationId,
     data: { route: '/listings', applicationId, listingId: String(application.listingId ?? '') },
   });
 }
@@ -80,9 +82,11 @@ export async function deliverContactRequest(payload: Record<string, unknown>): P
   await batch.commit();
   if (!landlordId) return;
 
-  await notifyUser(landlordId, {
-    title: 'New enquiry',
-    body: `${String(contact.displayName ?? 'Someone')} asked about one of your listings.`,
+  await deliverUserNotification(landlordId, {
+    id: `enquiry_${contactRequestId}`,
+    kind: 'enquiry',
+    templateKey: 'new_enquiry',
+    relatedEntityId: contactRequestId,
     data: { route: '/listings', contactRequestId, listingId: String(contact.listingId ?? '') },
   });
 }

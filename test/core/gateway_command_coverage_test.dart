@@ -37,6 +37,8 @@ const _expectedCommands = <(OfflineEntityType, OutboxOperation), String>{
   (OfflineEntityType.maintenanceRequest, OutboxOperation.update):
       'maintenance.updateStatus',
   (OfflineEntityType.notice, OutboxOperation.create): 'notice.publish',
+  (OfflineEntityType.notification, OutboxOperation.update):
+      'notification.markRead',
 };
 
 /// Aggregates that never enqueue, so the gateway is never asked about them.
@@ -146,6 +148,55 @@ void main() {
       expect(payload['endDate'], '2026-12-31');
       expect(payload['monthlyRentMinor'], 100000);
       expect(payload['openingBalanceMinor'], 50000);
+    });
+
+    test('profile preferences are low-risk versionless updates', () {
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.userProfile,
+          OutboxOperation.update,
+          payload: const <String, Object?>{
+            'displayName': 'Joshua',
+            'locale': 'lg',
+            'emailNotifications': false,
+            'pushNotifications': true,
+            'rentReminders': false,
+            'maintenanceUpdates': true,
+          },
+        ),
+      );
+      expect(envelope.containsKey('expectedVersion'), isFalse);
+      expect(envelope['payload'], <String, Object?>{
+        'displayName': 'Joshua',
+        'locale': 'lg',
+        'notifications': <String, Object?>{
+          'email': false,
+          'push': true,
+          'rentReminders': false,
+          'maintenanceUpdates': true,
+        },
+      });
+    });
+
+    test('notice publication preserves a property audience', () {
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.notice,
+          OutboxOperation.create,
+          payload: const <String, Object?>{
+            'title': 'Water interruption',
+            'body': 'Water will be unavailable on Saturday morning.',
+            'audienceType': 'property',
+            'audienceId': 'property_1234',
+          },
+        ),
+      );
+      expect(envelope['payload'], <String, Object?>{
+        'title': 'Water interruption',
+        'body': 'Water will be unavailable on Saturday morning.',
+        'audience': 'property',
+        'audienceId': 'property_1234',
+      });
     });
 
     test('tenancy.establish omits openingBalanceMinor when null', () {

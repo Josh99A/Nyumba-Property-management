@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -318,7 +321,7 @@ class _ResourceAccessCard extends StatelessWidget {
             const SizedBox(height: 18),
             if (canOpen)
               Align(
-                alignment: Alignment.centerRight,
+                alignment: AlignmentDirectional.centerEnd,
                 child: TextButton.icon(
                   onPressed: () => context.go(definition.route!),
                   icon: const Icon(Icons.arrow_forward_rounded, size: 18),
@@ -374,7 +377,7 @@ class _OperationChip extends StatelessWidget {
       CrudOperation.delete => 'Archive',
     };
     return Semantics(
-      label: '$label ${allowed ? 'allowed' : 'not allowed'}',
+      label: context.tr('$label ${allowed ? 'allowed' : 'not allowed'}'),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
         decoration: BoxDecoration(

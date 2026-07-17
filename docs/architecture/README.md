@@ -12,6 +12,10 @@ Nyumba is a multi-tenant, offline-first Flutter application for web, Android, an
 - idempotent synchronization that tolerates retries and duplicate delivery;
 - feature-level isolation so the property, tenancy, billing, maintenance, and listing domains can evolve independently.
 
+Nyumba's four-language contract (English, Luganda, Kiswahili, and Arabic),
+locale persistence, RTL rules, notification localization, and PDF behavior are
+defined in [`localization.md`](localization.md).
+
 ## Dependency rule
 
 Each feature is split into four conceptual layers. Dependencies point inward only.
@@ -179,9 +183,26 @@ flutter build web --release --dart-define=NYUMBA_VAPID_PUBLIC_KEY=<public-key>
 
 Without it, `registerForPush` returns `unavailable` and web push is simply off.
 `web/firebase-messaging-sw.js` reads its Firebase config from the registration
-URL, so it needs no editing per environment.
+URL. The Flutter registration code supplies that environment's `FirebaseOptions`
+as an encoded query parameter, so the worker needs no editing per environment.
+
+Push is a courtesy channel over the durable in-app inbox. Application,
+enquiry, and tenant-notice workers first create an idempotent
+`notificationInboxes/{uid}/items/{notificationId}` document, then attempt FCM.
+Foreground messages render an in-app banner; notification taps accept only a
+small allowlist of application routes. Signing out revokes and deletes the
+device token before the Firebase Auth session closes.
 
 **Push (iOS).** Requires the same paid Apple Developer account: an APNs auth
 key (`.p8`) uploaded under Cloud Messaging → Apple app configuration, plus Push
 Notifications and Background Modes → Remote notifications in Xcode. Android
 needs nothing beyond `google-services.json`.
+
+**Application email.** Not configured. Firebase Auth may still send its own
+verification and password-reset templates, but Nyumba has no transactional
+mail provider, SMTP extension, mail job adapter, sender-domain verification, or
+bounce/complaint processing. Enabling application email requires a selected
+provider, SPF/DKIM/DMARC for the sending domain, provider credentials in Secret
+Manager, durable idempotent mail jobs/templates, preference enforcement, and
+delivery/bounce observability. Firebase Hosting custom-domain approval is
+separate from email-domain verification.

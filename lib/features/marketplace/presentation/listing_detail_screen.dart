@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -28,7 +31,7 @@ class ListingDetailScreen extends ConsumerWidget {
         toolbarHeight: 70,
         backgroundColor: context.nyumba.surface,
         leading: IconButton(
-          tooltip: 'Back to available homes',
+          tooltip: context.tr('Back to available homes'),
           onPressed: () => context.go('/explore'),
           icon: const Icon(Icons.arrow_back_rounded),
         ),
@@ -73,7 +76,7 @@ class _ListingDetails extends StatelessWidget {
       decimalDigits: 0,
     );
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         context.pageGutter,
         24,
         context.pageGutter,
@@ -87,7 +90,9 @@ class _ListingDetails extends StatelessWidget {
             children: [
               TextButton.icon(
                 onPressed: () => context.go('/explore'),
-                style: TextButton.styleFrom(alignment: Alignment.centerLeft),
+                style: TextButton.styleFrom(
+                  alignment: AlignmentDirectional.centerStart,
+                ),
                 icon: const Icon(Icons.arrow_back_rounded, size: 18),
                 label: const Text('Available homes'),
               ),
@@ -513,7 +518,7 @@ Future<void> _showContact(BuildContext context, Listing listing) {
     showDragHandle: true,
     builder: (context) => SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+        padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -635,7 +640,9 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                 const SizedBox(height: 18),
                 TextFormField(
                   controller: _name,
-                  decoration: const InputDecoration(labelText: 'Full name'),
+                  decoration: InputDecoration(
+                    labelText: context.tr('Full name'),
+                  ),
                   textInputAction: TextInputAction.next,
                   validator: (value) => (value?.trim().length ?? 0) < 2
                       ? 'Enter your name'
@@ -645,7 +652,9 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                 TextFormField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email address'),
+                  decoration: InputDecoration(
+                    labelText: context.tr('Email address'),
+                  ),
                   textInputAction: TextInputAction.next,
                   validator: (value) => !(value?.contains('@') ?? false)
                       ? 'Enter a valid email'
@@ -655,7 +664,9 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                 TextFormField(
                   controller: _phone,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Phone number'),
+                  decoration: InputDecoration(
+                    labelText: context.tr('Phone number'),
+                  ),
                   textInputAction: TextInputAction.next,
                   validator: (value) =>
                       !NyumbaMarket.isValidPhone(value?.trim() ?? '')
@@ -684,8 +695,8 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                   controller: _message,
                   minLines: 3,
                   maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: 'Message to landlord (optional)',
+                  decoration: InputDecoration(
+                    labelText: context.tr('Message to landlord (optional)'),
                   ),
                 ),
                 if (_error != null) ...[

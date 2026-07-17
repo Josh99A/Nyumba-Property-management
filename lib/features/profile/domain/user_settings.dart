@@ -1,5 +1,6 @@
 import '../../../core/config/market_config.dart';
 import '../../../core/domain/sync_metadata.dart';
+import '../../../core/localization/app_language.dart';
 
 enum ThemePreference { system, light, dark }
 
@@ -10,6 +11,7 @@ final class UserSettings {
     required this.email,
     required this.phone,
     required this.themePreference,
+    required this.language,
     required this.emailNotifications,
     required this.pushNotifications,
     required this.rentReminders,
@@ -23,12 +25,40 @@ final class UserSettings {
   final String email;
   final String phone;
   final ThemePreference themePreference;
+  final AppLanguage? language;
   final bool emailNotifications;
   final bool pushNotifications;
   final bool rentReminders;
   final bool maintenanceUpdates;
   final DateTime updatedAt;
   final SyncMetadata syncMetadata;
+
+  UserSettings copyWith({
+    String? displayName,
+    String? email,
+    String? phone,
+    ThemePreference? themePreference,
+    AppLanguage? language,
+    bool? emailNotifications,
+    bool? pushNotifications,
+    bool? rentReminders,
+    bool? maintenanceUpdates,
+    DateTime? updatedAt,
+    SyncMetadata? syncMetadata,
+  }) => UserSettings(
+    userId: userId,
+    displayName: displayName ?? this.displayName,
+    email: email ?? this.email,
+    phone: phone ?? this.phone,
+    themePreference: themePreference ?? this.themePreference,
+    language: language ?? this.language,
+    emailNotifications: emailNotifications ?? this.emailNotifications,
+    pushNotifications: pushNotifications ?? this.pushNotifications,
+    rentReminders: rentReminders ?? this.rentReminders,
+    maintenanceUpdates: maintenanceUpdates ?? this.maintenanceUpdates,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncMetadata: syncMetadata ?? this.syncMetadata,
+  );
 
   void validate() {
     if (displayName.trim().length < 2) {

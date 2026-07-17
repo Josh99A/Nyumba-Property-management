@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 import '../../../../app/theme/nyumba_colors.dart';
@@ -56,7 +59,7 @@ class OccupancyRing extends StatelessWidget {
     final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.4);
     final dimension = size * textScale;
     return Semantics(
-      label: '$percentage percent of rental spaces are occupied',
+      label: context.tr('$percentage percent of rental spaces are occupied'),
       child: TweenAnimationBuilder<double>(
         tween: Tween(
           begin: NyumbaMotion.reducedMotion(context) ? rate : 0,
@@ -160,7 +163,7 @@ class RentTrendChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.nyumba;
     return Semantics(
-      label: 'Monthly rent collection trend',
+      label: context.tr('Monthly rent collection trend'),
       child: SizedBox(
         height: 154,
         child: TweenAnimationBuilder<double>(

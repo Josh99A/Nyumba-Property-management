@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -64,7 +67,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
           CrudOperation.create,
         );
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         context.pageGutter,
         26,
         context.pageGutter,
@@ -104,8 +107,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                     child: TextField(
                       controller: _searchController,
                       onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        hintText: 'Search properties',
+                      decoration: InputDecoration(
+                        hintText: context.tr('Search properties'),
                         prefixIcon: Icon(Icons.search_rounded),
                         isDense: true,
                       ),
@@ -233,10 +236,11 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                         session.role == AppRole.superAdmin) ...[
                       TextFormField(
                         controller: landlordId,
-                        decoration: const InputDecoration(
-                          labelText: 'Target landlord account ID',
-                          helperText:
-                              'Staff actions are server-validated and audited.',
+                        decoration: InputDecoration(
+                          labelText: context.tr('Target landlord account ID'),
+                          helperText: context.tr(
+                            'Staff actions are server-validated and audited.',
+                          ),
                         ),
                         validator: (value) => (value?.trim().isEmpty ?? true)
                             ? 'Enter the landlord account ID'
@@ -247,8 +251,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                     TextFormField(
                       controller: name,
                       autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Property name',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Property name'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 2
                           ? 'Enter a property name'
@@ -257,8 +261,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: address,
-                      decoration: const InputDecoration(
-                        labelText: 'Street address',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Street address'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 3
                           ? 'Enter the street address'
@@ -267,8 +271,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: city,
-                      decoration: const InputDecoration(
-                        labelText: 'City or town',
+                      decoration: InputDecoration(
+                        labelText: context.tr('City or town'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
                           ? 'Enter a city or town'
@@ -279,8 +283,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                       controller: description,
                       minLines: 2,
                       maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Description (optional)',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Description (optional)'),
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -594,8 +598,8 @@ class _PropertyCard extends StatelessWidget {
                 ),
               ),
               if (pending)
-                Positioned(
-                  left: 12,
+                PositionedDirectional(
+                  start: 12,
                   top: 12,
                   child: StatusBadge(
                     label: property.isArchived
@@ -713,12 +717,12 @@ class _SelectedPropertyPhoto extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
               ),
-              Positioned(
-                right: 3,
+              PositionedDirectional(
+                end: 3,
                 top: 3,
                 child: IconButton.filledTonal(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Remove ${photo.name}',
+                  tooltip: context.tr('Remove ${photo.name}'),
                   onPressed: onRemove,
                   icon: const Icon(Icons.close_rounded, size: 16),
                 ),

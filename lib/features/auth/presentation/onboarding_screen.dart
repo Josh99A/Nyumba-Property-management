@@ -1,10 +1,14 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/market_config.dart';
 import '../../../core/presentation/motion.dart';
+import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/toast.dart';
@@ -117,10 +121,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       children: [
                         const Expanded(
                           child: Align(
-                            alignment: Alignment.centerLeft,
+                            alignment: AlignmentDirectional.centerStart,
                             child: NyumbaLogo(height: 44),
                           ),
                         ),
+                        const LanguageMenuButton(compact: true),
+                        const SizedBox(width: 8),
                         TextButton.icon(
                           onPressed: () => ref
                               .read(sessionControllerProvider.notifier)
@@ -179,9 +185,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
                               textInputAction: TextInputAction.next,
-                              decoration: const InputDecoration(
-                                labelText: 'Phone number',
-                                hintText: '+256 772 123 456',
+                              decoration: InputDecoration(
+                                labelText: context.tr('Phone number'),
+                                hintText: context.tr('+256 772 123 456'),
                                 prefixIcon: Icon(Icons.phone_outlined),
                               ),
                               validator: (value) =>
@@ -196,8 +202,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               controller: _businessController,
                               textInputAction: TextInputAction.done,
                               onFieldSubmitted: (_) => _completeLandlordSetup(),
-                              decoration: const InputDecoration(
-                                labelText: 'Business name (optional)',
+                              decoration: InputDecoration(
+                                labelText: context.tr(
+                                  'Business name (optional)',
+                                ),
                                 prefixIcon: Icon(Icons.storefront_outlined),
                               ),
                             ),

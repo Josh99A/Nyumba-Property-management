@@ -101,6 +101,18 @@ const suspendReasonCodes = [
   'ADMIN_CORRECTION',
 ];
 const reinstateReasonCodes = ['APPEAL_APPROVED', 'ADMIN_CORRECTION'];
+const archiveUserReasonCodes = [
+  'POLICY_VIOLATION',
+  'FRAUD_RISK',
+  'USER_REQUESTED',
+  'ADMIN_CORRECTION',
+];
+const restoreUserReasonCodes = ['APPEAL_APPROVED', 'ADMIN_CORRECTION'];
+const deleteUserReasonCodes = [
+  'USER_REQUESTED',
+  'POLICY_VIOLATION',
+  'ADMIN_CORRECTION',
+];
 
 final adminAccountCommandsProvider = Provider<AdminAccountCommands>(
   AdminAccountCommands.new,
@@ -157,6 +169,51 @@ class AdminAccountCommands {
         'reference': reference.trim(),
         if (tier != null && tier.trim().isNotEmpty) 'tier': tier.trim(),
       },
+    );
+  }
+
+  /// Archives any account: sign-in is disabled server-side and the profile is
+  /// marked archived. Super-admin only, like every `user.*` lifecycle command.
+  Future<void> archiveUser({
+    required PlatformAccount account,
+    required String reasonCode,
+  }) => _userLifecycle('user.archive', account, reasonCode);
+
+  /// Returns an archived account to active and re-enables sign-in.
+  Future<void> restoreUser({
+    required PlatformAccount account,
+    required String reasonCode,
+  }) => _userLifecycle('user.restore', account, reasonCode);
+
+  /// Permanently deletes an account out of the archive. The server refuses
+  /// this unless the account is already archived.
+  Future<void> deleteUser({
+    required PlatformAccount account,
+    required String reasonCode,
+  }) => _userLifecycle('user.delete', account, reasonCode);
+
+  Future<void> _userLifecycle(
+    String type,
+    PlatformAccount account,
+    String reasonCode,
+  ) async {
+    _requireManageable(account);
+    final session = _ref.read(sessionControllerProvider);
+    if (session?.role != AppRole.superAdmin) {
+      throw StateError(
+        'Only a super administrator can archive or delete accounts.',
+      );
+    }
+    final version = account.userVersion;
+    if (version == null) {
+      throw StateError('This account has no server profile to act on.');
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: type,
+      aggregateId: account.uid,
+      expectedVersion: version,
+      payload: <String, Object?>{'reasonCode': reasonCode},
     );
   }
 

@@ -1,9 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/motion.dart';
+import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/toast.dart';
@@ -111,9 +115,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: NyumbaLogo(height: 44),
+                    const Row(
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: NyumbaLogo(height: 44),
+                          ),
+                        ),
+                        LanguageMenuButton(compact: true),
+                      ],
                     ),
                     const SizedBox(height: 36),
                     Text(
@@ -139,8 +150,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                             controller: _nameController,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.name],
-                            decoration: const InputDecoration(
-                              labelText: 'Full name',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Full name'),
                               prefixIcon: Icon(Icons.person_outline_rounded),
                             ),
                             validator: (value) =>
@@ -154,8 +165,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.email],
-                            decoration: const InputDecoration(
-                              labelText: 'Email address',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Email address'),
                               prefixIcon: Icon(Icons.mail_outline_rounded),
                             ),
                             validator: (value) {
@@ -173,14 +184,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.newPassword],
                             decoration: InputDecoration(
-                              labelText: 'Password',
+                              labelText: context.tr('Password'),
                               prefixIcon: const Icon(
                                 Icons.lock_outline_rounded,
                               ),
                               suffixIcon: IconButton(
-                                tooltip: _obscurePassword
-                                    ? 'Show password'
-                                    : 'Hide password',
+                                tooltip: context.tr(
+                                  _obscurePassword
+                                      ? 'Show password'
+                                      : 'Hide password',
+                                ),
                                 onPressed: () => setState(
                                   () => _obscurePassword = !_obscurePassword,
                                 ),
@@ -201,8 +214,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                             obscureText: _obscurePassword,
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) => _submit(),
-                            decoration: const InputDecoration(
-                              labelText: 'Confirm password',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Confirm password'),
                               prefixIcon: Icon(Icons.lock_outline_rounded),
                             ),
                             validator: (value) =>

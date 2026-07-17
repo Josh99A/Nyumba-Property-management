@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/nyumba_colors.dart';
@@ -74,7 +76,7 @@ class KpiCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: AnimatedCount(
                         value: value,
                         format: format,
@@ -374,7 +376,7 @@ class RecentPaymentsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
+            padding: const EdgeInsetsDirectional.fromSTEB(20, 18, 12, 12),
             child: NyumbaSectionHeader(
               title: 'Recent payments',
               trailing: TextButton(
@@ -425,9 +427,9 @@ class RecentPaymentsCard extends StatelessWidget {
               ),
             ),
           Align(
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+              padding: const EdgeInsetsDirectional.fromSTEB(10, 4, 10, 10),
               child: TextButton.icon(
                 onPressed: onViewAll,
                 iconAlignment: IconAlignment.end,
@@ -553,7 +555,7 @@ class MaintenanceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 12, 6),
+            padding: const EdgeInsetsDirectional.fromSTEB(20, 18, 12, 6),
             child: NyumbaSectionHeader(
               title: 'Maintenance',
               trailing: TextButton(
@@ -563,7 +565,7 @@ class MaintenanceCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 2, 20, 12),
+            padding: const EdgeInsetsDirectional.fromSTEB(20, 2, 20, 12),
             child: Wrap(
               spacing: 18,
               runSpacing: 6,
@@ -656,7 +658,7 @@ class ActivityCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Padding(
-            padding: EdgeInsets.fromLTRB(18, 18, 18, 12),
+            padding: EdgeInsetsDirectional.fromSTEB(18, 18, 18, 12),
             child: NyumbaSectionHeader(title: 'Recent activity'),
           ),
           for (final item in activity)

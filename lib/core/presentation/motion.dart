@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
 /// Shared motion vocabulary so every screen animates with the same calm,
 /// unhurried character. All entrance helpers collapse to static widgets when

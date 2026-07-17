@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -46,7 +49,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         context.pageGutter,
         26,
         context.pageGutter,
@@ -135,7 +138,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+                padding: const EdgeInsetsDirectional.fromSTEB(20, 18, 20, 14),
                 child: Row(
                   children: [
                     Expanded(
@@ -148,8 +151,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       SizedBox(
                         width: 240,
                         child: TextField(
-                          decoration: const InputDecoration(
-                            hintText: 'Search payments',
+                          decoration: InputDecoration(
+                            hintText: context.tr('Search payments'),
                             prefixIcon: Icon(Icons.search_rounded),
                             isDense: true,
                           ),
@@ -160,7 +163,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 14),
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -257,7 +260,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Align(
-                  alignment: Alignment.centerRight,
+                  alignment: AlignmentDirectional.centerEnd,
                   child: TextButton.icon(
                     onPressed: () => _exportPayments(payments),
                     icon: const Icon(Icons.download_outlined, size: 18),
@@ -335,8 +338,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 children: [
                   DropdownButtonFormField<String>(
                     initialValue: selected.id,
-                    decoration: const InputDecoration(
-                      labelText: 'Tenant and rental space',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Tenant and rental space'),
                     ),
                     items: [
                       for (final tenancy in tenancies)
@@ -358,7 +361,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   ),
                   const SizedBox(height: 6),
                   Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: Text(
                       selected.balanceDue
                           ? 'Outstanding: ${_formatMinor(selected.balanceMinor)}'
@@ -370,8 +373,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   TextFormField(
                     controller: amount,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Amount',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Amount'),
                       prefixText: 'UGX ',
                     ),
                     validator: (value) {
@@ -386,8 +389,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
                     initialValue: method,
-                    decoration: const InputDecoration(
-                      labelText: 'Payment method',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Payment method'),
                     ),
                     items: const [
                       DropdownMenuItem(value: 'Cash', child: Text('Cash')),
@@ -555,7 +558,7 @@ class FinanceSummary extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 FittedBox(
-                  alignment: Alignment.centerLeft,
+                  alignment: AlignmentDirectional.centerStart,
                   fit: BoxFit.scaleDown,
                   child: Text(
                     item.$2,

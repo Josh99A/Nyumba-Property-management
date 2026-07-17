@@ -33,6 +33,9 @@ beforeEach(async () => {
       setDoc(doc(db, 'properties/landlord_one'), { landlordId: 'landlord_1' }),
       setDoc(doc(db, 'properties/landlord_two'), { landlordId: 'landlord_2' }),
       setDoc(doc(db, 'tenantPortals/tenant_1/leases/lease_123'), { id: 'lease_123' }),
+      setDoc(doc(db, 'notificationInboxes/tenant_1/items/notice_123'), {
+        id: 'notice_123', recipientUid: 'tenant_1', isRead: false,
+      }),
       setDoc(doc(db, 'commandReceipts/command_1'), { actorUid: 'tenant_1' }),
       setDoc(doc(db, 'reportSnapshots/report_1'), { ownerType: 'landlord', ownerId: 'landlord_1' }),
       setDoc(doc(db, 'backendJobs/job_123456'), { state: 'pending' }),
@@ -72,6 +75,11 @@ describe('Firestore rules matrix', () => {
     const tenantDb = env.authenticatedContext('tenant_1').firestore();
     await assertSucceeds(getDoc(doc(tenantDb, 'tenantPortals/tenant_1/leases/lease_123')));
     await assertFails(getDoc(doc(tenantDb, 'tenantPortals/tenant_2/leases/lease_123')));
+    await assertSucceeds(getDoc(doc(tenantDb, 'notificationInboxes/tenant_1/items/notice_123')));
+    await assertFails(getDoc(doc(
+      env.authenticatedContext('tenant_2').firestore(),
+      'notificationInboxes/tenant_1/items/notice_123',
+    )));
     await assertSucceeds(getDoc(doc(landlordDb, 'reportSnapshots/report_1')));
     await assertFails(getDoc(doc(env.authenticatedContext('landlord_2').firestore(), 'reportSnapshots/report_1')));
   });
@@ -82,6 +90,7 @@ describe('Firestore rules matrix', () => {
       'users/user_1234', 'properties/property_1', 'units/unit_123456', 'leases/lease_1234',
       'invoices/invoice_1', 'payments/payment_1', 'privateListings/listing_1',
       'applications/app_1234', 'documents/document_1',
+      'notificationInboxes/tenant_1/items/notice_123',
     ]) {
       await assertFails(setDoc(doc(tenantDb, path), { landlordId: 'tenant_1' }));
     }

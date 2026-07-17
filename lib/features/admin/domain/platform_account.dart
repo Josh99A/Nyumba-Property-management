@@ -5,7 +5,8 @@
 /// client UUIDs, a [PlatformAccount] is keyed by the Firebase UID and can
 /// therefore address the real account in audited admin commands
 /// (`landlord.approve` / `landlord.suspend` / `landlord.reinstate` /
-/// `subscription.confirmPayment`).
+/// `subscription.confirmPayment` / `user.archive` / `user.restore` /
+/// `user.delete`).
 library;
 
 enum PlatformAccountStatus {
@@ -14,7 +15,11 @@ enum PlatformAccountStatus {
 
   /// Demo-only: a locally invited directory entry that has no server account.
   invited('Invited'),
-  suspended('Suspended');
+  suspended('Suspended'),
+
+  /// Super-admin archived: sign-in is disabled and the account waits either
+  /// for restoration or permanent deletion.
+  archived('Archived');
 
   const PlatformAccountStatus(this.label);
 
@@ -55,6 +60,7 @@ final class PlatformAccount {
     required this.joinedLabel,
     this.location,
     this.lastActiveLabel,
+    this.userVersion,
     this.landlordAccountVersion,
     this.businessName,
     this.subscriptionTier,
@@ -80,6 +86,10 @@ final class PlatformAccount {
   /// Only demo entries record these; the server tracks neither.
   final String? location;
   final String? lastActiveLabel;
+
+  /// Concurrency token for the `user.*` lifecycle commands, from the
+  /// `users/{uid}` document. Null for demo entries with no server profile.
+  final int? userVersion;
 
   /// Concurrency token for `landlord.*` admin commands. Null when the account
   /// has no landlord aggregate.
@@ -124,6 +134,27 @@ final class AdminAuditEvent {
   final String? aggregateId;
   final String? reasonCode;
 }
+
+/// Readable label for a UID appearing in audit or activity context.
+///
+/// Server documents reference people by immutable Firebase UID — document
+/// IDs and audit entries must never key on a name or email, which change and
+/// are PII in every cross-reference. Presentation resolves the UID back to
+/// the directory instead. Falls back to a shortened UID when the account is
+/// unknown here (deleted, or an orphaned profile the directory collapsed).
+String accountLabelFor(String? uid, Map<String, PlatformAccount> byUid) {
+  if (uid == null || uid.isEmpty) return 'unknown account';
+  final account = byUid[uid];
+  if (account != null) {
+    return account.displayName.isNotEmpty
+        ? account.displayName
+        : (account.email.isNotEmpty ? account.email : _shortUid(uid));
+  }
+  return _shortUid(uid);
+}
+
+String _shortUid(String uid) =>
+    uid.length <= 10 ? uid : '${uid.substring(0, 8)}…';
 
 /// Live read access to the admin-readable server documents. Implementations
 /// stream from the server; there is deliberately no local mirror, because

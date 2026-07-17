@@ -1,13 +1,19 @@
 import type { CommandHandler } from '../shared/handlers';
-import { landlordApprove, landlordReinstate, landlordSuspend } from './admin';
+import { landlordApprove, landlordReinstate, landlordSuspend, userArchive, userDelete, userRestore } from './admin';
 import { applicationSubmit, applicationWithdraw, contactSubmit } from './applications';
 import { invoiceGenerate, paymentInitiate, paymentRecordAgainstTenancy, paymentRecordManual, receiptRegenerate } from './billing';
 import { noticePublish } from './communication';
 import { documentDelete, documentFinalizeUpload } from './documents';
-import { landlordOnboard, profileRegisterDevice, profileUpdate } from './identity';
+import {
+  landlordOnboard,
+  profileRegisterDevice,
+  profileUnregisterDevice,
+  profileUpdate,
+} from './identity';
 import { maintenanceAddComment, maintenanceCreate, maintenanceUpdateStatus } from './maintenance';
 import { listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from './listings';
 import { propertyArchive, propertyCreate, propertyUpdate, unitArchive, unitCreate, unitRestore, unitUpdate } from './portfolio';
+import { notificationMarkRead } from './notifications';
 import { reportRequest } from './reports';
 import { subscriptionConfirmPayment, subscriptionSelectPlan } from './subscription';
 import { leaseActivate, leaseCreate, leaseEnd, tenancyEstablish, tenantClaimInvite, tenantInvite, tenantUpdate } from './tenancy';
@@ -17,10 +23,15 @@ import { leaseActivate, leaseCreate, leaseEnd, tenancyEstablish, tenantClaimInvi
 export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['profile.update', profileUpdate],
   ['profile.registerDevice', profileRegisterDevice],
+  ['profile.unregisterDevice', profileUnregisterDevice],
+  ['notification.markRead', notificationMarkRead],
   ['landlord.onboard', landlordOnboard],
   ['landlord.approve', landlordApprove],
   ['landlord.suspend', landlordSuspend],
   ['landlord.reinstate', landlordReinstate],
+  ['user.archive', userArchive],
+  ['user.restore', userRestore],
+  ['user.delete', userDelete],
   ['subscription.selectPlan', subscriptionSelectPlan],
   ['subscription.confirmPayment', subscriptionConfirmPayment],
   ['property.create', propertyCreate],

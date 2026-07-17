@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -117,7 +120,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     );
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         context.pageGutter,
         22,
         context.pageGutter,
@@ -147,7 +150,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   children: [
                     Expanded(
                       child: Align(
-                        alignment: Alignment.centerLeft,
+                        alignment: AlignmentDirectional.centerStart,
                         child: TextButton.icon(
                           onPressed: () => context.go('/properties'),
                           icon: const Icon(Icons.arrow_back_rounded, size: 18),
@@ -279,8 +282,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   children: [
                     TextFormField(
                       controller: name,
-                      decoration: const InputDecoration(
-                        labelText: 'Property name',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Property name'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 2
                           ? 'Enter a property name'
@@ -289,8 +292,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: address,
-                      decoration: const InputDecoration(
-                        labelText: 'Street address',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Street address'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 3
                           ? 'Enter the street address'
@@ -299,8 +302,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: city,
-                      decoration: const InputDecoration(
-                        labelText: 'City or town',
+                      decoration: InputDecoration(
+                        labelText: context.tr('City or town'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
                           ? 'Enter a city or town'
@@ -311,8 +314,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                       controller: description,
                       minLines: 2,
                       maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Description (optional)',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Description (optional)'),
                       ),
                     ),
                     if (error != null) ...[
@@ -397,8 +400,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     TextFormField(
                       controller: label,
                       autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Rental space name or number',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Rental space name or number'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
                           ? 'Enter a rental space name or number'
@@ -407,8 +410,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     const SizedBox(height: 14),
                     DropdownButtonFormField<UnitType>(
                       initialValue: type,
-                      decoration: const InputDecoration(
-                        labelText: 'Rental space type',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Rental space type'),
                       ),
                       items: [
                         for (final item in UnitType.values)
@@ -425,8 +428,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     TextFormField(
                       controller: rent,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Monthly rent',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Monthly rent'),
                         prefixText: 'UGX ',
                       ),
                       validator: (value) {
@@ -445,8 +448,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           child: TextFormField(
                             controller: bedrooms,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Bedrooms',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Bedrooms'),
                             ),
                             validator: (value) =>
                                 int.tryParse(value ?? '') == null
@@ -459,8 +462,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           child: TextFormField(
                             controller: bathrooms,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Bathrooms',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Bathrooms'),
                             ),
                             validator: (value) =>
                                 int.tryParse(value ?? '') == null
@@ -473,8 +476,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     const SizedBox(height: 14),
                     DropdownButtonFormField<UnitStatus>(
                       initialValue: status,
-                      decoration: const InputDecoration(
-                        labelText: 'Occupancy status',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Occupancy status'),
                       ),
                       items: [
                         for (final item in UnitStatus.values)
@@ -570,8 +573,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   children: [
                     TextFormField(
                       controller: label,
-                      decoration: const InputDecoration(
-                        labelText: 'Rental space name or number',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Rental space name or number'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
                           ? 'Enter a rental space name or number'
@@ -580,8 +583,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     const SizedBox(height: 14),
                     DropdownButtonFormField<UnitType>(
                       initialValue: type,
-                      decoration: const InputDecoration(
-                        labelText: 'Rental space type',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Rental space type'),
                       ),
                       items: [
                         for (final item in UnitType.values)
@@ -598,8 +601,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     TextFormField(
                       controller: rent,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Monthly rent',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Monthly rent'),
                         prefixText: 'UGX ',
                       ),
                       validator: (value) {
@@ -618,8 +621,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           child: TextFormField(
                             controller: bedrooms,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Bedrooms',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Bedrooms'),
                             ),
                             validator: (value) =>
                                 int.tryParse(value ?? '') == null
@@ -632,8 +635,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           child: TextFormField(
                             controller: bathrooms,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Bathrooms',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Bathrooms'),
                             ),
                             validator: (value) =>
                                 int.tryParse(value ?? '') == null
@@ -893,14 +896,16 @@ class _HeroImageState extends State<_HeroImage> {
     return ClipRRect(
       borderRadius: context.isCompact
           ? const BorderRadius.vertical(top: Radius.circular(11))
-          : const BorderRadius.horizontal(left: Radius.circular(11)),
+          : const BorderRadiusDirectional.horizontal(
+              start: Radius.circular(11),
+            ),
       child: AspectRatio(
         aspectRatio: context.isCompact ? 2 : 1.5,
         child: Stack(
           fit: StackFit.expand,
           children: [
             Semantics(
-              label: 'Property photos',
+              label: context.tr('Property photos'),
               child: PageView.builder(
                 controller: _controller,
                 itemCount: imageCount,
@@ -913,26 +918,26 @@ class _HeroImageState extends State<_HeroImage> {
             ),
             if (imageCount > 1) ...[
               Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: _CarouselButton(
-                  tooltip: 'Previous photo',
+                  tooltip: context.tr('Previous photo'),
                   icon: Icons.chevron_left_rounded,
                   onPressed: () =>
                       _goTo((_currentIndex - 1 + imageCount) % imageCount),
                 ),
               ),
               Align(
-                alignment: Alignment.centerRight,
+                alignment: AlignmentDirectional.centerEnd,
                 child: _CarouselButton(
-                  tooltip: 'Next photo',
+                  tooltip: context.tr('Next photo'),
                   icon: Icons.chevron_right_rounded,
                   onPressed: () => _goTo((_currentIndex + 1) % imageCount),
                 ),
               ),
-              Positioned(
+              PositionedDirectional(
                 bottom: 12,
-                left: 0,
-                right: 0,
+                start: 0,
+                end: 0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -952,8 +957,8 @@ class _HeroImageState extends State<_HeroImage> {
                   ],
                 ),
               ),
-              Positioned(
-                right: 12,
+              PositionedDirectional(
+                end: 12,
                 top: 12,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -1175,7 +1180,7 @@ class _UnitCard extends StatelessWidget {
               if (!unit.isArchived && (canUpdate || canArchive)) ...[
                 const SizedBox(width: 4),
                 PopupMenuButton<String>(
-                  tooltip: 'Rental space actions',
+                  tooltip: context.tr('Rental space actions'),
                   onSelected: (value) {
                     if (value == 'edit') onEdit();
                     if (value == 'archive') onArchive();

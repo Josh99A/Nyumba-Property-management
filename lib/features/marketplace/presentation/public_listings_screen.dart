@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/cloud_status_badge.dart';
+import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
@@ -44,8 +48,12 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
         actions: [
           const CloudStatusBadge(),
           SizedBox(width: context.isCompact ? 8 : 14),
+          const LanguageMenuButton(compact: true),
+          SizedBox(width: context.isCompact ? 8 : 12),
           Padding(
-            padding: EdgeInsets.only(right: context.isCompact ? 12 : 30),
+            padding: EdgeInsetsDirectional.only(
+              end: context.isCompact ? 12 : 30,
+            ),
             child: OutlinedButton(
               onPressed: () => context.go('/sign-in'),
               child: const Text('Sign in'),
@@ -64,7 +72,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                   colors: [NyumbaColors.midnightNavy, NyumbaColors.navyDark],
                 ),
               ),
-              padding: EdgeInsets.fromLTRB(
+              padding: EdgeInsetsDirectional.fromSTEB(
                 context.pageGutter,
                 context.isCompact ? 42 : 58,
                 context.pageGutter,
@@ -150,7 +158,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1240),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(
+                  padding: EdgeInsetsDirectional.fromSTEB(
                     context.pageGutter,
                     24,
                     context.pageGutter,
@@ -222,7 +230,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1240),
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(
+                      padding: EdgeInsetsDirectional.fromSTEB(
                         context.pageGutter,
                         22,
                         context.pageGutter,
@@ -371,8 +379,8 @@ class _SearchField extends StatelessWidget {
     return TextField(
       controller: controller,
       onChanged: onChanged,
-      decoration: const InputDecoration(
-        hintText: 'Search by neighborhood or property',
+      decoration: InputDecoration(
+        hintText: context.tr('Search by neighborhood or property'),
         prefixIcon: Icon(Icons.search_rounded),
       ),
     );
@@ -390,7 +398,7 @@ class _PriceFilter extends StatelessWidget {
     return DropdownButtonFormField<String>(
       initialValue: value,
       isExpanded: true,
-      decoration: const InputDecoration(prefixIcon: Icon(Icons.tune_rounded)),
+      decoration: InputDecoration(prefixIcon: Icon(Icons.tune_rounded)),
       items: const [
         DropdownMenuItem(value: 'Any price', child: Text('Any price')),
         DropdownMenuItem(value: 'Under UGX 1M', child: Text('Under UGX 1M')),
@@ -441,9 +449,9 @@ class _ListingCard extends StatelessWidget {
                       fit: BoxFit.cover,
                       filterQuality: FilterQuality.medium,
                     ),
-                    Positioned(
+                    PositionedDirectional(
                       top: 10,
-                      left: 10,
+                      start: 10,
                       child: _PhotoChip(
                         background: Colors.white,
                         foreground: NyumbaColors.sageDark,
@@ -468,9 +476,9 @@ class _ListingCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Positioned(
+                    PositionedDirectional(
                       bottom: 10,
-                      left: 10,
+                      start: 10,
                       child: _PhotoChip(
                         background: const Color(0xE60B294F),
                         foreground: Colors.white,

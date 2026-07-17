@@ -20,6 +20,7 @@ import { initiatePayment } from './payment-provider';
 import { renderReceipt } from './receipt-render';
 import { generateReport } from './report-generation';
 import { unpublishLandlordListings } from './unpublish-landlord';
+import { deleteAuthUser, setAuthUserDisabled } from './auth-lifecycle';
 
 type JobProcessor = (payload: Record<string, unknown>) => Promise<void>;
 
@@ -41,6 +42,8 @@ const processors = new Map<string, JobProcessor>([
   ['notifyLandlordApplication', notifyLandlordApplication],
   ['deliverContactRequest', deliverContactRequest],
   ['generateReport', generateReport],
+  ['setAuthUserDisabled', setAuthUserDisabled],
+  ['deleteAuthUser', deleteAuthUser],
 ]);
 
 /** Visible for tests, which assert no command enqueues an unregistered type. */

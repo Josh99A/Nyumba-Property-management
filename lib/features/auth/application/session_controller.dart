@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../core/notifications/push_registration.dart';
+import '../../../core/localization/app_language.dart';
 import '../../../core/offline/firebase_remote_sync_gateway.dart';
 import '../domain/auth_failure.dart';
 import '../domain/user_session.dart';
@@ -480,6 +481,9 @@ class SessionController extends Notifier<UserSession?> {
       accountStatus: accountStatus,
       subscriptionStatus: subscriptionStatus,
       subscriptionTier: subscriptionTier,
+      language: data['locale'] is String
+          ? AppLanguage.fromCode(data['locale'] as String)
+          : null,
       emailVerified: user.emailVerified,
       isAnonymous: user.isAnonymous,
     );
@@ -604,6 +608,14 @@ class SessionController extends Notifier<UserSession?> {
 
   Future<void> signOut() async {
     final current = state;
+    final hasRealFirebaseSession =
+        current != null && !current.isDemo && Firebase.apps.isNotEmpty;
+    if (hasRealFirebaseSession) {
+      _cancelTokenRotationWatch();
+      await unregisterFromPush(
+        gateway: () => ref.read(authCommandGatewayProvider.future),
+      );
+    }
     state = null;
     _generation++;
     _announceArrival = false;
@@ -611,7 +623,7 @@ class SessionController extends Notifier<UserSession?> {
     ref
         .read(sessionResolutionProvider.notifier)
         .publish(const SessionResolution());
-    if (current?.isDemo == true || Firebase.apps.isEmpty) return;
+    if (!hasRealFirebaseSession) return;
     await FirebaseAuth.instance.signOut();
   }
 

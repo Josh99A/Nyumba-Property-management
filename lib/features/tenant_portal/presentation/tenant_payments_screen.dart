@@ -1,8 +1,12 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
@@ -214,7 +218,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+                padding: const EdgeInsetsDirectional.fromSTEB(20, 18, 20, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -342,9 +346,11 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                                   ),
                                   DataCell(
                                     IconButton(
-                                      tooltip: statusOf(payment) == 'Paid'
-                                          ? 'View receipt'
-                                          : 'View details',
+                                      tooltip: context.tr(
+                                        statusOf(payment) == 'Paid'
+                                            ? 'View receipt'
+                                            : 'View details',
+                                      ),
                                       onPressed: () => _showReceipt(
                                         payment,
                                         statusOf(payment),
@@ -581,6 +587,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
     try {
       await const PdfDocumentService().print(
         PrintableDocumentData(
+          language: ref.read(localePreferenceProvider),
           title: 'Rent statement',
           number: 'STM-${DateTime.now().year}-${tenancy.id.substring(0, 6)}',
           recipient: tenancy.tenantName,
@@ -603,6 +610,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
     try {
       await const PdfDocumentService().print(
         PrintableDocumentData(
+          language: ref.read(localePreferenceProvider),
           // Printing an unconfirmed payment as a "Receipt / Paid" would hand a
           // tenant a document asserting something the server has not agreed to.
           title: payment.hasIssuedReceipt ? 'Receipt' : 'Payment record',

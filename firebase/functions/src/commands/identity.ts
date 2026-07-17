@@ -8,9 +8,14 @@ import { optionalShortText, strictPayload, type CommandHandler } from '../shared
 const profileSchema = strictPayload({
   displayName: optionalShortText,
   phone: z.string().trim().max(32).optional(),
-  locale: z.string().trim().max(16).optional(),
+  locale: z.enum(['en', 'lg', 'sw', 'ar']).optional(),
   notifications: z
-    .object({ email: z.boolean(), push: z.boolean() })
+    .object({
+      email: z.boolean(),
+      push: z.boolean(),
+      rentReminders: z.boolean().optional(),
+      maintenanceUpdates: z.boolean().optional(),
+    })
     .strict()
     .optional(),
 }).refine((value) => Object.values(value).some((field) => field !== undefined), {
@@ -20,7 +25,10 @@ const profileSchema = strictPayload({
 export const profileUpdate: CommandHandler<z.infer<typeof profileSchema>> = {
   payloadSchema: profileSchema,
   aggregateIdMode: 'required',
-  expectedVersionMode: 'edit',
+  // Personal preferences are the documented low-risk last-write-wins
+  // exception. A new device has no local server revision for users/{uid}, so
+  // requiring one made the first settings save fail permanently in the outbox.
+  expectedVersionMode: 'none',
   async apply({ tx, db, actor, cmd, now }) {
     if (cmd.aggregateId !== actor.uid) throw new DomainError('PERMISSION_DENIED');
     const ref = db.collection(COLLECTIONS.users).doc(actor.uid);
@@ -123,6 +131,48 @@ export const profileRegisterDevice: CommandHandler<z.infer<typeof registerDevice
       serverVersion: current.version + 1,
       safeResult: { deviceCount: next.length },
       changedFields: ['deviceTokens'],
+    };
+  },
+};
+
+const unregisterDeviceSchema = strictPayload({
+  token: z.string().trim().min(32).max(4_096),
+});
+
+/** Removes this device before sign-out so private pushes cannot cross sessions. */
+export const profileUnregisterDevice: CommandHandler<z.infer<typeof unregisterDeviceSchema>> = {
+  payloadSchema: unregisterDeviceSchema,
+  aggregateIdMode: 'forbidden',
+  expectedVersionMode: 'none',
+  async apply({ tx, db, actor, cmd, now }) {
+    const ref = db.collection(COLLECTIONS.users).doc(actor.uid);
+    const ownerRef = db.collection(COLLECTIONS.deviceTokenOwners)
+      .doc(createHash('sha256').update(cmd.payload.token).digest('hex'));
+    const [snapshot, ownerSnap] = await Promise.all([tx.get(ref), tx.get(ownerRef)]);
+    const current = requireAggregate<Record<string, unknown> & { version: number }>(
+      snapshot,
+      undefined,
+    );
+    const existing = Array.isArray(current.deviceTokens)
+      ? (current.deviceTokens as { token?: unknown }[])
+      : [];
+    const kept = existing.filter(
+      (entry) => !(typeof entry === 'object'
+        && entry !== null
+        && entry.token === cmd.payload.token),
+    );
+    const changed = kept.length !== existing.length;
+
+    if (ownerSnap.data()?.uid === actor.uid) tx.delete(ownerRef);
+    if (changed) {
+      tx.update(ref, { deviceTokens: kept, ...bumpVersion(current, now) });
+    }
+    return {
+      status: 'applied',
+      aggregateId: actor.uid,
+      serverVersion: current.version + (changed ? 1 : 0),
+      safeResult: { deviceCount: kept.length },
+      changedFields: changed ? ['deviceTokens'] : [],
     };
   },
 };

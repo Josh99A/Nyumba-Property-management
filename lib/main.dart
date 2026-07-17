@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app.dart';
+import 'core/localization/localization_formats.dart';
 import 'firebase_options.dart';
 
 /// reCAPTCHA v3 site key for web App Check, supplied at build time:
@@ -26,6 +27,7 @@ const _webRecaptchaV3SiteKey = String.fromEnvironment(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeNyumbaLocalizationFormats();
   await _initializeFirebase();
   // The offline workspace opens lazily per session scope inside
   // appDependenciesProvider; open/seed failures surface through the

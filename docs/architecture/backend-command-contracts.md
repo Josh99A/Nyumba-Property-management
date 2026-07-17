@@ -26,6 +26,7 @@ Requirements:
 - `commandId` and new aggregate IDs are generated once on-device and survive process death/retry.
 - Maximum envelope and per-field lengths are enforced server-side. Unknown fields, command types, or schema versions are rejected.
 - `expectedVersion` is mandatory for edits and `0` for creates. Commands that do not edit an aggregate may omit it only when their schema says so.
+- `profile.update` is the explicit low-risk last-write-wins exception: it omits `expectedVersion` so a new device can save personal display/notification preferences before it has mirrored a user-document revision.
 - Actor UID, role, landlord ownership, prices, amounts, statuses, timestamps, and entitlements are not accepted as authority from `payload`.
 - A deterministic hash of the canonicalized command body is stored with the receipt. Reusing a command ID with different content returns `IDEMPOTENCY_KEY_REUSED`.
 
@@ -68,13 +69,14 @@ Names are versioned contracts. Payload schemas should live beside Functions and 
 
 | Domain | Commands | Authority notes |
 | --- | --- | --- |
-| Identity | `profile.update`, `landlord.onboard` | `profile.update` accepts validated display/contact and personal notification preferences only; server controls identity, role, and status fields |
+| Identity | `profile.update`, `profile.registerDevice`, `profile.unregisterDevice`, `landlord.onboard` | `profile.update` accepts validated display/contact, the `en|lg|sw|ar` locale, and personal notification preferences only; device commands bind or revoke the current FCM token; server controls identity, role, and status fields |
 | Admin | `landlord.approve`, `landlord.suspend`, `landlord.reinstate` | platform-admin or super-admin claim; mandatory reason and audit; privileged-account management is super-admin-only |
+| Admin | `user.archive`, `user.restore`, `user.delete` | super-admin claim only, never self; mandatory reason and audit; versioned against `users/{uid}`. Archive marks the profile `archived`, disables the Auth account (background job), and unpublishes any landlord listings; restore reverses it. Delete is legal only from `archived`: it tombstones the profile (`isDeleted`, hidden from the directory) and deletes the Auth account via a background job |
 | Portfolio | `property.create/update/archive`, `unit.create/update/archive/restore` | owning landlord or audited Admin/Super Admin acting for a canonical target landlord; account/entitlement checks; property create/update accepts at most five validated staged image paths in display order (first is primary); unit counter transaction |
 | Tenancy | `tenant.invite/update`, `lease.create/activate/end` | owning landlord; activation checks unit occupancy; tenant acceptance policy **TBD** |
 | Billing | `invoice.generate`, `payment.initiate`, `payment.recordManual`, `receipt.regenerate` | server computes money; provider/server confirms payment |
 | Maintenance | `maintenance.create`, `maintenance.updateStatus`, `maintenance.addComment` | tenant lease scope or owning landlord; transition matrix enforced |
-| Communication | `notice.publish` | server resolves audience and queues notification job |
+| Communication | `notice.publish`, `notification.markRead` | server resolves notice audiences and queues notification jobs; inbox content/recipient are server-owned and the client may only mark its own item read |
 | Listing | `listing.saveDraft/publish/unpublish` | owner or audited Admin/Super Admin acting for the canonical landlord; approval, availability, advertising entitlement, moderation |
 | Application | `application.submit/withdraw`, `contact.submit` | applicant identity from auth; active listing, App Check, throttling |
 | Reporting | `report.request` | scoped parameters; asynchronous server-derived document |
@@ -193,7 +195,8 @@ Refunds, reversals, chargebacks, overpayments, partial allocations, and manual-p
 ## Projection and notification workers
 
 - Projectors are idempotent on `(canonicalId, canonicalVersion)` and never apply an older version over a newer projection.
-- Notification jobs store audience IDs and template/data IDs, not sensitive rendered bodies. Each delivery has a deduplication key.
+- Every authenticated actor has one server-owned `notificationInboxes/{uid}/items/{notificationId}` read model. Business-event IDs produce deterministic notification IDs, so job replay cannot duplicate inbox rows. Widgets read the Sembast mirror; they never query this collection directly.
+- Notification jobs store audience IDs and template/data IDs, not sensitive rendered bodies. Delivery resolves the recipient's validated locale, falls back to English, and writes the same localized copy to the durable inbox and push payload. Each delivery has a deduplication key.
 - Scheduled invoice, listing-expiry, retention, and reconciliation jobs use a deterministic period/job ID so reruns do not duplicate records.
 - Workers lease jobs transactionally, record attempt count/next attempt, and dead-letter after a configured threshold. **TBD:** retry/retention values and deployment region.
 - Operational dashboards alert on job age, projection lag, dead letters, provider callback verification failures, unit-counter drift, and audit-write failures.

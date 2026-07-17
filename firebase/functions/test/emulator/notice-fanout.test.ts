@@ -41,7 +41,9 @@ describe('notice fanout worker', () => {
     await fanoutNotice({ noticeId: 'notice_lease', landlordId });
 
     expect((await db.doc('tenantPortals/tenant_target/notices/notice_lease').get()).exists).toBe(true);
+    expect((await db.doc('notificationInboxes/tenant_target/items/notice_notice_lease').get()).exists).toBe(true);
     expect((await db.doc('tenantPortals/tenant_other/notices/notice_lease').get()).exists).toBe(false);
+    expect((await db.doc('notificationInboxes/tenant_other/items/notice_notice_lease').get()).exists).toBe(false);
     expect((await db.doc('notices/notice_lease').get()).data()?.publishState).toBe('published');
   });
 
@@ -54,6 +56,7 @@ describe('notice fanout worker', () => {
     await fanoutNotice({ noticeId: 'notice_prop', landlordId });
 
     expect((await db.doc('tenantPortals/tenant_in/notices/notice_prop').get()).exists).toBe(true);
+    expect((await db.doc('notificationInboxes/tenant_in/items/notice_notice_prop').get()).exists).toBe(true);
     expect((await db.doc('tenantPortals/tenant_out/notices/notice_prop').get()).exists).toBe(false);
   });
 

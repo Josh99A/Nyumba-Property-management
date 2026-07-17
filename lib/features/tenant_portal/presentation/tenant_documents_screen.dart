@@ -1,8 +1,12 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../app/localization/locale_controller.dart';
 import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
@@ -78,6 +82,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
         propertyName: document.propertyName,
         unitLabel: document.unitLabel,
         printable: PrintableDocumentData(
+          language: ref.read(localePreferenceProvider),
           title: document.type.label,
           number: document.number,
           recipient: document.recipient,
@@ -126,6 +131,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
         // document asserting something the server has not agreed to.
         printable: issued
             ? PrintableDocumentData(
+                language: ref.read(localePreferenceProvider),
                 title: 'Receipt',
                 number: reference,
                 recipient: payment.tenantName,
@@ -248,8 +254,8 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
                         ? constraints.maxWidth
                         : 320,
                     child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Search documents or references',
+                      decoration: InputDecoration(
+                        hintText: context.tr('Search documents or references'),
                         prefixIcon: Icon(Icons.search_rounded),
                       ),
                       onChanged: (value) => setState(() => _query = value),
@@ -418,8 +424,10 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
                   minLines: 2,
                   maxLines: 4,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    labelText: 'Note for your property manager (optional)',
+                  decoration: InputDecoration(
+                    labelText: context.tr(
+                      'Note for your property manager (optional)',
+                    ),
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -495,7 +503,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 17, 12, 14),
+                padding: const EdgeInsetsDirectional.fromSTEB(20, 17, 12, 14),
                 child: Row(
                   children: [
                     Container(
@@ -529,7 +537,7 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Close',
+                      tooltip: context.tr('Close'),
                       onPressed: () => Navigator.pop(dialogContext),
                       icon: const Icon(Icons.close_rounded),
                     ),
@@ -735,7 +743,9 @@ class _DocumentCard extends StatelessWidget {
                     ),
                   ),
                 IconButton(
-                  tooltip: document.favorite ? 'Remove star' : 'Star document',
+                  tooltip: context.tr(
+                    document.favorite ? 'Remove star' : 'Star document',
+                  ),
                   onPressed: onFavorite,
                   icon: Icon(
                     document.favorite
@@ -779,7 +789,7 @@ class _DocumentCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 PopupMenuButton<String>(
-                  tooltip: 'Document actions',
+                  tooltip: context.tr('Document actions'),
                   onSelected: (value) {
                     if (value == 'offline') {
                       onOffline();

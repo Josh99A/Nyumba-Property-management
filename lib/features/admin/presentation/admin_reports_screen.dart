@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
 import 'widgets/admin_components.dart';
 
@@ -36,7 +38,7 @@ class AdminReportsScreen extends StatelessWidget {
                 icon: Icons.query_stats_outlined,
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                padding: const EdgeInsetsDirectional.fromSTEB(24, 0, 24, 24),
                 child: Text(
                   'Per-landlord figures on the landlord dashboard are derived '
                   'from that landlord’s own records and are real today.',

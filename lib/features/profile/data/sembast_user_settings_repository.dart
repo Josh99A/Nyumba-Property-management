@@ -49,6 +49,7 @@ final class SembastUserSettingsRepository implements UserSettingsRepository {
       email: settings.email.trim().toLowerCase(),
       phone: _normalizePhone(settings.phone),
       themePreference: settings.themePreference,
+      language: settings.language,
       emailNotifications: settings.emailNotifications,
       pushNotifications: settings.pushNotifications,
       rentReminders: settings.rentReminders,

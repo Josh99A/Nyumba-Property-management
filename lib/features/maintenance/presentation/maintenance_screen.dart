@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -38,7 +41,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         context.pageGutter,
         26,
         context.pageGutter,
@@ -286,8 +289,8 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                   children: [
                     DropdownButtonFormField<String>(
                       initialValue: selected.unit.id,
-                      decoration: const InputDecoration(
-                        labelText: 'Rental space',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Rental space'),
                       ),
                       items: [
                         for (final option in options)
@@ -308,8 +311,8 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: title,
-                      decoration: const InputDecoration(
-                        labelText: 'What needs attention?',
+                      decoration: InputDecoration(
+                        labelText: context.tr('What needs attention?'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 5
                           ? 'Describe the issue'
@@ -319,7 +322,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                     TextFormField(
                       controller: description,
                       maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Details'),
+                      decoration: InputDecoration(
+                        labelText: context.tr('Details'),
+                      ),
                       validator: (value) => (value?.trim().length ?? 0) < 5
                           ? 'Add a short description'
                           : null,
@@ -327,8 +332,8 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: reporter,
-                      decoration: const InputDecoration(
-                        labelText: 'Reported by',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Reported by'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
                           ? 'Enter a name'
@@ -337,7 +342,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                     const SizedBox(height: 14),
                     DropdownButtonFormField<MaintenancePriority>(
                       initialValue: priority,
-                      decoration: const InputDecoration(labelText: 'Priority'),
+                      decoration: InputDecoration(
+                        labelText: context.tr('Priority'),
+                      ),
                       items: const [
                         DropdownMenuItem(
                           value: MaintenancePriority.normal,
@@ -516,7 +523,7 @@ class _WorkOrderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final compact = context.isCompact;
     final actions = PopupMenuButton<String>(
-      tooltip: 'Work order actions',
+      tooltip: context.tr('Work order actions'),
       onSelected: (value) => value == 'assign' ? onAssign() : onAdvance(),
       itemBuilder: (_) => [
         const PopupMenuItem(value: 'assign', child: Text('Assign contractor')),
