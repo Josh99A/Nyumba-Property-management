@@ -1,16 +1,25 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/theme_mode_controller.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/page_header.dart';
+import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
 import '../application/profile_use_cases.dart';
 import '../domain/user_settings.dart';
+
+// Transactional application email has no provider/SMTP adapter yet. Firebase
+// Auth's verification and reset templates are a separate service.
+const _emailDeliveryConfigured = false;
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -27,7 +36,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   final _phoneController = TextEditingController();
 
   ThemePreference _themePreference = ThemePreference.system;
-  bool _emailNotifications = true;
+  bool _emailNotifications = false;
   bool _pushNotifications = true;
   bool _rentReminders = true;
   bool _maintenanceUpdates = true;
@@ -58,7 +67,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       _emailController.text = saved?.email ?? session.email;
       _phoneController.text = saved?.phone ?? session.phone;
       _themePreference = saved?.themePreference ?? ThemePreference.system;
-      _emailNotifications = saved?.emailNotifications ?? true;
+      _emailNotifications =
+          _emailDeliveryConfigured && (saved?.emailNotifications ?? false);
       _pushNotifications = saved?.pushNotifications ?? true;
       _rentReminders = saved?.rentReminders ?? true;
       _maintenanceUpdates = saved?.maintenanceUpdates ?? true;
@@ -97,6 +107,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           email: _emailController.text,
           phone: _phoneController.text,
           themePreference: _themePreference,
+          language: ref.read(localePreferenceProvider),
           emailNotifications: _emailNotifications,
           pushNotifications: _pushNotifications,
           rentReminders: _rentReminders,
@@ -158,6 +169,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           email: current?.email ?? session.email,
           phone: current?.phone ?? session.phone,
           themePreference: preference,
+          language: current?.language ?? ref.read(localePreferenceProvider),
           emailNotifications:
               current?.emailNotifications ?? _emailNotifications,
           pushNotifications: current?.pushNotifications ?? _pushNotifications,
@@ -206,12 +218,17 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       child: Form(
         key: _formKey,
         child: ListView(
-          padding: EdgeInsets.fromLTRB(horizontal, 28, horizontal, 44),
+          padding: EdgeInsetsDirectional.fromSTEB(
+            horizontal,
+            28,
+            horizontal,
+            44,
+          ),
           children: [
             PageHeader(
               title: 'Profile settings',
               description:
-                  'Manage your personal details, appearance, and notifications.',
+                  'Manage your personal details, appearance, language, and notifications.',
               primaryAction: FilledButton.icon(
                 onPressed: _saving ? null : _save,
                 icon: _saving
@@ -268,8 +285,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           controller: _nameController,
           textCapitalization: TextCapitalization.words,
           autofillHints: const [AutofillHints.name],
-          decoration: const InputDecoration(
-            labelText: 'Full name',
+          decoration: InputDecoration(
+            labelText: context.tr('Full name'),
             prefixIcon: Icon(Icons.person_outline_rounded),
           ),
           validator: (value) =>
@@ -280,8 +297,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
           autofillHints: const [AutofillHints.email],
-          decoration: const InputDecoration(
-            labelText: 'Email address',
+          decoration: InputDecoration(
+            labelText: context.tr('Email address'),
             prefixIcon: Icon(Icons.alternate_email_rounded),
           ),
           validator: (value) {
@@ -296,9 +313,9 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           controller: _phoneController,
           keyboardType: TextInputType.phone,
           autofillHints: const [AutofillHints.telephoneNumber],
-          decoration: const InputDecoration(
-            labelText: 'Phone number',
-            hintText: '+256 772 123 456',
+          decoration: InputDecoration(
+            labelText: context.tr('Phone number'),
+            hintText: context.tr('+256 772 123 456'),
             prefixIcon: Icon(Icons.phone_outlined),
           ),
           validator: (value) {
@@ -425,7 +442,22 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       ),
       const SizedBox(height: 18),
       NyumbaSurface(
-        padding: const EdgeInsets.fromLTRB(22, 22, 22, 10),
+        padding: const EdgeInsets.all(22),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            NyumbaSectionHeader(
+              title: 'Language',
+              subtitle: 'Choose the language used throughout Nyumba.',
+            ),
+            SizedBox(height: 18),
+            LanguageMenuButton(expanded: true),
+          ],
+        ),
+      ),
+      const SizedBox(height: 18),
+      NyumbaSurface(
+        padding: const EdgeInsetsDirectional.fromSTEB(22, 22, 22, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -436,9 +468,13 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
             const SizedBox(height: 10),
             _settingSwitch(
               title: 'Email notifications',
-              subtitle: 'Receive important account updates by email.',
+              subtitle: _emailDeliveryConfigured
+                  ? 'Receive important account updates by email.'
+                  : 'Email delivery is not configured yet.',
               value: _emailNotifications,
-              onChanged: (value) => setState(() => _emailNotifications = value),
+              onChanged: _emailDeliveryConfigured
+                  ? (value) => setState(() => _emailNotifications = value)
+                  : null,
             ),
             _settingSwitch(
               title: 'Push notifications',
@@ -468,7 +504,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     required String title,
     required String subtitle,
     required bool value,
-    required ValueChanged<bool> onChanged,
+    required ValueChanged<bool>? onChanged,
   }) => SwitchListTile.adaptive(
     contentPadding: EdgeInsets.zero,
     title: Text(title, style: Theme.of(context).textTheme.titleSmall),

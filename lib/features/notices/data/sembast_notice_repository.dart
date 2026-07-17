@@ -36,6 +36,8 @@ final class SembastNoticeRepository implements NoticeRepository {
       title: input.title.trim(),
       body: input.body.trim(),
       audience: input.audience.trim(),
+      audienceType: input.audienceType,
+      audienceId: input.audienceId?.trim(),
       status: input.queueForSending ? NoticeStatus.queued : NoticeStatus.draft,
       createdAt: now,
       updatedAt: now,

@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -49,7 +52,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         context.pageGutter,
         26,
         context.pageGutter,
@@ -178,8 +181,8 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                       child: TextField(
                         controller: _searchController,
                         onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                          hintText: 'Search tenants',
+                        decoration: InputDecoration(
+                          hintText: context.tr('Search tenants'),
                           prefixIcon: Icon(Icons.search_rounded),
                           isDense: true,
                         ),
@@ -253,7 +256,9 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                 children: [
                   TextFormField(
                     controller: name,
-                    decoration: const InputDecoration(labelText: 'Full name'),
+                    decoration: InputDecoration(
+                      labelText: context.tr('Full name'),
+                    ),
                     validator: (value) => (value?.trim().isEmpty ?? true)
                         ? 'Enter the tenant name'
                         : null,
@@ -262,8 +267,8 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                   TextFormField(
                     controller: email,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email address',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Email address'),
                     ),
                     validator: (value) => !(value?.contains('@') ?? false)
                         ? 'Enter a valid email'
@@ -273,15 +278,15 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                   TextFormField(
                     controller: phone,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone (optional)',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Phone (optional)'),
                     ),
                   ),
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
                     initialValue: selectedUnit.id,
-                    decoration: const InputDecoration(
-                      labelText: 'Vacant rental space',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Vacant rental space'),
                     ),
                     items: [
                       for (final unit in vacantUnits)
@@ -440,7 +445,7 @@ class _TenantRow extends StatelessWidget {
                     SyncStateBadge(status: syncStatus),
                     const Spacer(),
                     IconButton(
-                      tooltip: 'View tenant details',
+                      tooltip: context.tr('View tenant details'),
                       onPressed: () => _showTenantDetails(context, tenancy),
                       icon: const Icon(Icons.chevron_right_rounded),
                     ),
@@ -470,7 +475,7 @@ class _TenantRow extends StatelessWidget {
                 ),
                 SizedBox(width: 110, child: SyncStateBadge(status: syncStatus)),
                 IconButton(
-                  tooltip: 'View tenant details',
+                  tooltip: context.tr('View tenant details'),
                   onPressed: () => _showTenantDetails(context, tenancy),
                   icon: const Icon(Icons.more_horiz_rounded),
                 ),

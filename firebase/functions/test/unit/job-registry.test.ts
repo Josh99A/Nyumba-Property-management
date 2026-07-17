@@ -44,6 +44,7 @@ describe('background job registry', () => {
     const enqueued = commandEnqueuedJobTypes();
     expect([...enqueued.keys()].sort()).toEqual([
       'cleanupListingMedia',
+      'deleteAuthUser',
       'deliverContactRequest',
       'generateReport',
       'initiatePayment',
@@ -53,6 +54,7 @@ describe('background job registry', () => {
       'publishListingMedia',
       'purgeDocument',
       'renderReceipt',
+      'setAuthUserDisabled',
       'unpublishLandlordListings',
     ]);
   });

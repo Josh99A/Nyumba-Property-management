@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,9 +10,12 @@ import '../../core/offline/outbox_entry.dart';
 import '../../core/presentation/cloud_status_badge.dart';
 import '../../core/presentation/motion.dart';
 import '../../core/presentation/nyumba_logo.dart';
+import '../../core/presentation/language_menu_button.dart';
 import '../../core/presentation/responsive.dart';
 import '../../features/auth/application/session_controller.dart';
 import '../../features/auth/domain/user_session.dart';
+import '../../features/notifications/application/push_interactions.dart';
+import '../../features/notifications/presentation/notification_center_sheet.dart';
 import '../bootstrap/app_dependencies.dart';
 
 class AppDestination {
@@ -154,6 +160,32 @@ class NyumbaAppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionControllerProvider);
     if (session == null) return child;
+    ref.listen(pushInteractionProvider, (_, next) {
+      next.whenData((interaction) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          if (interaction.opensRoute && interaction.route != null) {
+            context.go(interaction.route!);
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                interaction.body.isEmpty
+                    ? interaction.title
+                    : '${interaction.title}: ${interaction.body}',
+              ),
+              action: interaction.route == null
+                  ? null
+                  : SnackBarAction(
+                      label: context.tr('Open'),
+                      onPressed: () => context.go(interaction.route!),
+                    ),
+            ),
+          );
+        });
+      });
+    });
     final destinations = _destinationsFor(session.role);
     final path = GoRouterState.of(context).uri.path;
 
@@ -221,20 +253,22 @@ class _DesktopSidebar extends ConsumerWidget {
       width: collapsed ? 84 : 232,
       decoration: BoxDecoration(
         color: context.nyumba.surface,
-        border: Border(right: BorderSide(color: context.nyumba.outline)),
+        border: BorderDirectional(
+          end: BorderSide(color: context.nyumba.outline),
+        ),
       ),
       child: SafeArea(
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(
+              padding: EdgeInsetsDirectional.fromSTEB(
                 collapsed ? 19 : 18,
                 20,
                 collapsed ? 19 : 18,
                 22,
               ),
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: NyumbaLogo(
                   compact: collapsed,
                   height: collapsed ? 44 : 45,
@@ -262,7 +296,7 @@ class _DesktopSidebar extends ConsumerWidget {
               child: _SidebarSyncStatus(collapsed: collapsed),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(11, 0, 11, 14),
+              padding: const EdgeInsetsDirectional.fromSTEB(11, 0, 11, 14),
               child: _SidebarProfile(
                 session: session,
                 collapsed: collapsed,
@@ -310,7 +344,7 @@ class _SidebarItemState extends State<_SidebarItem> {
       child: Semantics(
         button: true,
         selected: selected,
-        label: widget.destination.label,
+        label: context.tr(widget.destination.label),
         child: AnimatedContainer(
           duration: duration,
           curve: NyumbaMotion.easeOut,
@@ -481,7 +515,7 @@ class _SidebarProfile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      tooltip: 'Account menu',
+      tooltip: context.tr('Account menu'),
       onSelected: (value) {
         if (value == 'profile') context.go('/settings');
         if (value == 'sign-out') onSignOut();
@@ -587,19 +621,17 @@ class _DesktopTopBar extends StatelessWidget {
                     );
                   }
                 },
-                decoration: const InputDecoration(
-                  hintText: 'Search workspace',
+                decoration: InputDecoration(
+                  hintText: context.tr('Search workspace'),
                   prefixIcon: Icon(Icons.search_rounded),
                   isDense: true,
                 ),
               ),
             ),
           const SizedBox(width: 14),
-          IconButton(
-            tooltip: 'Notifications',
-            onPressed: () => _showNotifications(context),
-            icon: const Icon(Icons.notifications_none_rounded),
-          ),
+          const NotificationBell(),
+          const SizedBox(width: 10),
+          const LanguageMenuButton(compact: true),
           const SizedBox(width: 12),
           Tooltip(
             message: 'Profile settings',
@@ -652,14 +684,10 @@ class _MobileShell extends ConsumerWidget {
         title: const NyumbaLogo(height: 38),
         actions: [
           const CloudStatusBadge(),
-          const SizedBox(width: 6),
-          IconButton(
-            tooltip: 'Notifications',
-            onPressed: () => _showNotifications(context),
-            icon: const Icon(Icons.notifications_none_rounded),
-          ),
+          const NotificationBell(),
+          const LanguageMenuButton(compact: true),
           PopupMenuButton<String>(
-            tooltip: 'Account menu',
+            tooltip: context.tr('Account menu'),
             onSelected: (value) {
               if (value == 'profile') context.go('/settings');
               if (value == 'sign-out') {
@@ -710,14 +738,14 @@ class _MobileShell extends ConsumerWidget {
             NavigationDestination(
               icon: Icon(destination.icon),
               selectedIcon: Icon(destination.selectedIcon),
-              label: destination.compactLabel,
-              tooltip: destination.label,
+              label: context.tr(destination.compactLabel),
+              tooltip: context.tr(destination.label),
             ),
           if (overflow.isNotEmpty)
-            const NavigationDestination(
-              icon: Icon(Icons.more_horiz_rounded),
-              selectedIcon: Icon(Icons.more_rounded),
-              label: 'More',
+            NavigationDestination(
+              icon: const Icon(Icons.more_horiz_rounded),
+              selectedIcon: const Icon(Icons.more_rounded),
+              label: context.tr('More'),
             ),
         ],
       ),
@@ -772,49 +800,6 @@ String _greeting() {
   return 'Good evening';
 }
 
-Future<void> _showNotifications(BuildContext context) {
-  return showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Notifications',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            const ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(child: Icon(Icons.sync_rounded)),
-              title: Text('Sync status is available in the workspace'),
-              subtitle: Text(
-                'Pending, rejected, and confirmed changes are shown locally.',
-              ),
-            ),
-            const ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                child: Icon(Icons.notifications_none_rounded),
-              ),
-              title: Text('No unread notifications'),
-              subtitle: Text('New local alerts will appear here.'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(sheetContext),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
 bool _isSelected(String currentPath, String destinationPath) {
   if (currentPath == destinationPath) return true;
   if (destinationPath == '/dashboard' ||
@@ -833,31 +818,36 @@ void _showMoreDestinations(
     context: context,
     showDragHandle: true,
     builder: (context) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
-              child: Text(
-                'More',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(24, 4, 24, 10),
+            child: Text('More', style: Theme.of(context).textTheme.titleLarge),
+          ),
+          // Staff sessions route eight destinations through this sheet, more
+          // than a phone-height sheet can show at once, so the list scrolls
+          // within the sheet instead of overflowing past it.
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 20),
+              children: [
+                for (final destination in destinations)
+                  ListTile(
+                    leading: Icon(destination.icon),
+                    title: Text(destination.label),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.go(destination.path);
+                    },
+                  ),
+              ],
             ),
-            for (final destination in destinations)
-              ListTile(
-                leading: Icon(destination.icon),
-                title: Text(destination.label),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go(destination.path);
-                },
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     ),
   );

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/domain/clock.dart';
 import 'package:nyumba_property_management/core/domain/id_generator.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
+import 'package:nyumba_property_management/core/localization/app_language.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
 import 'package:nyumba_property_management/features/profile/data/sembast_user_settings_repository.dart';
@@ -39,6 +40,7 @@ void main() {
           email: 'JOSHUA@EXAMPLE.COM',
           phone: '0772 123 456',
           themePreference: ThemePreference.dark,
+          language: AppLanguage.luganda,
           emailNotifications: false,
           pushNotifications: true,
           rentReminders: true,
@@ -52,6 +54,7 @@ void main() {
       expect(saved.email, 'joshua@example.com');
       expect(saved.phone, '+256772123456');
       expect(saved.themePreference, ThemePreference.dark);
+      expect(saved.language, AppLanguage.luganda);
 
       final restored = await repository.getByUserId('demo-landlord-001');
       expect(restored?.maintenanceUpdates, isFalse);
@@ -66,6 +69,7 @@ void main() {
       expect(outbox, hasLength(1));
       expect(outbox.single.entityType, OfflineEntityType.userProfile);
       expect(outbox.single.payload['themePreference'], 'dark');
+      expect(outbox.single.payload['locale'], 'lg');
     },
   );
 
@@ -82,6 +86,7 @@ void main() {
         email: 'joshua@example.com',
         phone: '',
         themePreference: ThemePreference.dark,
+        language: AppLanguage.english,
         emailNotifications: true,
         pushNotifications: true,
         rentReminders: true,
@@ -104,6 +109,7 @@ void main() {
           email: 'joshua@example.com',
           phone: '123',
           themePreference: ThemePreference.system,
+          language: AppLanguage.english,
           emailNotifications: true,
           pushNotifications: true,
           rentReminders: true,
@@ -126,6 +132,7 @@ void main() {
           email: 'not-an-email',
           phone: '123',
           themePreference: ThemePreference.system,
+          language: AppLanguage.english,
           emailNotifications: true,
           pushNotifications: true,
           rentReminders: true,

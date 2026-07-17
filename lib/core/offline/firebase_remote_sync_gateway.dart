@@ -55,7 +55,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
       'type': command.type,
       'schemaVersion': 1,
       'aggregateId': mutation.entityId,
-      'expectedVersion': expectedVersion,
+      'expectedVersion': ?expectedVersion,
       'payload': command.payload,
       'client': <String, Object?>{
         'installationId': installationId,
@@ -142,7 +142,8 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
     }
   }
 
-  static int _expectedVersion(RemoteMutation mutation, String commandType) {
+  static int? _expectedVersion(RemoteMutation mutation, String commandType) {
+    if (commandType == 'profile.update') return null;
     if (mutation.operation == OutboxOperation.create ||
         mutation.operation == OutboxOperation.apply) {
       return 0;
@@ -173,9 +174,12 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         'profile.update',
         <String, Object?>{
           ...pick(['displayName', 'phone']),
+          ...pick(['locale']),
           'notifications': <String, Object?>{
             'email': payload['emailNotifications'] ?? true,
             'push': payload['pushNotifications'] ?? true,
+            'rentReminders': payload['rentReminders'] ?? true,
+            'maintenanceUpdates': payload['maintenanceUpdates'] ?? true,
           },
         },
       ),
@@ -337,8 +341,16 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         _RemoteCommand('notice.publish', <String, Object?>{
           'title': payload['title'],
           'body': payload['body'],
-          'audience': 'all_active_tenants',
+          'audience': switch (payload['audienceType']) {
+            'property' => 'property',
+            'lease' => 'lease',
+            _ => 'all_active_tenants',
+          },
+          if (payload['audienceId'] != null)
+            'audienceId': payload['audienceId'],
         }),
+      (OfflineEntityType.notification, OutboxOperation.update) =>
+        const _RemoteCommand('notification.markRead', <String, Object?>{}),
       _ => throw RemoteSyncException(
         'No production command mapping for '
         '${mutation.entityType.name}.${mutation.operation.name}.',

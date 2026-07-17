@@ -11,6 +11,29 @@ initializeApp();
 
 export { executeCommand, processBackendJob, sweepBackendJobs, expirePublicListings };
 
+/**
+ * Marks the profile of a deleted Auth account. Without this, deleting an
+ * account strands its `users/{uid}` document forever: the admin directory
+ * would keep listing a person who can no longer sign in, and a
+ * re-registration of the same email would appear as a duplicate.
+ */
+export const onUserDeleted = functionsV1
+  .region(REGION)
+  .auth.user()
+  .onDelete(async (user) => {
+    const now = Timestamp.now();
+    const ref = getFirestore().collection(COLLECTIONS.users).doc(user.uid);
+    await getFirestore().runTransaction(async (tx) => {
+      const existing = await tx.get(ref);
+      if (!existing.exists) return;
+      tx.update(ref, {
+        isDeleted: true,
+        updatedAt: now,
+        version: Number(existing.data()?.version ?? 0) + 1,
+      });
+    });
+  });
+
 export const onUserCreated = functionsV1
   .region(REGION)
   .auth.user()

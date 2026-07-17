@@ -29,6 +29,8 @@ import '../../features/tenants/domain/tenancy_repository.dart';
 import '../../features/notices/data/sembast_notice_repository.dart';
 import '../../features/notices/domain/notice.dart';
 import '../../features/notices/domain/notice_repository.dart';
+import '../../features/notifications/data/sembast_app_notification_repository.dart';
+import '../../features/notifications/domain/app_notification_repository.dart';
 import '../../features/marketplace/data/sembast_application_repository.dart';
 import '../../features/marketplace/data/sembast_listing_repository.dart';
 import '../../features/marketplace/domain/application_repository.dart';
@@ -66,6 +68,7 @@ class AppDependencies {
     required this.payments,
     required this.leaseDocuments,
     required this.notices,
+    required this.notifications,
     required this.subscriptionPlans,
     required this.managedUsers,
     required this.adminActions,
@@ -85,6 +88,7 @@ class AppDependencies {
   final RentPaymentRepository payments;
   final LeaseDocumentRepository leaseDocuments;
   final NoticeRepository notices;
+  final AppNotificationRepository notifications;
   final SubscriptionPlanRepository subscriptionPlans;
   final ManagedUserRepository managedUsers;
   final AdminActionRepository adminActions;
@@ -247,6 +251,7 @@ Future<AppDependencies> createAppDependencies({
   final payments = SembastRentPaymentRepository(database: database);
   final leaseDocuments = SembastLeaseDocumentRepository(database: database);
   final notices = SembastNoticeRepository(database: database);
+  final notifications = SembastAppNotificationRepository(database: database);
   final subscriptionPlans = SembastSubscriptionPlanRepository(
     database: database,
   );
@@ -286,6 +291,17 @@ Future<AppDependencies> createAppDependencies({
     remotePullCoordinator.watch(OfflineEntityType.listing, publicOnly: true);
     if (session == null) {
       // Anonymous visitor: the public catalogue is the only readable scope.
+    } else {
+      // Every authenticated actor reads the same UID-scoped, server-owned
+      // notification shape. This is deliberately independent of the divergent
+      // landlord/tenant/client aggregate projections below.
+      remotePullCoordinator.watch(
+        OfflineEntityType.notification,
+        userUid: session.userId,
+      );
+    }
+    if (session == null) {
+      // Anonymous visitor has no private inbox.
     } else if (session.role == AppRole.superAdmin ||
         session.role == AppRole.admin) {
       // Same constraint as the landlord scope: an administrative pull reads the
@@ -367,6 +383,7 @@ Future<AppDependencies> createAppDependencies({
     payments: payments,
     leaseDocuments: leaseDocuments,
     notices: notices,
+    notifications: notifications,
     subscriptionPlans: subscriptionPlans,
     managedUsers: managedUsers,
     adminActions: adminActions,

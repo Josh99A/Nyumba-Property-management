@@ -114,6 +114,80 @@ void main() {
       expect(accounts.map((a) => a.displayName), ['amina', 'Zainab']);
     });
 
+    test('orphaned profiles of a re-registered email collapse to the '
+        'newest account', () {
+      // Deleting an Auth account leaves its users document behind, and a
+      // re-registration mints a new UID. Auth allows one live account per
+      // email, so only the newest document can be live.
+      final accounts = FirestoreAdminDirectory.combineAccounts(
+        users: {
+          'uid-old-client': {
+            'displayName': null,
+            'email': 'M.Sadat13@gmail.com',
+            'role': 'client',
+            'createdAt': DateTime.utc(2026, 7, 10),
+          },
+          'uid-old-landlord': {
+            'displayName': 'D&T Computech',
+            'email': 'm.sadat13@gmail.com',
+            'role': 'landlord',
+            'createdAt': DateTime.utc(2026, 7, 12),
+          },
+          'uid-live': {
+            'displayName': 'D&T Computech',
+            'email': 'm.sadat13@gmail.com',
+            'role': 'landlord',
+            'createdAt': DateTime.utc(2026, 7, 16),
+          },
+          'uid-other': {
+            'displayName': 'Someone Else',
+            'email': 'other@example.com',
+            'role': 'client',
+          },
+        },
+        landlordAccounts: {
+          'uid-live': {'approvalStatus': 'pending', 'version': 1},
+        },
+        subscriptions: const {},
+      );
+
+      expect(accounts, hasLength(2));
+      final survivor = accounts.singleWhere(
+        (a) => a.email.toLowerCase() == 'm.sadat13@gmail.com',
+      );
+      expect(survivor.uid, 'uid-live');
+      expect(survivor.status, PlatformAccountStatus.pendingApproval);
+    });
+
+    test('an archive on the users document outranks landlord standing', () {
+      final accounts = FirestoreAdminDirectory.combineAccounts(
+        users: {
+          'uid-1': {
+            'displayName': 'Grace Auma',
+            'role': 'landlord',
+            'status': 'archived',
+            'version': 6,
+          },
+          'uid-2': {
+            'displayName': 'Peter Ssali',
+            'role': 'tenant',
+            'status': 'archived',
+            'version': 2,
+          },
+        },
+        landlordAccounts: {
+          'uid-1': {'approvalStatus': 'approved', 'version': 3},
+        },
+        subscriptions: const {},
+      );
+      final landlord = accounts.singleWhere((a) => a.uid == 'uid-1');
+      expect(landlord.status, PlatformAccountStatus.archived);
+      expect(landlord.userVersion, 6);
+      final tenant = accounts.singleWhere((a) => a.uid == 'uid-2');
+      expect(tenant.status, PlatformAccountStatus.archived);
+      expect(tenant.userVersion, 2);
+    });
+
     test('suspension on the users document applies to non-landlords', () {
       final accounts = FirestoreAdminDirectory.combineAccounts(
         users: {

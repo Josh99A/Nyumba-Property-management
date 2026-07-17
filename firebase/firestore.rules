@@ -174,6 +174,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // One uniform, server-owned inbox shape for every authenticated role.
+    // Read-state changes cross the callable command boundary so clients never
+    // gain write access to a path that also controls recipients and content.
+    match /notificationInboxes/{uid} {
+      allow read: if isSelf(uid) || isPlatformAdmin();
+      allow write: if false;
+    }
+
+    match /notificationInboxes/{uid}/{inboxDocument=**} {
+      allow read: if isSelf(uid) || isPlatformAdmin();
+      allow write: if false;
+    }
+
     // Landlord read models. Unlike the tenant/client portals these withhold
     // nothing the landlord could not already read from the canonical
     // collections; they exist because a client Tenancy is a join across leases,

@@ -26,6 +26,7 @@ export const COLLECTIONS = {
   providerEvents: 'providerEvents',
   backendConfig: 'backendConfig',
   deviceTokenOwners: 'deviceTokenOwners',
+  notificationInboxes: 'notificationInboxes',
   tenantPortals: 'tenantPortals',
   clientPortals: 'clientPortals',
   landlordPortals: 'landlordPortals',

@@ -23,13 +23,21 @@ The local database also contains:
 - `session_scope`: current UID, roles, access generation, and active projection scopes;
 - optional attachment staging metadata; binary files are stored outside Sembast.
 
-The additive `user_profiles` local store holds editable display/contact fields
-and per-user appearance/notification preferences. A profile save writes the
-record and a `profile.update`-compatible outbox intent atomically. The active
-session may render the optimistic display name immediately, but the UI must
-describe the change as pending until a server acknowledgement is available.
-Theme selection is a low-risk personal display preference and may take effect
-from the local record while that acknowledgement is pending.
+The additive `user_profiles` local store holds editable display/contact fields,
+the validated `en|lg|sw|ar` locale, and per-user appearance/notification
+preferences. A profile save writes the record and a `profile.update`-compatible
+outbox intent atomically. The active session may render the optimistic display
+name, theme, and language immediately, but the UI must describe the profile
+change as pending until a server acknowledgement is available. The selected
+language is also stored best-effort in secure device storage so signed-out and
+first-run screens can use it; the authenticated profile wins once available.
+
+The additive `app_notifications` store mirrors the authenticated user's
+server-owned inbox. New items arrive through the UID-scoped Firestore listener
+and are merged into Sembast before widgets render them. Marking an item read is
+an optimistic local update plus an atomic `notification.markRead` outbox
+intent; notification content, recipient, kind, route, and creation time remain
+server-authoritative.
 
 Schema migrations are explicit and forward-only. A failed migration must not silently drop outbox records.
 

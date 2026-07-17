@@ -1,4 +1,5 @@
 import '../../../core/domain/sync_metadata.dart';
+import '../../../core/localization/app_language.dart';
 import '../../../core/offline/json_reader.dart';
 import '../../../core/offline/sync_metadata_mapper.dart';
 import '../domain/user_settings.dart';
@@ -15,6 +16,9 @@ abstract final class UserSettingsMapper {
         (value) => value.name == reader.requiredString('themePreference'),
         orElse: () => ThemePreference.system,
       ),
+      language: reader.optionalString('locale') == null
+          ? null
+          : AppLanguage.fromCode(reader.optionalString('locale')),
       emailNotifications: reader.optionalBool(
         'emailNotifications',
         fallback: true,
@@ -41,6 +45,7 @@ abstract final class UserSettingsMapper {
     'email': settings.email,
     'phone': settings.phone,
     'themePreference': settings.themePreference.name,
+    if (settings.language != null) 'locale': settings.language!.code,
     'emailNotifications': settings.emailNotifications,
     'pushNotifications': settings.pushNotifications,
     'rentReminders': settings.rentReminders,

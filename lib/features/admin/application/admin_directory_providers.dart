@@ -101,6 +101,28 @@ const suspendReasonCodes = [
   'ADMIN_CORRECTION',
 ];
 const reinstateReasonCodes = ['APPEAL_APPROVED', 'ADMIN_CORRECTION'];
+const archiveUserReasonCodes = [
+  'POLICY_VIOLATION',
+  'FRAUD_RISK',
+  'USER_REQUESTED',
+  'ADMIN_CORRECTION',
+];
+const restoreUserReasonCodes = ['APPEAL_APPROVED', 'ADMIN_CORRECTION'];
+const deleteUserReasonCodes = [
+  'USER_REQUESTED',
+  'POLICY_VIOLATION',
+  'ADMIN_CORRECTION',
+];
+const changeRoleReasonCodes = [
+  'ADMIN_CORRECTION',
+  'USER_REQUESTED',
+  'IDENTITY_VERIFIED',
+];
+
+/// Server-owned ordinary roles `user.changeRole` accepts. Administrator
+/// privileges are Auth custom claims granted only by the audited ops script,
+/// never from inside the app.
+const assignableServerRoles = ['landlord', 'tenant', 'client'];
 
 final adminAccountCommandsProvider = Provider<AdminAccountCommands>(
   AdminAccountCommands.new,
@@ -158,6 +180,78 @@ class AdminAccountCommands {
         if (tier != null && tier.trim().isNotEmpty) 'tier': tier.trim(),
       },
     );
+  }
+
+  /// Archives any account: sign-in is disabled server-side and the profile is
+  /// marked archived. Super-admin only, like every `user.*` lifecycle command.
+  Future<void> archiveUser({
+    required PlatformAccount account,
+    required String reasonCode,
+  }) => _userLifecycle('user.archive', account, reasonCode);
+
+  /// Returns an archived account to active and re-enables sign-in.
+  Future<void> restoreUser({
+    required PlatformAccount account,
+    required String reasonCode,
+  }) => _userLifecycle('user.restore', account, reasonCode);
+
+  /// Permanently deletes an account out of the archive. The server refuses
+  /// this unless the account is already archived.
+  Future<void> deleteUser({
+    required PlatformAccount account,
+    required String reasonCode,
+  }) => _userLifecycle('user.delete', account, reasonCode);
+
+  /// Changes an account's ordinary role (`landlord`/`tenant`/`client`).
+  /// Administrator privileges cannot be granted here by design.
+  Future<void> changeUserRole({
+    required PlatformAccount account,
+    required String role,
+    required String reasonCode,
+  }) async {
+    final version = _requireSuperAdminTarget(account);
+    if (!assignableServerRoles.contains(role)) {
+      throw StateError('That role cannot be assigned from the app.');
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: 'user.changeRole',
+      aggregateId: account.uid,
+      expectedVersion: version,
+      payload: <String, Object?>{'role': role, 'reasonCode': reasonCode},
+    );
+  }
+
+  Future<void> _userLifecycle(
+    String type,
+    PlatformAccount account,
+    String reasonCode,
+  ) async {
+    final version = _requireSuperAdminTarget(account);
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: type,
+      aggregateId: account.uid,
+      expectedVersion: version,
+      payload: <String, Object?>{'reasonCode': reasonCode},
+    );
+  }
+
+  /// Shared gate for the super-admin-only `user.*` commands; returns the
+  /// `users/{uid}` concurrency token.
+  int _requireSuperAdminTarget(PlatformAccount account) {
+    _requireManageable(account);
+    final session = _ref.read(sessionControllerProvider);
+    if (session?.role != AppRole.superAdmin) {
+      throw StateError(
+        'Only a super administrator can perform this account action.',
+      );
+    }
+    final version = account.userVersion;
+    if (version == null) {
+      throw StateError('This account has no server profile to act on.');
+    }
+    return version;
   }
 
   Future<void> _landlordTransition(

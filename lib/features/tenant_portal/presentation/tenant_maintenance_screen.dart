@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -188,8 +191,10 @@ class _TenantMaintenanceScreenState
                         ? constraints.maxWidth
                         : 320,
                     child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Search issue, category, or request ID',
+                      decoration: InputDecoration(
+                        hintText: context.tr(
+                          'Search issue, category, or request ID',
+                        ),
                         prefixIcon: Icon(Icons.search_rounded),
                       ),
                       onChanged: (value) => setState(() => _query = value),
@@ -310,9 +315,9 @@ class _TenantMaintenanceScreenState
                   TextField(
                     controller: titleController,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: 'Short title',
-                      hintText: 'e.g. Bathroom light not working',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Short title'),
+                      hintText: context.tr('e.g. Bathroom light not working'),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -321,10 +326,12 @@ class _TenantMaintenanceScreenState
                     minLines: 3,
                     maxLines: 5,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: 'Describe the issue',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Describe the issue'),
                       alignLabelWithHint: true,
-                      hintText: 'Include the location and when it started.',
+                      hintText: context.tr(
+                        'Include the location and when it started.',
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -667,7 +674,7 @@ class _TenantMaintenanceScreenState
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 26),
+          padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 26),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,

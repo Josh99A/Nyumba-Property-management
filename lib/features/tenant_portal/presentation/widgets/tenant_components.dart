@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/nyumba_colors.dart';
@@ -42,7 +44,7 @@ class TenantPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         context.pageGutter,
         26,
         context.pageGutter,
@@ -147,7 +149,7 @@ class TenantMetricCard extends StatelessWidget {
             const SizedBox(height: 13),
             FittedBox(
               fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               child: Text(
                 value,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -237,13 +239,13 @@ class TenantBalanceHero extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          const Positioned(
-            right: -34,
+          const PositionedDirectional(
+            end: -34,
             top: -42,
             child: _DecorativeCircle(size: 150),
           ),
-          const Positioned(
-            right: 90,
+          const PositionedDirectional(
+            end: 90,
             bottom: -74,
             child: _DecorativeCircle(size: 130),
           ),

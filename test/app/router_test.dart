@@ -260,6 +260,51 @@ void main() {
     }
   });
 
+  testWidgets('the More sheet scrolls instead of overflowing on a phone', (
+    tester,
+  ) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    tester.view.devicePixelRatio = 1;
+    // Short phone: a staff session routes eight destinations through the
+    // sheet, more rows than this height can show without scrolling.
+    tester.view.physicalSize = const Size(360, 640);
+
+    container.read(sessionControllerProvider.notifier).startDemo(AppRole.admin);
+    final router = container.read(routerProvider);
+    router.go('/admin');
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('More'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'opening the sheet must not overflow',
+    );
+
+    // The deepest destination stays reachable by scrolling within the sheet.
+    await tester.dragUntilVisible(
+      find.text('Documents'),
+      find.byType(ListView).last,
+      const Offset(0, -80),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Documents'), findsOneWidget);
+  });
+
   testWidgets('super admin can open admin and portfolio workspaces', (
     tester,
   ) async {

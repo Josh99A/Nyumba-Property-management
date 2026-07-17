@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -8,6 +11,7 @@ import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
+import '../../auth/domain/user_session.dart';
 import '../application/admin_directory_providers.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_action.dart';
@@ -62,6 +66,10 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     final suspendedCount = accounts
         .where((account) => account.status == PlatformAccountStatus.suspended)
         .length;
+    final archivedCount = accounts
+        .where((account) => account.status == PlatformAccountStatus.archived)
+        .length;
+    final isSuperAdmin = session?.role == AppRole.superAdmin;
 
     bool canManage(PlatformAccount account) =>
         session != null &&
@@ -136,6 +144,14 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               icon: Icons.person_off_outlined,
               tone: context.nyumba.danger,
             ),
+            if (source == AdminDirectorySource.live)
+              AdminMetricCard(
+                label: 'Archived',
+                value: '$archivedCount',
+                caption: 'Awaiting restore or permanent deletion',
+                icon: Icons.inventory_2_outlined,
+                tone: context.nyumba.midnightNavy,
+              ),
           ],
         ),
         const SizedBox(height: 20),
@@ -149,8 +165,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                       ? constraints.maxWidth
                       : 320,
                   child: TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Search name, email, or business',
+                    decoration: InputDecoration(
+                      hintText: context.tr('Search name, email, or business'),
                       prefixIcon: Icon(Icons.search_rounded),
                     ),
                     onChanged: (value) => setState(() => _query = value),
@@ -181,6 +197,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                       else
                         PlatformAccountStatus.pendingApproval.label,
                       PlatformAccountStatus.suspended.label,
+                      if (source == AdminDirectorySource.live)
+                        PlatformAccountStatus.archived.label,
                     ],
                     icon: Icons.tune_rounded,
                     onChanged: (value) => setState(() => _status = value),
@@ -233,7 +251,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+                  padding: const EdgeInsetsDirectional.fromSTEB(20, 18, 20, 14),
                   child: Row(
                     children: [
                       Expanded(
@@ -288,6 +306,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                 account: filtered[index],
                                 source: source,
                                 canManage: canManage(filtered[index]),
+                                isSuperAdmin: isSuperAdmin,
                                 onAction: (action) =>
                                     _handleAction(action, filtered[index]),
                               ),
@@ -340,6 +359,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                         account: account,
                                         source: source,
                                         canManage: canManage(account),
+                                        isSuperAdmin: isSuperAdmin,
                                         onAction: (action) =>
                                             _handleAction(action, account),
                                       ),
@@ -439,7 +459,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       case 'view':
         _showAccount(account);
       case 'approve':
-        _runLandlordAction(
+        _runAccountAction(
           account,
           title: 'Approve this landlord?',
           body:
@@ -453,7 +473,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               'Landlord approval for ${account.displayName} applied.',
         );
       case 'suspend':
-        _runLandlordAction(
+        _runAccountAction(
           account,
           title: 'Suspend this landlord?',
           body:
@@ -466,7 +486,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           successMessage: 'Suspension of ${account.displayName} applied.',
         );
       case 'reinstate':
-        _runLandlordAction(
+        _runAccountAction(
           account,
           title: 'Restore this landlord?',
           body: '${account.displayName} will be able to sign in again.',
@@ -476,6 +496,51 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               commands.reinstateLandlord(account: account, reasonCode: reason),
           successMessage: 'Access restored for ${account.displayName}.',
         );
+      case 'change-role':
+        _changeUserRole(account);
+      case 'archive':
+        _runAccountAction(
+          account,
+          title: 'Archive this user?',
+          body:
+              '${account.displayName} will no longer be able to sign in, and '
+              'any public listings they own will be taken down. Their records '
+              'are kept in the archive until you restore or permanently '
+              'delete the account.',
+          confirmLabel: 'Archive user',
+          reasonCodes: archiveUserReasonCodes,
+          run: (commands, reason) =>
+              commands.archiveUser(account: account, reasonCode: reason),
+          successMessage: '${account.displayName} moved to the archive.',
+        );
+      case 'restore-archived':
+        _runAccountAction(
+          account,
+          title: 'Restore this user from the archive?',
+          body:
+              '${account.displayName} will be able to sign in again with '
+              'their previous role and records.',
+          confirmLabel: 'Restore user',
+          reasonCodes: restoreUserReasonCodes,
+          run: (commands, reason) =>
+              commands.restoreUser(account: account, reasonCode: reason),
+          successMessage: '${account.displayName} restored from the archive.',
+        );
+      case 'delete-permanently':
+        _runAccountAction(
+          account,
+          title: 'Permanently delete this user?',
+          body:
+              'This removes ${account.displayName} from the archive and '
+              'deletes their sign-in account. This cannot be undone.',
+          confirmLabel: 'Delete permanently',
+          reasonCodes: deleteUserReasonCodes,
+          destructive: true,
+          run: (commands, reason) =>
+              commands.deleteUser(account: account, reasonCode: reason),
+          successMessage:
+              '${account.displayName} permanently deleted from the archive.',
+        );
       case 'demo-status':
         _changeDemoStatus(account);
       case 'demo-resend':
@@ -483,9 +548,119 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     }
   }
 
-  /// Runs one audited landlord transition: confirm, pick the reason code the
+  /// Picks a new ordinary role and the audit reason, then runs the
+  /// super-admin-only `user.changeRole` command. Administrator privileges are
+  /// never assignable here — they are Auth claims granted by the ops script.
+  Future<void> _changeUserRole(PlatformAccount account) async {
+    final currentRole = account.roleLabel.trim().toLowerCase();
+    final options = assignableServerRoles
+        .where((candidate) => candidate != currentRole)
+        .toList(growable: false);
+    var role = options.first;
+    var reason = changeRoleReasonCodes.first;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Change this user\'s role?'),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${account.displayName} is currently a '
+                  '${account.roleLabel}. A landlord promotion still needs '
+                  'approval and an active subscription before the workspace '
+                  'opens.',
+                ),
+                const SizedBox(height: 16),
+                Text('New role', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 4),
+                RadioGroup<String>(
+                  groupValue: role,
+                  onChanged: (value) =>
+                      setDialogState(() => role = value ?? role),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final candidate in options)
+                        RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text(_serverRoleLabel(candidate)),
+                          value: candidate,
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Reason recorded in the audit log',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                const SizedBox(height: 4),
+                RadioGroup<String>(
+                  groupValue: reason,
+                  onChanged: (value) =>
+                      setDialogState(() => reason = value ?? reason),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final code in changeRoleReasonCodes)
+                        RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text(_reasonLabel(code)),
+                          value: code,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Change role'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref
+          .read(adminAccountCommandsProvider)
+          .changeUserRole(account: account, role: role, reasonCode: reason);
+      if (mounted) {
+        showAdminMessage(
+          context,
+          '${account.displayName} is now a ${_serverRoleLabel(role)}.',
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        showAdminMessage(context, 'The server rejected the action: $error');
+      }
+    }
+  }
+
+  static String _serverRoleLabel(String role) => switch (role) {
+    'landlord' => 'Landlord',
+    'tenant' => 'Tenant',
+    _ => 'Client',
+  };
+
+  /// Runs one audited account action: confirm, pick the reason code the
   /// server will record, then send the command and report the real outcome.
-  Future<void> _runLandlordAction(
+  Future<void> _runAccountAction(
     PlatformAccount account, {
     required String title,
     required String body,
@@ -493,6 +668,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     required List<String> reasonCodes,
     required Future<void> Function(AdminAccountCommands, String reason) run,
     required String successMessage,
+    bool destructive = false,
   }) async {
     var reason = reasonCodes.first;
     final confirmed = await showDialog<bool>(
@@ -539,6 +715,12 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               child: const Text('Cancel'),
             ),
             FilledButton(
+              style: destructive
+                  ? FilledButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                      foregroundColor: Theme.of(context).colorScheme.onError,
+                    )
+                  : null,
               onPressed: () => Navigator.pop(dialogContext, true),
               child: Text(confirmLabel),
             ),
@@ -564,6 +746,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     'FRAUD_RISK' => 'Fraud risk',
     'APPEAL_APPROVED' => 'Appeal approved',
     'ADMIN_CORRECTION' => 'Administrative correction',
+    'USER_REQUESTED' => 'Requested by the user',
     _ => code,
   };
 
@@ -593,8 +776,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 TextField(
                   controller: nameController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Full name',
+                  decoration: InputDecoration(
+                    labelText: context.tr('Full name'),
                     prefixIcon: Icon(Icons.person_outline_rounded),
                   ),
                 ),
@@ -602,8 +785,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 TextField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email address',
+                  decoration: InputDecoration(
+                    labelText: context.tr('Email address'),
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                 ),
@@ -1072,12 +1255,14 @@ class _UserCard extends StatelessWidget {
     required this.account,
     required this.source,
     required this.canManage,
+    required this.isSuperAdmin,
     required this.onAction,
   });
 
   final PlatformAccount account;
   final AdminDirectorySource source;
   final bool canManage;
+  final bool isSuperAdmin;
   final ValueChanged<String> onAction;
 
   @override
@@ -1135,6 +1320,7 @@ class _UserCard extends StatelessWidget {
             account: account,
             source: source,
             canManage: canManage,
+            isSuperAdmin: isSuperAdmin,
             onAction: onAction,
           ),
         ],
@@ -1148,19 +1334,22 @@ class _AccountMenu extends StatelessWidget {
     required this.account,
     required this.source,
     required this.canManage,
+    required this.isSuperAdmin,
     required this.onAction,
   });
 
   final PlatformAccount account;
   final AdminDirectorySource source;
   final bool canManage;
+  final bool isSuperAdmin;
   final ValueChanged<String> onAction;
 
   @override
   Widget build(BuildContext context) {
     final live = source == AdminDirectorySource.live;
+    final archived = account.status == PlatformAccountStatus.archived;
     return PopupMenuButton<String>(
-      tooltip: 'Account actions',
+      tooltip: context.tr('Account actions'),
       onSelected: onAction,
       itemBuilder: (context) => [
         const PopupMenuItem(
@@ -1171,10 +1360,12 @@ class _AccountMenu extends StatelessWidget {
             title: Text('View account'),
           ),
         ),
-        // Live actions exist only where the server has a command: landlord
-        // approval-state transitions. Tenants and prospects have no
-        // server-side suspend today, so no control pretends otherwise.
-        if (live && canManage && account.isLandlord)
+        // Live actions exist only where the server has a command: the
+        // landlord approval-state transitions for staff, and the super-admin
+        // `user.*` lifecycle (archive / restore / permanent delete) for any
+        // role. Tenants and prospects still have no plain suspend, so no
+        // control pretends otherwise.
+        if (live && canManage && account.isLandlord && !archived)
           switch (account.status) {
             PlatformAccountStatus.pendingApproval => const PopupMenuItem(
               value: 'approve',
@@ -1200,8 +1391,50 @@ class _AccountMenu extends StatelessWidget {
                 title: Text('Suspend access'),
               ),
             ),
-          }
-        else if (!live &&
+          },
+        if (live && canManage && isSuperAdmin && !archived) ...[
+          const PopupMenuItem(
+            value: 'change-role',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.manage_accounts_outlined),
+              title: Text('Change role'),
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'archive',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.inventory_2_outlined),
+              title: Text('Archive user'),
+            ),
+          ),
+        ],
+        if (live && canManage && isSuperAdmin && archived) ...[
+          const PopupMenuItem(
+            value: 'restore-archived',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.unarchive_outlined),
+              title: Text('Restore from archive'),
+            ),
+          ),
+          PopupMenuItem(
+            value: 'delete-permanently',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.delete_forever_outlined,
+                color: context.nyumba.danger,
+              ),
+              title: Text(
+                'Delete permanently',
+                style: TextStyle(color: context.nyumba.danger),
+              ),
+            ),
+          ),
+        ],
+        if (!live &&
             canManage &&
             account.status == PlatformAccountStatus.invited)
           const PopupMenuItem(
@@ -1249,6 +1482,7 @@ class _AccountStatusBadge extends StatelessWidget {
         PlatformAccountStatus.pendingApproval ||
         PlatformAccountStatus.invited => BadgeTone.warning,
         PlatformAccountStatus.suspended => BadgeTone.danger,
+        PlatformAccountStatus.archived => BadgeTone.neutral,
       },
     );
   }

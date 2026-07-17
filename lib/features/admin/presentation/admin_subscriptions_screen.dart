@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
@@ -204,9 +207,11 @@ class _AdminSubscriptionsScreenState
               const SizedBox(height: 14),
               TextField(
                 controller: referenceController,
-                decoration: const InputDecoration(
-                  labelText: 'Payment reference (required)',
-                  hintText: 'Provider transaction ID or manual reference',
+                decoration: InputDecoration(
+                  labelText: context.tr('Payment reference (required)'),
+                  hintText: context.tr(
+                    'Provider transaction ID or manual reference',
+                  ),
                   prefixIcon: Icon(Icons.receipt_long_outlined),
                 ),
               ),
@@ -405,8 +410,8 @@ class _AdminSubscriptionsScreenState
                 TextField(
                   controller: unitController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Manageable rental-space limit',
+                  decoration: InputDecoration(
+                    labelText: context.tr('Manageable rental-space limit'),
                     prefixIcon: Icon(Icons.apartment_outlined),
                   ),
                 ),
@@ -414,8 +419,8 @@ class _AdminSubscriptionsScreenState
                 TextField(
                   controller: priceController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Illustrative monthly price (UGX)',
+                  decoration: InputDecoration(
+                    labelText: context.tr('Illustrative monthly price (UGX)'),
                     prefixIcon: Icon(Icons.payments_outlined),
                   ),
                 ),
@@ -807,7 +812,10 @@ class _PlanCard extends StatelessWidget {
                 ),
                 if (!custom)
                   Padding(
-                    padding: const EdgeInsets.only(left: 5, bottom: 3),
+                    padding: const EdgeInsetsDirectional.only(
+                      start: 5,
+                      bottom: 3,
+                    ),
                     child: Text(
                       '/month (draft)',
                       style: Theme.of(context).textTheme.bodySmall,

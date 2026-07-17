@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../localization/localized_material.dart';
 import '../../app/bootstrap/app_dependencies.dart';
 import '../../app/theme/nyumba_colors.dart';
+import '../localization/nyumba_localizations.dart';
 import 'responsive.dart';
 import 'status_badge.dart';
 
@@ -57,7 +59,7 @@ class CloudStatusBadge extends ConsumerWidget {
       message: message,
       child: context.isCompact
           ? Semantics(
-              label: label,
+              label: context.tr(label),
               child: Icon(icon, size: 20, color: _iconColor(context, tone)),
             )
           : StatusBadge(label: label, tone: tone, icon: icon),

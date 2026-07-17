@@ -1,3 +1,5 @@
+import '../../../core/localization/app_language.dart';
+
 enum AppRole { superAdmin, admin, landlord, tenant, client }
 
 extension AppRolePresentation on AppRole {
@@ -32,6 +34,7 @@ class UserSession {
     this.accountStatus = AccountStatus.active,
     this.subscriptionStatus = LandlordSubscriptionStatus.notApplicable,
     this.subscriptionTier,
+    this.language,
     this.emailVerified = true,
     this.isAnonymous = false,
     this.isDemo = false,
@@ -45,6 +48,7 @@ class UserSession {
   final AccountStatus accountStatus;
   final LandlordSubscriptionStatus subscriptionStatus;
   final String? subscriptionTier;
+  final AppLanguage? language;
   final bool emailVerified;
   final bool isAnonymous;
   final bool isDemo;
@@ -70,6 +74,7 @@ class UserSession {
         accountStatus: accountStatus,
         subscriptionStatus: subscriptionStatus,
         subscriptionTier: subscriptionTier,
+        language: language,
         emailVerified: emailVerified,
         isAnonymous: isAnonymous,
         isDemo: isDemo,
@@ -87,6 +92,7 @@ class UserSession {
     accountStatus: accountStatus,
     subscriptionStatus: status,
     subscriptionTier: tier,
+    language: language,
     emailVerified: emailVerified,
     isAnonymous: isAnonymous,
     isDemo: isDemo,

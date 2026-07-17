@@ -33,17 +33,21 @@ Not yet real, and not to be presented as real:
   follow the sequence in `docs/architecture/README.md` before flipping
   `ENFORCE_APP_CHECK`. iOS App Attest is deferred: it needs a paid Apple
   Developer team, without which no iOS build can ship anyway.
-- **Tenant and prospect remote pulls.** Landlords pull `property`, `unit`,
+- **Tenant and prospect aggregate pulls.** Landlords pull `property`, `unit`,
   `listing` (canonical) plus `tenancy` and `payment` (via `landlordPortals`
-  read models). Tenant and prospect scopes pull nothing — see "Known model
-  divergence" below.
+  read models). Every authenticated actor pulls the common UID-scoped
+  `notificationInboxes` read model. Tenant and prospect domain-aggregate
+  scopes still pull nothing — see "Known model divergence" below.
 - **Admin plan drafts.** Local-only working state. The admin *account
   directory* is real: live admin sessions stream `users`/`landlordAccounts`/
   `subscriptions`/`auditLogs` directly (admin-read-only by rule, no local
   mirror — see `FirestoreAdminDirectory`), and act through the audited
-  `landlord.approve|suspend|reinstate` and `subscription.confirmPayment`
-  commands. There is still no command that creates a user or suspends a
-  non-landlord account, and the app does not pretend otherwise.
+  `landlord.approve|suspend|reinstate`, `subscription.confirmPayment`, and
+  super-admin-only `user.archive|restore|delete|changeRole` commands
+  (ordinary roles only — admin privileges stay claim-based and
+  script-granted). There is still no command that creates a user or
+  plain-suspends a non-landlord account, and the app does not pretend
+  otherwise.
 
 Demo sessions seed local fixtures and use a stub gateway. Never present demo
 behavior, or an unsynced local write, as server-confirmed.
@@ -245,6 +249,41 @@ configuration is missing; do not hard-code guesses in Flutter or security rules.
 - Keep user-facing copy precise: use `pending` or `awaiting confirmation` for
   unacknowledged operations, never `paid`, `published`, or `approved`.
 
+## Localization and language invariants
+
+Nyumba ships in English (`en`), Luganda (`lg`), Kiswahili (`sw`), and Arabic
+(`ar`). Localization is part of every feature's definition of done, not a
+follow-up polish task.
+
+- Add or change user-facing copy in all four `assets/l10n/app_*.arb` catalogs in
+  the same change. Do not introduce a Flutter string literal that is visible,
+  announced by accessibility services, used as a form label/error, or shown in
+  a tooltip without a localization entry.
+- Prefer generated `AppLocalizations` getters for new copy, especially messages
+  with placeholders, plurals, or select forms. The localized `Text` bridge
+  exists to cover legacy source strings while they are migrated; it is not a
+  reason to skip ARB entries.
+- Preserve placeholders as data. Translate the surrounding sentence, never a
+  person's name, property/unit name, user-authored description, notice body, or
+  message unless the product explicitly adds an opt-in content-translation
+  workflow.
+- Use locale-aware `intl` date, number, and currency formatting. Money remains
+  integer minor units and the configured market currency remains UGX; changing
+  language does not change financial authority or currency.
+- Arabic must work right-to-left. Use `AlignmentDirectional`,
+  `EdgeInsetsDirectional`, `BorderDirectional`, `PositionedDirectional`, and
+  start/end-aware icons or ordering for semantic layout. Recheck compact mobile
+  and wide web widths for translated text expansion and RTL navigation.
+- Localize server-rendered notification templates and generated document/PDF
+  labels using the recipient or active user's validated locale. Store only one
+  of `en|lg|sw|ar`; fall back to English for absent/invalid legacy data.
+- Add tests that keep locale catalogs in key parity, verify fallback and
+  persistence/account switching, and render at least one narrow and one wide
+  critical screen in Arabic RTL whenever shared navigation/layout changes.
+- Machine-generated translations are drafts. Changes to legal, financial,
+  tenancy, safety, or billing wording require review by a fluent speaker before
+  production release.
+
 ## Tests and verification
 
 Add tests at the lowest useful layer:
@@ -314,6 +353,8 @@ A change is complete when:
   permission-denied paths are handled;
 - tests cover the changed policy or regression and all relevant checks pass;
 - responsive and accessibility behavior is verified for UI changes;
+- all new or changed user-facing copy is translated in English, Luganda,
+  Kiswahili, and Arabic, with RTL behavior checked where layout changed;
 - architecture, command contracts, Firebase rules/indexes, and user-facing docs are
   updated together when their shared behavior changes;
 - no secrets, PII, generated build output, debug logging, or environment-specific

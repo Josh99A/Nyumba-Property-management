@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -57,7 +60,7 @@ class _LandlordListingsScreenState
     final canUnpublish = allows(CrudOperation.delete);
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         context.pageGutter,
         26,
         context.pageGutter,
@@ -278,8 +281,8 @@ class _LandlordListingsScreenState
                   children: [
                     TextFormField(
                       controller: title,
-                      decoration: const InputDecoration(
-                        labelText: 'Listing title',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Listing title'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 3
                           ? 'Enter a listing title'
@@ -290,8 +293,8 @@ class _LandlordListingsScreenState
                       controller: description,
                       minLines: 3,
                       maxLines: 5,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Description'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 10
                           ? 'Add a useful description'
@@ -301,8 +304,8 @@ class _LandlordListingsScreenState
                     TextFormField(
                       controller: rent,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Monthly rent',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Monthly rent'),
                         prefixText: 'UGX ',
                       ),
                       validator: (value) {
@@ -317,7 +320,9 @@ class _LandlordListingsScreenState
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: city,
-                      decoration: const InputDecoration(labelText: 'City'),
+                      decoration: InputDecoration(
+                        labelText: context.tr('City'),
+                      ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
                           ? 'Enter a city'
                           : null,
@@ -325,8 +330,8 @@ class _LandlordListingsScreenState
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: neighborhood,
-                      decoration: const InputDecoration(
-                        labelText: 'Neighborhood',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Neighborhood'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
                           ? 'Enter a neighborhood'
@@ -335,8 +340,8 @@ class _LandlordListingsScreenState
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: district,
-                      decoration: const InputDecoration(
-                        labelText: 'District (optional)',
+                      decoration: InputDecoration(
+                        labelText: context.tr('District (optional)'),
                       ),
                     ),
                     if (error != null) ...[
@@ -521,8 +526,8 @@ class _LandlordListingsScreenState
                   children: [
                     DropdownButtonFormField<Unit>(
                       initialValue: selectedUnit,
-                      decoration: const InputDecoration(
-                        labelText: 'Vacant rental space',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Vacant rental space'),
                       ),
                       items: [
                         for (final unit in vacant)
@@ -547,8 +552,8 @@ class _LandlordListingsScreenState
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: title,
-                      decoration: const InputDecoration(
-                        labelText: 'Listing title',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Listing title'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 5
                           ? 'Enter a clear title'
@@ -559,8 +564,8 @@ class _LandlordListingsScreenState
                       controller: description,
                       minLines: 3,
                       maxLines: 5,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Description'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 15
                           ? 'Add a little more detail'
@@ -572,10 +577,11 @@ class _LandlordListingsScreenState
                         Expanded(
                           child: TextFormField(
                             controller: neighborhood,
-                            decoration: const InputDecoration(
-                              labelText: 'Neighborhood',
-                              helperText:
-                                  'Public; do not enter an exact address',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Neighborhood'),
+                              helperText: context.tr(
+                                'Public; do not enter an exact address',
+                              ),
                             ),
                             validator: (value) => value?.trim().isEmpty ?? true
                                 ? 'Enter a public neighborhood'
@@ -586,8 +592,8 @@ class _LandlordListingsScreenState
                         Expanded(
                           child: TextFormField(
                             controller: district,
-                            decoration: const InputDecoration(
-                              labelText: 'District or city area',
+                            decoration: InputDecoration(
+                              labelText: context.tr('District or city area'),
                             ),
                           ),
                         ),
@@ -603,8 +609,10 @@ class _LandlordListingsScreenState
                               decimal: true,
                               signed: true,
                             ),
-                            decoration: const InputDecoration(
-                              labelText: 'Approx. latitude (optional)',
+                            decoration: InputDecoration(
+                              labelText: context.tr(
+                                'Approx. latitude (optional)',
+                              ),
                             ),
                             validator: _optionalLatitudeValidator,
                           ),
@@ -617,8 +625,10 @@ class _LandlordListingsScreenState
                               decimal: true,
                               signed: true,
                             ),
-                            decoration: const InputDecoration(
-                              labelText: 'Approx. longitude (optional)',
+                            decoration: InputDecoration(
+                              labelText: context.tr(
+                                'Approx. longitude (optional)',
+                              ),
                             ),
                             validator: _optionalLongitudeValidator,
                           ),
@@ -652,8 +662,8 @@ class _LandlordListingsScreenState
                           child: TextFormField(
                             controller: floorArea,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Floor area (m²)',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Floor area (m²)'),
                             ),
                             validator: _optionalPositiveIntegerValidator,
                           ),
@@ -663,8 +673,8 @@ class _LandlordListingsScreenState
                           child: TextFormField(
                             controller: parkingSpaces,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Parking spaces',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Parking spaces'),
                             ),
                             validator: _optionalNonNegativeIntegerValidator,
                           ),
@@ -684,8 +694,8 @@ class _LandlordListingsScreenState
                           child: TextFormField(
                             controller: minimumLeaseMonths,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Minimum lease (months)',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Minimum lease (months)'),
                             ),
                             validator: _optionalPositiveIntegerValidator,
                           ),
@@ -695,8 +705,8 @@ class _LandlordListingsScreenState
                           child: TextFormField(
                             controller: securityDeposit,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Security deposit (UGX)',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Security deposit (UGX)'),
                             ),
                             validator: _optionalNonNegativeIntegerValidator,
                           ),
@@ -707,26 +717,27 @@ class _LandlordListingsScreenState
                     TextFormField(
                       controller: serviceCharge,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Monthly service charge (UGX)',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Monthly service charge (UGX)'),
                       ),
                       validator: _optionalNonNegativeIntegerValidator,
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: utilities,
-                      decoration: const InputDecoration(
-                        labelText: 'Utilities included',
-                        helperText:
-                            'Comma-separated, for example water, internet',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Utilities included'),
+                        helperText: context.tr(
+                          'Comma-separated, for example water, internet',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: accessibility,
-                      decoration: const InputDecoration(
-                        labelText: 'Accessibility features',
-                        helperText: 'Comma-separated',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Accessibility features'),
+                        helperText: context.tr('Comma-separated'),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -735,8 +746,8 @@ class _LandlordListingsScreenState
                         Expanded(
                           child: TextFormField(
                             controller: petsPolicy,
-                            decoration: const InputDecoration(
-                              labelText: 'Pets policy',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Pets policy'),
                             ),
                           ),
                         ),
@@ -744,8 +755,8 @@ class _LandlordListingsScreenState
                         Expanded(
                           child: TextFormField(
                             controller: smokingPolicy,
-                            decoration: const InputDecoration(
-                              labelText: 'Smoking policy',
+                            decoration: InputDecoration(
+                              labelText: context.tr('Smoking policy'),
                             ),
                           ),
                         ),
@@ -756,13 +767,13 @@ class _LandlordListingsScreenState
                       controller: viewingInstructions,
                       minLines: 2,
                       maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Viewing instructions',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Viewing instructions'),
                       ),
                     ),
                     const SizedBox(height: 14),
                     Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: Text(
                         'Listing photos',
                         style: Theme.of(context).textTheme.labelLarge,
@@ -770,7 +781,7 @@ class _LandlordListingsScreenState
                     ),
                     const SizedBox(height: 8),
                     Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: OutlinedButton.icon(
                         onPressed: selectedPhotos.length >= listingPhotoLimit
                             ? null
@@ -830,7 +841,7 @@ class _LandlordListingsScreenState
                     ],
                     const SizedBox(height: 6),
                     const Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: Text(
                         'JPEG, PNG, or WebP; up to 5 MB each and 10 photos. '
                         'Selections stay in this local draft. Publishing stays '
@@ -842,16 +853,18 @@ class _LandlordListingsScreenState
                     TextFormField(
                       controller: videoUrl,
                       keyboardType: TextInputType.url,
-                      decoration: const InputDecoration(
-                        labelText: 'Video or virtual-tour URL (optional)',
+                      decoration: InputDecoration(
+                        labelText: context.tr(
+                          'Video or virtual-tour URL (optional)',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: phone,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Contact phone',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Contact phone'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 7
                           ? email.text.trim().isEmpty
@@ -865,10 +878,13 @@ class _LandlordListingsScreenState
                     TextFormField(
                       controller: email,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Private contact email (optional)',
-                        helperText:
-                            'Used for routed enquiries; not shown publicly',
+                      decoration: InputDecoration(
+                        labelText: context.tr(
+                          'Private contact email (optional)',
+                        ),
+                        helperText: context.tr(
+                          'Used for routed enquiries; not shown publicly',
+                        ),
                       ),
                       validator: (value) {
                         final text = value?.trim() ?? '';
@@ -882,7 +898,7 @@ class _LandlordListingsScreenState
                     ),
                     const SizedBox(height: 14),
                     const Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: StatusBadge(
                         label: 'Advertising enabled · Pro plan',
                         tone: BadgeTone.success,
@@ -1090,8 +1106,8 @@ class _LandlordListingCard extends StatelessWidget {
                   child: listingImage(listing, fit: BoxFit.cover),
                 ),
               ),
-              Positioned(
-                left: 12,
+              PositionedDirectional(
+                start: 12,
                 top: 12,
                 child: StatusBadge(label: label, tone: tone),
               ),
@@ -1141,7 +1157,7 @@ class _LandlordListingCard extends StatelessWidget {
                         child: const Text('Publish'),
                       ),
                     PopupMenuButton<String>(
-                      tooltip: 'Listing actions',
+                      tooltip: context.tr('Listing actions'),
                       onSelected: (value) {
                         if (value == 'view') {
                           context.go('/listing/${listing.id}');
@@ -1248,7 +1264,7 @@ class _ApplicationsInbox extends StatelessWidget {
             )
           else
             IconButton(
-              tooltip: 'Review applications',
+              tooltip: context.tr('Review applications'),
               onPressed: () => _showApplications(context, applications),
               icon: const Icon(Icons.chevron_right_rounded),
             ),
@@ -1270,7 +1286,7 @@ void _showApplications(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: 640),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

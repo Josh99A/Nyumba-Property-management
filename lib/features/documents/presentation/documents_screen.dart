@@ -1,7 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text, Tooltip;
+
+import 'package:nyumba_property_management/core/localization/localized_material.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
@@ -78,7 +82,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         context.pageGutter,
         26,
         context.pageGutter,
@@ -146,6 +150,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           },
           issuedAt: document.issuedAt,
           printable: PrintableDocumentData(
+            language: ref.read(localePreferenceProvider),
             title: document.type.label,
             number: document.number,
             recipient: document.recipient,
@@ -178,6 +183,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           statusTone: BadgeTone.info,
           issuedAt: notice.createdAt,
           printable: PrintableDocumentData(
+            language: ref.read(localePreferenceProvider),
             title: 'Tenant notice — ${notice.title}',
             number: notice.reference,
             recipient: notice.audience,
@@ -288,7 +294,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -386,7 +392,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 children: [
                   DropdownButtonFormField<Tenancy>(
                     initialValue: selected,
-                    decoration: const InputDecoration(labelText: 'Tenancy'),
+                    decoration: InputDecoration(
+                      labelText: context.tr('Tenancy'),
+                    ),
                     items: [
                       for (final tenancy in tenancies)
                         DropdownMenuItem(
@@ -413,8 +421,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                     TextFormField(
                       controller: amount,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Invoice amount (UGX)',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Invoice amount (UGX)'),
                       ),
                       validator: (value) {
                         final parsed = int.tryParse(
@@ -493,7 +501,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     final formKey = GlobalKey<FormState>();
     final title = TextEditingController();
     final body = TextEditingController();
-    var audience = 'All tenants';
+    final properties =
+        ref
+            .read(portfolioPropertiesProvider)
+            .value
+            ?.where((property) => !property.isArchived)
+            .toList(growable: false) ??
+        const <Property>[];
+    var audienceId = '';
     final created = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -509,7 +524,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 children: [
                   TextFormField(
                     controller: title,
-                    decoration: const InputDecoration(labelText: 'Title'),
+                    decoration: InputDecoration(labelText: context.tr('Title')),
                     validator: (value) => (value?.trim().length ?? 0) < 4
                         ? 'Give the notice a clear title'
                         : null,
@@ -519,8 +534,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                     controller: body,
                     minLines: 3,
                     maxLines: 6,
-                    decoration: const InputDecoration(
-                      labelText: 'Notice text',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Notice text'),
                       alignLabelWithHint: true,
                     ),
                     validator: (value) => (value?.trim().length ?? 0) < 10
@@ -529,29 +544,26 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   ),
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
-                    initialValue: audience,
-                    decoration: const InputDecoration(labelText: 'Audience'),
+                    initialValue: audienceId,
+                    decoration: InputDecoration(
+                      labelText: context.tr('Audience'),
+                    ),
                     // Only this landlord's own properties can be addressed; a
                     // fixed list would offer estates they do not own.
                     items: [
                       const DropdownMenuItem(
-                        value: 'All tenants',
+                        value: '',
                         child: Text('All tenants'),
                       ),
-                      for (final property
-                          in ref
-                                  .read(portfolioPropertiesProvider)
-                                  .value
-                                  ?.where((property) => !property.isArchived) ??
-                              const <Property>[])
+                      for (final property in properties)
                         DropdownMenuItem(
-                          value: property.name,
+                          value: property.id,
                           child: Text(property.name),
                         ),
                     ],
                     onChanged: (value) {
                       if (value != null) {
-                        setDialogState(() => audience = value);
+                        setDialogState(() => audienceId = value);
                       }
                     },
                   ),
@@ -578,12 +590,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     );
     if (created == true) {
       try {
+        Property? selectedProperty;
+        for (final property in properties) {
+          if (property.id == audienceId) selectedProperty = property;
+        }
         await ref.read(createNoticeProvider)(
           CreateNoticeInput(
             landlordId: _landlordId,
             title: title.text.trim(),
             body: body.text.trim(),
-            audience: audience,
+            audience: selectedProperty?.name ?? 'All tenants',
+            audienceType: selectedProperty == null
+                ? NoticeAudienceType.allActiveTenants
+                : NoticeAudienceType.property,
+            audienceId: selectedProperty?.id,
           ),
         );
         if (mounted) {
@@ -694,13 +714,13 @@ class _DocumentRow extends StatelessWidget {
             )
           else ...[
             IconButton(
-              tooltip: 'Print ${entry.number}',
+              tooltip: context.tr('Print ${entry.number}'),
               onPressed: onPrint,
               icon: const Icon(Icons.print_outlined),
             ),
             if (!context.isCompact)
               IconButton(
-                tooltip: 'Share ${entry.number}',
+                tooltip: context.tr('Share ${entry.number}'),
                 onPressed: onShare,
                 icon: const Icon(Icons.ios_share_outlined),
               ),
