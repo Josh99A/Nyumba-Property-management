@@ -1,46 +1,151 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
+import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/documents/nyumba_document_service.dart';
-import '../../../core/presentation/status_badge.dart';
+import '../../../core/offline/aggregate_sync_status.dart';
+import '../../../core/offline/offline_entity.dart';
+import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
+import '../../finance/application/billing_providers.dart';
+import '../../finance/domain/rent_payment.dart';
+import '../../maintenance/application/maintenance_providers.dart';
+import '../../maintenance/domain/maintenance_request.dart';
+import '../../notices/application/notice_providers.dart';
+import '../../notices/domain/notice.dart';
+import '../../tenants/application/tenancy_providers.dart';
+import '../../tenants/domain/tenancy.dart';
 import 'widgets/tenant_components.dart';
 
-class TenantHomeScreen extends StatefulWidget {
+/// The tenant landing page, derived entirely from this device's records.
+///
+/// Every figure comes from the local mirror: the tenancy this account is
+/// linked to, payments recorded against it, maintenance this tenant reported,
+/// and notices held locally. An account with no linked tenancy sees that
+/// stated plainly — this page previously rendered an invented household
+/// ("Brian", UGX 1,200,000, a fake receipt trail) and even pretended to take
+/// a payment, which is exactly the kind of lie an offline-first app must
+/// never tell.
+class TenantHomeScreen extends ConsumerWidget {
   const TenantHomeScreen({super.key});
 
   @override
-  State<TenantHomeScreen> createState() => _TenantHomeScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionControllerProvider);
+    final tenantId = session?.userId ?? '';
+    final firstName = session?.firstName ?? 'there';
+    final tenancyValue = ref.watch(myTenancyProvider(tenantId));
+
+    return tenancyValue.when(
+      loading: () => TenantPage(
+        title: 'Hello, $firstName',
+        description: 'Here is what is happening with your home.',
+        children: const [
+          Padding(
+            padding: EdgeInsets.all(48),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      ),
+      error: (error, stack) => TenantPage(
+        title: 'Hello, $firstName',
+        description: 'Here is what is happening with your home.',
+        children: [NyumbaSurfaceMessage('Could not load your home: $error')],
+      ),
+      data: (tenancy) => tenancy == null
+          ? _NoTenancyHome(firstName: firstName)
+          : _TenantHomeLoaded(
+              firstName: firstName,
+              tenantId: tenantId,
+              tenancy: tenancy,
+            ),
+    );
+  }
 }
 
-class _TenantHomeScreenState extends State<TenantHomeScreen> {
-  int _balance = 1200000;
-  bool _maintenanceSubmitted = false;
+/// Honest landing state for an account no landlord has linked yet.
+class _NoTenancyHome extends StatelessWidget {
+  const _NoTenancyHome({required this.firstName});
+
+  final String firstName;
 
   @override
   Widget build(BuildContext context) {
-    final paid = _balance == 0;
     return TenantPage(
-      title: 'Hello, Brian',
+      title: 'Hello, $firstName',
       description: 'Here is what is happening with your home.',
-      primaryAction: OutlinedButton.icon(
-        onPressed: _contactManager,
-        icon: const Icon(Icons.support_agent_rounded),
-        label: const Text('Contact manager'),
-      ),
+      children: [
+        const NyumbaSurface(
+          child: TenantEmptyState(
+            title: 'No tenancy on this device yet',
+            message:
+                'Your home, balance, and documents will appear after your '
+                'landlord links this account to a rental space. If you were '
+                'invited by email, signing in with that address links it '
+                'automatically.',
+            icon: Icons.home_outlined,
+          ),
+        ),
+        const SizedBox(height: 18),
+        TenantQuickAction(
+          label: 'Report a problem',
+          caption: 'Maintenance requests work while offline',
+          icon: Icons.home_repair_service_outlined,
+          color: context.nyumba.terracottaDark,
+          onTap: () => context.go('/tenant/maintenance'),
+        ),
+      ],
+    );
+  }
+}
+
+class _TenantHomeLoaded extends ConsumerWidget {
+  const _TenantHomeLoaded({
+    required this.firstName,
+    required this.tenantId,
+    required this.tenancy,
+  });
+
+  final String firstName;
+  final String tenantId;
+  final Tenancy tenancy;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final paid = !tenancy.balanceDue;
+    final payments =
+        ref.watch(tenancyPaymentsProvider(tenancy.id)).value ??
+        const <RentPayment>[];
+    final requests =
+        ref.watch(tenantMaintenanceRequestsProvider(tenantId)).value ??
+        const <MaintenanceRequest>[];
+    final notices = ref.watch(noticesProvider).value ?? const <Notice>[];
+    final outbox =
+        ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
+    final pendingChanges = outbox.length;
+
+    return TenantPage(
+      title: 'Hello, $firstName',
+      description: 'Here is what is happening with your home.',
       children: [
         TenantBalanceHero(
-          amount: _balance,
-          dueLabel: 'Invoice NYB-INV-2608 • due 5 Aug 2026',
+          amount: tenancy.balanceMinor ~/ 100,
+          dueLabel:
+              '${DateFormat('MMMM y').format(DateTime.now())} rent • '
+              'due on the 5th',
           paid: paid,
-          onPay: paid ? _showLatestReceipt : _payRent,
+          onPay: () => context.go('/tenant/payments'),
         ),
         const SizedBox(height: 18),
         LayoutBuilder(
           builder: (context, constraints) {
             final columns = constraints.maxWidth >= 1000
-                ? 4
+                ? 3
                 : constraints.maxWidth >= 560
-                ? 2
+                ? 3
                 : 1;
             const spacing = 12.0;
             final width =
@@ -52,13 +157,13 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                 SizedBox(
                   width: width,
                   child: TenantQuickAction(
-                    label: paid ? 'View receipt' : 'Pay rent',
+                    label: paid ? 'Payments & receipts' : 'Pay rent',
                     caption: paid
-                        ? 'Latest confirmed payment'
-                        : 'Secure checkout',
+                        ? 'History and statements'
+                        : 'Record and track payments',
                     icon: Icons.payments_outlined,
                     color: context.nyumba.sageDark,
-                    onTap: paid ? _showLatestReceipt : _payRent,
+                    onTap: () => context.go('/tenant/payments'),
                   ),
                 ),
                 SizedBox(
@@ -68,27 +173,17 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                     caption: 'Works while offline',
                     icon: Icons.home_repair_service_outlined,
                     color: context.nyumba.terracottaDark,
-                    onTap: _reportProblem,
+                    onTap: () => context.go('/tenant/maintenance'),
                   ),
                 ),
                 SizedBox(
                   width: width,
                   child: TenantQuickAction(
-                    label: 'Rent statement',
-                    caption: 'View or print',
-                    icon: Icons.receipt_long_outlined,
-                    color: context.nyumba.midnightNavy,
-                    onTap: _showStatement,
-                  ),
-                ),
-                SizedBox(
-                  width: width,
-                  child: TenantQuickAction(
-                    label: 'Lease documents',
-                    caption: '3 shared files',
+                    label: 'Documents',
+                    caption: 'Receipts and lease papers',
                     icon: Icons.folder_copy_outlined,
-                    color: context.nyumba.sageDark,
-                    onTap: _showLeaseFiles,
+                    color: context.nyumba.midnightNavy,
+                    onTap: () => context.go('/tenant/documents'),
                   ),
                 ),
               ],
@@ -98,10 +193,10 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
         const SizedBox(height: 20),
         LayoutBuilder(
           builder: (context, constraints) {
-            const home = _HomeAndLeasePanel();
+            final home = _HomeAndLeasePanel(tenancy: tenancy);
             final maintenance = _MaintenanceSummaryPanel(
-              submitted: _maintenanceSubmitted,
-              onView: _showMaintenanceDetail,
+              requests: requests,
+              outbox: outbox,
             );
             if (constraints.maxWidth < 900) {
               return Column(
@@ -112,7 +207,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(flex: 6, child: home),
+                Expanded(flex: 6, child: home),
                 const SizedBox(width: 20),
                 Expanded(flex: 5, child: maintenance),
               ],
@@ -122,22 +217,27 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
         const SizedBox(height: 20),
         LayoutBuilder(
           builder: (context, constraints) {
-            const notices = _NoticesPanel();
-            final payments = _RecentPaymentsPanel(
-              onReceipt: _showLatestReceipt,
+            final noticesPanel = _NoticesPanel(notices: notices);
+            final paymentsPanel = _RecentPaymentsPanel(
+              payments: payments,
+              outbox: outbox,
             );
             if (constraints.maxWidth < 900) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [notices, const SizedBox(height: 20), payments],
+                children: [
+                  noticesPanel,
+                  const SizedBox(height: 20),
+                  paymentsPanel,
+                ],
               );
             }
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(flex: 6, child: notices),
+                Expanded(flex: 6, child: noticesPanel),
                 const SizedBox(width: 20),
-                Expanded(flex: 5, child: payments),
+                Expanded(flex: 5, child: paymentsPanel),
               ],
             );
           },
@@ -157,545 +257,85 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                 size: 20,
                 color: context.nyumba.sageDark,
               ),
-              SizedBox(width: 9),
-              Expanded(
+              const SizedBox(width: 9),
+              const Expanded(
                 child: Text(
-                  'Your latest home, balance, and documents are available offline.',
+                  'Records saved on this device stay available offline.',
                 ),
               ),
-              StatusBadge(label: 'Synced', tone: BadgeTone.success),
+              TenantStatusBadge(
+                status: pendingChanges == 0
+                    ? 'Up to date'
+                    : '$pendingChanges awaiting sync',
+              ),
             ],
           ),
         ),
       ],
     );
   }
+}
 
-  Future<void> _payRent() async {
-    var method = 'MTN MoMo';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Pay rent securely'),
-          content: SizedBox(
-            width: 460,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: context.nyumba.navyTint,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Amount due',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        formatTenantUgx(_balance),
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 4),
-                      const Text('Invoice NYB-INV-2608 • August 2026 rent'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'Choose payment method',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: 9),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final item in const [
-                      'Cash',
-                      'MTN MoMo',
-                      'Airtel Money',
-                      'Card (Bank)',
-                    ])
-                      ChoiceChip(
-                        label: Text(item),
-                        selected: method == item,
-                        showCheckmark: false,
-                        avatar: Icon(
-                          item == 'Cash'
-                              ? Icons.payments_outlined
-                              : item == 'Card (Bank)'
-                              ? Icons.credit_card_outlined
-                              : Icons.phone_android_rounded,
-                          size: 18,
-                        ),
-                        onSelected: (_) => setDialogState(() => method = item),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.lock_outline_rounded,
-                      size: 18,
-                      color: context.nyumba.sageDark,
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Payment confirmation and receipt will remain available '
-                        'on this device after syncing.',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton.icon(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              icon: const Icon(Icons.lock_outline_rounded),
-              label: Text('Pay with $method'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    setState(() => _balance = 0);
-    showTenantMessage(
-      context,
-      'Payment recorded locally — awaiting confirmation.',
-    );
-  }
+/// Small helper so error surfaces stay one-liners at the call site.
+class NyumbaSurfaceMessage extends StatelessWidget {
+  const NyumbaSurfaceMessage(this.message, {super.key});
 
-  Future<void> _reportProblem() async {
-    final descriptionController = TextEditingController();
-    var category = 'Plumbing';
-    final submitted = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Report a maintenance issue'),
-          content: SizedBox(
-            width: 460,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Category', style: Theme.of(context).textTheme.labelLarge),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final item in const [
-                      'Plumbing',
-                      'Electrical',
-                      'Appliance',
-                      'Other',
-                    ])
-                      ChoiceChip(
-                        label: Text(item),
-                        selected: category == item,
-                        showCheckmark: false,
-                        onSelected: (_) =>
-                            setDialogState(() => category = item),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: descriptionController,
-                  minLines: 3,
-                  maxLines: 5,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    labelText: 'What needs attention?',
-                    alignLabelWithHint: true,
-                    hintText:
-                        'Describe where the issue is and when it started.',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'You can submit while offline. Nyumba will send the request '
-                  'to your property manager when connected.',
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton.icon(
-              onPressed: () {
-                if (descriptionController.text.trim().length < 8) {
-                  showTenantMessage(
-                    dialogContext,
-                    'Add a short description of the issue.',
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, true);
-              },
-              icon: const Icon(Icons.send_rounded),
-              label: const Text('Submit request'),
-            ),
-          ],
-        ),
-      ),
-    );
-    descriptionController.dispose();
-    if (submitted != true || !mounted) return;
-    setState(() => _maintenanceSubmitted = true);
-    showTenantMessage(context, '$category request saved and queued to sync.');
-  }
+  final String message;
 
-  Future<void> _showStatement() {
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Rent statement'),
-        content: const SizedBox(
-          width: 470,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _StatementRow(
-                month: 'July 2026',
-                reference: 'NYB-RCP-00842',
-                amount: 'UGX 1,200,000',
-                status: 'Paid',
-              ),
-              Divider(height: 25),
-              _StatementRow(
-                month: 'June 2026',
-                reference: 'NYB-RCP-00791',
-                amount: 'UGX 1,200,000',
-                status: 'Paid',
-              ),
-              Divider(height: 25),
-              _StatementRow(
-                month: 'May 2026',
-                reference: 'NYB-RCP-00744',
-                amount: 'UGX 1,200,000',
-                status: 'Paid',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
-          ),
-          FilledButton.icon(
-            onPressed: _printHomeStatement,
-            icon: const Icon(Icons.print_outlined),
-            label: const Text('Print statement'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _printHomeStatement() async {
-    try {
-      await const PdfDocumentService().print(
-        PrintableDocumentData(
-          title: 'Rent statement',
-          number: 'STM-2026-BRIAN',
-          recipient: 'Brian Okello',
-          property: 'Acacia Heights',
-          unit: 'A-12',
-          amountMinor: 360000000,
-          date: DateTime.now(),
-          status: '3 recorded payments',
-        ),
-      );
-    } on Object catch (error) {
-      if (mounted) {
-        showTenantMessage(context, 'Could not print statement: $error');
-      }
-    }
-  }
-
-  Future<void> _showLatestReceipt() {
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Payment receipt'),
-        content: SizedBox(
-          width: 440,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: CircleAvatar(
-                  radius: 28,
-                  backgroundColor: context.nyumba.sageTint,
-                  child: Icon(
-                    Icons.check_rounded,
-                    color: context.nyumba.sageDark,
-                    size: 30,
-                  ),
-                ),
-              ),
-              SizedBox(height: 14),
-              Center(
-                child: Text(
-                  'UGX 1,200,000',
-                  style: TextStyle(
-                    color: context.nyumba.midnightNavy,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 25,
-                  ),
-                ),
-              ),
-              SizedBox(height: 18),
-              TenantInfoRow(
-                icon: Icons.tag_rounded,
-                label: 'Receipt',
-                value: 'NYB-RCP-00842',
-              ),
-              SizedBox(height: 12),
-              TenantInfoRow(
-                icon: Icons.home_outlined,
-                label: 'For',
-                value: 'July 2026 rent • Apartment A-12',
-              ),
-              SizedBox(height: 12),
-              TenantInfoRow(
-                icon: Icons.calendar_today_outlined,
-                label: 'Paid',
-                value: '3 Jul 2026 via MTN MoMo',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
-          ),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              showTenantMessage(context, 'Receipt ready to print.');
-            },
-            icon: const Icon(Icons.print_outlined),
-            label: const Text('Print'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showLeaseFiles() {
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Lease documents',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 10),
-              for (final file in const [
-                ('Signed tenancy agreement', 'PDF • 1.8 MB'),
-                ('Move-in inspection report', 'PDF • 860 KB'),
-                ('House rules', 'PDF • 320 KB'),
-              ])
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundColor: context.nyumba.navyTint,
-                    child: Icon(
-                      Icons.description_outlined,
-                      color: context.nyumba.midnightNavy,
-                    ),
-                  ),
-                  title: Text(file.$1),
-                  subtitle: Text(file.$2),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => showTenantMessage(
-                    context,
-                    '${file.$1} is available offline.',
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _contactManager() {
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 26),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: context.nyumba.navyTint,
-                child: Text('WM'),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Sandra Nakato',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const Text('Property manager • Acacia Heights'),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => showTenantMessage(
-                        context,
-                        'Calling is available on your mobile device.',
-                      ),
-                      icon: const Icon(Icons.call_outlined),
-                      label: const Text('Call'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: () => showTenantMessage(
-                        context,
-                        'A secure message draft has been opened.',
-                      ),
-                      icon: const Icon(Icons.chat_bubble_outline_rounded),
-                      label: const Text('Message'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showMaintenanceDetail() {
-    return showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          _maintenanceSubmitted ? 'New request queued' : 'Kitchen tap leak',
-        ),
-        content: SizedBox(
-          width: 440,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _maintenanceSubmitted
-                ? const [
-                    TenantTimelineStep(
-                      title: 'Saved on this device',
-                      detail: 'Ready to sync when connected',
-                      complete: true,
-                    ),
-                    TenantTimelineStep(
-                      title: 'Sent to property manager',
-                      detail: 'Waiting for network connection',
-                      complete: false,
-                      last: true,
-                    ),
-                  ]
-                : const [
-                    TenantTimelineStep(
-                      title: 'Request submitted',
-                      detail: '8 Jul 2026 at 09:14',
-                      complete: true,
-                    ),
-                    TenantTimelineStep(
-                      title: 'Plumber assigned',
-                      detail: 'Kato Services • 8 Jul at 13:40',
-                      complete: true,
-                    ),
-                    TenantTimelineStep(
-                      title: 'Visit scheduled',
-                      detail: '15 Jul 2026 • 10:00–12:00',
-                      complete: false,
-                      last: true,
-                    ),
-                  ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+  @override
+  Widget build(BuildContext context) {
+    return NyumbaSurface(
+      child: Padding(padding: const EdgeInsets.all(24), child: Text(message)),
     );
   }
 }
 
 class _HomeAndLeasePanel extends StatelessWidget {
-  const _HomeAndLeasePanel();
+  const _HomeAndLeasePanel({required this.tenancy});
+
+  final Tenancy tenancy;
 
   @override
   Widget build(BuildContext context) {
-    return const TenantPanel(
+    final leaseFormat = DateFormat('d MMM y');
+    return TenantPanel(
       title: 'Your home',
-      subtitle: 'Acacia Heights • Kololo, Kampala',
-      trailing: TenantStatusBadge(status: 'Active'),
+      subtitle: tenancy.propertyName,
+      trailing: TenantStatusBadge(
+        status: switch (tenancy.status) {
+          TenancyStatus.active => 'Active',
+          TenancyStatus.noticeGiven => 'Notice given',
+          TenancyStatus.ended => 'Ended',
+        },
+      ),
       child: Column(
         children: [
           TenantInfoRow(
             icon: Icons.meeting_room_outlined,
             label: 'Rental space',
-            value: 'A-12 • 2 bedroom apartment',
+            value: tenancy.unitLabel,
           ),
-          Divider(height: 25),
+          const Divider(height: 25),
           TenantInfoRow(
             icon: Icons.calendar_month_outlined,
             label: 'Lease term',
-            value: '1 Jan – 31 Dec 2026',
+            value:
+                '${leaseFormat.format(tenancy.leaseStart.toLocal())} – '
+                '${leaseFormat.format(tenancy.leaseEnd.toLocal())}',
           ),
-          Divider(height: 25),
+          const Divider(height: 25),
           TenantInfoRow(
             icon: Icons.payments_outlined,
             label: 'Monthly rent',
-            value: 'UGX 1,200,000 • due on the 5th',
+            value: formatTenantUgx(tenancy.monthlyRentMinor ~/ 100),
           ),
-          Divider(height: 25),
+          const Divider(height: 25),
           TenantInfoRow(
-            icon: Icons.person_outline_rounded,
-            label: 'Property manager',
-            value: 'Sandra Nakato',
+            icon: Icons.account_balance_wallet_outlined,
+            label: 'Current balance',
+            value: tenancy.balanceDue
+                ? formatTenantUgx(tenancy.balanceMinor ~/ 100)
+                : 'Nothing outstanding',
           ),
         ],
       ),
@@ -703,89 +343,111 @@ class _HomeAndLeasePanel extends StatelessWidget {
   }
 }
 
-class _MaintenanceSummaryPanel extends StatelessWidget {
+class _MaintenanceSummaryPanel extends ConsumerWidget {
   const _MaintenanceSummaryPanel({
-    required this.submitted,
-    required this.onView,
+    required this.requests,
+    required this.outbox,
   });
 
-  final bool submitted;
-  final VoidCallback onView;
+  final List<MaintenanceRequest> requests;
+  final List<OutboxEntry> outbox;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final open = requests
+        .where(
+          (request) =>
+              request.status != MaintenanceStatus.resolved &&
+              request.status != MaintenanceStatus.cancelled,
+        )
+        .toList(growable: false);
+    return TenantPanel(
+      title: 'Maintenance',
+      subtitle: open.isEmpty
+          ? 'No open requests'
+          : '${open.length} open request${open.length == 1 ? '' : 's'}',
+      trailing: TextButton(
+        onPressed: () => context.go('/tenant/maintenance'),
+        child: const Text('View all'),
+      ),
+      child: open.isEmpty
+          ? const TenantEmptyState(
+              title: 'Nothing needs attention',
+              message:
+                  'Report a problem any time — requests are saved on this '
+                  'device and sent when you are connected.',
+              icon: Icons.task_alt_rounded,
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var index = 0; index < open.length && index < 2; index++)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: index == 0 ? 12 : 0),
+                    child: _MaintenanceRow(
+                      request: open[index],
+                      syncStatus: resolveAggregateSyncStatus(
+                        entityType: OfflineEntityType.maintenanceRequest,
+                        entityId: open[index].id,
+                        outbox: outbox,
+                        syncMetadata: open[index].syncMetadata,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+class _MaintenanceRow extends StatelessWidget {
+  const _MaintenanceRow({required this.request, required this.syncStatus});
+
+  final MaintenanceRequest request;
+  final AggregateSyncStatus syncStatus;
 
   @override
   Widget build(BuildContext context) {
-    return TenantPanel(
-      title: 'Maintenance',
-      subtitle: submitted
-          ? '1 local change waiting to sync'
-          : '1 active request',
-      trailing: TenantStatusBadge(status: submitted ? 'Pending' : 'Scheduled'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    final statusLabel = switch (request.status) {
+      MaintenanceStatus.submitted => 'Submitted',
+      MaintenanceStatus.scheduled => 'Scheduled',
+      MaintenanceStatus.inProgress => 'In progress',
+      MaintenanceStatus.resolved => 'Resolved',
+      MaintenanceStatus.cancelled => 'Cancelled',
+    };
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.nyumba.navyTint,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: submitted
-                  ? context.nyumba.goldTint
-                  : context.nyumba.navyTint,
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Row(
+          Icon(
+            Icons.home_repair_service_outlined,
+            color: context.nyumba.midnightNavy,
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  submitted
-                      ? Icons.cloud_upload_outlined
-                      : Icons.plumbing_outlined,
-                  color: submitted
-                      ? context.nyumba.terracottaDark
-                      : context.nyumba.midnightNavy,
+                Text(
+                  request.title,
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        submitted ? 'New request saved' : 'Kitchen tap leak',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      Text(
-                        submitted
-                            ? 'Will send when your device reconnects'
-                            : 'Plumber visit • 15 Jul, 10:00–12:00',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
+                Text(
+                  request.appointment ??
+                      (syncStatus == AggregateSyncStatus.synced
+                          ? 'Sent to your property manager'
+                          : 'Saved on this device — will send when connected'),
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          TenantTimelineStep(
-            title: 'Reported',
-            detail: submitted ? 'Saved just now' : '8 Jul at 09:14',
-            complete: true,
-          ),
-          TenantTimelineStep(
-            title: submitted ? 'Awaiting sync' : 'Manager reviewed',
-            detail: submitted ? 'Connection required' : 'Contractor assigned',
-            complete: !submitted,
-          ),
-          TenantTimelineStep(
-            title: 'Resolved',
-            detail: submitted
-                ? 'Not started'
-                : 'Scheduled after contractor visit',
-            complete: false,
-            last: true,
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: onView,
-            child: const Text('View request details'),
-          ),
+          const SizedBox(width: 8),
+          TenantStatusBadge(status: statusLabel),
         ],
       ),
     );
@@ -793,129 +455,142 @@ class _MaintenanceSummaryPanel extends StatelessWidget {
 }
 
 class _NoticesPanel extends StatelessWidget {
-  const _NoticesPanel();
+  const _NoticesPanel({required this.notices});
+
+  final List<Notice> notices;
 
   @override
   Widget build(BuildContext context) {
+    final recent = [...notices]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return TenantPanel(
       title: 'Notices from your property',
-      subtitle: 'Important updates shared by your manager',
-      child: Column(
-        children: [
-          _NoticeRow(
-            icon: Icons.water_drop_outlined,
-            color: context.nyumba.midnightNavy,
-            title: 'Planned water interruption',
-            detail: 'Wednesday, 15 Jul • 09:00–14:00 for tank cleaning.',
-            date: 'Today',
-          ),
-          Divider(height: 25),
-          _NoticeRow(
-            icon: Icons.security_outlined,
-            color: context.nyumba.sageDark,
-            title: 'Visitor access update',
-            detail: 'Please pre-register overnight guests with security.',
-            date: '10 Jul',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NoticeRow extends StatelessWidget {
-  const _NoticeRow({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.detail,
-    required this.date,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String detail;
-  final String date;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: .1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 20, color: color),
-        ),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 3),
-              Text(detail, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(date, style: Theme.of(context).textTheme.labelSmall),
-      ],
+      subtitle: 'Updates shared by your manager',
+      child: recent.isEmpty
+          ? const TenantEmptyState(
+              title: 'No notices yet',
+              message:
+                  'Notices your property manager publishes will appear here.',
+              icon: Icons.campaign_outlined,
+            )
+          : Column(
+              children: [
+                for (var index = 0; index < recent.length && index < 3; index++)
+                  Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: context.nyumba.midnightNavy.withValues(
+                                alpha: .1,
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.campaign_outlined,
+                              size: 20,
+                              color: context.nyumba.midnightNavy,
+                            ),
+                          ),
+                          const SizedBox(width: 11),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  recent[index].title,
+                                  style: Theme.of(context).textTheme.labelLarge,
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  recent[index].body,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            DateFormat(
+                              'd MMM',
+                            ).format(recent[index].createdAt.toLocal()),
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                        ],
+                      ),
+                      if (index < recent.length - 1 && index < 2)
+                        const Divider(height: 25),
+                    ],
+                  ),
+              ],
+            ),
     );
   }
 }
 
 class _RecentPaymentsPanel extends StatelessWidget {
-  const _RecentPaymentsPanel({required this.onReceipt});
+  const _RecentPaymentsPanel({required this.payments, required this.outbox});
 
-  final VoidCallback onReceipt;
+  final List<RentPayment> payments;
+  final List<OutboxEntry> outbox;
 
   @override
   Widget build(BuildContext context) {
+    final recent = [...payments]..sort((a, b) => b.paidOn.compareTo(a.paidOn));
     return TenantPanel(
       title: 'Recent payments',
-      subtitle: 'Your latest confirmed rent receipts',
-      trailing: TextButton(onPressed: onReceipt, child: const Text('Receipt')),
-      child: const Column(
-        children: [
-          _PaymentRow(
-            month: 'July 2026',
-            date: '3 Jul',
-            amount: 'UGX 1,200,000',
-          ),
-          Divider(height: 25),
-          _PaymentRow(
-            month: 'June 2026',
-            date: '4 Jun',
-            amount: 'UGX 1,200,000',
-          ),
-          Divider(height: 25),
-          _PaymentRow(
-            month: 'May 2026',
-            date: '2 May',
-            amount: 'UGX 1,200,000',
-          ),
-        ],
+      subtitle: 'Recorded on this device or confirmed by the server',
+      trailing: TextButton(
+        onPressed: () => context.go('/tenant/payments'),
+        child: const Text('View all'),
       ),
+      child: recent.isEmpty
+          ? const TenantEmptyState(
+              title: 'No payments recorded yet',
+              message:
+                  'Rent payments recorded against your tenancy will appear '
+                  'here with their confirmation status.',
+              icon: Icons.receipt_long_outlined,
+            )
+          : Column(
+              children: [
+                for (var index = 0; index < recent.length && index < 3; index++)
+                  Column(
+                    children: [
+                      _PaymentRow(
+                        payment: recent[index],
+                        // An unacknowledged payment must never read as money
+                        // the server has confirmed.
+                        confirmed:
+                            resolveAggregateSyncStatus(
+                              entityType: OfflineEntityType.payment,
+                              entityId: recent[index].id,
+                              outbox: outbox,
+                              syncMetadata: recent[index].syncMetadata,
+                            ) ==
+                            AggregateSyncStatus.synced,
+                      ),
+                      if (index < recent.length - 1 && index < 2)
+                        const Divider(height: 25),
+                    ],
+                  ),
+              ],
+            ),
     );
   }
 }
 
 class _PaymentRow extends StatelessWidget {
-  const _PaymentRow({
-    required this.month,
-    required this.date,
-    required this.amount,
-  });
+  const _PaymentRow({required this.payment, required this.confirmed});
 
-  final String month;
-  final String date;
-  final String amount;
+  final RentPayment payment;
+  final bool confirmed;
 
   @override
   Widget build(BuildContext context) {
@@ -923,11 +598,15 @@ class _PaymentRow extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 18,
-          backgroundColor: context.nyumba.sageTint,
+          backgroundColor: confirmed
+              ? context.nyumba.sageTint
+              : context.nyumba.goldTint,
           child: Icon(
-            Icons.check_rounded,
+            confirmed ? Icons.check_rounded : Icons.schedule_rounded,
             size: 19,
-            color: context.nyumba.sageDark,
+            color: confirmed
+                ? context.nyumba.sageDark
+                : context.nyumba.terracottaDark,
           ),
         ),
         const SizedBox(width: 11),
@@ -935,55 +614,21 @@ class _PaymentRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(month, style: Theme.of(context).textTheme.labelLarge),
-              Text(date, style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                payment.period,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              Text(
+                '${DateFormat('d MMM').format(payment.paidOn.toLocal())} · '
+                '${confirmed ? 'Confirmed' : 'Awaiting sync'}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         ),
-        Text(amount, style: Theme.of(context).textTheme.labelLarge),
-      ],
-    );
-  }
-}
-
-class _StatementRow extends StatelessWidget {
-  const _StatementRow({
-    required this.month,
-    required this.reference,
-    required this.amount,
-    required this.status,
-  });
-
-  final String month;
-  final String reference;
-  final String amount;
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        CircleAvatar(
-          backgroundColor: context.nyumba.sageTint,
-          child: Icon(Icons.check_rounded, color: context.nyumba.sageDark),
-        ),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(month, style: Theme.of(context).textTheme.labelLarge),
-              Text(reference, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(amount, style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 3),
-            TenantStatusBadge(status: status),
-          ],
+        Text(
+          formatTenantUgx(payment.amountMinor ~/ 100),
+          style: Theme.of(context).textTheme.labelLarge,
         ),
       ],
     );

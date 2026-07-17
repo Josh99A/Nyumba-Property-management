@@ -7,6 +7,38 @@ import 'package:intl/intl.dart' show DateFormat;
 import '../../../../app/theme/nyumba_colors.dart';
 import '../../../../core/presentation/motion.dart';
 
+/// X-axis labels for a monthly series ending at [now]'s month.
+///
+/// The series is plotted oldest-to-newest, so index 0 is `monthCount - 1`
+/// months ago. Up to five labels are placed at the fraction of the axis where
+/// their data point actually sits — the axis previously showed days of the
+/// current month under a ten-month series, which read as a lie about what the
+/// line meant.
+@visibleForTesting
+List<({double position, String label})> monthAxisLabels(
+  int monthCount,
+  DateTime now,
+) {
+  if (monthCount <= 0) return const [];
+  final format = DateFormat('MMM');
+  String monthAt(int index) =>
+      format.format(DateTime(now.year, now.month - (monthCount - 1 - index)));
+  if (monthCount == 1) return [(position: 0.5, label: monthAt(0))];
+
+  final last = monthCount - 1;
+  final indices = <int>{
+    0,
+    (last * 0.25).round(),
+    (last * 0.5).round(),
+    (last * 0.75).round(),
+    last,
+  }.toList()..sort();
+  return [
+    for (final index in indices)
+      (position: index / last, label: monthAt(index)),
+  ];
+}
+
 class OccupancyRing extends StatelessWidget {
   const OccupancyRing({required this.rate, super.key, this.size = 184});
 
@@ -221,15 +253,15 @@ class _TrendPainter extends CustomPainter {
       dashed: true,
     );
 
-    final labels = _monthLabels();
+    final labels = monthAxisLabels(collected.length, DateTime.now());
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
-    for (var i = 0; i < labels.length; i++) {
+    for (final entry in labels) {
       textPainter.text = TextSpan(
-        text: labels[i],
+        text: entry.label,
         style: TextStyle(fontSize: 10, color: labelColor),
       );
       textPainter.layout();
-      final x = chart.left + chart.width * i / (labels.length - 1);
+      final x = chart.left + chart.width * entry.position;
       textPainter.paint(
         canvas,
         Offset(
@@ -238,16 +270,6 @@ class _TrendPainter extends CustomPainter {
         ),
       );
     }
-  }
-
-  List<String> _monthLabels() {
-    final now = DateTime.now();
-    final lastDay = DateTime(now.year, now.month + 1, 0).day;
-    final format = DateFormat('d MMM');
-    return [
-      for (final day in [1, 8, 15, 22, lastDay])
-        format.format(DateTime(now.year, now.month, day)),
-    ];
   }
 
   void _drawLine(

@@ -8,7 +8,6 @@ import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
-import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../finance/application/billing_providers.dart';
@@ -38,7 +37,6 @@ class TenantPaymentsScreen extends ConsumerStatefulWidget {
 
 class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
   String _filter = 'All';
-  String _defaultMethod = 'MTN MoMo ••• 0841';
 
   String get _tenantId => ref.read(sessionControllerProvider)?.userId ?? '';
 
@@ -138,7 +136,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
         icon: Icon(
           paid ? Icons.receipt_long_outlined : Icons.payments_outlined,
         ),
-        label: Text(paid ? 'Latest receipt' : 'Pay rent'),
+        label: Text(paid ? 'Latest receipt' : 'Record payment'),
       ),
       children: [
         TenantBalanceHero(
@@ -170,9 +168,14 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
               color: context.nyumba.midnightNavy,
             ),
             TenantMetricCard(
-              label: 'Saved payment method',
-              value: _defaultMethod,
-              caption: 'Used only after confirmation',
+              label: 'Last recorded payment',
+              value: payments.isEmpty
+                  ? '—'
+                  : formatTenantUgx(payments.first.amountMinor ~/ 100),
+              caption: payments.isEmpty
+                  ? 'No payments recorded yet'
+                  : '${DateFormat('d MMM y').format(payments.first.paidOn.toLocal())}'
+                        ' · ${statusOf(payments.first)}',
               icon: Icons.account_balance_wallet_outlined,
               color: context.nyumba.terracottaDark,
             ),
@@ -187,10 +190,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                   ? () => _showCurrentReceipt(payments, statusOf)
                   : () => _payRent(tenancy),
             );
-            final methods = _PaymentMethodsPanel(
-              defaultMethod: _defaultMethod,
-              onManage: _manageMethods,
-            );
+            const methods = _HowPaymentsWorkPanel();
             if (constraints.maxWidth < 900) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -369,13 +369,20 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
     );
   }
 
+  /// Records a payment the tenant has already made outside the app.
+  ///
+  /// No mobile-money provider is integrated yet, so nothing here may present
+  /// itself as an in-app checkout: the record is queued to the landlord and
+  /// only a server-issued receipt later marks it confirmed.
   Future<void> _payRent(Tenancy tenancy) async {
-    var method = _defaultMethod.startsWith('MTN') ? 'MTN MoMo' : 'Card (Bank)';
+    var method = 'MTN MoMo';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Pay ${DateFormat('MMMM').format(DateTime.now())} rent'),
+          title: Text(
+            'Record ${DateFormat('MMMM').format(DateTime.now())} rent payment',
+          ),
           content: SizedBox(
             width: 460,
             child: Column(
@@ -398,9 +405,16 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Paying inside Nyumba is not available yet. Record a '
+                  'payment you have already made to your landlord — it is '
+                  'saved on this device, sent for confirmation, and a '
+                  'receipt is issued once the server accepts it.',
+                ),
                 const SizedBox(height: 17),
                 Text(
-                  'Payment method',
+                  'How was it paid?',
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
                 const SizedBox(height: 8),
@@ -447,11 +461,6 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                       ),
                     ),
                   ),
-                const SizedBox(height: 6),
-                const Text(
-                  'You will review the provider confirmation before the '
-                  'payment is finalized.',
-                ),
               ],
             ),
           ),
@@ -462,8 +471,8 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
             ),
             FilledButton.icon(
               onPressed: () => Navigator.pop(dialogContext, true),
-              icon: const Icon(Icons.lock_outline_rounded),
-              label: Text('Continue with $method'),
+              icon: const Icon(Icons.edit_note_rounded),
+              label: Text('Record $method payment'),
             ),
           ],
         ),
@@ -489,76 +498,6 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
         showTenantMessage(context, 'Could not record the payment: $error');
       }
     }
-  }
-
-  Future<void> _manageMethods() async {
-    var selected = _defaultMethod;
-    final result = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Payment methods'),
-          content: SizedBox(
-            width: 440,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final item in const [
-                  'MTN MoMo ••• 0841',
-                  'Airtel Money ••• 0522',
-                  'Stanbic Bank ••• 7810',
-                ])
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      backgroundColor: context.nyumba.navyTint,
-                      child: Icon(
-                        item.startsWith('Stanbic')
-                            ? Icons.account_balance_outlined
-                            : Icons.phone_android_rounded,
-                        color: context.nyumba.midnightNavy,
-                      ),
-                    ),
-                    title: Text(item),
-                    subtitle: Text(
-                      selected == item ? 'Default method' : 'Available method',
-                    ),
-                    trailing: selected == item
-                        ? Icon(
-                            Icons.check_circle_rounded,
-                            color: context.nyumba.sageDark,
-                          )
-                        : null,
-                    onTap: () => setDialogState(() => selected = item),
-                  ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () => showTenantMessage(
-                    dialogContext,
-                    'New payment methods are verified before saving.',
-                  ),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add payment method'),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, selected),
-              child: const Text('Set as default'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (result == null || !mounted) return;
-    setState(() => _defaultMethod = result);
-    showTenantMessage(context, '$result is now your default method.');
   }
 
   Future<void> _showCurrentReceipt(
@@ -719,9 +658,9 @@ class _InvoicePanel extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onPay,
               icon: Icon(
-                paid ? Icons.receipt_long_outlined : Icons.lock_outline_rounded,
+                paid ? Icons.receipt_long_outlined : Icons.edit_note_rounded,
               ),
-              label: Text(paid ? 'View receipt' : 'Pay balance'),
+              label: Text(paid ? 'View receipt' : 'Record a payment'),
             ),
           ),
         ],
@@ -755,83 +694,69 @@ class _InvoiceLine extends StatelessWidget {
   }
 }
 
-class _PaymentMethodsPanel extends StatelessWidget {
-  const _PaymentMethodsPanel({
-    required this.defaultMethod,
-    required this.onManage,
-  });
-
-  final String defaultMethod;
-  final VoidCallback onManage;
+/// Honest description of the payment flow while no provider is integrated.
+class _HowPaymentsWorkPanel extends StatelessWidget {
+  const _HowPaymentsWorkPanel();
 
   @override
   Widget build(BuildContext context) {
     return TenantPanel(
-      title: 'Payment methods',
-      subtitle: 'You always confirm before a charge',
+      title: 'How payments work',
+      subtitle: 'In-app mobile money checkout is not available yet',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: context.nyumba.sageTint,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: context.nyumba.sageBorder),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: Icon(
-                    Icons.phone_android_rounded,
-                    color: context.nyumba.sageDark,
-                  ),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        defaultMethod,
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      Text(
-                        'Default payment method',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-                const StatusBadge(label: 'Verified', tone: BadgeTone.success),
-              ],
-            ),
+        children: const [
+          _PaymentStep(
+            icon: Icons.payments_outlined,
+            text:
+                'Pay your landlord the way you do today — cash, mobile '
+                'money, or bank.',
           ),
-          const SizedBox(height: 13),
-          Row(
-            children: [
-              Icon(
-                Icons.shield_outlined,
-                size: 19,
-                color: context.nyumba.sageDark,
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Nyumba does not store your mobile money PIN or bank password.',
-                ),
-              ),
-            ],
+          SizedBox(height: 13),
+          _PaymentStep(
+            icon: Icons.edit_note_rounded,
+            text:
+                'Record the payment here. It is saved on this device, even '
+                'offline, and sent for confirmation when connected.',
           ),
-          const SizedBox(height: 15),
-          OutlinedButton.icon(
-            onPressed: onManage,
-            icon: const Icon(Icons.settings_outlined),
-            label: const Text('Manage methods'),
+          SizedBox(height: 13),
+          _PaymentStep(
+            icon: Icons.receipt_long_outlined,
+            text:
+                'A receipt is issued only after the server confirms the '
+                'payment — until then it shows as awaiting sync.',
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PaymentStep extends StatelessWidget {
+  const _PaymentStep({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: context.nyumba.navyTint,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 19, color: context.nyumba.midnightNavy),
+        ),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+        ),
+      ],
     );
   }
 }
@@ -882,7 +807,7 @@ class _PaymentCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   Text(
-                    '${payment.receiptNumber} • '
+                    '${payment.receiptNumber ?? 'Awaiting receipt'} • '
                     '${DateFormat('d MMM y').format(payment.paidOn.toLocal())}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),

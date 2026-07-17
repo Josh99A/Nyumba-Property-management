@@ -308,9 +308,12 @@ class TenantBalanceHero extends StatelessWidget {
                   icon: Icon(
                     paid
                         ? Icons.receipt_long_outlined
-                        : Icons.lock_outline_rounded,
+                        : Icons.edit_note_rounded,
                   ),
-                  label: Text(paid ? 'View receipt' : 'Pay rent securely'),
+                  // No payment provider is integrated yet, so this must never
+                  // promise an in-app checkout: it records a payment made
+                  // outside the app for server confirmation.
+                  label: Text(paid ? 'View receipt' : 'Record a payment'),
                 );
                 if (constraints.maxWidth < 620) {
                   return Column(

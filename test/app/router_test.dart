@@ -73,7 +73,10 @@ void main() {
       // choosable. Without Firebase the catalog is empty, so no capacity
       // number may appear anywhere.
       expect(find.text('Selected'), findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, 'Choose plan'), findsNWidgets(3));
+      expect(
+        find.widgetWithText(OutlinedButton, 'Choose plan'),
+        findsNWidgets(3),
+      );
       expect(find.textContaining('rental spaces'), findsNothing);
       expect(
         tester.takeException(),
