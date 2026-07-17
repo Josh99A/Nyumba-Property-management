@@ -43,9 +43,11 @@ Not yet real, and not to be presented as real:
   `subscriptions`/`auditLogs` directly (admin-read-only by rule, no local
   mirror — see `FirestoreAdminDirectory`), and act through the audited
   `landlord.approve|suspend|reinstate`, `subscription.confirmPayment`, and
-  super-admin-only `user.archive|restore|delete` commands. There is still no
-  command that creates a user or plain-suspends a non-landlord account, and
-  the app does not pretend otherwise.
+  super-admin-only `user.archive|restore|delete|changeRole` commands
+  (ordinary roles only — admin privileges stay claim-based and
+  script-granted). There is still no command that creates a user or
+  plain-suspends a non-landlord account, and the app does not pretend
+  otherwise.
 
 Demo sessions seed local fixtures and use a stub gateway. Never present demo
 behavior, or an unsynced local write, as server-confirmed.

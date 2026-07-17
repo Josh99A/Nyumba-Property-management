@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { bumpVersion, requireAggregate } from '../shared/aggregates';
+import { bumpVersion, newAggregate, requireAggregate } from '../shared/aggregates';
 import { requirePlatformAdmin, requireSuperAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
@@ -188,6 +188,91 @@ export const userDelete: CommandHandler<z.infer<typeof userLifecycleReasonSchema
       aggregateId: targetUid,
       serverVersion: current.version + 1,
       changedFields: ['isDeleted', 'deletedAt', 'deleteReasonCode'],
+      reasonCode: cmd.payload.reasonCode,
+    };
+  },
+};
+
+const changeRoleSchema = strictPayload({
+  // Only the server-owned ordinary roles. Administrator privileges are Auth
+  // custom claims granted exclusively by the audited ops script; a command
+  // that could mint an admin would hand that power to any stolen admin
+  // session.
+  role: z.enum(['client', 'tenant', 'landlord']),
+  reasonCode: z.enum([
+    'IDENTITY_VERIFIED',
+    'COMPLIANCE_APPROVED',
+    'USER_REQUESTED',
+    'ADMIN_CORRECTION',
+  ]),
+});
+
+/**
+ * Changes any account's ordinary role. Super-admin only, never self, and
+ * never on an archived account (restore it first so the archive stays an
+ * inert state). Promoting to landlord provisions the landlord aggregates the
+ * rest of the backend requires — approval starts `pending` and the
+ * subscription `pending_payment`, so the workspace still fails closed until
+ * the normal approval and payment paths run.
+ */
+export const userChangeRole: CommandHandler<z.infer<typeof changeRoleSchema>> = {
+  payloadSchema: changeRoleSchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'edit',
+  async apply({ tx, db, actor, cmd, now }) {
+    requireSuperAdmin(actor);
+    const targetUid = cmd.aggregateId!;
+    if (targetUid === actor.uid) throw new DomainError('PERMISSION_DENIED');
+    const ref = db.collection(COLLECTIONS.users).doc(targetUid);
+    const accountRef = db.collection(COLLECTIONS.landlordAccounts).doc(targetUid);
+    const subscriptionRef = db.collection(COLLECTIONS.subscriptions).doc(targetUid);
+    const [snapshot, landlordAccount, subscription] = await Promise.all([
+      tx.get(ref),
+      tx.get(accountRef),
+      tx.get(subscriptionRef),
+    ]);
+    const current = requireAggregate<UserProfileAggregate>(snapshot, cmd.expectedVersion);
+    if (current.status === 'archived') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'accountArchived' });
+    }
+    if (current.role === cmd.payload.role) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'roleUnchanged' });
+    }
+    if (cmd.payload.role === 'landlord') {
+      if (!landlordAccount.exists) {
+        tx.create(accountRef, {
+          ...newAggregate(targetUid, now),
+          ownerUid: targetUid,
+          approvalStatus: 'pending',
+          activeUnitCount: 0,
+          activeListingCount: 0,
+          receiptCounter: 0,
+          businessName: null,
+          phone: null,
+        });
+      }
+      if (!subscription.exists) {
+        tx.create(subscriptionRef, {
+          ...newAggregate(targetUid, now),
+          tier: 'starter',
+          status: 'pending_payment',
+          requestedAt: now,
+        });
+      }
+    }
+    // Demotion leaves the landlord aggregates in place: they are the audited
+    // record of past standing, and restoring the role finds them again.
+    tx.update(ref, {
+      role: cmd.payload.role,
+      roleChangedAt: now,
+      roleChangeReasonCode: cmd.payload.reasonCode,
+      ...bumpVersion(current, now),
+    });
+    return {
+      status: 'applied',
+      aggregateId: targetUid,
+      serverVersion: current.version + 1,
+      changedFields: ['role', 'roleChangedAt', 'roleChangeReasonCode'],
       reasonCode: cmd.payload.reasonCode,
     };
   },

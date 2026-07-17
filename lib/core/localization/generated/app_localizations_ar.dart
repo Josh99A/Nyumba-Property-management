@@ -467,6 +467,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reasonUserRequested => 'بناءً على طلب المستخدم';
 
   @override
+  String get changeRole => 'تغيير الدور';
+
+  @override
+  String get changeRoleQuestion => 'هل تريد تغيير دور هذا المستخدم؟';
+
+  @override
+  String get newRole => 'الدور الجديد';
+
+  @override
   String get activityHistory => 'سجل النشاط';
 
   @override

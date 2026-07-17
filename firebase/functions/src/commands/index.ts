@@ -1,5 +1,5 @@
 import type { CommandHandler } from '../shared/handlers';
-import { landlordApprove, landlordReinstate, landlordSuspend, userArchive, userDelete, userRestore } from './admin';
+import { landlordApprove, landlordReinstate, landlordSuspend, userArchive, userChangeRole, userDelete, userRestore } from './admin';
 import { applicationSubmit, applicationWithdraw, contactSubmit } from './applications';
 import { invoiceGenerate, paymentInitiate, paymentRecordAgainstTenancy, paymentRecordManual, receiptRegenerate } from './billing';
 import { noticePublish } from './communication';
@@ -32,6 +32,7 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['user.archive', userArchive],
   ['user.restore', userRestore],
   ['user.delete', userDelete],
+  ['user.changeRole', userChangeRole],
   ['subscription.selectPlan', subscriptionSelectPlan],
   ['subscription.confirmPayment', subscriptionConfirmPayment],
   ['property.create', propertyCreate],

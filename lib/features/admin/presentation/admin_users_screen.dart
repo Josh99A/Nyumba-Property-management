@@ -496,6 +496,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               commands.reinstateLandlord(account: account, reasonCode: reason),
           successMessage: 'Access restored for ${account.displayName}.',
         );
+      case 'change-role':
+        _changeUserRole(account);
       case 'archive':
         _runAccountAction(
           account,
@@ -545,6 +547,116 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         _resendDemoInvitation(account);
     }
   }
+
+  /// Picks a new ordinary role and the audit reason, then runs the
+  /// super-admin-only `user.changeRole` command. Administrator privileges are
+  /// never assignable here — they are Auth claims granted by the ops script.
+  Future<void> _changeUserRole(PlatformAccount account) async {
+    final currentRole = account.roleLabel.trim().toLowerCase();
+    final options = assignableServerRoles
+        .where((candidate) => candidate != currentRole)
+        .toList(growable: false);
+    var role = options.first;
+    var reason = changeRoleReasonCodes.first;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Change this user\'s role?'),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${account.displayName} is currently a '
+                  '${account.roleLabel}. A landlord promotion still needs '
+                  'approval and an active subscription before the workspace '
+                  'opens.',
+                ),
+                const SizedBox(height: 16),
+                Text('New role', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 4),
+                RadioGroup<String>(
+                  groupValue: role,
+                  onChanged: (value) =>
+                      setDialogState(() => role = value ?? role),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final candidate in options)
+                        RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text(_serverRoleLabel(candidate)),
+                          value: candidate,
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Reason recorded in the audit log',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                const SizedBox(height: 4),
+                RadioGroup<String>(
+                  groupValue: reason,
+                  onChanged: (value) =>
+                      setDialogState(() => reason = value ?? reason),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final code in changeRoleReasonCodes)
+                        RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text(_reasonLabel(code)),
+                          value: code,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Change role'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref
+          .read(adminAccountCommandsProvider)
+          .changeUserRole(account: account, role: role, reasonCode: reason);
+      if (mounted) {
+        showAdminMessage(
+          context,
+          '${account.displayName} is now a ${_serverRoleLabel(role)}.',
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        showAdminMessage(context, 'The server rejected the action: $error');
+      }
+    }
+  }
+
+  static String _serverRoleLabel(String role) => switch (role) {
+    'landlord' => 'Landlord',
+    'tenant' => 'Tenant',
+    _ => 'Client',
+  };
 
   /// Runs one audited account action: confirm, pick the reason code the
   /// server will record, then send the command and report the real outcome.
@@ -1280,7 +1392,15 @@ class _AccountMenu extends StatelessWidget {
               ),
             ),
           },
-        if (live && canManage && isSuperAdmin && !archived)
+        if (live && canManage && isSuperAdmin && !archived) ...[
+          const PopupMenuItem(
+            value: 'change-role',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.manage_accounts_outlined),
+              title: Text('Change role'),
+            ),
+          ),
           const PopupMenuItem(
             value: 'archive',
             child: ListTile(
@@ -1289,6 +1409,7 @@ class _AccountMenu extends StatelessWidget {
               title: Text('Archive user'),
             ),
           ),
+        ],
         if (live && canManage && isSuperAdmin && archived) ...[
           const PopupMenuItem(
             value: 'restore-archived',

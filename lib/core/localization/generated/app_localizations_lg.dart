@@ -472,6 +472,15 @@ class AppLocalizationsLg extends AppLocalizations {
   String get reasonUserRequested => 'Kyasabiddwa omukozesa';
 
   @override
+  String get changeRole => 'Kyusa omulimu';
+
+  @override
+  String get changeRoleQuestion => 'Okyuse omulimu gw\'omukozesa ono?';
+
+  @override
+  String get newRole => 'Omulimu omuggya';
+
+  @override
   String get activityHistory => 'Ebyafaayo by\'emirimu';
 
   @override

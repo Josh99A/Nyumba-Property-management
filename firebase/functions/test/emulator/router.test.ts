@@ -271,6 +271,45 @@ describe('command router', () => {
     expect((await db.doc('backendJobs/command_user_del_1_delete').get()).data()).toMatchObject({ type: 'deleteAuthUser', payload: { uid: landlord.uid } });
   });
 
+  it('lets only a Super Admin change ordinary roles, provisioning landlord aggregates on promotion', async () => {
+    await db.doc('users/tenant_roleup_1').set({
+      id: 'tenant_roleup_1', displayName: 'Tenant', role: 'tenant',
+      status: 'active', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+
+    const adminAttempt = envelope('command_role_0', 'user.changeRole', 'tenant_roleup_1', 1, { role: 'landlord', reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, admin, adminAttempt, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+
+    await db.doc(`users/${superAdmin.uid}`).set({ id: superAdmin.uid, role: 'client', status: 'active', version: 1, isDeleted: false });
+    const selfAttempt = envelope('command_role_1', 'user.changeRole', superAdmin.uid, 1, { role: 'landlord', reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, superAdmin, selfAttempt, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+
+    const unchanged = envelope('command_role_2', 'user.changeRole', 'tenant_roleup_1', 1, { role: 'tenant', reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, superAdmin, unchanged, now)).toMatchObject({
+      status: 'rejected', error: { code: 'VALIDATION_FAILED', details: { reason: 'roleUnchanged' } },
+    });
+
+    // Promotion provisions the landlord aggregates in the fail-closed states.
+    const promote = envelope('command_role_3', 'user.changeRole', 'tenant_roleup_1', 1, { role: 'landlord', reasonCode: 'IDENTITY_VERIFIED' });
+    expect(await executeCommandCore(db, superAdmin, promote, now)).toMatchObject({ status: 'applied' });
+    expect((await db.doc('users/tenant_roleup_1').get()).data()).toMatchObject({ role: 'landlord', roleChangeReasonCode: 'IDENTITY_VERIFIED', version: 2 });
+    expect((await db.doc('landlordAccounts/tenant_roleup_1').get()).data()).toMatchObject({ ownerUid: 'tenant_roleup_1', approvalStatus: 'pending' });
+    expect((await db.doc('subscriptions/tenant_roleup_1').get()).data()).toMatchObject({ status: 'pending_payment' });
+
+    // Demotion changes only the role; landlord aggregates stay as the record.
+    const demote = envelope('command_role_4', 'user.changeRole', 'tenant_roleup_1', 2, { role: 'client', reasonCode: 'USER_REQUESTED' });
+    expect(await executeCommandCore(db, superAdmin, demote, now)).toMatchObject({ status: 'applied' });
+    expect((await db.doc('users/tenant_roleup_1').get()).data()).toMatchObject({ role: 'client', version: 3 });
+    expect((await db.doc('landlordAccounts/tenant_roleup_1').get()).exists).toBe(true);
+
+    // An archived account must be restored before its role can change.
+    await db.doc('users/tenant_roleup_1').update({ status: 'archived' });
+    const archivedAttempt = envelope('command_role_5', 'user.changeRole', 'tenant_roleup_1', 3, { role: 'tenant', reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, superAdmin, archivedAttempt, now)).toMatchObject({
+      status: 'rejected', error: { code: 'VALIDATION_FAILED', details: { reason: 'accountArchived' } },
+    });
+  });
+
   it('enforces unit limits and keeps archive/restore counters stable under replay', async () => {
     await seedLandlord({ limit: 1 });
     await executeCommandCore(db, landlord, envelope('command_limit_1', 'unit.create', 'unit_123456', 0, unitPayload()), now);

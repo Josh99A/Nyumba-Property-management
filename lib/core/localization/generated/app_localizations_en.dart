@@ -468,6 +468,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reasonUserRequested => 'Requested by the user';
 
   @override
+  String get changeRole => 'Change role';
+
+  @override
+  String get changeRoleQuestion => 'Change this user\'s role?';
+
+  @override
+  String get newRole => 'New role';
+
+  @override
   String get activityHistory => 'Activity history';
 
   @override

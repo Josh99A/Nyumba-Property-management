@@ -470,6 +470,15 @@ class AppLocalizationsSw extends AppLocalizations {
   String get reasonUserRequested => 'Iliyoombwa na mtumiaji';
 
   @override
+  String get changeRole => 'Badilisha jukumu';
+
+  @override
+  String get changeRoleQuestion => 'Ubadilishe jukumu la mtumiaji huyu?';
+
+  @override
+  String get newRole => 'Jukumu jipya';
+
+  @override
   String get activityHistory => 'Historia ya shughuli';
 
   @override

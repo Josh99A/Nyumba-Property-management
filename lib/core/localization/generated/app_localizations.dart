@@ -996,6 +996,24 @@ abstract class AppLocalizations {
   /// **'Requested by the user'**
   String get reasonUserRequested;
 
+  /// No description provided for @changeRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Change role'**
+  String get changeRole;
+
+  /// No description provided for @changeRoleQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Change this user\'s role?'**
+  String get changeRoleQuestion;
+
+  /// No description provided for @newRole.
+  ///
+  /// In en, this message translates to:
+  /// **'New role'**
+  String get newRole;
+
   /// No description provided for @activityHistory.
   ///
   /// In en, this message translates to:
