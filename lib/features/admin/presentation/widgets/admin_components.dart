@@ -22,7 +22,7 @@ String formatAdminUgx(num amount) => _adminCurrency.format(amount);
 void showAdminMessage(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
+    ..showSnackBar(SnackBar(content: Text.localized(message)));
 }
 
 class AdminPage extends StatelessWidget {
@@ -112,7 +112,7 @@ class AdminDemoDataBanner extends ConsumerWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: Text.localized(
               'Demo data — the figures on this page are seeded examples, '
               'not live platform metrics.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -196,7 +196,7 @@ class AdminMetricCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
+                  child: Text.localized(
                     label,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
@@ -211,7 +211,7 @@ class AdminMetricCard extends StatelessWidget {
                       color: context.nyumba.sageTint,
                       borderRadius: BorderRadius.circular(7),
                     ),
-                    child: Text(
+                    child: Text.localized(
                       trend!,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: context.nyumba.sageDark,
@@ -225,7 +225,7 @@ class AdminMetricCard extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: AlignmentDirectional.centerStart,
-              child: Text(
+              child: Text.localized(
                 value,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: tone,
@@ -235,7 +235,10 @@ class AdminMetricCard extends StatelessWidget {
             ),
             if (caption != null) ...[
               const SizedBox(height: 5),
-              Text(caption!, style: Theme.of(context).textTheme.bodySmall),
+              Text.localized(
+                caption!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ],
         ),
@@ -305,7 +308,7 @@ class AdminAvatar extends StatelessWidget {
       radius: radius,
       backgroundColor: color.withValues(alpha: .12),
       foregroundColor: color,
-      child: Text(
+      child: Text.localized(
         initials,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
           color: color,
@@ -437,7 +440,7 @@ class _AdminBarGroup extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 7),
-            Text(
+            Text.localized(
               label,
               maxLines: 1,
               overflow: TextOverflow.fade,
@@ -472,9 +475,15 @@ class AdminProgressRow extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+              child: Text.localized(
+                label,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
             ),
-            Text(trailing, style: Theme.of(context).textTheme.bodySmall),
+            Text.localized(
+              trailing,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -522,9 +531,9 @@ class AdminEmptyState extends StatelessWidget {
             child: Icon(icon, color: context.nyumba.midnightNavy),
           ),
           const SizedBox(height: 14),
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          Text.localized(title, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 5),
-          Text(
+          Text.localized(
             message,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,

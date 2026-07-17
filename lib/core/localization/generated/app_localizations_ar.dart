@@ -1992,4 +1992,274 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get locationAvailableOnRequest => 'الموقع متاح عند الطلب';
+
+  @override
+  String get appearanceSavingOnDevice => 'جارٍ الحفظ على هذا الجهاز…';
+
+  @override
+  String get appearanceAppliedOnDevice => 'تم التطبيق والحفظ على هذا الجهاز.';
+
+  @override
+  String get appearanceSaveTryAgain =>
+      'تعذر حفظ المظهر. يُرجى المحاولة مرة أخرى.';
+
+  @override
+  String get appearanceSaveFailed => 'تعذر حفظ إعداد المظهر هذا.';
+
+  @override
+  String get emailDeliveryNotConfigured =>
+      'لم يتم إعداد إرسال البريد الإلكتروني بعد.';
+
+  @override
+  String occupancySemantics(int percentage) {
+    return 'نسبة $percentage بالمئة من المساحات المؤجرة مشغولة';
+  }
+
+  @override
+  String unreadNotifications(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count إشعارات غير مقروءة',
+      one: 'إشعار واحد غير مقروء',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get closeNotifications => 'إغلاق الإشعارات';
+
+  @override
+  String get notificationSyncDescription =>
+      'تُحفظ التحديثات على هذا الجهاز وتتزامن عند إعادة الاتصال.';
+
+  @override
+  String get notificationLoadFailed => 'تعذر تحميل الإشعارات';
+
+  @override
+  String get notificationLocalDataAvailable =>
+      'لا تزال بياناتك المحلية الحالية متاحة.';
+
+  @override
+  String get noNotificationsYet => 'لا توجد إشعارات بعد';
+
+  @override
+  String get newNotificationsWillAppear => 'ستظهر تحديثات الحساب الجديدة هنا.';
+
+  @override
+  String get notificationMarkReadFailed =>
+      'تعذر وضع علامة مقروء على هذا الإشعار.';
+
+  @override
+  String get newNotification => 'إشعار جديد';
+
+  @override
+  String get confirmed => 'مؤكد';
+
+  @override
+  String get awaitingSync => 'في انتظار المزامنة';
+
+  @override
+  String paymentStatusDate(String date, String status) {
+    return '$date · $status';
+  }
+
+  @override
+  String get enterValidAmount => 'أدخل مبلغًا صالحًا';
+
+  @override
+  String get giveNoticeClearTitle => 'أعطِ الإشعار عنوانًا واضحًا';
+
+  @override
+  String get writeNoticeContent => 'اكتب محتوى الإشعار';
+
+  @override
+  String couldNotCreateDocument(String error) {
+    return 'تعذر إنشاء المستند: $error';
+  }
+
+  @override
+  String get loadingProperties => 'جارٍ تحميل العقارات…';
+
+  @override
+  String get propertiesLoadBeforeNotice =>
+      'تعذر تحميل العقارات. حاول مرة أخرى قبل وضع هذا الإشعار في قائمة الانتظار.';
+
+  @override
+  String couldNotQueueNotice(String error) {
+    return 'تعذر وضع الإشعار في قائمة الانتظار: $error';
+  }
+
+  @override
+  String get enterListingTitle => 'أدخل عنوان الإعلان';
+
+  @override
+  String get addUsefulDescription => 'أضف وصفًا مفيدًا';
+
+  @override
+  String get enterValidRentAmount => 'أدخل مبلغ إيجار صالحًا';
+
+  @override
+  String get enterCity => 'أدخل المدينة';
+
+  @override
+  String get enterNeighborhood => 'أدخل الحي';
+
+  @override
+  String get enterClearTitle => 'أدخل عنوانًا واضحًا';
+
+  @override
+  String get addMoreDetail => 'أضف مزيدًا من التفاصيل';
+
+  @override
+  String get enterPublicNeighborhood => 'أدخل حيًا عامًا';
+
+  @override
+  String get enterPhoneOrEmail =>
+      'أدخل هاتفًا أو بريدًا إلكترونيًا لتوجيه الاستفسارات';
+
+  @override
+  String get useUganda256 => 'استخدم التنسيق الأوغندي ‎+256';
+
+  @override
+  String get enterValidEmailShort => 'أدخل بريدًا إلكترونيًا صالحًا';
+
+  @override
+  String get enterPositiveWholeNumber => 'أدخل عددًا صحيحًا موجبًا';
+
+  @override
+  String get enterNonNegativeNumber => 'أدخل صفرًا أو عددًا موجبًا';
+
+  @override
+  String enterValueRange(double minimum, double maximum) {
+    return 'أدخل قيمة من $minimum إلى $maximum';
+  }
+
+  @override
+  String get enterLandlordAccountId => 'أدخل معرّف حساب المالك';
+
+  @override
+  String get enterPropertyName => 'أدخل اسم العقار';
+
+  @override
+  String get enterStreetAddress => 'أدخل عنوان الشارع';
+
+  @override
+  String get enterCityTown => 'أدخل مدينة أو بلدة';
+
+  @override
+  String get addPropertyPhoto => 'أضف صورة واحدة على الأقل للعقار.';
+
+  @override
+  String get enterRentalSpaceLabel => 'أدخل اسم أو رقم المساحة المؤجرة';
+
+  @override
+  String get requiredField => 'مطلوب';
+
+  @override
+  String get maintenanceDetailError =>
+      'أضف عنوانًا واضحًا ومزيدًا من التفاصيل.';
+
+  @override
+  String get maintenanceTenancyMissing =>
+      'لم نتمكن من العثور على عقد إيجارك بعد، لذلك لا توجد وجهة لهذا الطلب. سيعمل بعد أن يفعّل المالك عقد الإيجار.';
+
+  @override
+  String maintenanceSaved(String reference) {
+    return 'تم حفظ $reference ووضعه في قائمة انتظار المزامنة.';
+  }
+
+  @override
+  String maintenanceSaveFailed(String error) {
+    return 'تعذر حفظ الطلب: $error';
+  }
+
+  @override
+  String get pdfIssuedTo => 'صادر إلى';
+
+  @override
+  String get pdfProperty => 'العقار';
+
+  @override
+  String get pdfDate => 'التاريخ';
+
+  @override
+  String get pdfPaymentReceived => 'تم استلام الدفعة';
+
+  @override
+  String get pdfRentDue => 'الإيجار المستحق';
+
+  @override
+  String get pdfDescription => 'الوصف';
+
+  @override
+  String get pdfBillingPeriod => 'فترة الفوترة';
+
+  @override
+  String get pdfAmount => 'المبلغ';
+
+  @override
+  String get pdfMonthlyRent => 'الإيجار الشهري';
+
+  @override
+  String get pdfGeneratedBy => 'تم إنشاؤه بواسطة إدارة عقارات Nyumba';
+
+  @override
+  String get pdfKeepForRecords => 'احتفظ بهذا المستند في سجلاتك.';
+
+  @override
+  String get pdfReceipt => 'إيصال';
+
+  @override
+  String get pdfInvoice => 'فاتورة';
+
+  @override
+  String get pdfLease => 'عقد إيجار';
+
+  @override
+  String get pdfNotice => 'إشعار';
+
+  @override
+  String get pdfRentStatement => 'كشف الإيجار';
+
+  @override
+  String get pdfPaymentRecord => 'سجل الدفع';
+
+  @override
+  String get pdfTenantNotice => 'إشعار للمستأجر';
+
+  @override
+  String get pdfNotYetIssued => 'لم يصدر بعد';
+
+  @override
+  String get pdfPaid => 'مدفوع';
+
+  @override
+  String get pdfDue => 'مستحق';
+
+  @override
+  String get pdfReceived => 'تم الاستلام';
+
+  @override
+  String get pdfSigned => 'موقّع';
+
+  @override
+  String get pdfDraft => 'مسودة';
+
+  @override
+  String get pdfQueuedToSend => 'في انتظار الإرسال';
+
+  @override
+  String get pdfAwaitingConfirmation => 'في انتظار التأكيد';
+
+  @override
+  String pdfRecordedPayments(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count دفعات مسجلة',
+      one: 'دفعة واحدة مسجلة',
+    );
+    return '$_temp0';
+  }
 }

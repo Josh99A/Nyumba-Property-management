@@ -614,4 +614,145 @@
     ,"cloudOfflineMessage": "Cannot reach Nyumba cloud. Showing data saved on this device."
     ,"cloudDemoMessage": "Not connected to a Nyumba project. These are local demo records."
     ,"locationAvailableOnRequest": "Location available on request"
+    ,"appearanceSavingOnDevice": "Saving on this device…"
+    ,"appearanceAppliedOnDevice": "Applied and saved on this device."
+    ,"appearanceSaveTryAgain": "Appearance could not be saved. Please try again."
+    ,"appearanceSaveFailed": "Could not save this appearance setting."
+    ,"emailDeliveryNotConfigured": "Email delivery is not configured yet."
+    ,"occupancySemantics": "{percentage} percent of rental spaces are occupied"
+    ,"@occupancySemantics": {"description": "Screen-reader description for the occupancy chart.", "placeholders": {"percentage": {"type": "int"}}}
+    ,"unreadNotifications": "{count, plural, =1{1 unread notification} other{{count} unread notifications}}"
+    ,"@unreadNotifications": {"description": "Tooltip for the notification bell.", "placeholders": {"count": {"type": "int"}}}
+    ,"closeNotifications": "Close notifications"
+    ,"notificationSyncDescription": "Updates are kept on this device and sync when you reconnect."
+    ,"notificationLoadFailed": "Notifications could not be loaded"
+    ,"notificationLocalDataAvailable": "Your existing local data is still available."
+    ,"noNotificationsYet": "No notifications yet"
+    ,"newNotificationsWillAppear": "New account updates will appear here."
+    ,"notificationMarkReadFailed": "This notification could not be marked as read."
+    ,"newNotification": "New notification"
+    ,"confirmed": "Confirmed"
+    ,"awaitingSync": "Awaiting sync"
+    ,"paymentStatusDate": "{date} · {status}"
+    ,"@paymentStatusDate": {"description": "Payment date followed by its confirmation state.", "placeholders": {"date": {"type": "String"}, "status": {"type": "String"}}}
+    ,"enterValidAmount": "Enter a valid amount"
+    ,"giveNoticeClearTitle": "Give the notice a clear title"
+    ,"writeNoticeContent": "Write the notice content"
+    ,"couldNotCreateDocument": "Could not create the document: {error}"
+    ,"@couldNotCreateDocument": {"placeholders": {"error": {"type": "String"}}}
+    ,"loadingProperties": "Loading properties…"
+    ,"propertiesLoadBeforeNotice": "Properties could not be loaded. Try again before queuing this notice."
+    ,"couldNotQueueNotice": "Could not queue the notice: {error}"
+    ,"@couldNotQueueNotice": {"placeholders": {"error": {"type": "String"}}}
+    ,"enterListingTitle": "Enter a listing title"
+    ,"addUsefulDescription": "Add a useful description"
+    ,"enterValidRentAmount": "Enter a valid rent amount"
+    ,"enterCity": "Enter a city"
+    ,"enterNeighborhood": "Enter a neighborhood"
+    ,"enterClearTitle": "Enter a clear title"
+    ,"addMoreDetail": "Add a little more detail"
+    ,"enterPublicNeighborhood": "Enter a public neighborhood"
+    ,"enterPhoneOrEmail": "Enter a phone or email for routed enquiries"
+    ,"useUganda256": "Use the Ugandan +256 format"
+    ,"enterValidEmailShort": "Enter a valid email"
+    ,"enterPositiveWholeNumber": "Enter a positive whole number"
+    ,"enterNonNegativeNumber": "Enter zero or a positive number"
+    ,"enterValueRange": "Enter a value from {minimum} to {maximum}"
+    ,"@enterValueRange": {"placeholders": {"minimum": {"type": "double"}, "maximum": {"type": "double"}}}
+    ,"enterLandlordAccountId": "Enter the landlord account ID"
+    ,"enterPropertyName": "Enter a property name"
+    ,"enterStreetAddress": "Enter the street address"
+    ,"enterCityTown": "Enter a city or town"
+    ,"addPropertyPhoto": "Add at least one property photo."
+    ,"enterRentalSpaceLabel": "Enter a rental space name or number"
+    ,"requiredField": "Required"
+    ,"maintenanceDetailError": "Add a clear title and a little more detail."
+    ,"maintenanceTenancyMissing": "We could not find your tenancy yet, so this request has nowhere to go. It will work once your landlord activates your lease."
+    ,"maintenanceSaved": "{reference} saved and queued to sync."
+    ,"@maintenanceSaved": {"placeholders": {"reference": {"type": "String"}}}
+    ,"maintenanceSaveFailed": "Could not save the request: {error}"
+    ,"@maintenanceSaveFailed": {"placeholders": {"error": {"type": "String"}}}
+    ,"pdfIssuedTo": "Issued to"
+    ,"@pdfIssuedTo": {"description": "PDF label for the document recipient."}
+    ,"pdfProperty": "Property"
+    ,"@pdfProperty": {"description": "PDF property label."}
+    ,"pdfDate": "Date"
+    ,"@pdfDate": {"description": "PDF date label."}
+    ,"pdfPaymentReceived": "Payment received"
+    ,"@pdfPaymentReceived": {"description": "PDF receipt summary label."}
+    ,"pdfRentDue": "Rent due"
+    ,"@pdfRentDue": {"description": "PDF invoice summary label."}
+    ,"pdfDescription": "Description"
+    ,"@pdfDescription": {"description": "PDF table description heading."}
+    ,"pdfBillingPeriod": "Billing period"
+    ,"@pdfBillingPeriod": {"description": "PDF billing-period label."}
+    ,"pdfAmount": "Amount"
+    ,"@pdfAmount": {"description": "PDF amount heading."}
+    ,"pdfMonthlyRent": "Monthly rent"
+    ,"@pdfMonthlyRent": {"description": "PDF monthly-rent row label."}
+    ,"pdfGeneratedBy": "Generated by Nyumba Property Management"
+    ,"@pdfGeneratedBy": {"description": "PDF generator footer."}
+    ,"pdfKeepForRecords": "Keep this document for your records."
+    ,"@pdfKeepForRecords": {"description": "PDF records-retention footer."}
+    ,"pdfReceipt": "Receipt"
+    ,"pdfInvoice": "Invoice"
+    ,"pdfLease": "Lease"
+    ,"pdfNotice": "Notice"
+    ,"pdfRentStatement": "Rent statement"
+    ,"pdfPaymentRecord": "Payment record"
+    ,"pdfTenantNotice": "Tenant notice"
+    ,"pdfNotYetIssued": "Not yet issued"
+    ,"pdfPaid": "Paid"
+    ,"pdfDue": "Due"
+    ,"pdfReceived": "Received"
+    ,"pdfSigned": "Signed"
+    ,"pdfDraft": "Draft"
+    ,"pdfQueuedToSend": "Queued to send"
+    ,"pdfAwaitingConfirmation": "Awaiting confirmation"
+    ,"pdfRecordedPayments": "{count, plural, =1{1 recorded payment} other{{count} recorded payments}}"
+    ,"@pdfRecordedPayments": {"description": "Dynamic PDF payment-count label.", "placeholders": {"count": {"type": "int"}}}
+    ,"subscriptionPaymentConfirmedWorkspace": "Payment confirmed. Your landlord workspace is now available."
+    ,"subscriptionPaymentNotConfirmed": "Payment has not been confirmed yet."
+    ,"subscriptionPlanSelected": "{planName} plan selected. Your workspace opens once its payment is confirmed."
+    ,"@subscriptionPlanSelected": {"placeholders": {"planName": {"type": "String"}}}
+    ,"subscriptionActiveTitle": "Your subscription is active"
+    ,"subscriptionActiveDescription": "Your payment has been confirmed. You can now enter your landlord workspace."
+    ,"subscriptionGateDescription": "Your workspace opens as soon as Nyumba confirms your subscription payment. Tenant and public listing access stay free."
+    ,"subscriptionTiers": "Subscription tiers"
+    ,"subscriptionChangeActivePlanDescription": "Changing an active plan is handled with your next payment — contact Nyumba support."
+    ,"subscriptionChoosePlanDescription": "Pick the plan that fits your portfolio. You can switch freely until your payment is confirmed, and pricing is always confirmed with you before you pay."
+    ,"subscriptionPlanCapacityUnavailable": "Plan capacity details could not be loaded right now, so they are not shown — nothing is guessed on this device."
+    ,"subscriptionPaymentConfirmed": "Payment confirmed"
+    ,"subscriptionAwaitingPaymentConfirmation": "Awaiting payment confirmation"
+    ,"subscriptionPaymentPastDue": "Payment is past due"
+    ,"subscriptionCanceled": "Subscription canceled"
+    ,"subscriptionExpired": "Subscription expired"
+    ,"subscriptionStatusUnavailable": "Subscription status unavailable"
+    ,"subscriptionRequired": "Subscription required"
+    ,"subscriptionSelectedPlanName": "selected"
+    ,"subscriptionPendingMessage": "Your {plan} plan is reserved, and no payment has been confirmed yet."
+    ,"@subscriptionPendingMessage": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionPastDueMessage": "Your {plan} plan payment is past due. Settle it to keep the workspace open."
+    ,"@subscriptionPastDueMessage": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionCanceledMessage": "A new paid subscription is required before entering the workspace."
+    ,"subscriptionExpiredMessage": "Renew your subscription before entering the workspace."
+    ,"subscriptionActiveMessage": "Payment for your {plan} plan has been confirmed."
+    ,"@subscriptionActiveMessage": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionUnverifiedMessage": "Nyumba could not verify an active paid subscription for this account."
+    ,"subscriptionHowToPay": "In-app checkout is coming soon. To activate now, pay via {methods} and share the transaction reference with Nyumba support, quoting your account email. Your workspace opens automatically the moment the payment is confirmed — no need to stay on this page."
+    ,"@subscriptionHowToPay": {"placeholders": {"methods": {"type": "String"}}}
+    ,"subscriptionHowToPayWithEmail": "In-app checkout is coming soon. To activate now, pay via {methods} and share the transaction reference with Nyumba support, quoting your account email ({email}). Your workspace opens automatically the moment the payment is confirmed — no need to stay on this page."
+    ,"@subscriptionHowToPayWithEmail": {"placeholders": {"methods": {"type": "String"}, "email": {"type": "String"}}}
+    ,"subscriptionEnterWorkspace": "Enter workspace"
+    ,"subscriptionCheckPaymentStatus": "Check payment status"
+    ,"subscriptionPlanCapacity": "Up to {unitLimit} rental spaces · {listingLimit} active listings"
+    ,"@subscriptionPlanCapacity": {"placeholders": {"unitLimit": {"type": "int"}, "listingLimit": {"type": "int"}}}
+    ,"subscriptionStarterPlan": "Starter"
+    ,"subscriptionProPlan": "Pro"
+    ,"subscriptionPremiumPlan": "Premium"
+    ,"subscriptionEnterprisePlan": "Enterprise"
+    ,"subscriptionStarterAudience": "Individual landlords and small portfolios"
+    ,"subscriptionProAudience": "Growing landlords and small teams"
+    ,"subscriptionPremiumAudience": "Professional property managers"
+    ,"subscriptionEnterpriseAudience": "Agencies, institutions, and large companies"
 }

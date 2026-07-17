@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart' hide Text, Tooltip;
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
-import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/localization/generated/app_localizations.dart';
 import '../../../core/presentation/surface.dart';
 import '../application/notification_providers.dart';
 import '../application/push_interactions.dart';
@@ -18,13 +18,14 @@ class NotificationBell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadNotificationCountProvider);
+    final copy = AppLocalizations.of(context)!;
     return Badge(
       isLabelVisible: unread > 0,
       label: Text(unread > 99 ? '99+' : '$unread'),
       child: IconButton(
-        tooltip: context.tr(
-          unread == 0 ? 'Notifications' : '$unread unread notifications',
-        ),
+        tooltip: unread == 0
+            ? copy.notifications
+            : copy.unreadNotifications(unread),
         onPressed: () => showNotificationCenter(context),
         icon: Icon(
           unread == 0
@@ -51,6 +52,7 @@ class _NotificationCenterSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifications = ref.watch(appNotificationsProvider);
+    final copy = AppLocalizations.of(context)!;
     return SafeArea(
       child: SizedBox(
         height: MediaQuery.sizeOf(context).height * 0.72,
@@ -63,19 +65,19 @@ class _NotificationCenterSheet extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Notifications',
+                      copy.notifications,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
                   IconButton(
-                    tooltip: context.tr('Close notifications'),
+                    tooltip: copy.closeNotifications,
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
               Text(
-                'Updates are kept on this device and sync when you reconnect.',
+                copy.notificationSyncDescription,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 14),
@@ -83,16 +85,16 @@ class _NotificationCenterSheet extends ConsumerWidget {
                 child: notifications.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator.adaptive()),
-                  error: (_, _) => const _NotificationState(
+                  error: (_, _) => _NotificationState(
                     icon: Icons.cloud_off_rounded,
-                    title: 'Notifications could not be loaded',
-                    message: 'Your existing local data is still available.',
+                    title: copy.notificationLoadFailed,
+                    message: copy.notificationLocalDataAvailable,
                   ),
                   data: (items) => items.isEmpty
-                      ? const _NotificationState(
+                      ? _NotificationState(
                           icon: Icons.notifications_none_rounded,
-                          title: 'No notifications yet',
-                          message: 'New account updates will appear here.',
+                          title: copy.noNotificationsYet,
+                          message: copy.newNotificationsWillAppear,
                         )
                       : ListView.separated(
                           itemCount: items.length,
@@ -118,6 +120,7 @@ class _NotificationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final copy = AppLocalizations.of(context)!;
     final icon = switch (notification.kind) {
       AppNotificationKind.application => Icons.assignment_outlined,
       AppNotificationKind.enquiry => Icons.forum_outlined,
@@ -126,11 +129,9 @@ class _NotificationTile extends ConsumerWidget {
     };
     return Semantics(
       button: true,
-      label: context.tr(
-        notification.isRead
-            ? notification.title
-            : 'Unread: ${notification.title}',
-      ),
+      label: notification.isRead
+          ? notification.title
+          : copy.unreadTitle(notification.title),
       child: NyumbaSurface(
         padding: const EdgeInsets.all(14),
         onTap: () => _open(context, ref),
@@ -175,6 +176,7 @@ class _NotificationTile extends ConsumerWidget {
                       Text(
                         DateFormat(
                           'd MMM, HH:mm',
+                          Localizations.localeOf(context).toLanguageTag(),
                         ).format(notification.createdAt.toLocal()),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
@@ -183,7 +185,7 @@ class _NotificationTile extends ConsumerWidget {
                         const Icon(Icons.sync_rounded, size: 14),
                         const SizedBox(width: 3),
                         Text(
-                          'Pending',
+                          copy.pending,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
@@ -207,11 +209,12 @@ class _NotificationTile extends ConsumerWidget {
     } on Object {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This notification could not be marked as read.'),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.notificationMarkReadFailed,
+          ),
         ),
       );
-      return;
     }
     if (!context.mounted) return;
     Navigator.pop(context);

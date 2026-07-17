@@ -49,9 +49,11 @@ final class Notice {
       'title': DomainValidation.requiredText(title, maxLength: 120),
       'body': DomainValidation.requiredText(body, maxLength: 4000),
       'audience': DomainValidation.requiredText(audience, maxLength: 120),
-      'audienceId':
-          audienceType != NoticeAudienceType.allActiveTenants &&
-              (audienceId == null || audienceId!.trim().isEmpty)
+      'audienceId': audienceType == NoticeAudienceType.allActiveTenants
+          ? audienceId == null
+                ? null
+                : 'must be absent for an all-tenant audience'
+          : audienceId == null || audienceId!.trim().isEmpty
           ? 'is required for a scoped audience'
           : null,
     });

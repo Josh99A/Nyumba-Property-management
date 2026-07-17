@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { newAggregate } from './aggregates';
@@ -147,10 +148,10 @@ export async function notifyUser(
  * Creates the durable in-app inbox item, then sends the optional push nudge.
  *
  * The inbox is authoritative for the user experience. A stable document ID
- * makes creation idempotent, while `pushCompletedAt` prevents ordinary job
- * replays from sending a second push. A process crash after FCM accepted a
- * message but before that marker is written can still duplicate the nudge;
- * FCM provides no idempotency key, and at-least-once delivery is documented.
+ * makes creation idempotent. A transactional lease ensures only one worker
+ * calls FCM at a time; an expired lease can be reclaimed after a crash. A
+ * process crash after FCM accepted a message but before completion is written
+ * can still duplicate the nudge because FCM provides no idempotency key.
  */
 export async function deliverUserNotification(
   uid: string,
@@ -172,7 +173,9 @@ export async function deliverUserNotification(
     .collection('items')
     .doc(content.id);
   const now = Timestamp.now();
-  const pushAlreadyCompleted = await db.runTransaction(async (tx) => {
+  const leaseOwner = randomUUID();
+  const leaseUntil = Timestamp.fromMillis(now.toMillis() + 5 * 60 * 1_000);
+  const claimed = await db.runTransaction(async (tx) => {
     const snapshot = await tx.get(ref);
     if (!snapshot.exists) {
       tx.create(ref, {
@@ -185,23 +188,55 @@ export async function deliverUserNotification(
         relatedEntityId: content.relatedEntityId ?? null,
         isRead: false,
         readAt: null,
-        pushState: 'pending',
+        pushState: 'sending',
         pushCompletedAt: null,
+        pushLeaseOwner: leaseOwner,
+        pushLeaseUntil: leaseUntil,
       });
+      return true;
+    }
+    const current = snapshot.data() ?? {};
+    if (current.pushCompletedAt instanceof Timestamp) return false;
+    if (current.pushLeaseUntil instanceof Timestamp &&
+        current.pushLeaseUntil.toMillis() > now.toMillis()) {
       return false;
     }
-    return snapshot.data()?.pushCompletedAt instanceof Timestamp;
+    const currentVersion = Number.isInteger(current.version)
+      ? Number(current.version)
+      : 1;
+    tx.update(ref, {
+      pushState: 'sending',
+      pushLeaseOwner: leaseOwner,
+      pushLeaseUntil: leaseUntil,
+      version: currentVersion + 1,
+      updatedAt: now,
+    });
+    return true;
   });
-  if (pushAlreadyCompleted) {
+  if (!claimed) {
     return { state: 'sent', sent: 0, pruned: 0 };
   }
 
   const result = await notifyUser(uid, localizedContent);
-  await ref.update({
-    pushState: result.state,
-    pushSentCount: result.sent,
-    pushPrunedCount: result.pruned,
-    pushCompletedAt: Timestamp.now(),
+  const completedAt = Timestamp.now();
+  await db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    const current = snapshot.data();
+    // A worker that outlived its lease must not overwrite a later claimant.
+    if (!snapshot.exists || current?.pushLeaseOwner !== leaseOwner) return;
+    const currentVersion = Number.isInteger(current.version)
+      ? Number(current.version)
+      : 1;
+    tx.update(ref, {
+      pushState: result.state,
+      pushSentCount: result.sent,
+      pushPrunedCount: result.pruned,
+      pushCompletedAt: completedAt,
+      pushLeaseOwner: null,
+      pushLeaseUntil: null,
+      version: currentVersion + 1,
+      updatedAt: completedAt,
+    });
   });
   return result;
 }

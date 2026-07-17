@@ -3,6 +3,9 @@ import 'package:nyumba_property_management/core/domain/domain_exception.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/features/marketplace/data/mappers/listing_mapper.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
+import 'package:nyumba_property_management/features/notices/data/mappers/notice_mapper.dart';
+import 'package:nyumba_property_management/features/notices/domain/notice.dart';
+import 'package:nyumba_property_management/features/notifications/domain/app_notification.dart';
 import 'package:nyumba_property_management/features/portfolio/data/mappers/unit_mapper.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/unit.dart';
 
@@ -226,6 +229,65 @@ void main() {
       final json = ListingMapper.toJson(draft)..['status'] = 'live';
 
       expect(() => ListingMapper.fromJson(json), throwsFormatException);
+    });
+
+    test('notice audience type and ID combinations fail closed', () {
+      final base = <String, Object?>{
+        'id': 'notice-id',
+        'reference': 'NTC-2026-001',
+        'landlordId': 'landlord-id',
+        'title': 'Water interruption',
+        'body': 'Water will be unavailable on Saturday morning.',
+        'audience': 'All tenants',
+        'audienceType': 'unsupported',
+        'audienceId': null,
+        'status': 'queued',
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+        'syncMetadata': const <String, Object?>{
+          'state': 'pending',
+          'serverRevision': null,
+          'lastSyncedAt': null,
+          'lastError': null,
+        },
+      };
+      expect(() => NoticeMapper.fromJson(base), throwsFormatException);
+
+      expect(
+        () => Notice(
+          id: 'notice-id',
+          reference: 'NTC-2026-001',
+          landlordId: 'landlord-id',
+          title: 'Water interruption',
+          body: 'Water will be unavailable on Saturday morning.',
+          audience: 'All tenants',
+          audienceType: NoticeAudienceType.allActiveTenants,
+          audienceId: 'property-id',
+          status: NoticeStatus.queued,
+          createdAt: now,
+          updatedAt: now,
+          syncMetadata: const SyncMetadata.pending(),
+        ),
+        throwsA(isA<DomainValidationException>()),
+      );
+    });
+
+    test('unread notifications cannot carry a read timestamp', () {
+      expect(
+        () => AppNotification(
+          id: 'notification-id',
+          kind: AppNotificationKind.system,
+          title: 'Account update',
+          body: 'Your account was updated.',
+          route: '/settings',
+          createdAt: now,
+          updatedAt: now,
+          isRead: false,
+          readAt: now,
+          syncMetadata: const SyncMetadata.synced(),
+        ),
+        throwsA(isA<DomainValidationException>()),
+      );
     });
   });
 }

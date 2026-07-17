@@ -345,16 +345,16 @@ class _RouteNotFoundScreen extends StatelessWidget {
             children: [
               const Icon(Icons.explore_off_outlined, size: 54),
               const SizedBox(height: 16),
-              Text(
+              Text.localized(
                 'We could not open this page',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
-              Text(message, textAlign: TextAlign.center),
+              Text.localized(message, textAlign: TextAlign.center),
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: () => context.go('/explore'),
-                child: const Text('Browse available homes'),
+                child: const Text.localized('Browse available homes'),
               ),
             ],
           ),

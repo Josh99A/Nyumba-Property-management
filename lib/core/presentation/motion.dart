@@ -117,13 +117,13 @@ class AnimatedCount extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (NyumbaMotion.reducedMotion(context)) {
-      return Text(format(value), style: style);
+      return Text.localized(format(value), style: style);
     }
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: value.toDouble()),
       duration: duration,
       curve: curve,
-      builder: (context, animated, _) => Text(
+      builder: (context, animated, _) => Text.localized(
         animated == value.toDouble() ? format(value) : format(animated),
         style: style,
       ),

@@ -541,7 +541,8 @@ class AppLocalizationsLg extends AppLocalizations {
   String get legacy_bbdb3cafea65 => 'Abapangisa abakola ennyo';
 
   @override
-  String get legacy_35aa97b5d006 => 'Activity feed yeetaaga live admin session';
+  String get legacy_35aa97b5d006 =>
+      'Olukalala lw’ebikolebwa lwetaaga omuddukanya abe ayungiddwa ku seva';
 
   @override
   String get legacy_409c81e0b451 =>
@@ -619,7 +620,8 @@ class AppLocalizationsLg extends AppLocalizations {
   String get legacy_4ad9787575c1 => 'Okusaba nga kulindiridde okusalawo';
 
   @override
-  String get legacy_5afdb4123634 => 'Approvals zeetaaga live admin session';
+  String get legacy_5afdb4123634 =>
+      'Okukkiriza kwetaaga omuddukanya abe ayungiddwa ku seva';
 
   @override
   String get legacy_7e69169c53b0 => 'Okiriza landiroodi ono?';
@@ -897,7 +899,8 @@ class AppLocalizationsLg extends AppLocalizations {
       'Okuva mu kiwandiiko ky\'okubala ebitabo bya seva';
 
   @override
-  String get legacy_ae4f7a8cbc1a => 'Full CRUD';
+  String get legacy_ae4f7a8cbc1a =>
+      'Okutondawo, okusoma, okukyusa n’okusiimula byonna';
 
   @override
   String get legacy_40c6b37a520b =>
@@ -2051,4 +2054,281 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get locationAvailableOnRequest => 'Ekifo kiweebwa nga kisabiddwa';
+
+  @override
+  String get appearanceSavingOnDevice => 'Kiterekebwa ku kyuma kino…';
+
+  @override
+  String get appearanceAppliedOnDevice =>
+      'Kikozeseddwa era kiterekeddwa ku kyuma kino.';
+
+  @override
+  String get appearanceSaveTryAgain =>
+      'Endabika teyasobodde kuterekebwa. Ddamu ogezeeko.';
+
+  @override
+  String get appearanceSaveFailed =>
+      'Enteekateeka y’endabika eno teyasobodde kuterekebwa.';
+
+  @override
+  String get emailDeliveryNotConfigured =>
+      'Okuweereza ku imeyilo tekunnateekebwateekebwa.';
+
+  @override
+  String occupancySemantics(int percentage) {
+    return 'Ebitundu $percentage ku kikumi eby’ebifo eby’okupangisa birimu abapangisa';
+  }
+
+  @override
+  String unreadNotifications(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Obubaka $count obutasomeddwa',
+      one: 'Obubaka 1 obutasomeddwa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get closeNotifications => 'Ggalawo obubaka';
+
+  @override
+  String get notificationSyncDescription =>
+      'Ebipya bikuumibwa ku kyuma kino era bituukana ng’oddamu okuyungibwa.';
+
+  @override
+  String get notificationLoadFailed => 'Obubaka tebwasobodde kutikkibwa';
+
+  @override
+  String get notificationLocalDataAvailable =>
+      'Ebikwata ku kyuma kino ebiriwo bikyaliwo.';
+
+  @override
+  String get noNotificationsYet => 'Tewali bubaka bunaatuuka';
+
+  @override
+  String get newNotificationsWillAppear =>
+      'Ebipya ebya akawunti bijja kulabika wano.';
+
+  @override
+  String get notificationMarkReadFailed =>
+      'Obubaka buno tebusobodde kuteekebwa nti busomeddwa.';
+
+  @override
+  String get newNotification => 'Obubaka obupya';
+
+  @override
+  String get confirmed => 'Kikakasiddwa';
+
+  @override
+  String get awaitingSync => 'Kirindirira okutuukana';
+
+  @override
+  String paymentStatusDate(String date, String status) {
+    return '$date · $status';
+  }
+
+  @override
+  String get enterValidAmount => 'Yingiza omuwendo omutuufu';
+
+  @override
+  String get giveNoticeClearTitle => 'Wa obubaka omutwe ogutegeerekeka';
+
+  @override
+  String get writeNoticeContent => 'Wandiika ebiri mu bubaka';
+
+  @override
+  String couldNotCreateDocument(String error) {
+    return 'Ekiwandiiko tekyasobodde kutondebwa: $error';
+  }
+
+  @override
+  String get loadingProperties => 'Eby’obugagga bitikkibwa…';
+
+  @override
+  String get propertiesLoadBeforeNotice =>
+      'Eby’obugagga tebiyasobodde kutikkibwa. Ddamu ogezeeko nga tonnateeka bubaka mu lunyiriri.';
+
+  @override
+  String couldNotQueueNotice(String error) {
+    return 'Obubaka tebwasobodde kuteekebwa mu lunyiriri: $error';
+  }
+
+  @override
+  String get enterListingTitle => 'Yingiza omutwe gw’olukalala';
+
+  @override
+  String get addUsefulDescription => 'Yongerako ennyonnyola ey’omugaso';
+
+  @override
+  String get enterValidRentAmount => 'Yingiza omuwendo gw’obupangisa omutuufu';
+
+  @override
+  String get enterCity => 'Yingiza ekibuga';
+
+  @override
+  String get enterNeighborhood => 'Yingiza ekitundu';
+
+  @override
+  String get enterClearTitle => 'Yingiza omutwe ogutegeerekeka';
+
+  @override
+  String get addMoreDetail => 'Yongerako ebisingawo katono';
+
+  @override
+  String get enterPublicNeighborhood => 'Yingiza ekitundu ekirabibwa bonna';
+
+  @override
+  String get enterPhoneOrEmail =>
+      'Yingiza essimu oba imeyilo ey’okuweerezaako ebibuuzo';
+
+  @override
+  String get useUganda256 => 'Kozesa enkola ya Uganda eya +256';
+
+  @override
+  String get enterValidEmailShort => 'Yingiza imeyilo entuufu';
+
+  @override
+  String get enterPositiveWholeNumber =>
+      'Yingiza namba enzijuvu esukka ku ziro';
+
+  @override
+  String get enterNonNegativeNumber => 'Yingiza ziro oba namba esukka ku ziro';
+
+  @override
+  String enterValueRange(double minimum, double maximum) {
+    return 'Yingiza omuwendo okuva ku $minimum okutuuka ku $maximum';
+  }
+
+  @override
+  String get enterLandlordAccountId => 'Yingiza ID ya akawunti ya landiroodi';
+
+  @override
+  String get enterPropertyName => 'Yingiza erinnya ly’eky’obugagga';
+
+  @override
+  String get enterStreetAddress => 'Yingiza endagiriro y’oluguudo';
+
+  @override
+  String get enterCityTown => 'Yingiza ekibuga oba tawuni';
+
+  @override
+  String get addPropertyPhoto =>
+      'Yongerako waakiri ekifaananyi kimu eky’eky’obugagga.';
+
+  @override
+  String get enterRentalSpaceLabel =>
+      'Yingiza erinnya oba namba y’ekifo eky’okupangisa';
+
+  @override
+  String get requiredField => 'Kyetaagisa';
+
+  @override
+  String get maintenanceDetailError =>
+      'Yongerako omutwe ogutegeerekeka n’ebisingawo katono.';
+
+  @override
+  String get maintenanceTenancyMissing =>
+      'Tetunnasobola kufuna bupangisa bwo, n’olwekyo okusaba kuno tekulina gye kugenda. Kujja kukola landiroodi wo ng’amaze okukakasa endagaano yo.';
+
+  @override
+  String maintenanceSaved(String reference) {
+    return '$reference kiterekeddwa era kiteekeddwa mu lunyiriri lw’okutuukana.';
+  }
+
+  @override
+  String maintenanceSaveFailed(String error) {
+    return 'Okusaba tekusobodde kuterekebwa: $error';
+  }
+
+  @override
+  String get pdfIssuedTo => 'Kiweereddwa';
+
+  @override
+  String get pdfProperty => 'Ekintu ky’obupangisa';
+
+  @override
+  String get pdfDate => 'Olunaku';
+
+  @override
+  String get pdfPaymentReceived => 'Okusasula kufuniddwa';
+
+  @override
+  String get pdfRentDue => 'Obupangisa obusasulwa';
+
+  @override
+  String get pdfDescription => 'Ennyonnyola';
+
+  @override
+  String get pdfBillingPeriod => 'Ekiseera ky’okusasula';
+
+  @override
+  String get pdfAmount => 'Omuwendo';
+
+  @override
+  String get pdfMonthlyRent => 'Obupangisa bwa buli mwezi';
+
+  @override
+  String get pdfGeneratedBy =>
+      'Kikoleddwa Enzirukanya y’Ebyobupangisa eya Nyumba';
+
+  @override
+  String get pdfKeepForRecords => 'Kuuma ekiwandiiko kino mu biwandiiko byo.';
+
+  @override
+  String get pdfReceipt => 'Lisiiti';
+
+  @override
+  String get pdfInvoice => 'Invoyisi';
+
+  @override
+  String get pdfLease => 'Endagaano y’obupangisa';
+
+  @override
+  String get pdfNotice => 'Obubaka';
+
+  @override
+  String get pdfRentStatement => 'Ekiwandiiko ky’obupangisa';
+
+  @override
+  String get pdfPaymentRecord => 'Ekiwandiiko ky’okusasula';
+
+  @override
+  String get pdfTenantNotice => 'Obubaka eri omupangisa';
+
+  @override
+  String get pdfNotYetIssued => 'Tekinnafulumizibwa';
+
+  @override
+  String get pdfPaid => 'Kisasuddwa';
+
+  @override
+  String get pdfDue => 'Kisasulwa';
+
+  @override
+  String get pdfReceived => 'Kifuniddwa';
+
+  @override
+  String get pdfSigned => 'Kissiddwako omukono';
+
+  @override
+  String get pdfDraft => 'Ebbago';
+
+  @override
+  String get pdfQueuedToSend => 'Kirindirira okuweerezebwa';
+
+  @override
+  String get pdfAwaitingConfirmation => 'Kirindirira okukakasibwa';
+
+  @override
+  String pdfRecordedPayments(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Okusasula $count okuwandiikiddwa',
+      one: 'Okusasula 1 okuwandiikiddwa',
+    );
+    return '$_temp0';
+  }
 }

@@ -3785,6 +3785,468 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Location available on request'**
   String get locationAvailableOnRequest;
+
+  /// No description provided for @appearanceSavingOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving on this device…'**
+  String get appearanceSavingOnDevice;
+
+  /// No description provided for @appearanceAppliedOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied and saved on this device.'**
+  String get appearanceAppliedOnDevice;
+
+  /// No description provided for @appearanceSaveTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance could not be saved. Please try again.'**
+  String get appearanceSaveTryAgain;
+
+  /// No description provided for @appearanceSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save this appearance setting.'**
+  String get appearanceSaveFailed;
+
+  /// No description provided for @emailDeliveryNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Email delivery is not configured yet.'**
+  String get emailDeliveryNotConfigured;
+
+  /// Screen-reader description for the occupancy chart.
+  ///
+  /// In en, this message translates to:
+  /// **'{percentage} percent of rental spaces are occupied'**
+  String occupancySemantics(int percentage);
+
+  /// Tooltip for the notification bell.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 unread notification} other{{count} unread notifications}}'**
+  String unreadNotifications(int count);
+
+  /// No description provided for @closeNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Close notifications'**
+  String get closeNotifications;
+
+  /// No description provided for @notificationSyncDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates are kept on this device and sync when you reconnect.'**
+  String get notificationSyncDescription;
+
+  /// No description provided for @notificationLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications could not be loaded'**
+  String get notificationLoadFailed;
+
+  /// No description provided for @notificationLocalDataAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Your existing local data is still available.'**
+  String get notificationLocalDataAvailable;
+
+  /// No description provided for @noNotificationsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications yet'**
+  String get noNotificationsYet;
+
+  /// No description provided for @newNotificationsWillAppear.
+  ///
+  /// In en, this message translates to:
+  /// **'New account updates will appear here.'**
+  String get newNotificationsWillAppear;
+
+  /// No description provided for @notificationMarkReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'This notification could not be marked as read.'**
+  String get notificationMarkReadFailed;
+
+  /// No description provided for @newNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'New notification'**
+  String get newNotification;
+
+  /// No description provided for @confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get confirmed;
+
+  /// No description provided for @awaitingSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting sync'**
+  String get awaitingSync;
+
+  /// Payment date followed by its confirmation state.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · {status}'**
+  String paymentStatusDate(String date, String status);
+
+  /// No description provided for @enterValidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid amount'**
+  String get enterValidAmount;
+
+  /// No description provided for @giveNoticeClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Give the notice a clear title'**
+  String get giveNoticeClearTitle;
+
+  /// No description provided for @writeNoticeContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Write the notice content'**
+  String get writeNoticeContent;
+
+  /// No description provided for @couldNotCreateDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create the document: {error}'**
+  String couldNotCreateDocument(String error);
+
+  /// No description provided for @loadingProperties.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading properties…'**
+  String get loadingProperties;
+
+  /// No description provided for @propertiesLoadBeforeNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Properties could not be loaded. Try again before queuing this notice.'**
+  String get propertiesLoadBeforeNotice;
+
+  /// No description provided for @couldNotQueueNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not queue the notice: {error}'**
+  String couldNotQueueNotice(String error);
+
+  /// No description provided for @enterListingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a listing title'**
+  String get enterListingTitle;
+
+  /// No description provided for @addUsefulDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a useful description'**
+  String get addUsefulDescription;
+
+  /// No description provided for @enterValidRentAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid rent amount'**
+  String get enterValidRentAmount;
+
+  /// No description provided for @enterCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a city'**
+  String get enterCity;
+
+  /// No description provided for @enterNeighborhood.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a neighborhood'**
+  String get enterNeighborhood;
+
+  /// No description provided for @enterClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a clear title'**
+  String get enterClearTitle;
+
+  /// No description provided for @addMoreDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a little more detail'**
+  String get addMoreDetail;
+
+  /// No description provided for @enterPublicNeighborhood.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a public neighborhood'**
+  String get enterPublicNeighborhood;
+
+  /// No description provided for @enterPhoneOrEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a phone or email for routed enquiries'**
+  String get enterPhoneOrEmail;
+
+  /// No description provided for @useUganda256.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the Ugandan +256 format'**
+  String get useUganda256;
+
+  /// No description provided for @enterValidEmailShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email'**
+  String get enterValidEmailShort;
+
+  /// No description provided for @enterPositiveWholeNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a positive whole number'**
+  String get enterPositiveWholeNumber;
+
+  /// No description provided for @enterNonNegativeNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter zero or a positive number'**
+  String get enterNonNegativeNumber;
+
+  /// No description provided for @enterValueRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value from {minimum} to {maximum}'**
+  String enterValueRange(double minimum, double maximum);
+
+  /// No description provided for @enterLandlordAccountId.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the landlord account ID'**
+  String get enterLandlordAccountId;
+
+  /// No description provided for @enterPropertyName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a property name'**
+  String get enterPropertyName;
+
+  /// No description provided for @enterStreetAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the street address'**
+  String get enterStreetAddress;
+
+  /// No description provided for @enterCityTown.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a city or town'**
+  String get enterCityTown;
+
+  /// No description provided for @addPropertyPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one property photo.'**
+  String get addPropertyPhoto;
+
+  /// No description provided for @enterRentalSpaceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a rental space name or number'**
+  String get enterRentalSpaceLabel;
+
+  /// No description provided for @requiredField.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get requiredField;
+
+  /// No description provided for @maintenanceDetailError.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a clear title and a little more detail.'**
+  String get maintenanceDetailError;
+
+  /// No description provided for @maintenanceTenancyMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not find your tenancy yet, so this request has nowhere to go. It will work once your landlord activates your lease.'**
+  String get maintenanceTenancyMissing;
+
+  /// No description provided for @maintenanceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'{reference} saved and queued to sync.'**
+  String maintenanceSaved(String reference);
+
+  /// No description provided for @maintenanceSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the request: {error}'**
+  String maintenanceSaveFailed(String error);
+
+  /// PDF label for the document recipient.
+  ///
+  /// In en, this message translates to:
+  /// **'Issued to'**
+  String get pdfIssuedTo;
+
+  /// PDF property label.
+  ///
+  /// In en, this message translates to:
+  /// **'Property'**
+  String get pdfProperty;
+
+  /// PDF date label.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get pdfDate;
+
+  /// PDF receipt summary label.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment received'**
+  String get pdfPaymentReceived;
+
+  /// PDF invoice summary label.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent due'**
+  String get pdfRentDue;
+
+  /// PDF table description heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get pdfDescription;
+
+  /// PDF billing-period label.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing period'**
+  String get pdfBillingPeriod;
+
+  /// PDF amount heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get pdfAmount;
+
+  /// PDF monthly-rent row label.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly rent'**
+  String get pdfMonthlyRent;
+
+  /// PDF generator footer.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated by Nyumba Property Management'**
+  String get pdfGeneratedBy;
+
+  /// PDF records-retention footer.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this document for your records.'**
+  String get pdfKeepForRecords;
+
+  /// No description provided for @pdfReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt'**
+  String get pdfReceipt;
+
+  /// No description provided for @pdfInvoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice'**
+  String get pdfInvoice;
+
+  /// No description provided for @pdfLease.
+  ///
+  /// In en, this message translates to:
+  /// **'Lease'**
+  String get pdfLease;
+
+  /// No description provided for @pdfNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice'**
+  String get pdfNotice;
+
+  /// No description provided for @pdfRentStatement.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent statement'**
+  String get pdfRentStatement;
+
+  /// No description provided for @pdfPaymentRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment record'**
+  String get pdfPaymentRecord;
+
+  /// No description provided for @pdfTenantNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenant notice'**
+  String get pdfTenantNotice;
+
+  /// No description provided for @pdfNotYetIssued.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yet issued'**
+  String get pdfNotYetIssued;
+
+  /// No description provided for @pdfPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get pdfPaid;
+
+  /// No description provided for @pdfDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Due'**
+  String get pdfDue;
+
+  /// No description provided for @pdfReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get pdfReceived;
+
+  /// No description provided for @pdfSigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed'**
+  String get pdfSigned;
+
+  /// No description provided for @pdfDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get pdfDraft;
+
+  /// No description provided for @pdfQueuedToSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued to send'**
+  String get pdfQueuedToSend;
+
+  /// No description provided for @pdfAwaitingConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting confirmation'**
+  String get pdfAwaitingConfirmation;
+
+  /// Dynamic PDF payment-count label.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 recorded payment} other{{count} recorded payments}}'**
+  String pdfRecordedPayments(int count);
 }
 
 class _AppLocalizationsDelegate

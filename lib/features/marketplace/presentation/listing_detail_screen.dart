@@ -39,7 +39,7 @@ class ListingDetailScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => context.go('/sign-in'),
-            child: const Text('Sign in'),
+            child: const Text.localized('Sign in'),
           ),
           const SizedBox(width: 12),
         ],
@@ -47,7 +47,7 @@ class ListingDetailScreen extends ConsumerWidget {
       body: listings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) =>
-            Center(child: Text('Could not load this home: $error')),
+            Center(child: Text.localized('Could not load this home: $error')),
         data: (items) {
           Listing? listing;
           for (final item in items) {
@@ -94,7 +94,7 @@ class _ListingDetails extends StatelessWidget {
                   alignment: AlignmentDirectional.centerStart,
                 ),
                 icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                label: const Text('Available homes'),
+                label: const Text.localized('Available homes'),
               ),
               const SizedBox(height: 10),
               Hero(
@@ -164,7 +164,10 @@ class _ListingDescription extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(listing.title, style: Theme.of(context).textTheme.headlineLarge),
+        Text.localized(
+          listing.title,
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -174,14 +177,14 @@ class _ListingDescription extends StatelessWidget {
               color: context.nyumba.mutedInk,
             ),
             const SizedBox(width: 5),
-            Text(
+            Text.localized(
               listingLocationFor(listing),
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ],
         ),
         const SizedBox(height: 18),
-        Text(
+        Text.localized(
           '$formattedRent / month',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             color: context.nyumba.midnightNavy,
@@ -233,12 +236,21 @@ class _ListingDescription extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 30),
-        Text('About this home', style: Theme.of(context).textTheme.titleLarge),
+        Text.localized(
+          'About this home',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         const SizedBox(height: 10),
-        Text(listing.description, style: Theme.of(context).textTheme.bodyLarge),
+        Text.localized(
+          listing.description,
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
         const SizedBox(height: 28),
         if (listing.amenities.isNotEmpty) ...[
-          Text('Amenities', style: Theme.of(context).textTheme.titleLarge),
+          Text.localized(
+            'Amenities',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 24,
@@ -251,7 +263,7 @@ class _ListingDescription extends StatelessWidget {
           const SizedBox(height: 28),
         ],
         if (listing.utilitiesIncluded.isNotEmpty) ...[
-          Text(
+          Text.localized(
             'Utilities included',
             style: Theme.of(context).textTheme.titleLarge,
           ),
@@ -267,7 +279,10 @@ class _ListingDescription extends StatelessWidget {
           const SizedBox(height: 28),
         ],
         if (listing.accessibilityFeatures.isNotEmpty) ...[
-          Text('Accessibility', style: Theme.of(context).textTheme.titleLarge),
+          Text.localized(
+            'Accessibility',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 24,
@@ -279,7 +294,10 @@ class _ListingDescription extends StatelessWidget {
           ),
           const SizedBox(height: 28),
         ],
-        Text('Costs and terms', style: Theme.of(context).textTheme.titleLarge),
+        Text.localized(
+          'Costs and terms',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         const SizedBox(height: 12),
         _DetailRow(label: 'Monthly rent', value: formattedRent),
         if (listing.securityDepositMinor != null)
@@ -303,13 +321,16 @@ class _ListingDescription extends StatelessWidget {
           _DetailRow(label: 'Smoking', value: listing.smokingPolicy!),
         if (listing.viewingInstructions?.trim().isNotEmpty ?? false) ...[
           const SizedBox(height: 22),
-          Text('Viewing', style: Theme.of(context).textTheme.titleLarge),
+          Text.localized(
+            'Viewing',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 8),
-          Text(listing.viewingInstructions!),
+          Text.localized(listing.viewingInstructions!),
         ],
         if (listing.expiresAt != null) ...[
           const SizedBox(height: 22),
-          Text(
+          Text.localized(
             'Listing active until ${DateFormat('d MMM y').format(listing.expiresAt!)}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
@@ -330,12 +351,12 @@ class _ListingActions extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
+          Text.localized(
             'Interested in this home?',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
-          Text(
+          Text.localized(
             'Contact the landlord or submit an application.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
@@ -343,7 +364,7 @@ class _ListingActions extends StatelessWidget {
           FilledButton.icon(
             onPressed: () => _showApplication(context, listing),
             icon: const Icon(Icons.description_outlined),
-            label: Text(
+            label: Text.localized(
               'Apply for this ${listing.unitType == null ? 'rental space' : _displayEnum(listing.unitType!).toLowerCase()}',
             ),
           ),
@@ -351,7 +372,7 @@ class _ListingActions extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => _showContact(context, listing),
             icon: const Icon(Icons.phone_outlined),
-            label: const Text('Contact landlord'),
+            label: const Text.localized('Contact landlord'),
           ),
           const SizedBox(height: 18),
           const Divider(),
@@ -364,7 +385,7 @@ class _ListingActions extends StatelessWidget {
                 size: 20,
               ),
               SizedBox(width: 9),
-              Expanded(child: Text('Verified subscribed landlord')),
+              Expanded(child: Text.localized('Verified subscribed landlord')),
             ],
           ),
           const SizedBox(height: 12),
@@ -376,7 +397,7 @@ class _ListingActions extends StatelessWidget {
                 size: 20,
               ),
               SizedBox(width: 9),
-              Expanded(child: Text('Details available offline')),
+              Expanded(child: Text.localized('Details available offline')),
             ],
           ),
         ],
@@ -405,7 +426,7 @@ class _Fact extends StatelessWidget {
         children: [
           Icon(icon, size: 19, color: context.nyumba.midnightNavy),
           const SizedBox(width: 7),
-          Text(value),
+          Text.localized(value),
         ],
       ),
     );
@@ -429,7 +450,7 @@ class _Included extends StatelessWidget {
             size: 19,
           ),
           const SizedBox(width: 8),
-          Expanded(child: Text(label)),
+          Expanded(child: Text.localized(label)),
         ],
       ),
     );
@@ -451,14 +472,14 @@ class _DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 170,
-            child: Text(
+            child: Text.localized(
               label,
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: context.nyumba.mutedInk),
             ),
           ),
-          Expanded(child: Text(value)),
+          Expanded(child: Text.localized(value)),
         ],
       ),
     );
@@ -494,16 +515,18 @@ class _ListingNotFound extends StatelessWidget {
               color: context.nyumba.mutedInk,
             ),
             const SizedBox(height: 16),
-            Text(
+            Text.localized(
               'This home is no longer available',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 10),
-            const Text('Browse the latest verified listings instead.'),
+            const Text.localized(
+              'Browse the latest verified listings instead.',
+            ),
             const SizedBox(height: 20),
             FilledButton(
               onPressed: onBack,
-              child: const Text('Browse available homes'),
+              child: const Text.localized('Browse available homes'),
             ),
           ],
         ),
@@ -523,12 +546,12 @@ Future<void> _showContact(BuildContext context, Listing listing) {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            Text.localized(
               'Contact landlord',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
-            Text(
+            Text.localized(
               'Ask about ${listing.title}. Nyumba routes enquiries without exposing private landlord contact details.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -536,8 +559,8 @@ Future<void> _showContact(BuildContext context, Listing listing) {
             const ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(child: Icon(Icons.shield_outlined)),
-              title: Text('Private, routed contact'),
-              subtitle: Text(
+              title: Text.localized('Private, routed contact'),
+              subtitle: Text.localized(
                 'Use the application form to send your details securely. Direct contact is not part of the public listing.',
               ),
             ),
@@ -588,7 +611,7 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
   Widget build(BuildContext context) {
     if (_submitted) {
       return AlertDialog(
-        title: const Text('Application saved'),
+        title: const Text.localized('Application saved'),
         content: SizedBox(
           width: 420,
           child: Column(
@@ -604,7 +627,7 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                 ),
               ),
               SizedBox(height: 18),
-              Text(
+              Text.localized(
                 'Your application is safely stored on this device and queued for delivery. Nyumba will retry automatically when you are online.',
                 textAlign: TextAlign.center,
               ),
@@ -614,14 +637,14 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Done'),
+            child: const Text.localized('Done'),
           ),
         ],
       );
     }
 
     return AlertDialog(
-      title: Text(
+      title: Text.localized(
         'Apply for this ${widget.listing.unitType == null ? 'rental space' : _displayEnum(widget.listing.unitType!).toLowerCase()}',
       ),
       content: SizedBox(
@@ -633,7 +656,7 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
+                Text.localized(
                   widget.listing.title,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
@@ -684,7 +707,7 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                     if (date != null) setState(() => _moveIn = date);
                   },
                   icon: const Icon(Icons.event_outlined),
-                  label: Text(
+                  label: Text.localized(
                     _moveIn == null
                         ? 'Choose desired move-in date'
                         : 'Move in ${DateFormat('d MMMM y').format(_moveIn!)}',
@@ -701,7 +724,10 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  Text(_error!, style: TextStyle(color: context.nyumba.danger)),
+                  Text.localized(
+                    _error!,
+                    style: TextStyle(color: context.nyumba.danger),
+                  ),
                 ],
               ],
             ),
@@ -711,7 +737,7 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
       actions: [
         TextButton(
           onPressed: _submitting ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: const Text.localized('Cancel'),
         ),
         FilledButton(
           onPressed: _submitting ? null : _submit,
@@ -723,7 +749,7 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Submit application'),
+              : const Text.localized('Submit application'),
         ),
       ],
     );

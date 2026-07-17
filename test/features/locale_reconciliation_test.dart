@@ -36,6 +36,7 @@ void main() {
     required AppLanguage device,
     UserSettings? existing,
     required List<UserSettings> saved,
+    SaveUserSettings? save,
   }) {
     return ProviderContainer(
       overrides: [
@@ -50,7 +51,7 @@ void main() {
           _FixedLoad((id) async => existing),
         ),
         saveUserSettingsProvider.overrideWithValue(
-          _CapturingSave(saved.add),
+          save ?? _CapturingSave(saved.add),
         ),
       ],
     );
@@ -63,28 +64,31 @@ void main() {
     role: AppRole.landlord,
   );
 
-  test('persists a signed-out language pick the server never learned', () async {
-    final saved = <UserSettings>[];
-    final container = harness(
-      session: landlord,
-      device: AppLanguage.kiswahili,
-      existing: settingsFor('landlord-1'),
-      saved: saved,
-    );
-    addTearDown(container.dispose);
-    // Prime the async device language before resolving the effective locale.
-    await container.read(deviceLanguageProvider.future);
+  test(
+    'persists a signed-out language pick the server never learned',
+    () async {
+      final saved = <UserSettings>[];
+      final container = harness(
+        session: landlord,
+        device: AppLanguage.kiswahili,
+        existing: settingsFor('landlord-1'),
+        saved: saved,
+      );
+      addTearDown(container.dispose);
+      // Prime the async device language before resolving the effective locale.
+      await container.read(deviceLanguageProvider.future);
 
-    expect(container.read(localePreferenceProvider), AppLanguage.kiswahili);
-    await container
-        .read(localePreferenceProvider.notifier)
-        .reconcileServerLocale();
+      expect(container.read(localePreferenceProvider), AppLanguage.kiswahili);
+      await container
+          .read(localePreferenceProvider.notifier)
+          .reconcileServerLocale();
 
-    expect(saved, hasLength(1));
-    expect(saved.single.language, AppLanguage.kiswahili);
-    // Existing account preferences must survive the locale write.
-    expect(saved.single.pushNotifications, isFalse);
-  });
+      expect(saved, hasLength(1));
+      expect(saved.single.language, AppLanguage.kiswahili);
+      // Existing account preferences must survive the locale write.
+      expect(saved.single.pushNotifications, isFalse);
+    },
+  );
 
   test('is a no-op when the account already knows the language', () async {
     final saved = <UserSettings>[];
@@ -110,23 +114,26 @@ void main() {
     expect(saved, isEmpty);
   });
 
-  test('does not write English when the server simply has no preference', () async {
-    final saved = <UserSettings>[];
-    final container = harness(
-      session: landlord,
-      device: AppLanguage.english,
-      existing: settingsFor('landlord-1'),
-      saved: saved,
-    );
-    addTearDown(container.dispose);
-    await container.read(deviceLanguageProvider.future);
+  test(
+    'does not write English when the server simply has no preference',
+    () async {
+      final saved = <UserSettings>[];
+      final container = harness(
+        session: landlord,
+        device: AppLanguage.english,
+        existing: settingsFor('landlord-1'),
+        saved: saved,
+      );
+      addTearDown(container.dispose);
+      await container.read(deviceLanguageProvider.future);
 
-    await container
-        .read(localePreferenceProvider.notifier)
-        .reconcileServerLocale();
+      await container
+          .read(localePreferenceProvider.notifier)
+          .reconcileServerLocale();
 
-    expect(saved, isEmpty);
-  });
+      expect(saved, isEmpty);
+    },
+  );
 
   test('skips anonymous sessions with no server document', () async {
     final saved = <UserSettings>[];
@@ -150,6 +157,85 @@ void main() {
 
     expect(saved, isEmpty);
   });
+
+  for (final session in [
+    const UserSession(
+      userId: 'demo-1',
+      displayName: 'Demo user',
+      email: 'demo@nyumba.test',
+      role: AppRole.landlord,
+      isDemo: true,
+    ),
+    const UserSession(
+      userId: 'anon-1',
+      displayName: 'Prospective tenant',
+      email: '',
+      role: AppRole.client,
+      isAnonymous: true,
+    ),
+  ]) {
+    test(
+      '${session.isDemo ? 'demo' : 'anonymous'} selection stays device-only',
+      () async {
+        final saved = <UserSettings>[];
+        final container = harness(
+          session: session,
+          device: AppLanguage.english,
+          saved: saved,
+        );
+        addTearDown(container.dispose);
+        await container.read(deviceLanguageProvider.future);
+
+        await container
+            .read(localePreferenceProvider.notifier)
+            .select(AppLanguage.luganda);
+
+        expect(container.read(localePreferenceProvider), AppLanguage.luganda);
+        expect(saved, isEmpty);
+      },
+    );
+  }
+
+  test('rejected reconciliation remains retryable for the same user', () async {
+    final saved = <UserSettings>[];
+    final save = _FailOnceSave(saved.add);
+    final container = harness(
+      session: landlord,
+      device: AppLanguage.kiswahili,
+      existing: settingsFor('landlord-1'),
+      saved: saved,
+      save: save,
+    );
+    addTearDown(container.dispose);
+    await container.read(deviceLanguageProvider.future);
+
+    container
+        .read(localeReconciliationProvider.notifier)
+        .reconcileCurrentSession();
+    await _settleReconciliation(container);
+    expect(
+      container.read(localeReconciliationProvider).status,
+      LocaleReconciliationStatus.rejected,
+    );
+
+    container.read(localeReconciliationProvider.notifier).retry();
+    await _settleReconciliation(container);
+    expect(
+      container.read(localeReconciliationProvider).status,
+      LocaleReconciliationStatus.confirmed,
+    );
+    expect(saved, hasLength(1));
+  });
+}
+
+Future<void> _settleReconciliation(ProviderContainer container) async {
+  for (var attempt = 0; attempt < 20; attempt++) {
+    if (container.read(localeReconciliationProvider).status !=
+        LocaleReconciliationStatus.pending) {
+      return;
+    }
+    await Future<void>.delayed(Duration.zero);
+  }
 }
 
 class _FixedSession extends SessionController {
@@ -189,6 +275,23 @@ class _CapturingSave implements SaveUserSettings {
 
   @override
   Future<UserSettings> call(UserSettings settings) async {
+    _capture(settings);
+    return settings;
+  }
+}
+
+class _FailOnceSave implements SaveUserSettings {
+  _FailOnceSave(this._capture);
+
+  final void Function(UserSettings) _capture;
+  bool _failed = false;
+
+  @override
+  Future<UserSettings> call(UserSettings settings) async {
+    if (!_failed) {
+      _failed = true;
+      throw StateError('temporary failure');
+    }
     _capture(settings);
     return settings;
   }

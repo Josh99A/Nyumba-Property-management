@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/google_g_logo.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/nyumba_logo.dart';
@@ -176,14 +177,14 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                 ),
                                 const SizedBox(height: 46),
                               ],
-                              Text(
+                              Text.localized(
                                 'Welcome back',
                                 style: Theme.of(
                                   context,
                                 ).textTheme.headlineLarge,
                               ),
                               const SizedBox(height: 10),
-                              Text(
+                              Text.localized(
                                 'Sign in to manage your Nyumba workspace.',
                                 style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(color: context.nyumba.mutedInk),
@@ -195,7 +196,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    Text(
+                                    Text.localized(
                                       'Email address',
                                       style: Theme.of(
                                         context,
@@ -228,7 +229,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                     Row(
                                       children: [
                                         Expanded(
-                                          child: Text(
+                                          child: Text.localized(
                                             'Password',
                                             style: Theme.of(
                                               context,
@@ -237,7 +238,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                         ),
                                         TextButton(
                                           onPressed: _resetPassword,
-                                          child: const Text('Forgot password?'),
+                                          child: const Text.localized(
+                                            'Forgot password?',
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -290,7 +293,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                                 color: Colors.white,
                                               ),
                                             )
-                                          : const Text('Sign in'),
+                                          : const Text.localized('Sign in'),
                                     ),
                                     const SizedBox(height: 12),
                                     OutlinedButton.icon(
@@ -304,11 +307,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                                 strokeWidth: 2,
                                               ),
                                             )
-                                          : const Icon(
-                                              Icons.g_mobiledata_rounded,
-                                              size: 26,
-                                            ),
-                                      label: Text(
+                                          : const GoogleGLogo(),
+                                      label: Text.localized(
                                         isResolving
                                             ? 'Opening your workspace…'
                                             : 'Continue with Google',
@@ -317,7 +317,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                     const SizedBox(height: 6),
                                     TextButton(
                                       onPressed: () => context.go('/sign-up'),
-                                      child: const Text(
+                                      child: const Text.localized(
                                         'New to Nyumba? Create a landlord account',
                                       ),
                                     ),
@@ -379,7 +379,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                       ),
                                       const SizedBox(width: 10),
                                       Expanded(
-                                        child: Text(
+                                        child: Text.localized(
                                           'Your workspace stays available offline after your first secure sign-in.',
                                           style: Theme.of(
                                             context,
@@ -394,7 +394,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                 const SizedBox(height: 20),
                                 OutlinedButton(
                                   onPressed: () => context.go('/explore'),
-                                  child: const Text('Browse available homes'),
+                                  child: const Text.localized(
+                                    'Browse available homes',
+                                  ),
                                 ),
                               ],
                             ],
@@ -440,7 +442,7 @@ class _BrandPanel extends StatelessWidget {
             delay: NyumbaMotion.stagger(1),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 540),
-              child: Text(
+              child: Text.localized(
                 'Every property, payment and request in one calm workspace.',
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   color: Colors.white,
@@ -454,7 +456,7 @@ class _BrandPanel extends StatelessWidget {
             delay: NyumbaMotion.stagger(2),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 500),
-              child: Text(
+              child: Text.localized(
                 'Built to keep landlords and tenants moving—even when the connection does not.',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: const Color(0xFFDCE7F4),
@@ -474,7 +476,7 @@ class _BrandPanel extends StatelessWidget {
                 side: const BorderSide(color: Color(0xFF8FA9C8)),
               ),
               icon: const Icon(Icons.apartment_outlined),
-              label: const Text('Browse available homes'),
+              label: const Text.localized('Browse available homes'),
             ),
           ),
           const Spacer(),
@@ -483,7 +485,7 @@ class _BrandPanel extends StatelessWidget {
               const Icon(Icons.cloud_done_outlined, color: Color(0xFFBFD8C5)),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
+                child: Text.localized(
                   'Local-first • Secure sync • Multi-platform',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFFDCE7F4),
@@ -509,7 +511,7 @@ class _DividerLabel extends StatelessWidget {
       builder: (context, constraints) {
         if (constraints.maxWidth < 320) {
           return Center(
-            child: Text(
+            child: Text.localized(
               label,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
@@ -522,7 +524,7 @@ class _DividerLabel extends StatelessWidget {
             Flexible(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
+                child: Text.localized(
                   label,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall,
@@ -553,7 +555,7 @@ class _DemoButton extends StatelessWidget {
     return OutlinedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 19),
-      label: Text(label),
+      label: Text.localized(label),
     );
   }
 }

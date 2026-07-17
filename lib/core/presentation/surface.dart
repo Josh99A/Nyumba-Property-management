@@ -101,10 +101,13 @@ class NyumbaSectionHeader extends StatelessWidget {
     final heading = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        Text.localized(title, style: Theme.of(context).textTheme.titleLarge),
         if (subtitle != null) ...[
           const SizedBox(height: 4),
-          Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
+          Text.localized(
+            subtitle!,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ],
       ],
     );

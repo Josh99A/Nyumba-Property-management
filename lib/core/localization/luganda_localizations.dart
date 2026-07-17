@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 
+import 'localization_formats.dart';
+
 /// Flutter does not currently ship Material/Cupertino bundles for `lg`.
 /// These delegates keep standard controls available in Luganda instead of
 /// silently dropping Material localizations for that locale.
@@ -23,8 +25,10 @@ final class _LugandaMaterialDelegate
   bool isSupported(Locale locale) => locale.languageCode == 'lg';
 
   @override
-  Future<MaterialLocalizations> load(Locale locale) =>
-      SynchronousFuture<MaterialLocalizations>(LugandaMaterialLocalizations());
+  Future<MaterialLocalizations> load(Locale locale) async {
+    await initializeNyumbaLocalizationFormats();
+    return LugandaMaterialLocalizations();
+  }
 
   @override
   bool shouldReload(_LugandaMaterialDelegate old) => false;
@@ -34,15 +38,15 @@ final class LugandaMaterialLocalizations extends MaterialLocalizationEn {
   LugandaMaterialLocalizations()
     : super(
         localeName: 'lg',
-        fullYearFormat: DateFormat('y', 'en'),
-        compactDateFormat: DateFormat('yMd', 'en'),
-        shortDateFormat: DateFormat('yMMMd', 'en'),
-        mediumDateFormat: DateFormat('EEE, MMM d', 'en'),
-        longDateFormat: DateFormat('EEEE, MMMM d, y', 'en'),
-        yearMonthFormat: DateFormat('MMMM y', 'en'),
-        shortMonthDayFormat: DateFormat('MMM d', 'en'),
-        decimalFormat: NumberFormat('#,##0.###', 'en'),
-        twoDigitZeroPaddedFormat: NumberFormat('00', 'en'),
+        fullYearFormat: DateFormat('y', 'lg'),
+        compactDateFormat: DateFormat('yMd', 'lg'),
+        shortDateFormat: DateFormat('yMMMd', 'lg'),
+        mediumDateFormat: DateFormat('EEE, MMM d', 'lg'),
+        longDateFormat: DateFormat('EEEE, MMMM d, y', 'lg'),
+        yearMonthFormat: DateFormat('MMMM y', 'lg'),
+        shortMonthDayFormat: DateFormat('MMM d', 'lg'),
+        decimalFormat: NumberFormat('#,##0.###', 'en_UG'),
+        twoDigitZeroPaddedFormat: NumberFormat('00', 'en_UG'),
       );
 
   @override
@@ -122,11 +126,79 @@ final class _LugandaCupertinoDelegate
   bool isSupported(Locale locale) => locale.languageCode == 'lg';
 
   @override
-  Future<CupertinoLocalizations> load(Locale locale) =>
-      SynchronousFuture<CupertinoLocalizations>(
-        const DefaultCupertinoLocalizations(),
-      );
+  Future<CupertinoLocalizations> load(Locale locale) async {
+    await initializeNyumbaLocalizationFormats();
+    return const LugandaCupertinoLocalizations();
+  }
 
   @override
   bool shouldReload(_LugandaCupertinoDelegate old) => false;
+}
+
+final class LugandaCupertinoLocalizations
+    extends DefaultCupertinoLocalizations {
+  const LugandaCupertinoLocalizations();
+
+  @override
+  String datePickerMonth(int monthIndex) =>
+      DateFormat('MMMM', 'lg').format(DateTime(2020, monthIndex));
+  @override
+  String datePickerStandaloneMonth(int monthIndex) =>
+      datePickerMonth(monthIndex);
+  @override
+  String datePickerDayOfMonth(int dayIndex, [int? weekDay]) => weekDay == null
+      ? '$dayIndex'
+      : '${DateFormat('EEE', 'lg').format(DateTime(2020, 1, 6 + weekDay - 1))} $dayIndex';
+  @override
+  String datePickerMediumDate(DateTime date) =>
+      DateFormat('EEE MMM d', 'lg').format(date);
+  @override
+  DatePickerDateOrder get datePickerDateOrder => DatePickerDateOrder.dmy;
+  @override
+  String get todayLabel => 'Leero';
+  @override
+  String get alertDialogLabel => 'Okulabula';
+  @override
+  String get cutButtonLabel => 'Sala';
+  @override
+  String get copyButtonLabel => 'Koppa';
+  @override
+  String get pasteButtonLabel => 'Teeka';
+  @override
+  String get clearButtonLabel => 'Gyawo';
+  @override
+  String get selectAllButtonLabel => 'Londa byonna';
+  @override
+  String get lookUpButtonLabel => 'Noonya';
+  @override
+  String get searchWebButtonLabel => 'Noonya ku mutimbagano';
+  @override
+  String get shareButtonLabel => 'Gabana…';
+  @override
+  String get searchTextFieldPlaceholderLabel => 'Noonya';
+  @override
+  String get modalBarrierDismissLabel => 'Ggalawo';
+  @override
+  String get menuDismissLabel => 'Ggalawo menyu';
+  @override
+  String get cancelButtonLabel => 'Sazaamu';
+  @override
+  String get backButtonLabel => 'Emabega';
+  @override
+  String get noSpellCheckReplacementsLabel => 'Tewali bikyusa bifuniddwa';
+  @override
+  String tabSemanticsLabel({required int tabIndex, required int tabCount}) =>
+      'Tabu $tabIndex ku $tabCount';
+  @override
+  String timerPickerHourLabel(int hour) => 'ssaawa';
+  @override
+  List<String> get timerPickerHourLabels => const ['ssaawa'];
+  @override
+  String timerPickerMinuteLabel(int minute) => 'ddak.';
+  @override
+  List<String> get timerPickerMinuteLabels => const ['ddak.'];
+  @override
+  String timerPickerSecondLabel(int second) => 'sek.';
+  @override
+  List<String> get timerPickerSecondLabels => const ['sek.'];
 }

@@ -57,7 +57,10 @@ void showNyumbaToast(
             Icon(icon, color: Colors.white, size: 20),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(message, style: const TextStyle(color: Colors.white)),
+              child: Text.localized(
+                message,
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),

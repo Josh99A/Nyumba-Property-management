@@ -46,7 +46,7 @@ class NyumbaLogo extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  Text.localized(
                     'Nyumba',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: navy,
@@ -57,7 +57,7 @@ class NyumbaLogo extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: resolvedHeight * .08),
-                  Text(
+                  Text.localized(
                     'PROPERTY MANAGEMENT',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: sage,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart' as cupertino;
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -49,7 +50,22 @@ void main() {
 
     final expected = _messageKeys(catalogs['en']!);
     for (final language in AppLanguage.values.skip(1)) {
-      expect(_messageKeys(catalogs[language.code]!), expected);
+      final localized = catalogs[language.code]!;
+      expect(_messageKeys(localized), expected);
+      for (final key in expected) {
+        final englishMessage = catalogs['en']![key] as String;
+        final localizedMessage = localized[key] as String;
+        expect(
+          _icuPlaceholders(localizedMessage),
+          _icuPlaceholders(englishMessage),
+          reason: '${language.code}:$key placeholders',
+        );
+        expect(
+          _placeholderMetadata(localized, key),
+          _placeholderMetadata(catalogs['en']!, key),
+          reason: '${language.code}:@$key.placeholders',
+        );
+      }
     }
     expect(expected.length, greaterThan(590));
   });
@@ -113,6 +129,9 @@ void main() {
       material.MaterialLocalizations.of(lugandaContext).okButtonLabel,
       'KALE',
     );
+    final cupertinoCopy = cupertino.CupertinoLocalizations.of(lugandaContext);
+    expect(cupertinoCopy.copyButtonLabel, 'Koppa');
+    expect(cupertinoCopy.datePickerMonth(9), 'Ssebutemba');
   });
 
   testWidgets('Arabic PDF embeds Unicode fonts and generates successfully', (
@@ -176,6 +195,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'width=$width');
       expect(find.byType(LanguageMenuButton), findsOneWidget);
+      expect(find.byIcon(material.Icons.translate_rounded), findsOneWidget);
     }
 
     await pumpAt(320);
@@ -185,6 +205,23 @@ void main() {
 
 Set<String> _messageKeys(Map<String, dynamic> catalog) =>
     catalog.keys.where((key) => !key.startsWith('@')).toSet();
+
+Set<String> _icuPlaceholders(String message) => RegExp(
+  r'\{([A-Za-z][A-Za-z0-9_]*)\s*(?:,|\})',
+).allMatches(message).map((match) => match.group(1)!).toSet();
+
+Map<String, dynamic> _placeholderMetadata(
+  Map<String, dynamic> catalog,
+  String key,
+) {
+  final metadata = catalog['@$key'];
+  if (metadata is! Map) return const {};
+  final placeholders = metadata['placeholders'];
+  if (placeholders is! Map) return const {};
+  return <String, dynamic>{
+    for (final entry in placeholders.entries) entry.key.toString(): entry.value,
+  };
+}
 
 const _delegates = <material.LocalizationsDelegate<dynamic>>[
   ...LugandaLocalizations.delegates,

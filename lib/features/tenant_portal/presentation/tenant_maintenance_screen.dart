@@ -76,12 +76,12 @@ class _TenantMaintenanceScreenState
       secondaryAction: OutlinedButton.icon(
         onPressed: _showEmergencyHelp,
         icon: const Icon(Icons.emergency_outlined),
-        label: const Text('Emergency help'),
+        label: const Text.localized('Emergency help'),
       ),
       primaryAction: FilledButton.icon(
         onPressed: _createRequest,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('New request'),
+        label: const Text.localized('New request'),
       ),
       children: [
         Container(
@@ -101,7 +101,7 @@ class _TenantMaintenanceScreenState
               ),
               const SizedBox(width: 9),
               const Expanded(
-                child: Text(
+                child: Text.localized(
                   'New requests, notes, and photos save on this device first. '
                   'They sync automatically when connectivity is available.',
                 ),
@@ -118,7 +118,7 @@ class _TenantMaintenanceScreenState
           error: (error, stack) => NyumbaSurface(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('Could not load your requests: $error'),
+              child: Text.localized('Could not load your requests: $error'),
             ),
           ),
           data: (requests) => _buildLoaded(context, requests, outbox),
@@ -207,7 +207,7 @@ class _TenantMaintenanceScreenState
                     'Resolved',
                   ])
                     ChoiceChip(
-                      label: Text(item),
+                      label: Text.localized(item),
                       selected: _filter == item,
                       showCheckmark: false,
                       onSelected: (_) => setState(() => _filter = item),
@@ -230,7 +230,7 @@ class _TenantMaintenanceScreenState
                   _query = '';
                 }),
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Show all requests'),
+                label: const Text.localized('Show all requests'),
               ),
             ),
           )
@@ -279,7 +279,7 @@ class _TenantMaintenanceScreenState
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('New maintenance request'),
+          title: const Text.localized('New maintenance request'),
           content: SizedBox(
             width: 500,
             child: SingleChildScrollView(
@@ -287,7 +287,7 @@ class _TenantMaintenanceScreenState
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
+                  Text.localized(
                     'Category',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
@@ -303,7 +303,7 @@ class _TenantMaintenanceScreenState
                         'Building',
                       ])
                         ChoiceChip(
-                          label: Text(item),
+                          label: Text.localized(item),
                           selected: category == item,
                           showCheckmark: false,
                           onSelected: (_) =>
@@ -335,7 +335,7 @@ class _TenantMaintenanceScreenState
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Text(
+                  Text.localized(
                     'Priority',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
@@ -348,7 +348,7 @@ class _TenantMaintenanceScreenState
                         (MaintenancePriority.urgent, 'Urgent'),
                       ])
                         ChoiceChip(
-                          label: Text(item.$2),
+                          label: Text.localized(item.$2),
                           selected: priority == item.$1,
                           showCheckmark: false,
                           onSelected: (_) =>
@@ -360,7 +360,7 @@ class _TenantMaintenanceScreenState
                   OutlinedButton.icon(
                     onPressed: () => setDialogState(() => photoCount++),
                     icon: const Icon(Icons.add_a_photo_outlined),
-                    label: Text(
+                    label: Text.localized(
                       photoCount == 0
                           ? 'Attach a photo'
                           : '$photoCount photo${photoCount == 1 ? '' : 's'} attached',
@@ -369,8 +369,8 @@ class _TenantMaintenanceScreenState
                   SwitchListTile.adaptive(
                     contentPadding: EdgeInsets.zero,
                     value: allowAccess,
-                    title: const Text('Allow access while I am away'),
-                    subtitle: const Text(
+                    title: const Text.localized('Allow access while I am away'),
+                    subtitle: const Text.localized(
                       'The manager must confirm before entry',
                     ),
                     onChanged: (value) =>
@@ -386,7 +386,7 @@ class _TenantMaintenanceScreenState
                       ),
                       const SizedBox(width: 8),
                       const Expanded(
-                        child: Text(
+                        child: Text.localized(
                           'This request can be saved without a connection and '
                           'will show as awaiting sync.',
                         ),
@@ -400,7 +400,7 @@ class _TenantMaintenanceScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton.icon(
               onPressed: () {
@@ -409,14 +409,16 @@ class _TenantMaintenanceScreenState
                 if (title.length < 4 || description.length < 10) {
                   showTenantMessage(
                     dialogContext,
-                    'Add a clear title and a little more detail.',
+                    dialogContext.tr(
+                      'Add a clear title and a little more detail.',
+                    ),
                   );
                   return;
                 }
                 Navigator.pop(dialogContext, true);
               },
               icon: const Icon(Icons.send_rounded),
-              label: const Text('Submit request'),
+              label: const Text.localized('Submit request'),
             ),
           ],
         ),
@@ -430,8 +432,10 @@ class _TenantMaintenanceScreenState
         if (mounted) {
           showTenantMessage(
             context,
-            'We could not find your tenancy yet, so this request has nowhere '
-            'to go. It will work once your landlord activates your lease.',
+            context.tr(
+              'We could not find your tenancy yet, so this request has nowhere '
+              'to go. It will work once your landlord activates your lease.',
+            ),
           );
         }
         return;
@@ -455,12 +459,15 @@ class _TenantMaintenanceScreenState
           setState(() => _filter = 'All');
           showTenantMessage(
             context,
-            '${request.reference} saved and queued to sync.',
+            context.tr('${request.reference} saved and queued to sync.'),
           );
         }
       } on Object catch (error) {
         if (mounted) {
-          showTenantMessage(context, 'Could not save the request: $error');
+          showTenantMessage(
+            context,
+            context.tr('Could not save the request: $error'),
+          );
         }
       }
     }
@@ -529,7 +536,7 @@ class _TenantMaintenanceScreenState
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              Text.localized(
                                 'Contractor visit',
                                 style: Theme.of(context).textTheme.labelLarge,
                               ),
@@ -542,7 +549,7 @@ class _TenantMaintenanceScreenState
                   ),
                 ],
                 const SizedBox(height: 20),
-                Text(
+                Text.localized(
                   'Request timeline',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
@@ -562,16 +569,16 @@ class _TenantMaintenanceScreenState
           if (request.status == MaintenanceStatus.submitted)
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, 'cancel'),
-              child: const Text('Cancel request'),
+              child: const Text.localized('Cancel request'),
             ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
+            child: const Text.localized('Close'),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, 'message'),
             icon: const Icon(Icons.chat_bubble_outline_rounded),
-            label: const Text('Message manager'),
+            label: const Text.localized('Message manager'),
           ),
         ],
       ),
@@ -630,19 +637,19 @@ class _TenantMaintenanceScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel this request?'),
-        content: const Text(
+        title: const Text.localized('Cancel this request?'),
+        content: const Text.localized(
           'The property manager will be notified. You can create a new request '
           'later if the issue returns.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep request'),
+            child: const Text.localized('Keep request'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Cancel request'),
+            child: const Text.localized('Cancel request'),
           ),
         ],
       ),
@@ -679,12 +686,12 @@ class _TenantMaintenanceScreenState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
+              Text.localized(
                 'Emergency help',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 6),
-              const Text(
+              const Text.localized(
                 'For fire, immediate danger, or a serious medical emergency, '
                 'contact local emergency services first.',
               ),
@@ -698,7 +705,7 @@ class _TenantMaintenanceScreenState
                   'Emergency call handoff is available on your phone.',
                 ),
                 icon: const Icon(Icons.call_outlined),
-                label: const Text('Call property emergency line'),
+                label: const Text.localized('Call property emergency line'),
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
@@ -707,7 +714,7 @@ class _TenantMaintenanceScreenState
                   _createRequest();
                 },
                 icon: const Icon(Icons.report_problem_outlined),
-                label: const Text('Report an urgent property issue'),
+                label: const Text.localized('Report an urgent property issue'),
               ),
             ],
           ),
@@ -765,7 +772,7 @@ class _RequestCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 3),
-                      Text(
+                      Text.localized(
                         '${request.reference} • ${request.category}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
@@ -789,7 +796,9 @@ class _RequestCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     request.appointment ??
-                        'Reported ${DateFormat('d MMM').format(request.reportedAt.toLocal())}',
+                        context.tr(
+                          'Reported ${DateFormat('d MMM').format(request.reportedAt.toLocal())}',
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,

@@ -158,7 +158,7 @@ class _AccessOperationsPanel extends StatelessWidget {
           final summary = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              Text.localized(
                 isSuperAdmin
                     ? 'You can manage business data, platform configuration, '
                           'and privileged accounts. Audit history remains read-only.'
@@ -183,7 +183,7 @@ class _AccessOperationsPanel extends StatelessWidget {
           final action = FilledButton.icon(
             onPressed: () => context.go('/admin/access'),
             icon: const Icon(Icons.policy_outlined),
-            label: const Text('View all operations'),
+            label: const Text.localized('View all operations'),
           );
           if (constraints.maxWidth < 760) {
             return Column(
@@ -278,7 +278,7 @@ class _ApprovalPanel extends StatelessWidget {
         onPressed: () => context.go('/admin/users'),
         iconAlignment: IconAlignment.end,
         icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-        label: const Text('Review in Users'),
+        label: const Text.localized('Review in Users'),
       ),
       child: switch ((accountsValue, pending)) {
         (AsyncValue(isLoading: true, hasValue: false), _) => const Padding(
@@ -287,11 +287,13 @@ class _ApprovalPanel extends StatelessWidget {
         ),
         (AsyncValue(:final error?), _) when !accountsValue.hasValue => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text('Could not load the approval queue: $error'),
+          child: Text.localized('Could not load the approval queue: $error'),
         ),
         (_, []) => const Padding(
           padding: EdgeInsets.all(12),
-          child: Text('No landlord applications are waiting right now.'),
+          child: Text.localized(
+            'No landlord applications are waiting right now.',
+          ),
         ),
         _ => Column(
           children: [
@@ -306,14 +308,14 @@ class _ApprovalPanel extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            Text.localized(
                               pending[index].businessName == null
                                   ? pending[index].displayName
                                   : '${pending[index].displayName} · '
                                         '${pending[index].businessName}',
                               style: Theme.of(context).textTheme.labelLarge,
                             ),
-                            Text(
+                            Text.localized(
                               '${pending[index].email.isEmpty ? 'No email' : pending[index].email}'
                               ' · joined ${pending[index].joinedLabel}',
                               style: Theme.of(context).textTheme.bodySmall,
@@ -367,7 +369,7 @@ class _AdminActivityPanel extends ConsumerWidget {
         AsyncValue(hasValue: true, :final value) when value!.isEmpty =>
           const Padding(
             padding: EdgeInsets.all(12),
-            child: Text('No audited commands recorded yet.'),
+            child: Text.localized('No audited commands recorded yet.'),
           ),
         AsyncValue(hasValue: true, :final value) => Column(
           children: [
@@ -390,11 +392,11 @@ class _AdminActivityPanel extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            Text.localized(
                               value[index].action,
                               style: Theme.of(context).textTheme.labelLarge,
                             ),
-                            Text(
+                            Text.localized(
                               DateFormat(
                                 'd MMM, HH:mm',
                               ).format(value[index].at.toLocal()),
@@ -413,7 +415,7 @@ class _AdminActivityPanel extends ConsumerWidget {
         ),
         AsyncValue(:final error?) => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text('Could not read the audit log: $error'),
+          child: Text.localized('Could not read the audit log: $error'),
         ),
         _ => const Padding(
           padding: EdgeInsets.all(24),

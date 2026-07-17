@@ -2008,4 +2008,274 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationAvailableOnRequest => 'Location available on request';
+
+  @override
+  String get appearanceSavingOnDevice => 'Saving on this device…';
+
+  @override
+  String get appearanceAppliedOnDevice => 'Applied and saved on this device.';
+
+  @override
+  String get appearanceSaveTryAgain =>
+      'Appearance could not be saved. Please try again.';
+
+  @override
+  String get appearanceSaveFailed => 'Could not save this appearance setting.';
+
+  @override
+  String get emailDeliveryNotConfigured =>
+      'Email delivery is not configured yet.';
+
+  @override
+  String occupancySemantics(int percentage) {
+    return '$percentage percent of rental spaces are occupied';
+  }
+
+  @override
+  String unreadNotifications(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count unread notifications',
+      one: '1 unread notification',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get closeNotifications => 'Close notifications';
+
+  @override
+  String get notificationSyncDescription =>
+      'Updates are kept on this device and sync when you reconnect.';
+
+  @override
+  String get notificationLoadFailed => 'Notifications could not be loaded';
+
+  @override
+  String get notificationLocalDataAvailable =>
+      'Your existing local data is still available.';
+
+  @override
+  String get noNotificationsYet => 'No notifications yet';
+
+  @override
+  String get newNotificationsWillAppear =>
+      'New account updates will appear here.';
+
+  @override
+  String get notificationMarkReadFailed =>
+      'This notification could not be marked as read.';
+
+  @override
+  String get newNotification => 'New notification';
+
+  @override
+  String get confirmed => 'Confirmed';
+
+  @override
+  String get awaitingSync => 'Awaiting sync';
+
+  @override
+  String paymentStatusDate(String date, String status) {
+    return '$date · $status';
+  }
+
+  @override
+  String get enterValidAmount => 'Enter a valid amount';
+
+  @override
+  String get giveNoticeClearTitle => 'Give the notice a clear title';
+
+  @override
+  String get writeNoticeContent => 'Write the notice content';
+
+  @override
+  String couldNotCreateDocument(String error) {
+    return 'Could not create the document: $error';
+  }
+
+  @override
+  String get loadingProperties => 'Loading properties…';
+
+  @override
+  String get propertiesLoadBeforeNotice =>
+      'Properties could not be loaded. Try again before queuing this notice.';
+
+  @override
+  String couldNotQueueNotice(String error) {
+    return 'Could not queue the notice: $error';
+  }
+
+  @override
+  String get enterListingTitle => 'Enter a listing title';
+
+  @override
+  String get addUsefulDescription => 'Add a useful description';
+
+  @override
+  String get enterValidRentAmount => 'Enter a valid rent amount';
+
+  @override
+  String get enterCity => 'Enter a city';
+
+  @override
+  String get enterNeighborhood => 'Enter a neighborhood';
+
+  @override
+  String get enterClearTitle => 'Enter a clear title';
+
+  @override
+  String get addMoreDetail => 'Add a little more detail';
+
+  @override
+  String get enterPublicNeighborhood => 'Enter a public neighborhood';
+
+  @override
+  String get enterPhoneOrEmail => 'Enter a phone or email for routed enquiries';
+
+  @override
+  String get useUganda256 => 'Use the Ugandan +256 format';
+
+  @override
+  String get enterValidEmailShort => 'Enter a valid email';
+
+  @override
+  String get enterPositiveWholeNumber => 'Enter a positive whole number';
+
+  @override
+  String get enterNonNegativeNumber => 'Enter zero or a positive number';
+
+  @override
+  String enterValueRange(double minimum, double maximum) {
+    return 'Enter a value from $minimum to $maximum';
+  }
+
+  @override
+  String get enterLandlordAccountId => 'Enter the landlord account ID';
+
+  @override
+  String get enterPropertyName => 'Enter a property name';
+
+  @override
+  String get enterStreetAddress => 'Enter the street address';
+
+  @override
+  String get enterCityTown => 'Enter a city or town';
+
+  @override
+  String get addPropertyPhoto => 'Add at least one property photo.';
+
+  @override
+  String get enterRentalSpaceLabel => 'Enter a rental space name or number';
+
+  @override
+  String get requiredField => 'Required';
+
+  @override
+  String get maintenanceDetailError =>
+      'Add a clear title and a little more detail.';
+
+  @override
+  String get maintenanceTenancyMissing =>
+      'We could not find your tenancy yet, so this request has nowhere to go. It will work once your landlord activates your lease.';
+
+  @override
+  String maintenanceSaved(String reference) {
+    return '$reference saved and queued to sync.';
+  }
+
+  @override
+  String maintenanceSaveFailed(String error) {
+    return 'Could not save the request: $error';
+  }
+
+  @override
+  String get pdfIssuedTo => 'Issued to';
+
+  @override
+  String get pdfProperty => 'Property';
+
+  @override
+  String get pdfDate => 'Date';
+
+  @override
+  String get pdfPaymentReceived => 'Payment received';
+
+  @override
+  String get pdfRentDue => 'Rent due';
+
+  @override
+  String get pdfDescription => 'Description';
+
+  @override
+  String get pdfBillingPeriod => 'Billing period';
+
+  @override
+  String get pdfAmount => 'Amount';
+
+  @override
+  String get pdfMonthlyRent => 'Monthly rent';
+
+  @override
+  String get pdfGeneratedBy => 'Generated by Nyumba Property Management';
+
+  @override
+  String get pdfKeepForRecords => 'Keep this document for your records.';
+
+  @override
+  String get pdfReceipt => 'Receipt';
+
+  @override
+  String get pdfInvoice => 'Invoice';
+
+  @override
+  String get pdfLease => 'Lease';
+
+  @override
+  String get pdfNotice => 'Notice';
+
+  @override
+  String get pdfRentStatement => 'Rent statement';
+
+  @override
+  String get pdfPaymentRecord => 'Payment record';
+
+  @override
+  String get pdfTenantNotice => 'Tenant notice';
+
+  @override
+  String get pdfNotYetIssued => 'Not yet issued';
+
+  @override
+  String get pdfPaid => 'Paid';
+
+  @override
+  String get pdfDue => 'Due';
+
+  @override
+  String get pdfReceived => 'Received';
+
+  @override
+  String get pdfSigned => 'Signed';
+
+  @override
+  String get pdfDraft => 'Draft';
+
+  @override
+  String get pdfQueuedToSend => 'Queued to send';
+
+  @override
+  String get pdfAwaitingConfirmation => 'Awaiting confirmation';
+
+  @override
+  String pdfRecordedPayments(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count recorded payments',
+      one: '1 recorded payment',
+    );
+    return '$_temp0';
+  }
 }

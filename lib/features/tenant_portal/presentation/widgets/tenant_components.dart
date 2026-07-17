@@ -20,7 +20,7 @@ String formatTenantUgx(num amount) => _tenantCurrency.format(amount);
 void showTenantMessage(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
+    ..showSnackBar(SnackBar(content: Text.localized(message)));
 }
 
 class TenantPage extends StatelessWidget {
@@ -139,7 +139,7 @@ class TenantMetricCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 11),
                 Expanded(
-                  child: Text(
+                  child: Text.localized(
                     label,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
@@ -150,7 +150,7 @@ class TenantMetricCard extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: AlignmentDirectional.centerStart,
-              child: Text(
+              child: Text.localized(
                 value,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: color,
@@ -160,7 +160,10 @@ class TenantMetricCard extends StatelessWidget {
             ),
             if (caption != null) ...[
               const SizedBox(height: 4),
-              Text(caption!, style: Theme.of(context).textTheme.bodySmall),
+              Text.localized(
+                caption!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ],
         ),
@@ -270,7 +273,7 @@ class TenantBalanceHero extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Flexible(
-                          child: Text(
+                          child: Text.localized(
                             paid
                                 ? 'Rent is up to date'
                                 : 'Current rent balance',
@@ -283,7 +286,7 @@ class TenantBalanceHero extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Text(
+                    Text.localized(
                       formatTenantUgx(amount),
                       style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         color: Colors.white,
@@ -291,7 +294,7 @@ class TenantBalanceHero extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 7),
-                    Text(
+                    Text.localized(
                       paid ? 'Your next invoice will appear here.' : dueLabel,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.white.withValues(alpha: .76),
@@ -315,7 +318,9 @@ class TenantBalanceHero extends StatelessWidget {
                   // No payment provider is integrated yet, so this must never
                   // promise an in-app checkout: it records a payment made
                   // outside the app for server confirmation.
-                  label: Text(paid ? 'View receipt' : 'Record a payment'),
+                  label: Text.localized(
+                    paid ? 'View receipt' : 'Record a payment',
+                  ),
                 );
                 if (constraints.maxWidth < 620) {
                   return Column(
@@ -394,9 +399,15 @@ class TenantQuickAction extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: Theme.of(context).textTheme.labelLarge),
+                Text.localized(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
                 if (caption != null)
-                  Text(caption!, style: Theme.of(context).textTheme.bodySmall),
+                  Text.localized(
+                    caption!,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
               ],
             ),
           ),
@@ -470,9 +481,15 @@ class TenantTimelineStep extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: Theme.of(context).textTheme.labelLarge),
+                  Text.localized(
+                    title,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
                   const SizedBox(height: 2),
-                  Text(detail, style: Theme.of(context).textTheme.bodySmall),
+                  Text.localized(
+                    detail,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ),
             ),
@@ -516,9 +533,15 @@ class TenantInfoRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: Theme.of(context).textTheme.bodySmall),
+              Text.localized(
+                label,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               const SizedBox(height: 2),
-              Text(value, style: Theme.of(context).textTheme.labelLarge),
+              Text.localized(
+                value,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
             ],
           ),
         ),
@@ -558,9 +581,9 @@ class TenantEmptyState extends StatelessWidget {
             child: Icon(icon, color: context.nyumba.sageDark),
           ),
           const SizedBox(height: 14),
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          Text.localized(title, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 5),
-          Text(
+          Text.localized(
             message,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,

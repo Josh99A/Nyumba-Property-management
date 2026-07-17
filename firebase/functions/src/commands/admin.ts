@@ -108,7 +108,12 @@ export const userArchive: CommandHandler<z.infer<typeof userLifecycleReasonSchem
       archiveReasonCode: cmd.payload.reasonCode,
       ...bumpVersion(current, now),
     });
-    createJob(tx, db, `${cmd.commandId}_disable`, 'setAuthUserDisabled', { uid: targetUid, disabled: true }, now);
+    createJob(tx, db, `${cmd.commandId}_disable`, 'setAuthUserDisabled', {
+      uid: targetUid,
+      disabled: true,
+      expectedUserVersion: current.version + 1,
+      expectedUserStatus: 'archived',
+    }, now);
     // An archived landlord must not keep advertising: take their public
     // listings down through the same worker suspension uses.
     if (landlordAccount.exists) {
@@ -145,7 +150,12 @@ export const userRestore: CommandHandler<z.infer<typeof userLifecycleReasonSchem
       archiveReasonCode: null,
       ...bumpVersion(current, now),
     });
-    createJob(tx, db, `${cmd.commandId}_enable`, 'setAuthUserDisabled', { uid: targetUid, disabled: false }, now);
+    createJob(tx, db, `${cmd.commandId}_enable`, 'setAuthUserDisabled', {
+      uid: targetUid,
+      disabled: false,
+      expectedUserVersion: current.version + 1,
+      expectedUserStatus: 'active',
+    }, now);
     return {
       status: 'accepted',
       aggregateId: targetUid,

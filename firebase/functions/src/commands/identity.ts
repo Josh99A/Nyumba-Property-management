@@ -5,19 +5,23 @@ import { COLLECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { optionalShortText, strictPayload, type CommandHandler } from '../shared/handlers';
 
+const notificationPreferencesSchema = z
+  .object({
+    email: z.boolean().optional(),
+    push: z.boolean().optional(),
+    rentReminders: z.boolean().optional(),
+    maintenanceUpdates: z.boolean().optional(),
+  })
+  .strict()
+  .refine((value) => Object.values(value).some((field) => field !== undefined), {
+    message: 'At least one notification preference is required.',
+  });
+
 const profileSchema = strictPayload({
   displayName: optionalShortText,
   phone: z.string().trim().max(32).optional(),
   locale: z.enum(['en', 'lg', 'sw', 'ar']).optional(),
-  notifications: z
-    .object({
-      email: z.boolean(),
-      push: z.boolean(),
-      rentReminders: z.boolean().optional(),
-      maintenanceUpdates: z.boolean().optional(),
-    })
-    .strict()
-    .optional(),
+  notifications: notificationPreferencesSchema.optional(),
 }).refine((value) => Object.values(value).some((field) => field !== undefined), {
   message: 'At least one profile field is required.',
 });
@@ -37,9 +41,16 @@ export const profileUpdate: CommandHandler<z.infer<typeof profileSchema>> = {
       snapshot,
       cmd.expectedVersion,
     );
-    const changes = Object.fromEntries(
-      Object.entries(cmd.payload).filter(([, value]) => value !== undefined),
+    const { notifications, ...profileFields } = cmd.payload;
+    const changes: Record<string, unknown> = Object.fromEntries(
+      Object.entries(profileFields).filter(([, value]) => value !== undefined),
     );
+    // Firestore dot paths merge only the supplied toggles. Replacing the
+    // nested map would silently reset preferences omitted by a partial client
+    // update or by an older app version.
+    for (const [name, value] of Object.entries(notifications ?? {})) {
+      if (value !== undefined) changes[`notifications.${name}`] = value;
+    }
     const next = { ...changes, ...bumpVersion(current, now) };
     tx.update(ref, next);
     return {

@@ -88,7 +88,7 @@ class _LandlordListingsScreenState
                                 propertiesValue.value!,
                               ),
                         icon: const Icon(Icons.add_rounded),
-                        label: const Text('Create listing'),
+                        label: const Text.localized('Create listing'),
                       )
                     : null,
                 secondaryAction: OutlinedButton.icon(
@@ -99,7 +99,7 @@ class _LandlordListingsScreenState
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.sync_rounded),
-                  label: Text(
+                  label: Text.localized(
                     pendingCount == 0
                         ? 'Everything synced'
                         : 'Sync $pendingCount',
@@ -125,7 +125,7 @@ class _LandlordListingsScreenState
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(
+                          child: Text.localized(
                             '$pendingCount local ${pendingCount == 1 ? 'change is' : 'changes are'} waiting to sync. Pending listings are never public before server acknowledgement.',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
@@ -150,7 +150,7 @@ class _LandlordListingsScreenState
                     'Paused',
                   ])
                     ChoiceChip(
-                      label: Text(filter),
+                      label: Text.localized(filter),
                       selected: _filter == filter,
                       onSelected: (_) => setState(() => _filter = filter),
                     ),
@@ -163,7 +163,9 @@ class _LandlordListingsScreenState
                   child: Center(child: CircularProgressIndicator()),
                 ),
                 error: (error, stack) => NyumbaSurface(
-                  child: Text('Could not load local listings: $error'),
+                  child: Text.localized(
+                    'Could not load local listings: $error',
+                  ),
                 ),
                 data: (allListings) {
                   final listings = allListings.where((listing) {
@@ -183,7 +185,9 @@ class _LandlordListingsScreenState
                       child: Padding(
                         padding: EdgeInsets.all(32),
                         child: Center(
-                          child: Text('No listings match this filter.'),
+                          child: Text.localized(
+                            'No listings match this filter.',
+                          ),
                         ),
                       ),
                     );
@@ -240,7 +244,7 @@ class _LandlordListingsScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
+            content: Text.localized(
               'Publication request saved locally. It will become public after server validation.',
             ),
           ),
@@ -248,9 +252,9 @@ class _LandlordListingsScreenState
       }
     } on Object catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not publish: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text.localized('Could not publish: $error')),
+        );
       }
     }
   }
@@ -270,7 +274,7 @@ class _LandlordListingsScreenState
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Edit ${listing.title}'),
+          title: Text.localized('Edit ${listing.title}'),
           content: SizedBox(
             width: 560,
             child: Form(
@@ -285,7 +289,7 @@ class _LandlordListingsScreenState
                         labelText: context.tr('Listing title'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 3
-                          ? 'Enter a listing title'
+                          ? context.tr('Enter a listing title')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -297,7 +301,7 @@ class _LandlordListingsScreenState
                         labelText: context.tr('Description'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 10
-                          ? 'Add a useful description'
+                          ? context.tr('Add a useful description')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -313,7 +317,7 @@ class _LandlordListingsScreenState
                           value?.replaceAll(',', '') ?? '',
                         );
                         return amount == null || amount <= 0
-                            ? 'Enter a valid rent amount'
+                            ? context.tr('Enter a valid rent amount')
                             : null;
                       },
                     ),
@@ -324,7 +328,7 @@ class _LandlordListingsScreenState
                         labelText: context.tr('City'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? 'Enter a city'
+                          ? context.tr('Enter a city')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -334,7 +338,7 @@ class _LandlordListingsScreenState
                         labelText: context.tr('Neighborhood'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? 'Enter a neighborhood'
+                          ? context.tr('Enter a neighborhood')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -359,7 +363,7 @@ class _LandlordListingsScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () async {
@@ -382,7 +386,7 @@ class _LandlordListingsScreenState
                   setDialogState(() => error = caught.toString());
                 }
               },
-              child: const Text('Save changes'),
+              child: const Text.localized('Save changes'),
             ),
           ],
         ),
@@ -397,7 +401,9 @@ class _LandlordListingsScreenState
     if (saved == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Listing changes saved locally and queued to sync.'),
+          content: Text.localized(
+            'Listing changes saved locally and queued to sync.',
+          ),
         ),
       );
     }
@@ -407,19 +413,19 @@ class _LandlordListingsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Unpublish ${listing.title}?'),
-        content: const Text(
+        title: Text.localized('Unpublish ${listing.title}?'),
+        content: const Text.localized(
           'The listing stays marked as unpublishing until the server removes '
           'its public projection.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text.localized('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Unpublish listing'),
+            child: const Text.localized('Unpublish listing'),
           ),
         ],
       ),
@@ -430,16 +436,16 @@ class _LandlordListingsScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
+          content: Text.localized(
             'Unpublish request saved locally and awaiting server confirmation.',
           ),
         ),
       );
     } on Object catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Could not unpublish: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text.localized('Could not unpublish: $error')),
+      );
     }
   }
 
@@ -450,7 +456,7 @@ class _LandlordListingsScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
+            content: Text.localized(
               report.succeeded == 0
                   ? 'No changes were ready to sync.'
                   : '${report.succeeded} ${report.succeeded == 1 ? 'change' : 'changes'} synced successfully.',
@@ -472,7 +478,9 @@ class _LandlordListingsScreenState
     if (vacant.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Add a vacant rental space before creating a listing.'),
+          content: Text.localized(
+            'Add a vacant rental space before creating a listing.',
+          ),
         ),
       );
       return;
@@ -515,7 +523,7 @@ class _LandlordListingsScreenState
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Create listing'),
+          title: const Text.localized('Create listing'),
           content: SizedBox(
             width: 520,
             child: Form(
@@ -533,7 +541,7 @@ class _LandlordListingsScreenState
                         for (final unit in vacant)
                           DropdownMenuItem(
                             value: unit,
-                            child: Text(
+                            child: Text.localized(
                               '${unit.displayName} · ${propertyById[unit.propertyId]?.name ?? ''}',
                             ),
                           ),
@@ -556,7 +564,7 @@ class _LandlordListingsScreenState
                         labelText: context.tr('Listing title'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 5
-                          ? 'Enter a clear title'
+                          ? context.tr('Enter a clear title')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -568,7 +576,7 @@ class _LandlordListingsScreenState
                         labelText: context.tr('Description'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 15
-                          ? 'Add a little more detail'
+                          ? context.tr('Add a little more detail')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -584,7 +592,7 @@ class _LandlordListingsScreenState
                               ),
                             ),
                             validator: (value) => value?.trim().isEmpty ?? true
-                                ? 'Enter a public neighborhood'
+                                ? context.tr('Enter a public neighborhood')
                                 : null,
                           ),
                         ),
@@ -614,7 +622,8 @@ class _LandlordListingsScreenState
                                 'Approx. latitude (optional)',
                               ),
                             ),
-                            validator: _optionalLatitudeValidator,
+                            validator: (value) =>
+                                _optionalLatitudeValidator(context, value),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -630,7 +639,8 @@ class _LandlordListingsScreenState
                                 'Approx. longitude (optional)',
                               ),
                             ),
-                            validator: _optionalLongitudeValidator,
+                            validator: (value) =>
+                                _optionalLongitudeValidator(context, value),
                           ),
                         ),
                       ],
@@ -649,7 +659,7 @@ class _LandlordListingsScreenState
                         }
                       },
                       icon: const Icon(Icons.event_available_outlined),
-                      label: Text(
+                      label: Text.localized(
                         availableFrom == null
                             ? 'Choose availability date'
                             : 'Available ${DateFormat('d MMM y').format(availableFrom!)}',
@@ -665,7 +675,11 @@ class _LandlordListingsScreenState
                             decoration: InputDecoration(
                               labelText: context.tr('Floor area (m²)'),
                             ),
-                            validator: _optionalPositiveIntegerValidator,
+                            validator: (value) =>
+                                _optionalPositiveIntegerValidator(
+                                  context,
+                                  value,
+                                ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -676,14 +690,18 @@ class _LandlordListingsScreenState
                             decoration: InputDecoration(
                               labelText: context.tr('Parking spaces'),
                             ),
-                            validator: _optionalNonNegativeIntegerValidator,
+                            validator: (value) =>
+                                _optionalNonNegativeIntegerValidator(
+                                  context,
+                                  value,
+                                ),
                           ),
                         ),
                       ],
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Furnished'),
+                      title: const Text.localized('Furnished'),
                       value: furnished,
                       onChanged: (value) =>
                           setDialogState(() => furnished = value),
@@ -697,7 +715,11 @@ class _LandlordListingsScreenState
                             decoration: InputDecoration(
                               labelText: context.tr('Minimum lease (months)'),
                             ),
-                            validator: _optionalPositiveIntegerValidator,
+                            validator: (value) =>
+                                _optionalPositiveIntegerValidator(
+                                  context,
+                                  value,
+                                ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -708,7 +730,11 @@ class _LandlordListingsScreenState
                             decoration: InputDecoration(
                               labelText: context.tr('Security deposit (UGX)'),
                             ),
-                            validator: _optionalNonNegativeIntegerValidator,
+                            validator: (value) =>
+                                _optionalNonNegativeIntegerValidator(
+                                  context,
+                                  value,
+                                ),
                           ),
                         ),
                       ],
@@ -720,7 +746,8 @@ class _LandlordListingsScreenState
                       decoration: InputDecoration(
                         labelText: context.tr('Monthly service charge (UGX)'),
                       ),
-                      validator: _optionalNonNegativeIntegerValidator,
+                      validator: (value) =>
+                          _optionalNonNegativeIntegerValidator(context, value),
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
@@ -774,7 +801,7 @@ class _LandlordListingsScreenState
                     const SizedBox(height: 14),
                     Align(
                       alignment: AlignmentDirectional.centerStart,
-                      child: Text(
+                      child: Text.localized(
                         'Listing photos',
                         style: Theme.of(context).textTheme.labelLarge,
                       ),
@@ -797,7 +824,7 @@ class _LandlordListingsScreenState
                                 if (result.rejectedMessages.isNotEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text(
+                                      content: Text.localized(
                                         result.rejectedMessages.join('\n'),
                                       ),
                                     ),
@@ -805,7 +832,7 @@ class _LandlordListingsScreenState
                                 }
                               },
                         icon: const Icon(Icons.add_photo_alternate_outlined),
-                        label: Text(
+                        label: Text.localized(
                           selectedPhotos.isEmpty
                               ? 'Choose photos'
                               : 'Add more (${selectedPhotos.length}/$listingPhotoLimit)',
@@ -842,7 +869,7 @@ class _LandlordListingsScreenState
                     const SizedBox(height: 6),
                     const Align(
                       alignment: AlignmentDirectional.centerStart,
-                      child: Text(
+                      child: Text.localized(
                         'JPEG, PNG, or WebP; up to 5 MB each and 10 photos. '
                         'Selections stay in this local draft. Publishing stays '
                         'blocked until the production upload service replaces '
@@ -868,10 +895,12 @@ class _LandlordListingsScreenState
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 7
                           ? email.text.trim().isEmpty
-                                ? 'Enter a phone or email for routed enquiries'
+                                ? context.tr(
+                                    'Enter a phone or email for routed enquiries',
+                                  )
                                 : null
                           : !NyumbaMarket.isValidPhone(value!.trim())
-                          ? 'Use the Ugandan +256 format'
+                          ? context.tr('Use the Ugandan +256 format')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -889,10 +918,12 @@ class _LandlordListingsScreenState
                       validator: (value) {
                         final text = value?.trim() ?? '';
                         if (text.isEmpty && phone.text.trim().isEmpty) {
-                          return 'Enter a phone or email for routed enquiries';
+                          return context.tr(
+                            'Enter a phone or email for routed enquiries',
+                          );
                         }
                         return text.isNotEmpty && !text.contains('@')
-                            ? 'Enter a valid email'
+                            ? context.tr('Enter a valid email')
                             : null;
                       },
                     ),
@@ -912,7 +943,7 @@ class _LandlordListingsScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () {
@@ -920,7 +951,7 @@ class _LandlordListingsScreenState
                   Navigator.pop(context, true);
                 }
               },
-              child: const Text('Save draft'),
+              child: const Text.localized('Save draft'),
             ),
           ],
         ),
@@ -962,7 +993,7 @@ class _LandlordListingsScreenState
       if (mounted) {
         ScaffoldMessenger.of(this.context).showSnackBar(
           const SnackBar(
-            content: Text(
+            content: Text.localized(
               'Draft saved locally. You can publish it when ready.',
             ),
           ),
@@ -1012,29 +1043,35 @@ List<String> _splitCommaSeparated(String value) => value
     .where((item) => item.isNotEmpty)
     .toList(growable: false);
 
-String? _optionalPositiveIntegerValidator(String? value) {
+String? _optionalPositiveIntegerValidator(BuildContext context, String? value) {
   final normalized = value?.trim() ?? '';
   if (normalized.isEmpty) return null;
   final number = int.tryParse(normalized);
-  return number == null || number <= 0 ? 'Enter a positive whole number' : null;
+  return number == null || number <= 0
+      ? context.tr('Enter a positive whole number')
+      : null;
 }
 
-String? _optionalNonNegativeIntegerValidator(String? value) {
+String? _optionalNonNegativeIntegerValidator(
+  BuildContext context,
+  String? value,
+) {
   final normalized = value?.trim().replaceAll(',', '') ?? '';
   if (normalized.isEmpty) return null;
   final number = int.tryParse(normalized);
   return number == null || number < 0
-      ? 'Enter zero or a positive number'
+      ? context.tr('Enter zero or a positive number')
       : null;
 }
 
-String? _optionalLatitudeValidator(String? value) =>
-    _optionalCoordinateValidator(value, -90, 90);
+String? _optionalLatitudeValidator(BuildContext context, String? value) =>
+    _optionalCoordinateValidator(context, value, -90, 90);
 
-String? _optionalLongitudeValidator(String? value) =>
-    _optionalCoordinateValidator(value, -180, 180);
+String? _optionalLongitudeValidator(BuildContext context, String? value) =>
+    _optionalCoordinateValidator(context, value, -180, 180);
 
 String? _optionalCoordinateValidator(
+  BuildContext context,
   String? value,
   double minimum,
   double maximum,
@@ -1043,7 +1080,7 @@ String? _optionalCoordinateValidator(
   if (normalized.isEmpty) return null;
   final number = double.tryParse(normalized);
   return number == null || number < minimum || number > maximum
-      ? 'Enter a value from $minimum to $maximum'
+      ? context.tr('Enter a value from $minimum to $maximum')
       : null;
 }
 
@@ -1125,7 +1162,7 @@ class _LandlordListingCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 6),
-                Text(
+                Text.localized(
                   currency.format(listing.monthlyRentMinor / 100),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: context.nyumba.midnightNavy,
@@ -1142,7 +1179,7 @@ class _LandlordListingCard extends StatelessWidget {
                       color: context.nyumba.mutedInk,
                     ),
                     const SizedBox(width: 6),
-                    Text(
+                    Text.localized(
                       '$applicationCount ${applicationCount == 1 ? 'application' : 'applications'}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -1154,7 +1191,7 @@ class _LandlordListingCard extends StatelessWidget {
                                     EntitySyncState.synced)))
                       TextButton(
                         onPressed: onPublish,
-                        child: const Text('Publish'),
+                        child: const Text.localized('Publish'),
                       ),
                     PopupMenuButton<String>(
                       tooltip: context.tr('Listing actions'),
@@ -1166,7 +1203,7 @@ class _LandlordListingCard extends StatelessWidget {
                             context: context,
                             builder: (dialogContext) => AlertDialog(
                               title: Text(listing.title),
-                              content: Text(
+                              content: Text.localized(
                                 '${listingLocationFor(listing)}\n\n'
                                 '$applicationCount application${applicationCount == 1 ? '' : 's'}\n'
                                 '${listing.isPublic ? 'Server-confirmed public listing.' : 'Awaiting server acknowledgement.'}',
@@ -1174,7 +1211,7 @@ class _LandlordListingCard extends StatelessWidget {
                               actions: [
                                 FilledButton(
                                   onPressed: () => Navigator.pop(dialogContext),
-                                  child: const Text('Close'),
+                                  child: const Text.localized('Close'),
                                 ),
                               ],
                             ),
@@ -1189,24 +1226,24 @@ class _LandlordListingCard extends StatelessWidget {
                         if (listing.isPublic)
                           const PopupMenuItem(
                             value: 'view',
-                            child: Text('View public listing'),
+                            child: Text.localized('View public listing'),
                           ),
                         const PopupMenuItem(
                           value: 'details',
-                          child: Text('Listing details'),
+                          child: Text.localized('Listing details'),
                         ),
                         if (canEdit &&
                             listing.status != ListingStatus.published &&
                             !unpublishing)
                           const PopupMenuItem(
                             value: 'edit',
-                            child: Text('Edit listing'),
+                            child: Text.localized('Edit listing'),
                           ),
                         if (listing.status == ListingStatus.published &&
                             canUnpublish)
                           const PopupMenuItem(
                             value: 'unpublish',
-                            child: Text('Unpublish listing'),
+                            child: Text.localized('Unpublish listing'),
                           ),
                       ],
                     ),
@@ -1245,12 +1282,12 @@ class _ApplicationsInbox extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                Text.localized(
                   '${applications.length} ${applications.length == 1 ? 'application' : 'applications'} received',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 3),
-                Text(
+                Text.localized(
                   'Latest from ${latest.applicantName} · ${latest.applicantPhone}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -1260,7 +1297,7 @@ class _ApplicationsInbox extends StatelessWidget {
           if (!context.isCompact)
             TextButton(
               onPressed: () => _showApplications(context, applications),
-              child: const Text('Review applications'),
+              child: const Text.localized('Review applications'),
             )
           else
             IconButton(
@@ -1290,7 +1327,7 @@ void _showApplications(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
+              Text.localized(
                 'Rental applications',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
@@ -1309,7 +1346,7 @@ void _showApplications(
                         child: Text(application.applicantName[0].toUpperCase()),
                       ),
                       title: Text(application.applicantName),
-                      subtitle: Text(
+                      subtitle: Text.localized(
                         '${application.applicantEmail}\n${application.applicantPhone}${application.message == null ? '' : ' · ${application.message}'}',
                       ),
                       isThreeLine: true,

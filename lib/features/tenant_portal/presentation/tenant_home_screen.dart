@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/localization/generated/app_localizations.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
@@ -261,7 +262,7 @@ class _TenantHomeLoaded extends ConsumerWidget {
               ),
               const SizedBox(width: 9),
               const Expanded(
-                child: Text(
+                child: Text.localized(
                   'Records saved on this device stay available offline.',
                 ),
               ),
@@ -287,7 +288,10 @@ class NyumbaSurfaceMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return NyumbaSurface(
-      child: Padding(padding: const EdgeInsets.all(24), child: Text(message)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text.localized(message),
+      ),
     );
   }
 }
@@ -370,7 +374,7 @@ class _MaintenanceSummaryPanel extends ConsumerWidget {
           : '${open.length} open request${open.length == 1 ? '' : 's'}',
       trailing: TextButton(
         onPressed: () => context.go('/tenant/maintenance'),
-        child: const Text('View all'),
+        child: const Text.localized('View all'),
       ),
       child: open.isEmpty
           ? const TenantEmptyState(
@@ -434,11 +438,11 @@ class _MaintenanceRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                Text.localized(
                   request.title,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                Text(
+                Text.localized(
                   request.appointment ??
                       (syncStatus == AggregateSyncStatus.synced
                           ? 'Sent to your property manager'
@@ -503,12 +507,12 @@ class _NoticesPanel extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                Text.localized(
                                   recent[index].title,
                                   style: Theme.of(context).textTheme.labelLarge,
                                 ),
                                 const SizedBox(height: 3),
-                                Text(
+                                Text.localized(
                                   recent[index].body,
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
@@ -518,7 +522,7 @@ class _NoticesPanel extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
+                          Text.localized(
                             DateFormat(
                               'd MMM',
                             ).format(recent[index].createdAt.toLocal()),
@@ -550,7 +554,7 @@ class _RecentPaymentsPanel extends StatelessWidget {
       subtitle: 'Recorded on this device or confirmed by the server',
       trailing: TextButton(
         onPressed: () => context.go('/tenant/payments'),
-        child: const Text('View all'),
+        child: const Text.localized('View all'),
       ),
       child: recent.isEmpty
           ? const TenantEmptyState(
@@ -596,6 +600,11 @@ class _PaymentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = AppLocalizations.of(context)!;
+    final paidOn = DateFormat(
+      'd MMM',
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(payment.paidOn.toLocal());
     return Row(
       children: [
         CircleAvatar(
@@ -621,14 +630,16 @@ class _PaymentRow extends StatelessWidget {
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               Text(
-                '${DateFormat('d MMM').format(payment.paidOn.toLocal())} · '
-                '${confirmed ? 'Confirmed' : 'Awaiting sync'}',
+                copy.paymentStatusDate(
+                  paidOn,
+                  confirmed ? copy.confirmed : copy.awaitingSync,
+                ),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           ),
         ),
-        Text(
+        Text.localized(
           formatTenantUgx(payment.amountMinor ~/ 100),
           style: Theme.of(context).textTheme.labelLarge,
         ),

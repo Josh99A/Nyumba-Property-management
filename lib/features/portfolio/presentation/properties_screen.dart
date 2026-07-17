@@ -87,7 +87,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                     ? FilledButton.icon(
                         onPressed: _createProperty,
                         icon: const Icon(Icons.add_rounded),
-                        label: const Text('Add property'),
+                        label: const Text.localized('Add property'),
                       )
                     : null,
               ),
@@ -97,7 +97,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
+                    child: Text.localized(
                       'Your properties',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
@@ -123,7 +123,9 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                   child: Center(child: CircularProgressIndicator()),
                 ),
                 error: (error, stack) => NyumbaSurface(
-                  child: Text('Could not load the local portfolio: $error'),
+                  child: Text.localized(
+                    'Could not load the local portfolio: $error',
+                  ),
                 ),
                 data: (allProperties) {
                   final query = _searchController.text.trim().toLowerCase();
@@ -145,7 +147,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                               color: context.nyumba.mutedInk,
                             ),
                             const SizedBox(height: 12),
-                            Text(
+                            Text.localized(
                               query.isEmpty
                                   ? 'Add your first property'
                                   : 'No properties match your search.',
@@ -223,7 +225,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add property'),
+          title: const Text.localized('Add property'),
           content: SizedBox(
             width: 500,
             child: Form(
@@ -243,7 +245,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                           ),
                         ),
                         validator: (value) => (value?.trim().isEmpty ?? true)
-                            ? 'Enter the landlord account ID'
+                            ? context.tr('Enter the landlord account ID')
                             : null,
                       ),
                       const SizedBox(height: 14),
@@ -255,7 +257,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                         labelText: context.tr('Property name'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 2
-                          ? 'Enter a property name'
+                          ? context.tr('Enter a property name')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -265,7 +267,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                         labelText: context.tr('Street address'),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 3
-                          ? 'Enter the street address'
+                          ? context.tr('Enter the street address')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -275,7 +277,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                         labelText: context.tr('City or town'),
                       ),
                       validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? 'Enter a city or town'
+                          ? context.tr('Enter a city or town')
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -294,11 +296,11 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              Text.localized(
                                 'Property photos',
                                 style: Theme.of(context).textTheme.titleSmall,
                               ),
-                              Text(
+                              Text.localized(
                                 'Add 1–5 photos. The primary photo appears first.',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
@@ -323,7 +325,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                                   });
                                 },
                           icon: const Icon(Icons.add_photo_alternate_outlined),
-                          label: const Text('Add photos'),
+                          label: const Text.localized('Add photos'),
                         ),
                       ],
                     ),
@@ -371,14 +373,15 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text.localized('Cancel'),
             ),
             FilledButton(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 if (selectedPhotos.isEmpty) {
                   setDialogState(
-                    () => error = 'Add at least one property photo.',
+                    () =>
+                        error = context.tr('Add at least one property photo.'),
                   );
                   return;
                 }
@@ -400,7 +403,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                   setDialogState(() => error = caught.toString());
                 }
               },
-              child: const Text('Save property'),
+              child: const Text.localized('Save property'),
             ),
           ],
         ),
@@ -414,7 +417,9 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     if (property != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Property saved locally and added to the sync queue.'),
+          content: Text.localized(
+            'Property saved locally and added to the sync queue.',
+          ),
         ),
       );
       context.go('/properties/${property.id}?addUnit=true');
@@ -440,7 +445,7 @@ class _PortfolioUsage extends ConsumerWidget {
       null || EntitlementNotApplicable() => const SizedBox.shrink(),
       EntitlementUnavailable(:final reason) => _UsageShell(
         title: 'Plan unavailable',
-        trailing: Text(
+        trailing: Text.localized(
           '${units.length} rental spaces',
           style: Theme.of(context).textTheme.bodySmall,
         ),
@@ -453,7 +458,7 @@ class _PortfolioUsage extends ConsumerWidget {
       ),
       EntitlementKnown(:final entitlement) => _UsageShell(
         title: '${entitlement.displayName} plan',
-        trailing: Text(
+        trailing: Text.localized(
           '${units.length} of ${entitlement.unitLimit} rental spaces',
           style: Theme.of(context).textTheme.bodySmall,
         ),
@@ -510,7 +515,7 @@ class _UsageShell extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
+                      child: Text.localized(
                         title,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
@@ -528,7 +533,7 @@ class _UsageShell extends StatelessWidget {
                     backgroundColor: context.nyumba.sageTint,
                   )
                 else if (detail != null)
-                  Text(
+                  Text.localized(
                     detail!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: context.nyumba.mutedInk,
@@ -546,7 +551,7 @@ class _UsageShell extends StatelessWidget {
                 message: dialogMessage,
                 icon: Icons.workspace_premium_outlined,
               ),
-              child: const Text('View plan'),
+              child: const Text.localized('View plan'),
             ),
           ],
         ],
@@ -626,7 +631,7 @@ class _PropertyCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 4),
-                Text(
+                Text.localized(
                   '${property.addressLine}, ${property.city}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -664,11 +669,11 @@ class _PropertyCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          Text.localized(
                             'Potential monthly rent',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
-                          Text(
+                          Text.localized(
                             currency.format(monthlyMinor / 100),
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
@@ -731,7 +736,7 @@ class _SelectedPropertyPhoto extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           if (isPrimary)
-            Text(
+            Text.localized(
               'Primary',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: context.nyumba.sageGreen,
@@ -745,7 +750,7 @@ class _SelectedPropertyPhoto extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
               ),
-              child: const Text('Make primary'),
+              child: const Text.localized('Make primary'),
             ),
         ],
       ),
@@ -770,7 +775,7 @@ class _PropertyFact extends StatelessWidget {
             context,
           ).textTheme.titleMedium?.copyWith(color: context.nyumba.midnightNavy),
         ),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        Text.localized(label, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }

@@ -31,13 +31,18 @@ const all = args.includes('--all');
 const roleFlag = args.indexOf('--role');
 const role = roleFlag !== -1 ? args[roleFlag + 1] : null;
 const projectFlag = args.indexOf('--project');
-const projectId =
-  projectFlag !== -1 ? args[projectFlag + 1] : process.env.GOOGLE_CLOUD_PROJECT ?? 'nyumba-property-management';
+const projectId = projectFlag !== -1
+  ? args[projectFlag + 1]
+  : process.env.GOOGLE_CLOUD_PROJECT;
 
 const VALID_ROLES = new Set(['client', 'tenant', 'landlord']);
 if ((!all && (!email || !email.includes('@'))) || (role !== null && !VALID_ROLES.has(role))) {
   console.error('Usage: node scripts/restore-user-doc.mjs <email> [--role client|tenant|landlord] [--project <projectId>]');
   console.error('       node scripts/restore-user-doc.mjs --all [--project <projectId>]');
+  process.exit(1);
+}
+if (!projectId || (projectFlag !== -1 && !args[projectFlag + 1])) {
+  console.error('A Firebase project is required. Pass --project <projectId> or set GOOGLE_CLOUD_PROJECT.');
   process.exit(1);
 }
 
@@ -49,7 +54,7 @@ async function restoreProfile(user, explicitRole) {
   const ref = db.collection('users').doc(user.uid);
   const existing = await ref.get();
   if (existing.exists) {
-    console.log(`users/${user.uid} already exists for ${user.email ?? user.uid}; left untouched.`);
+    console.log(`users/${user.uid} already exists; left untouched.`);
     return false;
   }
   let restoredRole = explicitRole;
@@ -97,7 +102,7 @@ if (all) {
     console.log('Sign out and back in on the device for the session to resolve.');
   } catch (error) {
     if (error?.code === 'auth/user-not-found') {
-      console.error(`No Firebase Auth user exists for ${email} on ${projectId}.`);
+      console.error(`No Firebase Auth user matched the supplied address on ${projectId}.`);
       process.exit(2);
     }
     throw error;

@@ -24,7 +24,7 @@ class PageHeader extends StatelessWidget {
     final text = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        Text.localized(
           title,
           style: context.isCompact
               ? Theme.of(context).textTheme.headlineSmall
@@ -32,7 +32,10 @@ class PageHeader extends StatelessWidget {
         ),
         if (description != null) ...[
           const SizedBox(height: 6),
-          Text(description!, style: Theme.of(context).textTheme.bodyMedium),
+          Text.localized(
+            description!,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ],
       ],
     );

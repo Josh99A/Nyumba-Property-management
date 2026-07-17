@@ -132,17 +132,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               .read(sessionControllerProvider.notifier)
                               .signOut(),
                           icon: const Icon(Icons.logout_rounded, size: 18),
-                          label: const Text('Sign out'),
+                          label: const Text.localized('Sign out'),
                         ),
                       ],
                     ),
                     const SizedBox(height: 32),
-                    Text(
+                    Text.localized(
                       'Welcome, $firstName',
                       style: Theme.of(context).textTheme.headlineLarge,
                     ),
                     const SizedBox(height: 10),
-                    Text(
+                    Text.localized(
                       'Choose how you will use Nyumba to finish setting up.',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: context.nyumba.mutedInk,
@@ -164,7 +164,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
-                                  child: Text(
+                                  child: Text.localized(
                                     'Set up a landlord workspace',
                                     style: Theme.of(
                                       context,
@@ -174,7 +174,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text(
+                            Text.localized(
                               'After setup, choose a subscription. The landlord '
                               'workspace stays locked until payment is '
                               'confirmed by the server.',
@@ -222,7 +222,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         color: Colors.white,
                                       ),
                                     )
-                                  : const Text('Continue to subscriptions'),
+                                  : const Text.localized(
+                                      'Continue to subscriptions',
+                                    ),
                             ),
                           ],
                         ),
@@ -242,7 +244,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               ),
                               const SizedBox(width: 10),
                               Expanded(
-                                child: Text(
+                                child: Text.localized(
                                   'Renting through Nyumba?',
                                   style: Theme.of(
                                     context,
@@ -252,7 +254,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Text(
+                          Text.localized(
                             'Tenants are added by their landlord — there is '
                             'nothing to register. If your landlord invited '
                             '${session?.email ?? 'your email'}, your portal '
@@ -272,7 +274,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     ),
                                   )
                                 : const Icon(Icons.refresh_rounded, size: 19),
-                            label: const Text('Check for my invitation'),
+                            label: const Text.localized(
+                              'Check for my invitation',
+                            ),
                           ),
                         ],
                       ),

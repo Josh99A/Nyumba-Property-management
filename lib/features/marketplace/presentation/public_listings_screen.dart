@@ -56,7 +56,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
             ),
             child: OutlinedButton(
               onPressed: () => context.go('/sign-in'),
-              child: const Text('Sign in'),
+              child: const Text.localized('Sign in'),
             ),
           ),
         ],
@@ -85,7 +85,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       FadeSlideIn(
-                        child: Text(
+                        child: Text.localized(
                           'Find a place that feels like home.',
                           style: Theme.of(context).textTheme.displaySmall
                               ?.copyWith(
@@ -97,7 +97,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                       const SizedBox(height: 14),
                       FadeSlideIn(
                         delay: NyumbaMotion.stagger(1),
-                        child: Text(
+                        child: Text.localized(
                           'Browse verified available rental spaces and contact landlords directly.',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
@@ -184,7 +184,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                           ),
                           const SizedBox(width: 9),
                           Expanded(
-                            child: Text(
+                            child: Text.localized(
                               'These listings are saved on your device, so you can keep browsing offline.',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
@@ -205,7 +205,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
             error: (error, stack) => SliverFillRemaining(
               hasScrollBody: false,
               child: Center(
-                child: Text('Could not load cached listings: $error'),
+                child: Text.localized('Could not load cached listings: $error'),
               ),
             ),
             data: (allListings) {
@@ -242,14 +242,14 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                           Row(
                             children: [
                               Expanded(
-                                child: Text(
+                                child: Text.localized(
                                   '${listings.length} available ${listings.length == 1 ? 'home' : 'homes'}',
                                   style: Theme.of(
                                     context,
                                   ).textTheme.headlineSmall,
                                 ),
                               ),
-                              Text(
+                              Text.localized(
                                 'Newest first',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
@@ -268,14 +268,14 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                       color: context.nyumba.mutedInk,
                                     ),
                                     const SizedBox(height: 14),
-                                    Text(
+                                    Text.localized(
                                       'No homes match those filters',
                                       style: Theme.of(
                                         context,
                                       ).textTheme.titleMedium,
                                     ),
                                     const SizedBox(height: 6),
-                                    Text(
+                                    Text.localized(
                                       'Try a broader search or a different price range.',
                                       textAlign: TextAlign.center,
                                       style: Theme.of(
@@ -292,7 +292,9 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                         Icons.filter_alt_off_outlined,
                                         size: 18,
                                       ),
-                                      label: const Text('Clear filters'),
+                                      label: const Text.localized(
+                                        'Clear filters',
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -347,13 +349,13 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                 children: [
                   const NyumbaLogo(height: 34),
                   const SizedBox(height: 10),
-                  Text(
+                  Text.localized(
                     'Nyumba Property Management · Kampala, Uganda',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  Text.localized(
                     'Landlords list verified rental spaces; you contact them directly.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall,
@@ -400,12 +402,21 @@ class _PriceFilter extends StatelessWidget {
       isExpanded: true,
       decoration: InputDecoration(prefixIcon: Icon(Icons.tune_rounded)),
       items: const [
-        DropdownMenuItem(value: 'Any price', child: Text('Any price')),
-        DropdownMenuItem(value: 'Under UGX 1M', child: Text('Under UGX 1M')),
-        DropdownMenuItem(value: 'UGX 1M–1.4M', child: Text('UGX 1M–1.4M')),
+        DropdownMenuItem(
+          value: 'Any price',
+          child: Text.localized('Any price'),
+        ),
+        DropdownMenuItem(
+          value: 'Under UGX 1M',
+          child: Text.localized('Under UGX 1M'),
+        ),
+        DropdownMenuItem(
+          value: 'UGX 1M–1.4M',
+          child: Text.localized('UGX 1M–1.4M'),
+        ),
         DropdownMenuItem(
           value: 'Above UGX 1.4M',
-          child: Text('Above UGX 1.4M'),
+          child: Text.localized('Above UGX 1.4M'),
         ),
       ],
       onChanged: (value) {
@@ -467,7 +478,7 @@ class _ListingCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(
+                            Text.localized(
                               listing.availableFrom == null
                                   ? 'Available now'
                                   : 'Available ${DateFormat('d MMM').format(listing.availableFrom!)}',
@@ -597,7 +608,7 @@ class _Feature extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: context.nyumba.mutedInk),
         const SizedBox(width: 5),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        Text.localized(label, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }

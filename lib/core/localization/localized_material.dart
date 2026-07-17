@@ -25,7 +25,32 @@ class Text extends material.StatelessWidget {
     this.textWidthBasis,
     this.textHeightBehavior,
     this.selectionColor,
-  }) : textSpan = null;
+  }) : textSpan = null,
+       localize = false;
+
+  /// Renders application-owned copy through the localization catalog.
+  ///
+  /// The unnamed constructor deliberately preserves its input for names,
+  /// addresses, user-authored content, and other domain data.
+  const Text.localized(
+    String this.data, {
+    super.key,
+    this.style,
+    this.strutStyle,
+    this.textAlign,
+    this.textDirection,
+    this.locale,
+    this.softWrap,
+    this.overflow,
+    this.textScaler,
+    this.maxLines,
+    this.semanticsLabel,
+    this.semanticsIdentifier,
+    this.textWidthBasis,
+    this.textHeightBehavior,
+    this.selectionColor,
+  }) : textSpan = null,
+       localize = true;
 
   const Text.rich(
     material.InlineSpan this.textSpan, {
@@ -44,7 +69,8 @@ class Text extends material.StatelessWidget {
     this.textWidthBasis,
     this.textHeightBehavior,
     this.selectionColor,
-  }) : data = null;
+  }) : data = null,
+       localize = false;
 
   final String? data;
   final material.InlineSpan? textSpan;
@@ -62,10 +88,13 @@ class Text extends material.StatelessWidget {
   final material.TextWidthBasis? textWidthBasis;
   final material.TextHeightBehavior? textHeightBehavior;
   final material.Color? selectionColor;
+  final bool localize;
 
   @override
   material.Widget build(material.BuildContext context) {
-    final localizations = NyumbaLocalizations.maybeOf(context);
+    final localizations = localize
+        ? NyumbaLocalizations.maybeOf(context)
+        : null;
     final localizedSemantics = semanticsLabel == null
         ? null
         : localizations?.text(semanticsLabel!) ?? semanticsLabel;

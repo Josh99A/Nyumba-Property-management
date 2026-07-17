@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'router.dart';
 import '../core/localization/luganda_localizations.dart';
 import '../core/localization/generated/app_localizations.dart';
+import '../core/localization/app_localizations_adapter.dart';
 import '../core/localization/nyumba_localizations.dart';
 import '../core/presentation/toast.dart';
 import '../features/auth/application/session_controller.dart';
@@ -51,10 +50,29 @@ class NyumbaApp extends ConsumerWidget {
     // app is already showing so its notifications are localized to match.
     ref.listen(sessionControllerProvider, (previous, next) {
       if (next != null && previous?.userId != next.userId) {
-        unawaited(
-          ref.read(localePreferenceProvider.notifier).reconcileServerLocale(),
-        );
+        ref
+            .read(localeReconciliationProvider.notifier)
+            .reconcileCurrentSession();
       }
+    });
+    ref.listen<LocaleReconciliationState>(localeReconciliationProvider, (
+      previous,
+      next,
+    ) {
+      if (next.status != LocaleReconciliationStatus.rejected ||
+          previous?.status == LocaleReconciliationStatus.rejected) {
+        return;
+      }
+      final copy = appLocalizationsFor(language);
+      showNyumbaToast(
+        copy.languageSaveFailed,
+        variant: NyumbaToastVariant.error,
+        action: SnackBarAction(
+          label: copy.retry,
+          onPressed: () =>
+              ref.read(localeReconciliationProvider.notifier).retry(),
+        ),
+      );
     });
     return MaterialApp.router(
       onGenerateTitle: (context) =>

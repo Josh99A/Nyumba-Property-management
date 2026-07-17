@@ -2042,4 +2042,279 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get locationAvailableOnRequest => 'Eneo linapatikana ukiomba';
+
+  @override
+  String get appearanceSavingOnDevice => 'Inahifadhiwa kwenye kifaa hiki…';
+
+  @override
+  String get appearanceAppliedOnDevice =>
+      'Imetumika na kuhifadhiwa kwenye kifaa hiki.';
+
+  @override
+  String get appearanceSaveTryAgain =>
+      'Mwonekano haukuweza kuhifadhiwa. Tafadhali jaribu tena.';
+
+  @override
+  String get appearanceSaveFailed =>
+      'Haikuwezekana kuhifadhi mpangilio huu wa mwonekano.';
+
+  @override
+  String get emailDeliveryNotConfigured =>
+      'Uwasilishaji wa barua pepe bado haujasanidiwa.';
+
+  @override
+  String occupancySemantics(int percentage) {
+    return 'Asilimia $percentage ya nafasi za kukodisha zimekaliwa';
+  }
+
+  @override
+  String unreadNotifications(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Arifa $count ambazo hazijasomwa',
+      one: 'Arifa 1 ambayo haijasomwa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get closeNotifications => 'Funga arifa';
+
+  @override
+  String get notificationSyncDescription =>
+      'Masasisho huhifadhiwa kwenye kifaa hiki na kusawazishwa unapounganika tena.';
+
+  @override
+  String get notificationLoadFailed => 'Arifa hazikuweza kupakiwa';
+
+  @override
+  String get notificationLocalDataAvailable =>
+      'Data yako iliyopo kwenye kifaa bado inapatikana.';
+
+  @override
+  String get noNotificationsYet => 'Bado hakuna arifa';
+
+  @override
+  String get newNotificationsWillAppear =>
+      'Masasisho mapya ya akaunti yataonekana hapa.';
+
+  @override
+  String get notificationMarkReadFailed =>
+      'Arifa hii haikuweza kuwekwa alama kuwa imesomwa.';
+
+  @override
+  String get newNotification => 'Arifa mpya';
+
+  @override
+  String get confirmed => 'Imethibitishwa';
+
+  @override
+  String get awaitingSync => 'Inasubiri kusawazishwa';
+
+  @override
+  String paymentStatusDate(String date, String status) {
+    return '$date · $status';
+  }
+
+  @override
+  String get enterValidAmount => 'Weka kiasi halali';
+
+  @override
+  String get giveNoticeClearTitle => 'Ipe notisi kichwa kilicho wazi';
+
+  @override
+  String get writeNoticeContent => 'Andika maudhui ya notisi';
+
+  @override
+  String couldNotCreateDocument(String error) {
+    return 'Hati haikuweza kuundwa: $error';
+  }
+
+  @override
+  String get loadingProperties => 'Mali zinapakiwa…';
+
+  @override
+  String get propertiesLoadBeforeNotice =>
+      'Mali hazikuweza kupakiwa. Jaribu tena kabla ya kuweka notisi kwenye foleni.';
+
+  @override
+  String couldNotQueueNotice(String error) {
+    return 'Notisi haikuweza kuwekwa kwenye foleni: $error';
+  }
+
+  @override
+  String get enterListingTitle => 'Weka kichwa cha tangazo';
+
+  @override
+  String get addUsefulDescription => 'Ongeza maelezo yenye manufaa';
+
+  @override
+  String get enterValidRentAmount => 'Weka kiasi halali cha kodi';
+
+  @override
+  String get enterCity => 'Weka jiji';
+
+  @override
+  String get enterNeighborhood => 'Weka mtaa';
+
+  @override
+  String get enterClearTitle => 'Weka kichwa kilicho wazi';
+
+  @override
+  String get addMoreDetail => 'Ongeza maelezo zaidi kidogo';
+
+  @override
+  String get enterPublicNeighborhood => 'Weka mtaa wa kuonyeshwa hadharani';
+
+  @override
+  String get enterPhoneOrEmail =>
+      'Weka simu au barua pepe ya kuelekeza maulizo';
+
+  @override
+  String get useUganda256 => 'Tumia muundo wa Uganda wa +256';
+
+  @override
+  String get enterValidEmailShort => 'Weka barua pepe halali';
+
+  @override
+  String get enterPositiveWholeNumber => 'Weka nambari kamili chanya';
+
+  @override
+  String get enterNonNegativeNumber => 'Weka sifuri au nambari chanya';
+
+  @override
+  String enterValueRange(double minimum, double maximum) {
+    return 'Weka thamani kati ya $minimum na $maximum';
+  }
+
+  @override
+  String get enterLandlordAccountId =>
+      'Weka kitambulisho cha akaunti ya mwenye nyumba';
+
+  @override
+  String get enterPropertyName => 'Weka jina la mali';
+
+  @override
+  String get enterStreetAddress => 'Weka anwani ya mtaa';
+
+  @override
+  String get enterCityTown => 'Weka jiji au mji';
+
+  @override
+  String get addPropertyPhoto => 'Ongeza angalau picha moja ya mali.';
+
+  @override
+  String get enterRentalSpaceLabel =>
+      'Weka jina au nambari ya nafasi ya kukodisha';
+
+  @override
+  String get requiredField => 'Inahitajika';
+
+  @override
+  String get maintenanceDetailError =>
+      'Ongeza kichwa kilicho wazi na maelezo zaidi kidogo.';
+
+  @override
+  String get maintenanceTenancyMissing =>
+      'Hatukuweza kupata upangaji wako bado, kwa hivyo ombi hili halina pa kutumwa. Litafanya kazi mwenye nyumba wako akishaamilisha mkataba wako.';
+
+  @override
+  String maintenanceSaved(String reference) {
+    return '$reference imehifadhiwa na kuwekwa kwenye foleni ya kusawazisha.';
+  }
+
+  @override
+  String maintenanceSaveFailed(String error) {
+    return 'Ombi halikuweza kuhifadhiwa: $error';
+  }
+
+  @override
+  String get pdfIssuedTo => 'Imetolewa kwa';
+
+  @override
+  String get pdfProperty => 'Mali';
+
+  @override
+  String get pdfDate => 'Tarehe';
+
+  @override
+  String get pdfPaymentReceived => 'Malipo yamepokelewa';
+
+  @override
+  String get pdfRentDue => 'Kodi inayodaiwa';
+
+  @override
+  String get pdfDescription => 'Maelezo';
+
+  @override
+  String get pdfBillingPeriod => 'Kipindi cha bili';
+
+  @override
+  String get pdfAmount => 'Kiasi';
+
+  @override
+  String get pdfMonthlyRent => 'Kodi ya mwezi';
+
+  @override
+  String get pdfGeneratedBy => 'Imetolewa na Usimamizi wa Mali wa Nyumba';
+
+  @override
+  String get pdfKeepForRecords => 'Hifadhi hati hii kwa kumbukumbu zako.';
+
+  @override
+  String get pdfReceipt => 'Risiti';
+
+  @override
+  String get pdfInvoice => 'Ankara';
+
+  @override
+  String get pdfLease => 'Mkataba wa upangaji';
+
+  @override
+  String get pdfNotice => 'Notisi';
+
+  @override
+  String get pdfRentStatement => 'Taarifa ya kodi';
+
+  @override
+  String get pdfPaymentRecord => 'Rekodi ya malipo';
+
+  @override
+  String get pdfTenantNotice => 'Notisi kwa mpangaji';
+
+  @override
+  String get pdfNotYetIssued => 'Bado haijatolewa';
+
+  @override
+  String get pdfPaid => 'Imelipwa';
+
+  @override
+  String get pdfDue => 'Inadaiwa';
+
+  @override
+  String get pdfReceived => 'Imepokelewa';
+
+  @override
+  String get pdfSigned => 'Imesainiwa';
+
+  @override
+  String get pdfDraft => 'Rasimu';
+
+  @override
+  String get pdfQueuedToSend => 'Inasubiri kutumwa';
+
+  @override
+  String get pdfAwaitingConfirmation => 'Inasubiri uthibitisho';
+
+  @override
+  String pdfRecordedPayments(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Malipo $count yaliyorekodiwa',
+      one: 'Malipo 1 yaliyorekodiwa',
+    );
+    return '$_temp0';
+  }
 }

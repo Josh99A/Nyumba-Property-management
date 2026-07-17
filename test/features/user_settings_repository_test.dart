@@ -57,6 +57,7 @@ void main() {
       expect(saved.language, AppLanguage.luganda);
 
       final restored = await repository.getByUserId('demo-landlord-001');
+      expect(restored?.language, AppLanguage.luganda);
       expect(restored?.maintenanceUpdates, isFalse);
       expect(restored?.emailNotifications, isFalse);
 
