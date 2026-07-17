@@ -4,8 +4,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart'
-    show immutable, kIsWeb, visibleForTesting;
+    show
+        TargetPlatform,
+        defaultTargetPlatform,
+        immutable,
+        kIsWeb,
+        visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../core/notifications/push_registration.dart';
 import '../../../core/offline/firebase_remote_sync_gateway.dart';
@@ -202,17 +208,62 @@ class SessionController extends Notifier<UserSession?> {
   Future<void> signInWithGoogle() async {
     _requireFirebase();
     _announceArrival = true;
-    final provider = GoogleAuthProvider()
-      ..setCustomParameters({'prompt': 'select_account'});
     try {
       if (kIsWeb) {
+        final provider = GoogleAuthProvider()
+          ..setCustomParameters({'prompt': 'select_account'});
         await FirebaseAuth.instance.signInWithPopup(provider);
+      } else if (defaultTargetPlatform == TargetPlatform.android) {
+        // Native Credential Manager flow. The provider-redirect flow bounces
+        // through <project>.firebaseapp.com in a Custom Tab and dies with
+        // "missing initial state" whenever the browser partitions or clears
+        // sessionStorage mid-redirect; the native flow never leaves the app.
+        await _signInWithGoogleNatively();
       } else {
+        final provider = GoogleAuthProvider()
+          ..setCustomParameters({'prompt': 'select_account'});
         await FirebaseAuth.instance.signInWithProvider(provider);
       }
     } on Object {
       _announceArrival = false;
       rethrow;
+    }
+  }
+
+  /// Completed once per process; `authenticate` may not run before it.
+  static Future<void>? _googleSignInReady;
+
+  Future<void> _signInWithGoogleNatively() async {
+    final signIn = GoogleSignIn.instance;
+    try {
+      // The Android plugin reads the web OAuth client from the app's
+      // google-services.json, so no environment-specific ID lives in Dart.
+      await (_googleSignInReady ??= signIn.initialize());
+    } on Object {
+      // A failed initialize must not poison every later attempt.
+      _googleSignInReady = null;
+      rethrow;
+    }
+    try {
+      final account = await signIn.authenticate();
+      final idToken = account.authentication.idToken;
+      if (idToken == null) {
+        throw StateError('Google did not return a sign-in token. Try again.');
+      }
+      await FirebaseAuth.instance.signInWithCredential(
+        GoogleAuthProvider.credential(idToken: idToken),
+      );
+    } on GoogleSignInException catch (error) {
+      // Re-express plugin failures in the vocabulary the auth layer already
+      // understands: dismissing the account sheet is a decision, not a fault.
+      if (error.code == GoogleSignInExceptionCode.canceled ||
+          error.code == GoogleSignInExceptionCode.interrupted) {
+        throw FirebaseAuthException(code: 'user-cancelled');
+      }
+      throw StateError(
+        'Google sign-in is unavailable on this device right now. '
+        'Use your email and password, or try again later.',
+      );
     }
   }
 
