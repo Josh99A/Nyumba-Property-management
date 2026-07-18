@@ -781,4 +781,8 @@
     ,"availabilityReservedHelp": "محجوزة لمستأجر لم ينتقل إليها بعد."
     ,"availabilityMaintenanceHelp": "مغلقة مؤقتًا للإصلاحات."
     ,"availabilityInactiveHelp": "غير معروضة للإيجار حاليًا."
+    ,"completeSetup": "أكمل الإعداد"
+    ,"availabilityLoadFailed": "تعذر تحميل توفر مساحات الإيجار. حاول مرة أخرى."
+    ,"listingsStillLoading": "لا تزال الإعلانات قيد التحميل. حاول مرة أخرى بعد قليل."
+    ,"listingsLoadBeforeAvailability": "تعذر تحميل الإعلانات. حاول مرة أخرى قبل تغيير التوفر."
 }

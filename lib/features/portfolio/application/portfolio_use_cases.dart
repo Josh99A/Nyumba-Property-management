@@ -126,20 +126,25 @@ class UpdateUnit {
       });
     }
 
-    // A space that is no longer vacant must not stay advertised. Pause the
-    // local listing before the unit change so this device hides it at once;
-    // the server retires the public projection atomically with unit.update.
+    // A space that is no longer vacant must not stay advertised. Commit the
+    // local listing retirement and unit change in one transaction so a crash
+    // cannot leave one optimistic change without the other. The server also
+    // retires the public projection atomically with unit.update.
     Listing? unpublished;
-    if (unit.status != UnitStatus.vacant && unit.status != current.status) {
-      final listings = await deps.listings.getAll(propertyId: unit.propertyId);
+    final listings =
+        unit.status != UnitStatus.vacant && unit.status != current.status
+        ? await deps.listings.getAll(propertyId: unit.propertyId)
+        : const <Listing>[];
+    late final Unit updated;
+    await deps.database.runInTransaction(() async {
       for (final listing in listings) {
         if (listing.unitId == unit.id &&
             listing.status == ListingStatus.published) {
           unpublished = await deps.listings.unpublish(listing.id);
         }
       }
-    }
-    final updated = await deps.units.update(unit);
+      updated = await deps.units.update(unit);
+    });
     // Occupancy drives what the public marketplace shows, so push promptly
     // instead of waiting for the next app-open or manual sync.
     unawaited(deps.syncEngine.syncPending());

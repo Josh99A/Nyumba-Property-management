@@ -4685,6 +4685,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not offered for rent at the moment.'**
   String get availabilityInactiveHelp;
+
+  /// No description provided for @completeSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete setup'**
+  String get completeSetup;
+
+  /// No description provided for @availabilityLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Rental space availability could not be loaded. Try again.'**
+  String get availabilityLoadFailed;
+
+  /// No description provided for @listingsStillLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Listings are still loading. Try again in a moment.'**
+  String get listingsStillLoading;
+
+  /// No description provided for @listingsLoadBeforeAvailability.
+  ///
+  /// In en, this message translates to:
+  /// **'Listings could not be loaded. Try again before changing availability.'**
+  String get listingsLoadBeforeAvailability;
 }
 
 class _AppLocalizationsDelegate

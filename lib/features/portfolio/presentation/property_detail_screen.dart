@@ -555,6 +555,28 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 
   Future<void> _editUnit(Unit unit) async {
+    final listingsValue = ref.read(landlordListingsProvider);
+    if (listingsValue.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text.localized(
+            'Listings could not be loaded. Try again before changing availability.',
+          ),
+        ),
+      );
+      return;
+    }
+    final listings = listingsValue.isLoading ? null : listingsValue.value;
+    if (listings == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text.localized(
+            'Listings are still loading. Try again in a moment.',
+          ),
+        ),
+      );
+      return;
+    }
     final formKey = GlobalKey<FormState>();
     final label = TextEditingController(text: unit.label);
     final rent = TextEditingController(
@@ -564,12 +586,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final bathrooms = TextEditingController(text: unit.bathrooms.toString());
     var type = unit.type;
     var status = unit.status;
-    final hasPublishedListing =
-        (ref.read(landlordListingsProvider).value ?? const <Listing>[]).any(
-          (listing) =>
-              listing.unitId == unit.id &&
-              listing.status == ListingStatus.published,
-        );
+    final hasPublishedListing = listings.any(
+      (listing) =>
+          listing.unitId == unit.id &&
+          listing.status == ListingStatus.published,
+    );
     UpdateUnitResult? result;
     String? error;
     final updated = await showDialog<bool>(

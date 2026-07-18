@@ -86,7 +86,7 @@ void main() {
         return <String, Object?>{
           'status': 'applied',
           'serverVersion': version,
-          'serverUpdatedAt': DateTime.now().toUtc().toIso8601String(),
+          'serverUpdatedAt': DateTime.utc(2026, 7, 15, 9).toIso8601String(),
         };
       },
     );
@@ -180,7 +180,10 @@ void main() {
     await _drainOutbox(database);
 
     final commandTypes = _commandTypes(sent).toList(growable: false);
-    expect(commandTypes, containsAll(['listing.unpublish', 'unit.update']));
+    expect(
+      commandTypes,
+      containsAllInOrder(['listing.unpublish', 'unit.update']),
+    );
     expect((await units.getById(unit.id))?.status, UnitStatus.maintenance);
   });
 }

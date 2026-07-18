@@ -46,33 +46,53 @@ class _RentalSpaceAvailabilityPanelState
     final listingsValue = ref.watch(landlordListingsProvider);
     final tenanciesValue = ref.watch(tenanciesProvider);
     final session = ref.watch(sessionControllerProvider);
+    final properties = _resolvedAsyncValue(propertiesValue);
+    final units = _resolvedAsyncValue(unitsValue);
+    final listings = _resolvedAsyncValue(listingsValue);
+    final tenancies = _resolvedAsyncValue(tenanciesValue);
+    final dataResolved =
+        properties != null &&
+        units != null &&
+        listings != null &&
+        tenancies != null;
+    final hasLoadError =
+        propertiesValue.hasError ||
+        unitsValue.hasError ||
+        listingsValue.hasError ||
+        tenanciesValue.hasError;
     final canUpdate =
+        dataResolved &&
         session != null &&
         AuthorizationPolicy.allows(
           session.role,
           AppResource.unit,
           CrudOperation.update,
         );
-    final properties = propertiesValue.value ?? const <Property>[];
-    final listings = listingsValue.value ?? const <Listing>[];
-    final tenancies = tenanciesValue.value ?? const <Tenancy>[];
-    final propertyById = <String, Property>{
-      for (final property in properties) property.id: property,
-    };
-    final units = [...(unitsValue.value ?? const <Unit>[])]
-      ..sort((left, right) {
-        final propertyComparison = (propertyById[left.propertyId]?.name ?? '')
-            .compareTo(propertyById[right.propertyId]?.name ?? '');
-        return propertyComparison != 0
-            ? propertyComparison
-            : left.displayName.compareTo(right.displayName);
-      });
-    final filteredUnits = units.where(_matchesFilter).toList(growable: false);
-    final activeTenancyUnitIds = tenancies
-        .where((tenancy) => tenancy.status != TenancyStatus.ended)
-        .map((tenancy) => tenancy.unitId)
-        .whereType<String>()
-        .toSet();
+    Map<String, Property>? propertyById;
+    List<Unit>? sortedUnits;
+    List<Unit>? filteredUnits;
+    Set<String>? activeTenancyUnitIds;
+    if (dataResolved) {
+      propertyById = <String, Property>{
+        for (final property in properties) property.id: property,
+      };
+      sortedUnits = [...units]
+        ..sort((left, right) {
+          final propertyComparison =
+              (propertyById![left.propertyId]?.name ?? '').compareTo(
+                propertyById[right.propertyId]?.name ?? '',
+              );
+          return propertyComparison != 0
+              ? propertyComparison
+              : left.displayName.compareTo(right.displayName);
+        });
+      filteredUnits = sortedUnits.where(_matchesFilter).toList(growable: false);
+      activeTenancyUnitIds = tenancies
+          .where((tenancy) => tenancy.status != TenancyStatus.ended)
+          .map((tenancy) => tenancy.unitId)
+          .whereType<String>()
+          .toSet();
+    }
 
     return NyumbaSurface(
       key: const ValueKey('rental-space-availability-panel'),
@@ -141,7 +161,9 @@ class _RentalSpaceAvailabilityPanelState
                       ChoiceChip(
                         label: Text.localized(_filterLabel(filter)),
                         selected: _filter == filter,
-                        onSelected: (_) => setState(() => _filter = filter),
+                        onSelected: dataResolved
+                            ? (_) => setState(() => _filter = filter)
+                            : null,
                       ),
                   ],
                 ),
@@ -149,19 +171,21 @@ class _RentalSpaceAvailabilityPanelState
             ),
           ),
           const Divider(height: 1),
-          if (unitsValue.isLoading && units.isEmpty)
+          if (hasLoadError)
+            const _AvailabilityLoadError()
+          else if (!dataResolved)
             const Padding(
               padding: EdgeInsets.all(30),
               child: Center(child: CircularProgressIndicator()),
             )
-          else if (units.isEmpty)
+          else if (sortedUnits!.isEmpty)
             _AvailabilityEmptyState(
               message:
                   'Add a property and rental space to start managing availability.',
               actionLabel: 'Add property',
               onAction: () => context.go('/properties/new'),
             )
-          else if (filteredUnits.isEmpty)
+          else if (filteredUnits!.isEmpty)
             const _AvailabilityEmptyState(
               message: 'No rental spaces match this availability filter.',
             )
@@ -169,11 +193,12 @@ class _RentalSpaceAvailabilityPanelState
             for (final (index, unit) in filteredUnits.indexed) ...[
               _AvailabilityRow(
                 unit: unit,
-                propertyName: propertyById[unit.propertyId]?.name ?? 'Property',
+                propertyName:
+                    propertyById![unit.propertyId]?.name ?? 'Property',
                 listingState: _publicListingState(unit, listings),
                 leaseManaged:
                     unit.status == UnitStatus.occupied ||
-                    activeTenancyUnitIds.contains(unit.id),
+                    activeTenancyUnitIds!.contains(unit.id),
                 canUpdate: canUpdate,
                 onChanged: (status) =>
                     _changeAvailability(unit, status, listings),
@@ -254,6 +279,11 @@ class _RentalSpaceAvailabilityPanelState
       );
     }
   }
+}
+
+T? _resolvedAsyncValue<T>(AsyncValue<T> value) {
+  if (value.isLoading || value.hasError) return null;
+  return value.value;
 }
 
 class _AvailabilityRow extends StatelessWidget {
@@ -469,6 +499,31 @@ class _AvailabilityEmptyState extends StatelessWidget {
               child: Text.localized(actionLabel!),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AvailabilityLoadError extends StatelessWidget {
+  const _AvailabilityLoadError();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        children: [
+          Icon(
+            Icons.error_outline_rounded,
+            size: 38,
+            color: context.nyumba.danger,
+          ),
+          const SizedBox(height: 10),
+          const Text.localized(
+            'Rental space availability could not be loaded. Try again.',
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );

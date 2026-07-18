@@ -101,6 +101,9 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
     if (account.approvalStatus === 'suspended') {
       throw new DomainError('VALIDATION_FAILED', { reason: 'accountSuspended' });
     }
+    if (account.approvalStatus !== 'pending' && account.approvalStatus !== 'approved') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'accountApprovalStatusInvalid' });
+    }
     const tier = cmd.payload.tier ?? subscription.tier;
     planForTier(entitlements, tier);
     tx.update(ref, {

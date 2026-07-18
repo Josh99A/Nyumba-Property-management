@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:sembast/sembast.dart';
 
 import '../domain/domain_exception.dart';
@@ -19,6 +21,7 @@ final class OfflineDatabase {
   static const String _metadataStoreName = '_metadata';
 
   final Database database;
+  final Object _transactionZoneKey = Object();
 
   static final StoreRef<String, Map<String, Object?>> _outboxStore =
       stringMapStoreFactory.store(_outboxStoreName);
@@ -169,18 +172,50 @@ final class OfflineDatabase {
   StoreRef<String, Map<String, Object?>> _entityStore(OfflineEntityType type) =>
       stringMapStoreFactory.store(type.storeName);
 
+  _OfflineTransactionContext? get _transactionContext =>
+      Zone.current[_transactionZoneKey] as _OfflineTransactionContext?;
+
+  DatabaseClient? get _activeTransaction => _transactionContext?.client;
+
+  DatabaseClient get _readClient => _activeTransaction ?? database;
+
+  /// Runs repository reads and entity-plus-outbox writes in one transaction.
+  ///
+  /// The transaction is zone-scoped so unrelated asynchronous work cannot join
+  /// it accidentally. Nested calls on this database reuse the active client,
+  /// and mutations retain their call order through durable dependencies.
+  Future<T> runInTransaction<T>(Future<T> Function() action) {
+    if (_activeTransaction != null) return action();
+    return database.transaction(
+      (transaction) => runZoned(
+        action,
+        zoneValues: <Object, Object>{
+          _transactionZoneKey: _OfflineTransactionContext(transaction),
+        },
+      ),
+    );
+  }
+
+  Future<T> _writeTransaction<T>(
+    Future<T> Function(DatabaseClient transaction) action,
+  ) {
+    final active = _activeTransaction;
+    if (active != null) return action(active);
+    return database.transaction((transaction) => action(transaction));
+  }
+
   Future<Map<String, Object?>?> readEntity(
     OfflineEntityType type,
     String id,
   ) async {
-    final value = await _entityStore(type).record(id).get(database);
+    final value = await _entityStore(type).record(id).get(_readClient);
     return value == null ? null : Map<String, Object?>.from(value);
   }
 
   Future<List<Map<String, Object?>>> readEntities(
     OfflineEntityType type,
   ) async {
-    final snapshots = await _entityStore(type).find(database);
+    final snapshots = await _entityStore(type).find(_readClient);
     return snapshots
         .map((snapshot) => Map<String, Object?>.from(snapshot.value))
         .toList(growable: false);
@@ -221,7 +256,7 @@ final class OfflineDatabase {
     required DateTime createdAt,
     List<AggregateReference> dependsOn = const <AggregateReference>[],
     bool createOnly = false,
-  }) => database.transaction((transaction) async {
+  }) => _writeTransaction((transaction) async {
     final entityRecord = _entityStore(entityType).record(entityId);
     if (createOnly && await entityRecord.exists(transaction)) {
       throw EntityAlreadyExistsException(entityType.name, entityId);
@@ -240,12 +275,12 @@ final class OfflineDatabase {
           (entry.entityType == entityType && entry.entityId == entityId) ||
           dependencyAggregates.contains(entry.aggregate),
     );
-    final dependencyIds =
-        dependencyEntries
-            .map((entry) => entry.id)
-            .toSet()
-            .toList(growable: false)
-          ..sort();
+    final transactionPredecessor = _transactionContext?.lastMutationId;
+    final dependencyIdSet = dependencyEntries.map((entry) => entry.id).toSet();
+    if (transactionPredecessor != null) {
+      dependencyIdSet.add(transactionPredecessor);
+    }
+    final dependencyIds = dependencyIdSet.toList(growable: false)..sort();
 
     final outboxEntry = OutboxEntry(
       id: mutationId,
@@ -261,6 +296,7 @@ final class OfflineDatabase {
     await _outboxStore
         .record(mutationId)
         .put(transaction, outboxEntry.toJson());
+    _transactionContext?.lastMutationId = mutationId;
     return outboxEntry;
   });
 
@@ -620,6 +656,13 @@ final class OfflineDatabase {
     if (created != 0) return created;
     return left.id.compareTo(right.id);
   }
+}
+
+final class _OfflineTransactionContext {
+  _OfflineTransactionContext(this.client);
+
+  final DatabaseClient client;
+  String? lastMutationId;
 }
 
 enum RemoteMergeResult { applied, ignored, conflicted }

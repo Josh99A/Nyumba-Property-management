@@ -17,6 +17,7 @@ import '../domain/application.dart';
 import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
 import 'listing_visuals.dart';
+import 'marketplace_navigation.dart';
 
 class ListingDetailScreen extends ConsumerWidget {
   const ListingDetailScreen({required this.listingId, super.key});
@@ -26,9 +27,8 @@ class ListingDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listings = ref.watch(publicListingsProvider);
-    final workspacePath = ref
-        .watch(sessionControllerProvider)
-        ?.workspacePath;
+    final session = ref.watch(sessionControllerProvider);
+    final navigationAction = marketplaceNavigationAction(session);
     return Scaffold(
       backgroundColor: context.nyumba.softIvory,
       appBar: AppBar(
@@ -41,15 +41,10 @@ class ListingDetailScreen extends ConsumerWidget {
         ),
         title: const NyumbaLogo(height: 39),
         actions: [
-          workspacePath == null
-              ? TextButton(
-                  onPressed: () => context.go('/sign-in'),
-                  child: const Text.localized('Sign in'),
-                )
-              : TextButton(
-                  onPressed: () => context.go(workspacePath),
-                  child: const Text.localized('My workspace'),
-                ),
+          TextButton(
+            onPressed: () => context.go(navigationAction.path),
+            child: Text.localized(navigationAction.label),
+          ),
           const SizedBox(width: 12),
         ],
       ),

@@ -66,5 +66,13 @@ if (response.status === 'rejected') {
   process.exit(3);
 }
 const updated = (await subscription.ref.get()).data();
-const account = (await db.collection('landlordAccounts').doc(user.uid).get()).data();
-console.log(`Payment confirmed for ${email} (uid ${user.uid}): tier ${updated.tier}, status ${updated.status}, account ${account?.approvalStatus ?? 'missing'}; audit trail written.`);
+let account;
+try {
+  account = (await db.collection('landlordAccounts').doc(user.uid).get()).data();
+} catch {
+  console.warn('Payment was confirmed, but the landlord approval status could not be read.');
+}
+const accountSummary = account
+  ? `, account ${account.approvalStatus ?? 'missing'}`
+  : '';
+console.log(`Payment confirmed for ${email} (uid ${user.uid}): tier ${updated.tier}, status ${updated.status}${accountSummary}; audit trail written.`);

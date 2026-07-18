@@ -792,4 +792,8 @@
     ,"availabilityReservedHelp": "Held for a tenant who has not moved in yet."
     ,"availabilityMaintenanceHelp": "Temporarily closed for repairs."
     ,"availabilityInactiveHelp": "Not offered for rent at the moment."
+    ,"completeSetup": "Complete setup"
+    ,"availabilityLoadFailed": "Rental space availability could not be loaded. Try again."
+    ,"listingsStillLoading": "Listings are still loading. Try again in a moment."
+    ,"listingsLoadBeforeAvailability": "Listings could not be loaded. Try again before changing availability."
 }

@@ -179,6 +179,12 @@ void main() {
         email: 'a@nyumba.test',
         role: AppRole.admin,
       ),
+      UserSession(
+        userId: 'c',
+        displayName: 'Authenticated Client',
+        email: 'client@nyumba.test',
+        role: AppRole.client,
+      ),
     ];
     for (final session in roles) {
       expect(
@@ -253,8 +259,8 @@ void main() {
 
     // A signed-in actor sees a route home instead of a redundant sign-in
     // prompt; a visitor still gets the sign-in call to action.
-    for (final (session, expectWorkspace) in [
-      (null, false),
+    for (final (session, expectedAction) in [
+      (null, 'Sign in'),
       (
         const UserSession(
           userId: 't',
@@ -263,12 +269,21 @@ void main() {
           role: AppRole.tenant,
           isDemo: true,
         ),
-        true,
+        'My workspace',
+      ),
+      (
+        const UserSession(
+          userId: 'c',
+          displayName: 'Authenticated Client',
+          email: 'client@nyumba.test',
+          role: AppRole.client,
+        ),
+        'Complete setup',
       ),
     ]) {
       await tester.pumpWidget(
         ProviderScope(
-          key: ValueKey(expectWorkspace),
+          key: ValueKey(expectedAction),
           overrides: [
             sessionControllerProvider.overrideWith(
               () => _StubSessionController(session),
@@ -279,10 +294,49 @@ void main() {
       );
       await _pumpFor(tester, const Duration(seconds: 1));
 
-      expect(find.text('My workspace'), findsExactly(expectWorkspace ? 1 : 0));
-      expect(find.text('Sign in'), findsExactly(expectWorkspace ? 0 : 1));
+      expect(find.text(expectedAction), findsOneWidget);
+      expect(find.text('Sign in'), findsExactly(session == null ? 1 : 0));
       expect(tester.takeException(), isNull);
     }
+  });
+
+  testWidgets('an authenticated client can open onboarding from explore', (
+    tester,
+  ) async {
+    const client = UserSession(
+      userId: 'client-no-workspace',
+      displayName: 'Authenticated Client',
+      email: 'client@nyumba.test',
+      role: AppRole.client,
+    );
+    final container = ProviderContainer(
+      overrides: [
+        sessionControllerProvider.overrideWith(
+          () => _StubSessionController(client),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final router = container.read(routerProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await _pumpFor(tester, const Duration(seconds: 1));
+
+    expect(find.text('Complete setup'), findsOneWidget);
+    await tester.tap(find.text('Complete setup'));
+    await _pumpFor(tester, const Duration(seconds: 1));
+
+    expect(router.routeInformationProvider.value.uri.path, '/onboarding');
+    expect(
+      find.text('Choose how you will use Nyumba to finish setting up.'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('tenant portal routes render at desktop and phone sizes', (

@@ -2578,4 +2578,19 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get availabilityInactiveHelp => 'Haitolewi kwa kupangishwa kwa sasa.';
+
+  @override
+  String get completeSetup => 'Kamilisha usanidi';
+
+  @override
+  String get availabilityLoadFailed =>
+      'Upatikanaji wa sehemu za kupangisha haukuweza kupakiwa. Jaribu tena.';
+
+  @override
+  String get listingsStillLoading =>
+      'Matangazo bado yanapakiwa. Jaribu tena baada ya muda mfupi.';
+
+  @override
+  String get listingsLoadBeforeAvailability =>
+      'Matangazo hayakuweza kupakiwa. Jaribu tena kabla ya kubadilisha upatikanaji.';
 }

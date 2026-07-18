@@ -62,6 +62,37 @@ void main() {
     expect(await database.outboxCount(), 1);
   });
 
+  test('a multi-repository transaction rolls back every mutation', () async {
+    await expectLater(
+      database.runInTransaction(() async {
+        await database.putEntityAndEnqueue(
+          entityType: OfflineEntityType.listing,
+          entityId: 'listing-1',
+          entity: _entityJson(id: 'listing-1', name: 'Published listing'),
+          mutationId: 'shared-mutation',
+          operation: OutboxOperation.delete,
+          createdAt: now,
+        );
+        await database.putEntityAndEnqueue(
+          entityType: OfflineEntityType.unit,
+          entityId: 'unit-1',
+          entity: _entityJson(id: 'unit-1', name: 'Unavailable unit'),
+          mutationId: 'shared-mutation',
+          operation: OutboxOperation.update,
+          createdAt: now,
+        );
+      }),
+      throwsA(isA<EntityAlreadyExistsException>()),
+    );
+
+    expect(
+      await database.readEntity(OfflineEntityType.listing, 'listing-1'),
+      isNull,
+    );
+    expect(await database.readEntity(OfflineEntityType.unit, 'unit-1'), isNull);
+    expect(await database.outboxCount(), 0);
+  });
+
   test(
     'cross-aggregate dependencies are durable and claimed in order',
     () async {

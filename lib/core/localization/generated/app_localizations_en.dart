@@ -2537,4 +2537,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get availabilityInactiveHelp => 'Not offered for rent at the moment.';
+
+  @override
+  String get completeSetup => 'Complete setup';
+
+  @override
+  String get availabilityLoadFailed =>
+      'Rental space availability could not be loaded. Try again.';
+
+  @override
+  String get listingsStillLoading =>
+      'Listings are still loading. Try again in a moment.';
+
+  @override
+  String get listingsLoadBeforeAvailability =>
+      'Listings could not be loaded. Try again before changing availability.';
 }

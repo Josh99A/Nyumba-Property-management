@@ -781,4 +781,8 @@
     ,"availabilityReservedHelp": "Imehifadhiwa kwa mpangaji ambaye bado hajahamia."
     ,"availabilityMaintenanceHelp": "Imefungwa kwa muda kwa ajili ya matengenezo."
     ,"availabilityInactiveHelp": "Haitolewi kwa kupangishwa kwa sasa."
+    ,"completeSetup": "Kamilisha usanidi"
+    ,"availabilityLoadFailed": "Upatikanaji wa sehemu za kupangisha haukuweza kupakiwa. Jaribu tena."
+    ,"listingsStillLoading": "Matangazo bado yanapakiwa. Jaribu tena baada ya muda mfupi."
+    ,"listingsLoadBeforeAvailability": "Matangazo hayakuweza kupakiwa. Jaribu tena kabla ya kubadilisha upatikanaji."
 }

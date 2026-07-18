@@ -58,6 +58,12 @@ For every mutation that may work offline:
 4. Repository streams emit the local state immediately.
 5. The runner wakes when authenticated and likely online. UI code never performs its own retry loop.
 
+When one user action changes multiple aggregates locally, all entity and outbox
+writes commit in one Sembast transaction. Their outbox entries form a durable
+dependency chain in call order, so a process crash cannot split the local state
+and sync cannot reorder the related commands (for example
+`listing.unpublish` before `unit.update` when a space becomes unavailable).
+
 If step 3 fails, neither the local change nor command is retained. Financial, subscription, approval, active-lease, and publication commands may create a local *intent*, but must not change the displayed canonical status to successful/active/published.
 
 ## Outbox record

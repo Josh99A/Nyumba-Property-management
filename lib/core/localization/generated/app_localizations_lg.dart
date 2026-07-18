@@ -2595,4 +2595,19 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get availabilityInactiveHelp =>
       'Tekireeteddwa kupangisa mu kiseera kino.';
+
+  @override
+  String get completeSetup => 'Maliriza okuteekateeka';
+
+  @override
+  String get availabilityLoadFailed =>
+      'Okubeerawo kw’ebifo by’obupangisa tekusobodde kutikkibwa. Ddamu ogezeeko.';
+
+  @override
+  String get listingsStillLoading =>
+      'Enkalala zikyatikkibwa. Ddamu ogezeeko mu kaseera katono.';
+
+  @override
+  String get listingsLoadBeforeAvailability =>
+      'Enkalala tezisobodde kutikkibwa. Ddamu ogezeeko nga tonnakyusa kubeerawo.';
 }

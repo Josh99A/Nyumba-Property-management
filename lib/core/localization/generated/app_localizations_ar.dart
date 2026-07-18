@@ -2515,4 +2515,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get availabilityInactiveHelp => 'غير معروضة للإيجار حاليًا.';
+
+  @override
+  String get completeSetup => 'أكمل الإعداد';
+
+  @override
+  String get availabilityLoadFailed =>
+      'تعذر تحميل توفر مساحات الإيجار. حاول مرة أخرى.';
+
+  @override
+  String get listingsStillLoading =>
+      'لا تزال الإعلانات قيد التحميل. حاول مرة أخرى بعد قليل.';
+
+  @override
+  String get listingsLoadBeforeAvailability =>
+      'تعذر تحميل الإعلانات. حاول مرة أخرى قبل تغيير التوفر.';
 }

@@ -26,23 +26,55 @@ class AdminUsersScreen extends ConsumerStatefulWidget {
   ConsumerState<AdminUsersScreen> createState() => _AdminUsersScreenState();
 }
 
-enum _PendingLifecycleTarget { archived, active, deleted }
+enum PendingLifecycleTarget { archived, active, deleted }
 
-final class _PendingLifecycleAction {
-  const _PendingLifecycleAction({
+final class PendingLifecycleAction {
+  const PendingLifecycleAction({
     required this.target,
     required this.expectedVersion,
   });
 
-  final _PendingLifecycleTarget target;
+  final PendingLifecycleTarget target;
   final int expectedVersion;
+}
+
+/// Returns lifecycle actions confirmed by an authoritative directory snapshot.
+///
+/// Loading and error values may carry stale or absent data, so neither can
+/// confirm a restoration or make a missing account count as deleted.
+Set<String> resolvedPendingLifecycleActionIds({
+  required AsyncValue<List<PlatformAccount>> accountsValue,
+  required Map<String, PendingLifecycleAction> pendingActions,
+}) {
+  if (accountsValue.isLoading || accountsValue.hasError) {
+    return const <String>{};
+  }
+  final accounts = accountsValue.value;
+  if (accounts == null) return const <String>{};
+  final byUid = {for (final account in accounts) account.uid: account};
+  final resolved = <String>{};
+  for (final entry in pendingActions.entries) {
+    final account = byUid[entry.key];
+    final pending = entry.value;
+    final versionConfirmed =
+        (account?.userVersion ?? -1) >= pending.expectedVersion;
+    final confirmed = switch (pending.target) {
+      PendingLifecycleTarget.archived =>
+        versionConfirmed && account?.status == PlatformAccountStatus.archived,
+      PendingLifecycleTarget.active =>
+        versionConfirmed && account?.status == PlatformAccountStatus.active,
+      PendingLifecycleTarget.deleted => account == null,
+    };
+    if (confirmed) resolved.add(entry.key);
+  }
+  return resolved;
 }
 
 class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   String _query = '';
   String _role = 'All roles';
   String _status = 'All statuses';
-  final _pendingLifecycleActions = <String, _PendingLifecycleAction>{};
+  final _pendingLifecycleActions = <String, PendingLifecycleAction>{};
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +82,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     final session = ref.watch(sessionControllerProvider);
     final accountsValue = ref.watch(platformAccountsProvider);
     final accounts = accountsValue.value ?? const <PlatformAccount>[];
-    _reconcilePendingLifecycleActions(accounts);
+    _reconcilePendingLifecycleActions(accountsValue);
 
     final query = _query.trim().toLowerCase();
     final filtered = accounts.where((account) {
@@ -550,7 +582,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           successMessage:
               'Archive request accepted for ${account.displayName}. Sign-in '
               'disablement and listing cleanup are awaiting confirmation.',
-          pendingTarget: _PendingLifecycleTarget.archived,
+          pendingTarget: PendingLifecycleTarget.archived,
         );
       case 'restore-archived':
         _runAccountAction(
@@ -566,7 +598,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           successMessage:
               'Restore request accepted for ${account.displayName}. Sign-in '
               'access is awaiting confirmation.',
-          pendingTarget: _PendingLifecycleTarget.active,
+          pendingTarget: PendingLifecycleTarget.active,
         );
       case 'delete-permanently':
         _runAccountAction(
@@ -583,7 +615,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           successMessage:
               'Deletion request accepted for ${account.displayName}. The '
               'sign-in account deletion is awaiting confirmation.',
-          pendingTarget: _PendingLifecycleTarget.deleted,
+          pendingTarget: PendingLifecycleTarget.deleted,
         );
       case 'demo-status':
         _changeDemoStatus(account);
@@ -716,7 +748,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     required Future<void> Function(AdminAccountCommands, String reason) run,
     required String successMessage,
     bool destructive = false,
-    _PendingLifecycleTarget? pendingTarget,
+    PendingLifecycleTarget? pendingTarget,
   }) async {
     var reason = reasonCodes.first;
     final confirmed = await showDialog<bool>(
@@ -779,7 +811,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     if (confirmed != true || !mounted) return;
     if (pendingTarget != null) {
       setState(() {
-        _pendingLifecycleActions[account.uid] = _PendingLifecycleAction(
+        _pendingLifecycleActions[account.uid] = PendingLifecycleAction(
           target: pendingTarget,
           expectedVersion: (account.userVersion ?? 0) + 1,
         );
@@ -798,24 +830,14 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     }
   }
 
-  void _reconcilePendingLifecycleActions(List<PlatformAccount> accounts) {
+  void _reconcilePendingLifecycleActions(
+    AsyncValue<List<PlatformAccount>> accountsValue,
+  ) {
     if (_pendingLifecycleActions.isEmpty) return;
-    final byUid = {for (final account in accounts) account.uid: account};
-    final resolved = <String>[];
-    for (final entry in _pendingLifecycleActions.entries) {
-      final account = byUid[entry.key];
-      final pending = entry.value;
-      final versionConfirmed =
-          (account?.userVersion ?? -1) >= pending.expectedVersion;
-      final confirmed = switch (pending.target) {
-        _PendingLifecycleTarget.archived =>
-          versionConfirmed && account?.status == PlatformAccountStatus.archived,
-        _PendingLifecycleTarget.active =>
-          versionConfirmed && account?.status != PlatformAccountStatus.archived,
-        _PendingLifecycleTarget.deleted => account == null,
-      };
-      if (confirmed) resolved.add(entry.key);
-    }
+    final resolved = resolvedPendingLifecycleActionIds(
+      accountsValue: accountsValue,
+      pendingActions: _pendingLifecycleActions,
+    );
     if (resolved.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
