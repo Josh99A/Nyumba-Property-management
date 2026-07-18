@@ -15,11 +15,22 @@ MarketplaceNavigationAction marketplaceNavigationAction(UserSession? session) {
     );
   }
   final workspacePath = session.workspacePath;
-  if (workspacePath == null) {
+  final needsOnboarding =
+      session.role == AppRole.client &&
+      !session.isAnonymous &&
+      !session.isDemo;
+  if (workspacePath == null && needsOnboarding) {
     return const MarketplaceNavigationAction(
       label: 'Complete setup',
       path: '/onboarding',
     );
+  }
+  if (workspacePath == null) {
+    return const MarketplaceNavigationAction(
+      label: 'Explore',
+      path: '/explore',
+    );
+  }
   }
   return MarketplaceNavigationAction(
     label: 'My workspace',
