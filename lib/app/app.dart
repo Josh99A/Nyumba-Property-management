@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'router.dart';
+import 'splash/splash_gate.dart';
 import '../core/localization/luganda_localizations.dart';
 import '../core/localization/generated/app_localizations.dart';
 import '../core/localization/app_localizations_adapter.dart';
@@ -84,6 +85,8 @@ class NyumbaApp extends ConsumerWidget {
       theme: NyumbaTheme.light,
       darkTheme: NyumbaTheme.dark,
       themeMode: themeMode,
+      builder: (context, child) =>
+          SplashGate(child: child ?? const SizedBox.shrink()),
       locale: Locale(language.code),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: [
