@@ -31,7 +31,6 @@ MarketplaceNavigationAction marketplaceNavigationAction(UserSession? session) {
       path: '/explore',
     );
   }
-  }
   return MarketplaceNavigationAction(
     label: 'My workspace',
     path: workspacePath,
