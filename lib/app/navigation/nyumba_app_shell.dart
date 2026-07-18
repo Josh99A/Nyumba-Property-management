@@ -699,7 +699,10 @@ class _MobileShell extends ConsumerWidget {
         toolbarHeight: 68,
         backgroundColor: context.nyumba.surface,
         titleSpacing: 16,
-        title: const NyumbaLogo(height: 38),
+        // Compact bars carry the cloud badge, notifications, language and
+        // account actions; collapse to the mark-only lockup so nothing
+        // overflows beside them.
+        title: NyumbaLogo(compact: context.isCompact, height: 38),
         actions: [
           const CloudStatusBadge(),
           const NotificationBell(),

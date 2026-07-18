@@ -252,6 +252,11 @@ final class RemotePullCoordinator {
   final OfflineDatabase database;
   final RemotePullGateway gateway;
   final List<StreamSubscription<List<RemoteRecord>>> _subscriptions = [];
+  // One state per watched collection, parallel to [_subscriptions]. The
+  // workspace link is an aggregate of these: a single collection failing (a
+  // missing projection, a rule that denies one type) must not report the whole
+  // workspace offline while others are delivering data.
+  final List<CloudLinkState> _subscriptionStates = [];
   final StreamController<CloudLinkState> _linkStates =
       StreamController<CloudLinkState>.broadcast();
   CloudLinkState _linkState = CloudLinkState.connecting;
@@ -261,10 +266,29 @@ final class RemotePullCoordinator {
 
   Stream<CloudLinkState> get linkStates => _linkStates.stream;
 
-  void _publish(CloudLinkState next) {
-    if (_linkState == next || _linkStates.isClosed) return;
-    _linkState = next;
-    _linkStates.add(next);
+  /// The honest workspace-wide link state.
+  ///
+  /// A delivered snapshot on any collection proves the server is reachable, so
+  /// [live] wins outright. [failed] shows only when every collection has failed
+  /// — one collection erroring while others are still opening is not the whole
+  /// workspace going offline — and [connecting] holds until then.
+  CloudLinkState _aggregate() {
+    if (_subscriptionStates.contains(CloudLinkState.live)) {
+      return CloudLinkState.live;
+    }
+    if (_subscriptionStates.isNotEmpty &&
+        _subscriptionStates.every((state) => state == CloudLinkState.failed)) {
+      return CloudLinkState.failed;
+    }
+    return CloudLinkState.connecting;
+  }
+
+  void _publish(int slot, CloudLinkState next) {
+    _subscriptionStates[slot] = next;
+    final aggregate = _aggregate();
+    if (_linkState == aggregate || _linkStates.isClosed) return;
+    _linkState = aggregate;
+    _linkStates.add(aggregate);
   }
 
   void watch(
@@ -276,6 +300,8 @@ final class RemotePullCoordinator {
     bool publicOnly = false,
     bool administrativeScope = false,
   }) {
+    final slot = _subscriptionStates.length;
+    _subscriptionStates.add(CloudLinkState.connecting);
     final subscription = gateway
         .watchCollection(
           type,
@@ -290,7 +316,7 @@ final class RemotePullCoordinator {
           (records) async {
             // A delivered snapshot is the only proof the server is readable;
             // an empty list still proves it.
-            _publish(CloudLinkState.live);
+            _publish(slot, CloudLinkState.live);
             for (final record in records) {
               await database.mergeRemoteEntity(
                 entityType: record.entityType,
@@ -301,9 +327,10 @@ final class RemotePullCoordinator {
           },
           onError: (_) {
             // Listener errors leave the local source of truth intact. The SDK
-            // retries transient streams; permission/configuration failures are
-            // surfaced here so the UI never claims a working cloud link.
-            _publish(CloudLinkState.failed);
+            // retries transient streams; permission/configuration failures mark
+            // only this collection failed, so the badge reports offline only
+            // when no collection is live.
+            _publish(slot, CloudLinkState.failed);
           },
         );
     _subscriptions.add(subscription);
@@ -314,6 +341,7 @@ final class RemotePullCoordinator {
       await subscription.cancel();
     }
     _subscriptions.clear();
+    _subscriptionStates.clear();
     await _linkStates.close();
   }
 }

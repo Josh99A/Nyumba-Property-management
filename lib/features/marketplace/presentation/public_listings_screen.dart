@@ -51,7 +51,9 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
         toolbarHeight: 72,
         backgroundColor: context.nyumba.surface,
         titleSpacing: context.isCompact ? 16 : 32,
-        title: const NyumbaLogo(height: 42),
+        // On compact widths the full wordmark plus the cloud/language/CTA
+        // actions overflow the bar, so collapse to the mark-only lockup there.
+        title: NyumbaLogo(compact: context.isCompact, height: 42),
         actions: [
           const CloudStatusBadge(),
           SizedBox(width: context.isCompact ? 8 : 14),
