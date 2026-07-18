@@ -12,10 +12,12 @@ import '../../../core/config/market_config.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
 import '../domain/application.dart';
 import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
 import 'listing_visuals.dart';
+import 'marketplace_navigation.dart';
 
 class ListingDetailScreen extends ConsumerWidget {
   const ListingDetailScreen({required this.listingId, super.key});
@@ -25,6 +27,8 @@ class ListingDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listings = ref.watch(publicListingsProvider);
+    final session = ref.watch(sessionControllerProvider);
+    final navigationAction = marketplaceNavigationAction(session);
     return Scaffold(
       backgroundColor: context.nyumba.softIvory,
       appBar: AppBar(
@@ -38,8 +42,8 @@ class ListingDetailScreen extends ConsumerWidget {
         title: const NyumbaLogo(height: 39),
         actions: [
           TextButton(
-            onPressed: () => context.go('/sign-in'),
-            child: const Text.localized('Sign in'),
+            onPressed: () => context.go(navigationAction.path),
+            child: Text.localized(navigationAction.label),
           ),
           const SizedBox(width: 12),
         ],

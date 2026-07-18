@@ -2331,4 +2331,283 @@ class AppLocalizationsLg extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get subscriptionPaymentConfirmedWorkspace =>
+      'Okusasula kukakasiddwa. Ekifo kyo eky\'omupangisa kati kisobola okukozesebwa.';
+
+  @override
+  String get subscriptionPaymentNotConfirmed => 'Okusasula tekunnakakasibwa.';
+
+  @override
+  String subscriptionPlanSelected(String planName) {
+    return 'Enteekateeka ya $planName erondeddwa. Ekifo kyo kijja kuggulwawo ng\'okusasula kwakakasiddwa.';
+  }
+
+  @override
+  String get subscriptionActiveTitle => 'Okwewandiisa kwo kukola';
+
+  @override
+  String get subscriptionChoosePlanTitle => 'Londa enteekateeka yo';
+
+  @override
+  String get subscriptionActiveDescription =>
+      'Okusasula kwo kukakasiddwa. Kati osobola okuyingira mu kifo kyo eky\'omupangisa.';
+
+  @override
+  String get subscriptionGateDescription =>
+      'Ekifo kyo kiggulwawo amangu ddala nga Nyumba ekakasizza okusasula kw\'okwewandiisa. Abapangisa n\'abanoonya ennyumba basigala nga bakozesa bwereere.';
+
+  @override
+  String get subscriptionTiers => 'Emitendera gy\'okwewandiisa';
+
+  @override
+  String get subscriptionChangeActivePlanDescription =>
+      'Okukyusa enteekateeka ekola kukolebwa n\'okusasula kwo okuddako — tuukirira obuyambi bwa Nyumba.';
+
+  @override
+  String get subscriptionChoosePlanDescription =>
+      'Londa enteekateeka esaanira eby\'obugagga byo. Osobola okugikyusa okutuusa okusasula lwe kukakasibwa, era omuwendo gukakasibwa naawe nga tonnasasula.';
+
+  @override
+  String get subscriptionPlanCapacityUnavailable =>
+      'Ebikwata ku busobozi bw\'enteekateeka tebifuniddwa kati, n\'olwekyo tebiragiddwa — tewali kiteeberezebwa ku kyuma kino.';
+
+  @override
+  String get subscriptionPaymentConfirmed => 'Okusasula kukakasiddwa';
+
+  @override
+  String get subscriptionAwaitingPaymentConfirmation =>
+      'Kirindirira okukakasibwa kw\'okusasula';
+
+  @override
+  String get subscriptionPaymentPastDue => 'Okusasula kuyise ku kiseera';
+
+  @override
+  String get subscriptionCanceled => 'Okwewandiisa kusaziddwamu';
+
+  @override
+  String get subscriptionExpired => 'Okwewandiisa kuweddeko';
+
+  @override
+  String get subscriptionStatusUnavailable =>
+      'Embeera y\'okwewandiisa tefuniddwa';
+
+  @override
+  String get subscriptionRequired => 'Okwewandiisa kwetaagisa';
+
+  @override
+  String get subscriptionSelectedPlanName => 'erondeddwa';
+
+  @override
+  String subscriptionPendingMessage(String plan) {
+    return 'Enteekateeka yo eya $plan eterekeddwa, naye tewali kusasula kukakasiddwa.';
+  }
+
+  @override
+  String subscriptionPastDueMessage(String plan) {
+    return 'Okusasula kw\'enteekateeka yo eya $plan kuyise ku kiseera. Kusasule ekifo kisigale nga kiggule.';
+  }
+
+  @override
+  String get subscriptionCanceledMessage =>
+      'Okwewandiisa okupya okusasuliddwa kwetaagisa nga tonnayingira mu kifo.';
+
+  @override
+  String get subscriptionExpiredMessage =>
+      'Ddamu okwewandiisa nga tonnayingira mu kifo.';
+
+  @override
+  String subscriptionActiveMessage(String plan) {
+    return 'Okusasula kw\'enteekateeka yo eya $plan kukakasiddwa.';
+  }
+
+  @override
+  String get subscriptionUnverifiedMessage =>
+      'Nyumba tesobodde kukakasa kwewandiisa kukola era okusasuliddwa ku akawunti eno.';
+
+  @override
+  String subscriptionHowToPay(String methods) {
+    return 'Okusasulira munda mu pulogulaamu kujja mangu. Okukola kati, sasula ng\'oyita mu $methods, oweereze ennamba y\'okutunda eri obuyambi bwa Nyumba era olage email y\'akawunti yo. Ekifo kyo kiggulwawo amangu ddala nga okusasula kukakasiddwa — teweetaaga kusigala ku muko guno.';
+  }
+
+  @override
+  String subscriptionHowToPayWithEmail(String methods, String email) {
+    return 'Okusasulira munda mu pulogulaamu kujja mangu. Okukola kati, sasula ng\'oyita mu $methods, oweereze ennamba y\'okutunda eri obuyambi bwa Nyumba era olage email y\'akawunti yo ($email). Ekifo kyo kiggulwawo amangu ddala nga okusasula kukakasiddwa — teweetaaga kusigala ku muko guno.';
+  }
+
+  @override
+  String get subscriptionEnterWorkspace => 'Yingira mu kifo';
+
+  @override
+  String get subscriptionCheckPaymentStatus => 'Kebera embeera y\'okusasula';
+
+  @override
+  String subscriptionPlanCapacity(int unitLimit, int listingLimit) {
+    return 'Okutuuka ku bifo $unitLimit eby\'okupangisa · eby\'okulanga $listingLimit ebikola';
+  }
+
+  @override
+  String get subscriptionStarterPlan => 'Entandikwa';
+
+  @override
+  String get subscriptionProPlan => 'Pro';
+
+  @override
+  String get subscriptionPremiumPlan => 'Premium';
+
+  @override
+  String get subscriptionEnterprisePlan => 'Enterprise';
+
+  @override
+  String get subscriptionStarterAudience =>
+      'Bannannyini nnyumba ssekinnoomu n\'ebitono';
+
+  @override
+  String get subscriptionProAudience =>
+      'Bannannyini nnyumba abakula n\'ebibinja ebitono';
+
+  @override
+  String get subscriptionPremiumAudience => 'Abaddukanya eby\'obugagga abakugu';
+
+  @override
+  String get subscriptionEnterpriseAudience =>
+      'Ebitongole, amatendekero ne kampuni ennene';
+
+  @override
+  String get availabilityManagerTitle => 'Okubeerawo kw’ebifo eby’obupangisa';
+
+  @override
+  String get availabilityManagerDescription =>
+      'Teekateeka okubeerawo wano. Ebifo ebitaliimu bapangisa byokka bye birabika ku katale ka bonna, ate embeera y’okubeera n’omupangisa eteekebwawo obupangisa obukola.';
+
+  @override
+  String get availabilityManageProperties => 'Ddukanya eby’obugagga';
+
+  @override
+  String get availabilityManageListings => 'Ddukanya enkalala';
+
+  @override
+  String get availabilityFilterAll => 'Byonna';
+
+  @override
+  String get availabilityStatusVacant => 'Tekirimu mupangisa';
+
+  @override
+  String get availabilityStatusOccupied => 'Kirimu omupangisa';
+
+  @override
+  String get availabilityFilterOther => 'Ebirala';
+
+  @override
+  String get availabilityLabel => 'Okubeerawo';
+
+  @override
+  String get availabilityPublicScreen => 'Olutimbe lwa bonna';
+
+  @override
+  String get availabilityManagedByTenancy =>
+      'Kiddukanyizibwa obupangisa obukola';
+
+  @override
+  String get availabilityEmpty =>
+      'Yongera eky’obugagga n’ekifo eky’obupangisa okutandika okuddukanya okubeerawo.';
+
+  @override
+  String get availabilityNoMatches =>
+      'Tewali bifo bya bupangisa bituukana na musunsula guno.';
+
+  @override
+  String get availabilityListingLive => 'Kirabika ku lutimbe lwa bonna';
+
+  @override
+  String get availabilityListingRemovalRequired =>
+      'Kyetaaga okuggyibwa mu lukalala lwa bonna';
+
+  @override
+  String get availabilityListingPublishingPending =>
+      'Okufulumya kukyalindirira';
+
+  @override
+  String get availabilityListingRemovalPending => 'Okuggyawo kukyalindirira';
+
+  @override
+  String get availabilityListingNotPublic => 'Tekiri kya bonna';
+
+  @override
+  String get availabilityListingNone => 'Tewali lukalala';
+
+  @override
+  String get availabilityUnpublishTitle =>
+      'Oggyewo ekifo kino ku lutimbe lwa bonna?';
+
+  @override
+  String get availabilityUnpublishDescription =>
+      'Okukyusa ekifo kino okuva ku kutabaamu mupangisa kijja okuggyawo olukalala lwalyo. Olutimbe lwa bonna lukyuka oluvannyuma lwa seva okukakasa.';
+
+  @override
+  String get availabilityKeepVacant => 'Leka nga tekirimu mupangisa';
+
+  @override
+  String get availabilityChangeAction => 'Kyusa okubeerawo';
+
+  @override
+  String get availabilitySavedQueued =>
+      'Okubeerawo kuterekeddwa ku kyuma era kulindirira okukwataganyizibwa.';
+
+  @override
+  String get availabilitySavedRemovalQueued =>
+      'Okubeerawo kuterekeddwa ku kyuma. Olukalala lwa bonna luggyibwawo.';
+
+  @override
+  String availabilityUpdateFailed(String error) {
+    return 'Okukyusa okubeerawo kulemereddwa: $error';
+  }
+
+  @override
+  String get availabilityPublicRemovalNotice =>
+      'Enkyukakyuka eno ejja kuggyawo ekifo eky’obupangisa ku lutimbe lwa bonna oluvannyuma lwa seva okukakasa.';
+
+  @override
+  String get availabilityStatusReserved => 'Kikuumiddwa';
+
+  @override
+  String get availabilityStatusMaintenance => 'Kirongoosebwa';
+
+  @override
+  String get availabilityStatusInactive => 'Tekikola';
+
+  @override
+  String get availabilityVacantHelp =>
+      'Kiriwo okupangisa era kisobola okulangibwa.';
+
+  @override
+  String get availabilityOccupiedHelp =>
+      'Omupangisa abeera oba akolera mu kifo kino.';
+
+  @override
+  String get availabilityReservedHelp => 'Kikuumiddwa omupangisa atanayingira.';
+
+  @override
+  String get availabilityMaintenanceHelp =>
+      'Kiggaddwa okumala akaseera olw’okuddaabiriza.';
+
+  @override
+  String get availabilityInactiveHelp =>
+      'Tekireeteddwa kupangisa mu kiseera kino.';
+
+  @override
+  String get completeSetup => 'Maliriza okuteekateeka';
+
+  @override
+  String get availabilityLoadFailed =>
+      'Okubeerawo kw’ebifo by’obupangisa tekusobodde kutikkibwa. Ddamu ogezeeko.';
+
+  @override
+  String get listingsStillLoading =>
+      'Enkalala zikyatikkibwa. Ddamu ogezeeko mu kaseera katono.';
+
+  @override
+  String get listingsLoadBeforeAvailability =>
+      'Enkalala tezisobodde kutikkibwa. Ddamu ogezeeko nga tonnakyusa kubeerawo.';
 }

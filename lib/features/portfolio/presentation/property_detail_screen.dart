@@ -479,14 +479,16 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     DropdownButtonFormField<UnitStatus>(
                       initialValue: status,
                       decoration: InputDecoration(
-                        labelText: context.tr('Occupancy status'),
+                        labelText: context.tr('Availability'),
+                        helperText: context.tr(status.helperText),
                       ),
                       items: [
                         for (final item in UnitStatus.values)
-                          DropdownMenuItem(
-                            value: item,
-                            child: Text.localized(_titleCase(item.name)),
-                          ),
+                          if (item != UnitStatus.occupied)
+                            DropdownMenuItem(
+                              value: item,
+                              child: Text.localized(item.displayLabel),
+                            ),
                       ],
                       onChanged: (value) {
                         if (value != null) setDialogState(() => status = value);
@@ -553,6 +555,28 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 
   Future<void> _editUnit(Unit unit) async {
+    final listingsValue = ref.read(landlordListingsProvider);
+    if (listingsValue.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text.localized(
+            'Listings could not be loaded. Try again before changing availability.',
+          ),
+        ),
+      );
+      return;
+    }
+    final listings = listingsValue.isLoading ? null : listingsValue.value;
+    if (listings == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text.localized(
+            'Listings are still loading. Try again in a moment.',
+          ),
+        ),
+      );
+      return;
+    }
     final formKey = GlobalKey<FormState>();
     final label = TextEditingController(text: unit.label);
     final rent = TextEditingController(
@@ -561,6 +585,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final bedrooms = TextEditingController(text: unit.bedrooms.toString());
     final bathrooms = TextEditingController(text: unit.bathrooms.toString());
     var type = unit.type;
+    var status = unit.status;
+    final hasPublishedListing = listings.any(
+      (listing) =>
+          listing.unitId == unit.id &&
+          listing.status == ListingStatus.published,
+    );
+    UpdateUnitResult? result;
     String? error;
     final updated = await showDialog<bool>(
       context: context,
@@ -601,6 +632,62 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         if (value != null) setDialogState(() => type = value);
                       },
                     ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<UnitStatus>(
+                      initialValue: status,
+                      decoration: InputDecoration(
+                        labelText: context.tr('Availability'),
+                        helperText: context.tr(
+                          unit.status == UnitStatus.occupied
+                              ? 'Managed by active tenancy'
+                              : status.helperText,
+                        ),
+                      ),
+                      items: [
+                        for (final item in UnitStatus.values)
+                          if (item != UnitStatus.occupied ||
+                              unit.status == UnitStatus.occupied)
+                            DropdownMenuItem(
+                              value: item,
+                              enabled: item != UnitStatus.occupied,
+                              child: Text.localized(item.displayLabel),
+                            ),
+                      ],
+                      onChanged: unit.status == UnitStatus.occupied
+                          ? null
+                          : (value) {
+                              if (value != null) {
+                                setDialogState(() => status = value);
+                              }
+                            },
+                    ),
+                    if (hasPublishedListing && status != UnitStatus.vacant) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: context.nyumba.goldTint,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: context.nyumba.goldBorder),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.public_off_outlined,
+                              size: 18,
+                              color: context.nyumba.terracottaDark,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text.localized(
+                                'This change will remove the rental space from the public screen after server confirmation.',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: rent,
@@ -671,10 +758,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 try {
-                  await ref.read(updateUnitProvider)(
+                  result = await ref.read(updateUnitProvider)(
                     unit.copyWith(
                       label: label.text.trim(),
                       type: type,
+                      status: status,
                       monthlyRentMinor:
                           int.parse(rent.text.replaceAll(',', '')) * 100,
                       bedrooms: int.parse(bedrooms.text),
@@ -698,9 +786,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     bathrooms.dispose();
     if (updated == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text.localized(
-            'Rental space changes saved locally and queued to sync.',
+            result?.unpublishedListing == null
+                ? 'Rental space changes saved locally and queued to sync.'
+                : 'Availability saved locally. The public listing is being removed.',
           ),
         ),
       );

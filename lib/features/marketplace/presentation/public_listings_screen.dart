@@ -14,8 +14,10 @@ import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
 import '../domain/listing.dart';
 import 'listing_visuals.dart';
+import 'marketplace_navigation.dart';
 
 class PublicListingsScreen extends ConsumerStatefulWidget {
   const PublicListingsScreen({super.key});
@@ -38,6 +40,11 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
   @override
   Widget build(BuildContext context) {
     final listingsValue = ref.watch(publicListingsProvider);
+    // Signed-in actors explore the same public catalogue. Accounts whose role
+    // is not resolved yet return to onboarding instead of seeing a sign-in
+    // prompt despite already having a session.
+    final session = ref.watch(sessionControllerProvider);
+    final navigationAction = marketplaceNavigationAction(session);
     return Scaffold(
       backgroundColor: context.nyumba.softIvory,
       appBar: AppBar(
@@ -54,10 +61,16 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
             padding: EdgeInsetsDirectional.only(
               end: context.isCompact ? 12 : 30,
             ),
-            child: OutlinedButton(
-              onPressed: () => context.go('/sign-in'),
-              child: const Text.localized('Sign in'),
-            ),
+            child: session == null
+                ? OutlinedButton(
+                    onPressed: () => context.go(navigationAction.path),
+                    child: Text.localized(navigationAction.label),
+                  )
+                : OutlinedButton.icon(
+                    onPressed: () => context.go(navigationAction.path),
+                    icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                    label: Text.localized(navigationAction.label),
+                  ),
           ),
         ],
       ),

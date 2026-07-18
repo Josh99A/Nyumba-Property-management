@@ -1,5 +1,5 @@
 import { deleteApp, initializeApp } from 'firebase-admin/app';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Actor } from '../../src/shared/actor';
 import { DomainError } from '../../src/shared/errors';
@@ -519,6 +519,175 @@ describe('command router', () => {
     expect((publicData.expiresAt as Timestamp).toMillis() - now.toMillis()).toBe(30 * 24 * 60 * 60 * 1000);
   });
 
+  it('retires a public listing when a landlord makes its unit unavailable', async () => {
+    await seedLandlord();
+    await db.doc(`landlordAccounts/${landlord.uid}`).update({ activeListingCount: 1 });
+    await db.doc('units/unit_available_1').set({
+      id: 'unit_available_1', landlordId: landlord.uid, propertyId: 'property_1234',
+      occupancyStatus: 'vacant', activeLeaseId: null, activePublicListingId: 'listing_available_1',
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('privateListings/listing_available_1').set({
+      id: 'listing_available_1', landlordId: landlord.uid, unitId: 'unit_available_1',
+      publicationState: 'published', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('publicListings/listing_available_1').set({
+      id: 'listing_available_1', status: 'published', version: 1,
+      expiresAt: Timestamp.fromMillis(now.toMillis() + 7 * 24 * 60 * 60 * 1000),
+      createdAt: now, updatedAt: now,
+    });
+
+    const command = envelope(
+      'command_availability_1',
+      'unit.update',
+      'unit_available_1',
+      1,
+      { occupancyStatus: 'maintenance' },
+    );
+    expect(await executeCommandCore(db, landlord, command, now)).toMatchObject({
+      status: 'applied', serverVersion: 2,
+    });
+    // Replaying the same command must not decrement the listing count twice.
+    expect(await executeCommandCore(db, landlord, command, now)).toMatchObject({
+      status: 'applied', serverVersion: 2,
+    });
+    expect((await db.doc('units/unit_available_1').get()).data()).toMatchObject({
+      occupancyStatus: 'maintenance', activePublicListingId: null,
+    });
+    expect((await db.doc('privateListings/listing_available_1').get()).data()?.publicationState).toBe('unpublished');
+    expect((await db.doc('publicListings/listing_available_1').get()).data()?.status).toBe('unpublished');
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()?.activeListingCount).toBe(0);
+    expect((await db.doc('backendJobs/command_availability_1_cleanup').get()).data()).toMatchObject({
+      type: 'cleanupListingMedia', payload: { listingId: 'listing_available_1' },
+    });
+    // The local outbox may still deliver its earlier listing.unpublish intent
+    // with the pre-retirement version. The already-achieved state absorbs it.
+    expect(await executeCommandCore(
+      db,
+      landlord,
+      envelope(
+        'command_availability_unpublish',
+        'listing.unpublish',
+        'listing_available_1',
+        1,
+        {},
+      ),
+      now,
+    )).toMatchObject({ status: 'applied', serverVersion: 2 });
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()?.activeListingCount).toBe(0);
+
+    const manualOccupied = await executeCommandCore(
+      db,
+      landlord,
+      envelope(
+        'command_availability_2',
+        'unit.update',
+        'unit_available_1',
+        2,
+        { occupancyStatus: 'occupied' },
+      ),
+      now,
+    );
+    expect(manualOccupied).toMatchObject({
+      status: 'rejected',
+      error: { code: 'VALIDATION_FAILED', details: { reason: 'unitOccupancyLeaseManaged' } },
+    });
+  });
+
+  it('retires a public listing when a tenancy occupies its unit', async () => {
+    await seedLandlord();
+    await db.doc(`landlordAccounts/${landlord.uid}`).update({ activeListingCount: 1 });
+    await db.doc('units/unit_tenancy_1').set({
+      id: 'unit_tenancy_1', landlordId: landlord.uid, propertyId: 'property_1234', label: 'T1',
+      occupancyStatus: 'vacant', activeLeaseId: null, activePublicListingId: 'listing_tenancy_1',
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('privateListings/listing_tenancy_1').set({
+      id: 'listing_tenancy_1', landlordId: landlord.uid, unitId: 'unit_tenancy_1',
+      publicationState: 'published', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('publicListings/listing_tenancy_1').set({
+      id: 'listing_tenancy_1', status: 'published', version: 1,
+      expiresAt: Timestamp.fromMillis(now.toMillis() + 7 * 24 * 60 * 60 * 1000),
+      createdAt: now, updatedAt: now,
+    });
+
+    const result = await executeCommandCore(
+      db,
+      landlord,
+      envelope(
+        'command_tenancy_1',
+        'tenancy.establish',
+        'tenancy_123456',
+        0,
+        {
+          unitId: 'unit_tenancy_1',
+          displayName: 'Amina Tenant',
+          email: 'amina@example.com',
+          phone: '+256700000001',
+          startDate: '2026-08-01T00:00:00.000Z',
+          endDate: '2027-07-31T00:00:00.000Z',
+          monthlyRentMinor: 100_000,
+        },
+      ),
+      now,
+    );
+
+    expect(result).toMatchObject({ status: 'applied' });
+    expect((await db.doc('units/unit_tenancy_1').get()).data()).toMatchObject({
+      occupancyStatus: 'occupied',
+      activeLeaseId: 'tenancy_123456',
+      activePublicListingId: null,
+    });
+    expect((await db.doc('privateListings/listing_tenancy_1').get()).data()?.publicationState).toBe('unpublished');
+    expect((await db.doc('publicListings/listing_tenancy_1').get()).data()?.status).toBe('unpublished');
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()?.activeListingCount).toBe(0);
+  });
+
+  it('retires a public listing when a draft lease is activated', async () => {
+    await seedLandlord();
+    await db.doc(`landlordAccounts/${landlord.uid}`).update({ activeListingCount: 1 });
+    await db.doc('units/unit_lease_activate_1').set({
+      id: 'unit_lease_activate_1', landlordId: landlord.uid, propertyId: 'property_1234',
+      occupancyStatus: 'vacant', activeLeaseId: null, activePublicListingId: 'listing_lease_activate_1',
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('leases/lease_activate_1').set({
+      id: 'lease_activate_1', landlordId: landlord.uid, unitId: 'unit_lease_activate_1',
+      tenantRecordId: 'tenant_record_1', tenantUserUid: null, status: 'draft',
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('privateListings/listing_lease_activate_1').set({
+      id: 'listing_lease_activate_1', landlordId: landlord.uid, unitId: 'unit_lease_activate_1',
+      publicationState: 'published', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('publicListings/listing_lease_activate_1').set({
+      id: 'listing_lease_activate_1', status: 'published', version: 1,
+      expiresAt: Timestamp.fromMillis(now.toMillis() + 7 * 24 * 60 * 60 * 1000),
+      createdAt: now, updatedAt: now,
+    });
+
+    const result = await executeCommandCore(
+      db,
+      landlord,
+      envelope('command_lease_activate_1', 'lease.activate', 'lease_activate_1', 1, {}),
+      now,
+    );
+
+    expect(result).toMatchObject({ status: 'applied', serverVersion: 2 });
+    expect((await db.doc('units/unit_lease_activate_1').get()).data()).toMatchObject({
+      occupancyStatus: 'occupied',
+      activeLeaseId: 'lease_activate_1',
+      activePublicListingId: null,
+    });
+    expect((await db.doc('privateListings/listing_lease_activate_1').get()).data()?.publicationState).toBe('unpublished');
+    expect((await db.doc('publicListings/listing_lease_activate_1').get()).data()?.status).toBe('unpublished');
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()?.activeListingCount).toBe(0);
+    expect((await db.doc('backendJobs/command_lease_activate_1_cleanup').get()).data()).toMatchObject({
+      type: 'cleanupListingMedia', payload: { listingId: 'listing_lease_activate_1' },
+    });
+  });
+
   it('writes report snapshots with the owner fields the read rules authorize', async () => {
     await seedLandlord();
     const result = await executeCommandCore(db, landlord, envelope('command_report_1', 'report.request', 'report_123456', 0, {
@@ -648,6 +817,62 @@ describe('command router', () => {
     // at activation.
     const lateSwitch = await executeCommandCore(db, landlord, envelope('command_sub_07', 'subscription.selectPlan', landlord.uid, 2, { tier: 'pro' }), now);
     expect(lateSwitch).toMatchObject({ status: 'rejected', error: { code: 'VALIDATION_FAILED' } });
+  });
+
+  it('approves a pending landlord account in the same payment confirmation', async () => {
+    await seedLandlord({ approval: 'pending', subscription: 'pending_payment' });
+    const confirm = await executeCommandCore(db, admin, envelope('command_sub_08', 'subscription.confirmPayment', landlord.uid, 1, { reference: 'MoMo TX 445566' }), now);
+    expect(confirm).toMatchObject({ status: 'applied' });
+    expect((await db.doc(`subscriptions/${landlord.uid}`).get()).data()).toMatchObject({ status: 'active' });
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()).toMatchObject({
+      approvalStatus: 'approved', approvalReasonCode: 'PAYMENT_CONFIRMED', version: 2,
+    });
+
+    // One confirmed payment fully opens the workspace — no separate approval step.
+    const create = await executeCommandCore(db, landlord, envelope('command_sub_09', 'unit.create', 'unit_345678', 0, unitPayload()), now);
+    expect(create.status).toBe('applied');
+  });
+
+  it('never lets a payment confirmation undo a suspension', async () => {
+    await seedLandlord({ approval: 'suspended', subscription: 'pending_payment' });
+    const confirm = await executeCommandCore(db, admin, envelope('command_sub_10', 'subscription.confirmPayment', landlord.uid, 1, { reference: 'MoMo TX 445567' }), now);
+    expect(confirm).toMatchObject({ status: 'rejected', error: { code: 'VALIDATION_FAILED' } });
+    expect((await db.doc(`subscriptions/${landlord.uid}`).get()).data()).toMatchObject({ status: 'pending_payment' });
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()).toMatchObject({ approvalStatus: 'suspended' });
+  });
+
+  it('rejects malformed landlord approval state before activating a subscription', async () => {
+    await seedLandlord({ subscription: 'pending_payment' });
+    const invalidStatuses: Array<[string, unknown]> = [
+      ['missing', FieldValue.delete()],
+      ['malformed', 42],
+      ['unexpected', 'archived'],
+    ];
+    for (const [label, approvalStatus] of invalidStatuses) {
+      await db.doc(`landlordAccounts/${landlord.uid}`).update({ approvalStatus });
+      const confirm = await executeCommandCore(
+        db,
+        admin,
+        envelope(
+          `command_sub_invalid_${label}`,
+          'subscription.confirmPayment',
+          landlord.uid,
+          1,
+          { reference: `MoMo TX invalid ${label}` },
+        ),
+        now,
+      );
+      expect(confirm).toMatchObject({
+        status: 'rejected',
+        error: {
+          code: 'VALIDATION_FAILED',
+          details: { reason: 'accountApprovalStatusInvalid' },
+        },
+      });
+      expect((await db.doc(`subscriptions/${landlord.uid}`).get()).data()).toMatchObject({
+        status: 'pending_payment', version: 1,
+      });
+    }
   });
 
   it('links pending invites to a verified tenant account and provisions the portal', async () => {

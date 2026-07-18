@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme/nyumba_colors.dart';
+import '../../core/localization/app_localizations_adapter.dart';
 import '../../core/offline/outbox_entry.dart';
-import '../../core/localization/generated/app_localizations.dart';
 import '../../core/presentation/cloud_status_badge.dart';
 import '../../core/presentation/motion.dart';
 import '../../core/presentation/nyumba_logo.dart';
@@ -152,6 +152,18 @@ const _adminDestinations = [
 
 const _staffDestinations = [..._adminDestinations, ..._landlordDestinations];
 
+/// The public marketplace, reachable from every workspace: landlords check how
+/// their advertisements actually look, tenants and staff browse what is
+/// available. The route lives outside the shell — the explore page carries its
+/// own "My workspace" affordance back in.
+const _exploreDestination = AppDestination(
+  label: 'Explore homes',
+  shortLabel: 'Explore',
+  icon: Icons.travel_explore_outlined,
+  selectedIcon: Icons.travel_explore_rounded,
+  path: '/explore',
+);
+
 class NyumbaAppShell extends ConsumerWidget {
   const NyumbaAppShell({required this.child, super.key});
 
@@ -161,7 +173,7 @@ class NyumbaAppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionControllerProvider);
     if (session == null) return child;
-    final copy = AppLocalizations.of(context)!;
+    final copy = appLocalizationsOf(context);
     ref.listen(pushInteractionProvider(copy.newNotification), (_, next) {
       next.whenData((interaction) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -225,9 +237,10 @@ class NyumbaAppShell extends ConsumerWidget {
   }
 
   List<AppDestination> _destinationsFor(AppRole role) => switch (role) {
-    AppRole.landlord => _landlordDestinations,
-    AppRole.tenant => _tenantDestinations,
-    AppRole.superAdmin || AppRole.admin => _staffDestinations,
+    AppRole.landlord => const [..._landlordDestinations, _exploreDestination],
+    AppRole.tenant => const [..._tenantDestinations, _exploreDestination],
+    AppRole.superAdmin ||
+    AppRole.admin => const [..._staffDestinations, _exploreDestination],
     AppRole.client => const <AppDestination>[],
   };
 }

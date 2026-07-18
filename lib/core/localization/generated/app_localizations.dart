@@ -4247,6 +4247,468 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 recorded payment} other{{count} recorded payments}}'**
   String pdfRecordedPayments(int count);
+
+  /// No description provided for @subscriptionPaymentConfirmedWorkspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment confirmed. Your landlord workspace is now available.'**
+  String get subscriptionPaymentConfirmedWorkspace;
+
+  /// No description provided for @subscriptionPaymentNotConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment has not been confirmed yet.'**
+  String get subscriptionPaymentNotConfirmed;
+
+  /// No description provided for @subscriptionPlanSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{planName} plan selected. Your workspace opens once its payment is confirmed.'**
+  String subscriptionPlanSelected(String planName);
+
+  /// No description provided for @subscriptionActiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription is active'**
+  String get subscriptionActiveTitle;
+
+  /// No description provided for @subscriptionChoosePlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your plan'**
+  String get subscriptionChoosePlanTitle;
+
+  /// No description provided for @subscriptionActiveDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment has been confirmed. You can now enter your landlord workspace.'**
+  String get subscriptionActiveDescription;
+
+  /// No description provided for @subscriptionGateDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your workspace opens as soon as Nyumba confirms your subscription payment. Tenant and public listing access stay free.'**
+  String get subscriptionGateDescription;
+
+  /// No description provided for @subscriptionTiers.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription tiers'**
+  String get subscriptionTiers;
+
+  /// No description provided for @subscriptionChangeActivePlanDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing an active plan is handled with your next payment — contact Nyumba support.'**
+  String get subscriptionChangeActivePlanDescription;
+
+  /// No description provided for @subscriptionChoosePlanDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the plan that fits your portfolio. You can switch freely until your payment is confirmed, and pricing is always confirmed with you before you pay.'**
+  String get subscriptionChoosePlanDescription;
+
+  /// No description provided for @subscriptionPlanCapacityUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan capacity details could not be loaded right now, so they are not shown — nothing is guessed on this device.'**
+  String get subscriptionPlanCapacityUnavailable;
+
+  /// No description provided for @subscriptionPaymentConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment confirmed'**
+  String get subscriptionPaymentConfirmed;
+
+  /// No description provided for @subscriptionAwaitingPaymentConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting payment confirmation'**
+  String get subscriptionAwaitingPaymentConfirmation;
+
+  /// No description provided for @subscriptionPaymentPastDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment is past due'**
+  String get subscriptionPaymentPastDue;
+
+  /// No description provided for @subscriptionCanceled.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription canceled'**
+  String get subscriptionCanceled;
+
+  /// No description provided for @subscriptionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription expired'**
+  String get subscriptionExpired;
+
+  /// No description provided for @subscriptionStatusUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription status unavailable'**
+  String get subscriptionStatusUnavailable;
+
+  /// No description provided for @subscriptionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription required'**
+  String get subscriptionRequired;
+
+  /// No description provided for @subscriptionSelectedPlanName.
+  ///
+  /// In en, this message translates to:
+  /// **'selected'**
+  String get subscriptionSelectedPlanName;
+
+  /// No description provided for @subscriptionPendingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {plan} plan is reserved, and no payment has been confirmed yet.'**
+  String subscriptionPendingMessage(String plan);
+
+  /// No description provided for @subscriptionPastDueMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {plan} plan payment is past due. Settle it to keep the workspace open.'**
+  String subscriptionPastDueMessage(String plan);
+
+  /// No description provided for @subscriptionCanceledMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A new paid subscription is required before entering the workspace.'**
+  String get subscriptionCanceledMessage;
+
+  /// No description provided for @subscriptionExpiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Renew your subscription before entering the workspace.'**
+  String get subscriptionExpiredMessage;
+
+  /// No description provided for @subscriptionActiveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment for your {plan} plan has been confirmed.'**
+  String subscriptionActiveMessage(String plan);
+
+  /// No description provided for @subscriptionUnverifiedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not verify an active paid subscription for this account.'**
+  String get subscriptionUnverifiedMessage;
+
+  /// No description provided for @subscriptionHowToPay.
+  ///
+  /// In en, this message translates to:
+  /// **'In-app checkout is coming soon. To activate now, pay via {methods} and share the transaction reference with Nyumba support, quoting your account email. Your workspace opens automatically the moment the payment is confirmed — no need to stay on this page.'**
+  String subscriptionHowToPay(String methods);
+
+  /// No description provided for @subscriptionHowToPayWithEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'In-app checkout is coming soon. To activate now, pay via {methods} and share the transaction reference with Nyumba support, quoting your account email ({email}). Your workspace opens automatically the moment the payment is confirmed — no need to stay on this page.'**
+  String subscriptionHowToPayWithEmail(String methods, String email);
+
+  /// No description provided for @subscriptionEnterWorkspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter workspace'**
+  String get subscriptionEnterWorkspace;
+
+  /// No description provided for @subscriptionCheckPaymentStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Check payment status'**
+  String get subscriptionCheckPaymentStatus;
+
+  /// No description provided for @subscriptionPlanCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to {unitLimit} rental spaces · {listingLimit} active listings'**
+  String subscriptionPlanCapacity(int unitLimit, int listingLimit);
+
+  /// No description provided for @subscriptionStarterPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Starter'**
+  String get subscriptionStarterPlan;
+
+  /// No description provided for @subscriptionProPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Pro'**
+  String get subscriptionProPlan;
+
+  /// No description provided for @subscriptionPremiumPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get subscriptionPremiumPlan;
+
+  /// No description provided for @subscriptionEnterprisePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Enterprise'**
+  String get subscriptionEnterprisePlan;
+
+  /// No description provided for @subscriptionStarterAudience.
+  ///
+  /// In en, this message translates to:
+  /// **'Individual landlords and small portfolios'**
+  String get subscriptionStarterAudience;
+
+  /// No description provided for @subscriptionProAudience.
+  ///
+  /// In en, this message translates to:
+  /// **'Growing landlords and small teams'**
+  String get subscriptionProAudience;
+
+  /// No description provided for @subscriptionPremiumAudience.
+  ///
+  /// In en, this message translates to:
+  /// **'Professional property managers'**
+  String get subscriptionPremiumAudience;
+
+  /// No description provided for @subscriptionEnterpriseAudience.
+  ///
+  /// In en, this message translates to:
+  /// **'Agencies, institutions, and large companies'**
+  String get subscriptionEnterpriseAudience;
+
+  /// No description provided for @availabilityManagerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rental space availability'**
+  String get availabilityManagerTitle;
+
+  /// No description provided for @availabilityManagerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Update availability here. Only vacant spaces can appear on the public marketplace, and occupied status is set by an active tenancy.'**
+  String get availabilityManagerDescription;
+
+  /// No description provided for @availabilityManageProperties.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage properties'**
+  String get availabilityManageProperties;
+
+  /// No description provided for @availabilityManageListings.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage listings'**
+  String get availabilityManageListings;
+
+  /// No description provided for @availabilityFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get availabilityFilterAll;
+
+  /// No description provided for @availabilityStatusVacant.
+  ///
+  /// In en, this message translates to:
+  /// **'Vacant'**
+  String get availabilityStatusVacant;
+
+  /// No description provided for @availabilityStatusOccupied.
+  ///
+  /// In en, this message translates to:
+  /// **'Occupied'**
+  String get availabilityStatusOccupied;
+
+  /// No description provided for @availabilityFilterOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get availabilityFilterOther;
+
+  /// No description provided for @availabilityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Availability'**
+  String get availabilityLabel;
+
+  /// No description provided for @availabilityPublicScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Public screen'**
+  String get availabilityPublicScreen;
+
+  /// No description provided for @availabilityManagedByTenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Managed by active tenancy'**
+  String get availabilityManagedByTenancy;
+
+  /// No description provided for @availabilityEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a property and rental space to start managing availability.'**
+  String get availabilityEmpty;
+
+  /// No description provided for @availabilityNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No rental spaces match this availability filter.'**
+  String get availabilityNoMatches;
+
+  /// No description provided for @availabilityListingLive.
+  ///
+  /// In en, this message translates to:
+  /// **'Live on public screen'**
+  String get availabilityListingLive;
+
+  /// No description provided for @availabilityListingRemovalRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Public removal required'**
+  String get availabilityListingRemovalRequired;
+
+  /// No description provided for @availabilityListingPublishingPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishing pending'**
+  String get availabilityListingPublishingPending;
+
+  /// No description provided for @availabilityListingRemovalPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Removal pending'**
+  String get availabilityListingRemovalPending;
+
+  /// No description provided for @availabilityListingNotPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'Not public'**
+  String get availabilityListingNotPublic;
+
+  /// No description provided for @availabilityListingNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No listing'**
+  String get availabilityListingNone;
+
+  /// No description provided for @availabilityUnpublishTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this space from the public screen?'**
+  String get availabilityUnpublishTitle;
+
+  /// No description provided for @availabilityUnpublishDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing this space from vacant will unpublish its listing. The public screen updates after server confirmation.'**
+  String get availabilityUnpublishDescription;
+
+  /// No description provided for @availabilityKeepVacant.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep vacant'**
+  String get availabilityKeepVacant;
+
+  /// No description provided for @availabilityChangeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Change availability'**
+  String get availabilityChangeAction;
+
+  /// No description provided for @availabilitySavedQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Availability saved locally and queued to sync.'**
+  String get availabilitySavedQueued;
+
+  /// No description provided for @availabilitySavedRemovalQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Availability saved locally. The public listing is being removed.'**
+  String get availabilitySavedRemovalQueued;
+
+  /// No description provided for @availabilityUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update availability: {error}'**
+  String availabilityUpdateFailed(String error);
+
+  /// No description provided for @availabilityPublicRemovalNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'This change will remove the rental space from the public screen after server confirmation.'**
+  String get availabilityPublicRemovalNotice;
+
+  /// No description provided for @availabilityStatusReserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Reserved'**
+  String get availabilityStatusReserved;
+
+  /// No description provided for @availabilityStatusMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance'**
+  String get availabilityStatusMaintenance;
+
+  /// No description provided for @availabilityStatusInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get availabilityStatusInactive;
+
+  /// No description provided for @availabilityVacantHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Available to rent and can be advertised.'**
+  String get availabilityVacantHelp;
+
+  /// No description provided for @availabilityOccupiedHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'A tenant is living or working in this space.'**
+  String get availabilityOccupiedHelp;
+
+  /// No description provided for @availabilityReservedHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Held for a tenant who has not moved in yet.'**
+  String get availabilityReservedHelp;
+
+  /// No description provided for @availabilityMaintenanceHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporarily closed for repairs.'**
+  String get availabilityMaintenanceHelp;
+
+  /// No description provided for @availabilityInactiveHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Not offered for rent at the moment.'**
+  String get availabilityInactiveHelp;
+
+  /// No description provided for @completeSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete setup'**
+  String get completeSetup;
+
+  /// No description provided for @availabilityLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Rental space availability could not be loaded. Try again.'**
+  String get availabilityLoadFailed;
+
+  /// No description provided for @listingsStillLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Listings are still loading. Try again in a moment.'**
+  String get listingsStillLoading;
+
+  /// No description provided for @listingsLoadBeforeAvailability.
+  ///
+  /// In en, this message translates to:
+  /// **'Listings could not be loaded. Try again before changing availability.'**
+  String get listingsLoadBeforeAvailability;
 }
 
 class _AppLocalizationsDelegate

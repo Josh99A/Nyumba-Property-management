@@ -16,6 +16,7 @@ import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
 import '../application/dashboard_snapshot.dart';
 import 'widgets/dashboard_cards.dart';
+import 'widgets/rental_space_availability.dart';
 
 class LandlordDashboardScreen extends ConsumerWidget {
   const LandlordDashboardScreen({super.key});
@@ -54,6 +55,11 @@ class LandlordDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 20),
               FadeSlideIn(
                 delay: NyumbaMotion.stagger(4),
+                child: const RentalSpaceAvailabilityPanel(),
+              ),
+              const SizedBox(height: 20),
+              FadeSlideIn(
+                delay: NyumbaMotion.stagger(5),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final showActivityRail = constraints.maxWidth >= 1250;
@@ -84,7 +90,7 @@ class LandlordDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 18),
               FadeSlideIn(
-                delay: NyumbaMotion.stagger(6),
+                delay: NyumbaMotion.stagger(7),
                 child: const _SyncStatusBar(),
               ),
             ],

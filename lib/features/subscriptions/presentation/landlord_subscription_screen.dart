@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/market_config.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/localization/generated/app_localizations.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
@@ -40,12 +41,12 @@ class _LandlordSubscriptionScreenState
       if (session?.hasConfirmedSubscription == true) {
         context.go('/dashboard');
         showNyumbaToast(
-          AppLocalizations.of(context)!.subscriptionPaymentConfirmedWorkspace,
+          appLocalizationsOf(context).subscriptionPaymentConfirmedWorkspace,
           variant: NyumbaToastVariant.success,
         );
       } else {
         showNyumbaToast(
-          AppLocalizations.of(context)!.subscriptionPaymentNotConfirmed,
+          appLocalizationsOf(context).subscriptionPaymentNotConfirmed,
           variant: NyumbaToastVariant.info,
         );
       }
@@ -63,8 +64,9 @@ class _LandlordSubscriptionScreenState
     setState(() => _selectingTier = tier);
     try {
       await ref.read(selectSubscriptionPlanProvider)(tier);
+      if (!mounted) return;
       showNyumbaToast(
-        AppLocalizations.of(context)!.subscriptionPlanSelected(planName),
+        appLocalizationsOf(context).subscriptionPlanSelected(planName),
         variant: NyumbaToastVariant.success,
       );
     } on Object catch (error) {
@@ -79,7 +81,7 @@ class _LandlordSubscriptionScreenState
 
   @override
   Widget build(BuildContext context) {
-    final copy = AppLocalizations.of(context)!;
+    final copy = appLocalizationsOf(context);
     final session = ref.watch(sessionControllerProvider);
     final status =
         session?.subscriptionStatus ?? LandlordSubscriptionStatus.unavailable;
@@ -130,7 +132,7 @@ class _LandlordSubscriptionScreenState
                     Text(
                       active
                           ? copy.subscriptionActiveTitle
-                          : copy.choosePlan,
+                          : copy.subscriptionChoosePlanTitle,
                       style: Theme.of(context).textTheme.headlineLarge,
                     ),
                     const SizedBox(height: 10),
@@ -266,7 +268,7 @@ class _PaymentStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final copy = AppLocalizations.of(context)!;
+    final copy = appLocalizationsOf(context);
     final active = status == LandlordSubscriptionStatus.active;
     return NyumbaSurface(
       borderColor: active
@@ -345,18 +347,17 @@ class _PaymentStatusCard extends StatelessWidget {
   }
 }
 
-String _statusTitle(
-  AppLocalizations copy,
-  LandlordSubscriptionStatus status,
-) => switch (status) {
-  LandlordSubscriptionStatus.pendingPayment =>
-    copy.subscriptionAwaitingPaymentConfirmation,
-  LandlordSubscriptionStatus.pastDue => copy.subscriptionPaymentPastDue,
-  LandlordSubscriptionStatus.canceled => copy.subscriptionCanceled,
-  LandlordSubscriptionStatus.expired => copy.subscriptionExpired,
-  LandlordSubscriptionStatus.unavailable => copy.subscriptionStatusUnavailable,
-  _ => copy.subscriptionRequired,
-};
+String _statusTitle(AppLocalizations copy, LandlordSubscriptionStatus status) =>
+    switch (status) {
+      LandlordSubscriptionStatus.pendingPayment =>
+        copy.subscriptionAwaitingPaymentConfirmation,
+      LandlordSubscriptionStatus.pastDue => copy.subscriptionPaymentPastDue,
+      LandlordSubscriptionStatus.canceled => copy.subscriptionCanceled,
+      LandlordSubscriptionStatus.expired => copy.subscriptionExpired,
+      LandlordSubscriptionStatus.unavailable =>
+        copy.subscriptionStatusUnavailable,
+      _ => copy.subscriptionRequired,
+    };
 
 String _statusMessage(
   AppLocalizations copy,
@@ -367,14 +368,10 @@ String _statusMessage(
   return switch (status) {
     LandlordSubscriptionStatus.pendingPayment =>
       copy.subscriptionPendingMessage(plan),
-    LandlordSubscriptionStatus.pastDue =>
-      copy.subscriptionPastDueMessage(plan),
-    LandlordSubscriptionStatus.canceled =>
-      copy.subscriptionCanceledMessage,
-    LandlordSubscriptionStatus.expired =>
-      copy.subscriptionExpiredMessage,
-    LandlordSubscriptionStatus.active =>
-      copy.subscriptionActiveMessage(plan),
+    LandlordSubscriptionStatus.pastDue => copy.subscriptionPastDueMessage(plan),
+    LandlordSubscriptionStatus.canceled => copy.subscriptionCanceledMessage,
+    LandlordSubscriptionStatus.expired => copy.subscriptionExpiredMessage,
+    LandlordSubscriptionStatus.active => copy.subscriptionActiveMessage(plan),
     _ => copy.subscriptionUnverifiedMessage,
   };
 }
@@ -408,8 +405,9 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final copy = AppLocalizations.of(context)!;
-    final name = facts?.displayName ?? _fallbackPlanName(copy, presentation.tier);
+    final copy = appLocalizationsOf(context);
+    final name =
+        facts?.displayName ?? _fallbackPlanName(copy, presentation.tier);
     final audience =
         facts?.tagline ?? _fallbackPlanAudience(copy, presentation.tier);
     final capacity = facts == null

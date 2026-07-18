@@ -201,7 +201,8 @@ class _AdminSubscriptionsScreenState
             children: [
               Text.localized(
                 'This activates the ${account.subscriptionTier ?? 'selected'} '
-                'plan and opens the landlord workspace. Only confirm against '
+                'plan, approves the account if it is still pending review, '
+                'and opens the landlord workspace. Only confirm against '
                 'money you have actually verified.',
               ),
               const SizedBox(height: 14),

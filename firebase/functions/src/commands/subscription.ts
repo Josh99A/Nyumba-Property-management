@@ -66,6 +66,12 @@ const confirmPaymentSchema = strictPayload({
  * what was actually paid for when it differs from what the landlord selected,
  * and is validated against the server-owned entitlement config so an
  * activation can never point at a plan the backend would then refuse to serve.
+ *
+ * Confirming payment is also the account activation: a still-`pending`
+ * landlord account is approved in the same transaction, so one confirmed
+ * payment opens the workspace without a separate `landlord.approve` step. A
+ * `suspended` account rejects instead — payment must never silently undo a
+ * compliance suspension; `landlord.reinstate` is the only path back.
  */
 export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPaymentSchema>> = {
   payloadSchema: confirmPaymentSchema,
@@ -76,10 +82,27 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
     const landlordId = cmd.aggregateId!;
     if (landlordId === actor.uid) throw new DomainError('PERMISSION_DENIED');
     const ref = db.collection(COLLECTIONS.subscriptions).doc(landlordId);
-    const [snapshot, entitlements] = await Promise.all([tx.get(ref), loadEntitlements(tx, db)]);
+    const accountRef = db.collection(COLLECTIONS.landlordAccounts).doc(landlordId);
+    const [snapshot, accountSnapshot, entitlements] = await Promise.all([
+      tx.get(ref),
+      tx.get(accountRef),
+      loadEntitlements(tx, db),
+    ]);
     const subscription = requireAggregate<SubscriptionRecord>(snapshot, cmd.expectedVersion);
     if (subscription.status === 'active') {
       throw new DomainError('VALIDATION_FAILED', { reason: 'subscriptionAlreadyActive' });
+    }
+    const account = accountSnapshot.data() as
+      | { version: number; approvalStatus?: string }
+      | undefined;
+    if (!accountSnapshot.exists || !account) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'landlordAccountMissing' });
+    }
+    if (account.approvalStatus === 'suspended') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'accountSuspended' });
+    }
+    if (account.approvalStatus !== 'pending' && account.approvalStatus !== 'approved') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'accountApprovalStatusInvalid' });
     }
     const tier = cmd.payload.tier ?? subscription.tier;
     planForTier(entitlements, tier);
@@ -90,6 +113,14 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
       paymentReference: cmd.payload.reference,
       ...bumpVersion(subscription, now),
     });
+    if (account.approvalStatus === 'pending') {
+      tx.update(accountRef, {
+        approvalStatus: 'approved',
+        approvalReasonCode: 'PAYMENT_CONFIRMED',
+        approvedAt: now,
+        ...bumpVersion(account, now),
+      });
+    }
     return {
       status: 'applied',
       aggregateId: landlordId,

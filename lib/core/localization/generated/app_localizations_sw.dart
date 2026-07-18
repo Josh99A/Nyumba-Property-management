@@ -2317,4 +2317,280 @@ class AppLocalizationsSw extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get subscriptionPaymentConfirmedWorkspace =>
+      'Malipo yamethibitishwa. Nafasi yako ya mwenye nyumba sasa inapatikana.';
+
+  @override
+  String get subscriptionPaymentNotConfirmed =>
+      'Malipo bado hayajathibitishwa.';
+
+  @override
+  String subscriptionPlanSelected(String planName) {
+    return 'Mpango wa $planName umechaguliwa. Nafasi yako itafunguka baada ya malipo yake kuthibitishwa.';
+  }
+
+  @override
+  String get subscriptionActiveTitle => 'Usajili wako unatumika';
+
+  @override
+  String get subscriptionChoosePlanTitle => 'Chagua mpango wako';
+
+  @override
+  String get subscriptionActiveDescription =>
+      'Malipo yako yamethibitishwa. Sasa unaweza kuingia kwenye nafasi yako ya mwenye nyumba.';
+
+  @override
+  String get subscriptionGateDescription =>
+      'Nafasi yako itafunguka mara tu Nyumba inapothibitisha malipo ya usajili. Ufikiaji wa wapangaji na matangazo ya umma utaendelea kuwa bila malipo.';
+
+  @override
+  String get subscriptionTiers => 'Viwango vya usajili';
+
+  @override
+  String get subscriptionChangeActivePlanDescription =>
+      'Kubadilisha mpango unaotumika hushughulikiwa na malipo yako yanayofuata — wasiliana na usaidizi wa Nyumba.';
+
+  @override
+  String get subscriptionChoosePlanDescription =>
+      'Chagua mpango unaofaa mali zako. Unaweza kubadilisha hadi malipo yako yathibitishwe, na bei itathibitishwa nawe kabla ya kulipa.';
+
+  @override
+  String get subscriptionPlanCapacityUnavailable =>
+      'Maelezo ya uwezo wa mpango hayakuweza kupakiwa sasa, kwa hiyo hayaonyeshwi — hakuna kinachokisiwa kwenye kifaa hiki.';
+
+  @override
+  String get subscriptionPaymentConfirmed => 'Malipo yamethibitishwa';
+
+  @override
+  String get subscriptionAwaitingPaymentConfirmation =>
+      'Inasubiri uthibitisho wa malipo';
+
+  @override
+  String get subscriptionPaymentPastDue => 'Malipo yamechelewa';
+
+  @override
+  String get subscriptionCanceled => 'Usajili umeghairiwa';
+
+  @override
+  String get subscriptionExpired => 'Usajili umeisha';
+
+  @override
+  String get subscriptionStatusUnavailable => 'Hali ya usajili haipatikani';
+
+  @override
+  String get subscriptionRequired => 'Usajili unahitajika';
+
+  @override
+  String get subscriptionSelectedPlanName => 'uliochaguliwa';
+
+  @override
+  String subscriptionPendingMessage(String plan) {
+    return 'Mpango wako wa $plan umehifadhiwa, lakini hakuna malipo yaliyothibitishwa bado.';
+  }
+
+  @override
+  String subscriptionPastDueMessage(String plan) {
+    return 'Malipo ya mpango wako wa $plan yamechelewa. Yalipe ili nafasi iendelee kufunguka.';
+  }
+
+  @override
+  String get subscriptionCanceledMessage =>
+      'Usajili mpya uliolipiwa unahitajika kabla ya kuingia kwenye nafasi.';
+
+  @override
+  String get subscriptionExpiredMessage =>
+      'Fanya upya usajili wako kabla ya kuingia kwenye nafasi.';
+
+  @override
+  String subscriptionActiveMessage(String plan) {
+    return 'Malipo ya mpango wako wa $plan yamethibitishwa.';
+  }
+
+  @override
+  String get subscriptionUnverifiedMessage =>
+      'Nyumba haikuweza kuthibitisha usajili hai uliolipiwa kwa akaunti hii.';
+
+  @override
+  String subscriptionHowToPay(String methods) {
+    return 'Malipo ndani ya programu yanakuja hivi karibuni. Ili kuamilisha sasa, lipa kupitia $methods na utume rejeleo la muamala kwa usaidizi wa Nyumba, ukitaja barua pepe ya akaunti yako. Nafasi yako itafunguka malipo yanapothibitishwa — huhitaji kubaki kwenye ukurasa huu.';
+  }
+
+  @override
+  String subscriptionHowToPayWithEmail(String methods, String email) {
+    return 'Malipo ndani ya programu yanakuja hivi karibuni. Ili kuamilisha sasa, lipa kupitia $methods na utume rejeleo la muamala kwa usaidizi wa Nyumba, ukitaja barua pepe ya akaunti yako ($email). Nafasi yako itafunguka malipo yanapothibitishwa — huhitaji kubaki kwenye ukurasa huu.';
+  }
+
+  @override
+  String get subscriptionEnterWorkspace => 'Ingia kwenye nafasi';
+
+  @override
+  String get subscriptionCheckPaymentStatus => 'Angalia hali ya malipo';
+
+  @override
+  String subscriptionPlanCapacity(int unitLimit, int listingLimit) {
+    return 'Hadi nafasi $unitLimit za kukodisha · matangazo $listingLimit yanayotumika';
+  }
+
+  @override
+  String get subscriptionStarterPlan => 'Mwanzo';
+
+  @override
+  String get subscriptionProPlan => 'Pro';
+
+  @override
+  String get subscriptionPremiumPlan => 'Premium';
+
+  @override
+  String get subscriptionEnterprisePlan => 'Enterprise';
+
+  @override
+  String get subscriptionStarterAudience => 'Wamiliki binafsi na mali chache';
+
+  @override
+  String get subscriptionProAudience => 'Wamiliki wanaokua na timu ndogo';
+
+  @override
+  String get subscriptionPremiumAudience => 'Wasimamizi wataalamu wa mali';
+
+  @override
+  String get subscriptionEnterpriseAudience =>
+      'Mashirika, taasisi na kampuni kubwa';
+
+  @override
+  String get availabilityManagerTitle => 'Upatikanaji wa sehemu za kupangisha';
+
+  @override
+  String get availabilityManagerDescription =>
+      'Sasisha upatikanaji hapa. Ni sehemu zilizo wazi pekee zinaweza kuonekana kwenye soko la umma, na hali ya kukaliwa huwekwa na upangaji unaotumika.';
+
+  @override
+  String get availabilityManageProperties => 'Dhibiti mali';
+
+  @override
+  String get availabilityManageListings => 'Dhibiti matangazo';
+
+  @override
+  String get availabilityFilterAll => 'Zote';
+
+  @override
+  String get availabilityStatusVacant => 'Wazi';
+
+  @override
+  String get availabilityStatusOccupied => 'Imekaliwa';
+
+  @override
+  String get availabilityFilterOther => 'Nyingine';
+
+  @override
+  String get availabilityLabel => 'Upatikanaji';
+
+  @override
+  String get availabilityPublicScreen => 'Skrini ya umma';
+
+  @override
+  String get availabilityManagedByTenancy =>
+      'Inadhibitiwa na upangaji unaotumika';
+
+  @override
+  String get availabilityEmpty =>
+      'Ongeza mali na sehemu ya kupangisha ili kuanza kudhibiti upatikanaji.';
+
+  @override
+  String get availabilityNoMatches =>
+      'Hakuna sehemu za kupangisha zinazolingana na kichujio hiki.';
+
+  @override
+  String get availabilityListingLive => 'Inaonekana kwenye skrini ya umma';
+
+  @override
+  String get availabilityListingRemovalRequired =>
+      'Inahitaji kuondolewa hadharani';
+
+  @override
+  String get availabilityListingPublishingPending => 'Uchapishaji unasubiri';
+
+  @override
+  String get availabilityListingRemovalPending => 'Kuondolewa kunasubiri';
+
+  @override
+  String get availabilityListingNotPublic => 'Si ya umma';
+
+  @override
+  String get availabilityListingNone => 'Hakuna tangazo';
+
+  @override
+  String get availabilityUnpublishTitle =>
+      'Ondoa sehemu hii kwenye skrini ya umma?';
+
+  @override
+  String get availabilityUnpublishDescription =>
+      'Kubadilisha sehemu hii kutoka wazi kutaondoa tangazo lake. Skrini ya umma husasishwa baada ya uthibitisho wa seva.';
+
+  @override
+  String get availabilityKeepVacant => 'Iache wazi';
+
+  @override
+  String get availabilityChangeAction => 'Badilisha upatikanaji';
+
+  @override
+  String get availabilitySavedQueued =>
+      'Upatikanaji umehifadhiwa kwenye kifaa na unasubiri kusawazishwa.';
+
+  @override
+  String get availabilitySavedRemovalQueued =>
+      'Upatikanaji umehifadhiwa kwenye kifaa. Tangazo la umma linaondolewa.';
+
+  @override
+  String availabilityUpdateFailed(String error) {
+    return 'Imeshindikana kusasisha upatikanaji: $error';
+  }
+
+  @override
+  String get availabilityPublicRemovalNotice =>
+      'Mabadiliko haya yataondoa sehemu ya kupangisha kwenye skrini ya umma baada ya uthibitisho wa seva.';
+
+  @override
+  String get availabilityStatusReserved => 'Imehifadhiwa';
+
+  @override
+  String get availabilityStatusMaintenance => 'Matengenezo';
+
+  @override
+  String get availabilityStatusInactive => 'Haitumiki';
+
+  @override
+  String get availabilityVacantHelp =>
+      'Inapatikana kwa kupangishwa na inaweza kutangazwa.';
+
+  @override
+  String get availabilityOccupiedHelp =>
+      'Mpangaji anaishi au anafanya kazi katika sehemu hii.';
+
+  @override
+  String get availabilityReservedHelp =>
+      'Imehifadhiwa kwa mpangaji ambaye bado hajahamia.';
+
+  @override
+  String get availabilityMaintenanceHelp =>
+      'Imefungwa kwa muda kwa ajili ya matengenezo.';
+
+  @override
+  String get availabilityInactiveHelp => 'Haitolewi kwa kupangishwa kwa sasa.';
+
+  @override
+  String get completeSetup => 'Kamilisha usanidi';
+
+  @override
+  String get availabilityLoadFailed =>
+      'Upatikanaji wa sehemu za kupangisha haukuweza kupakiwa. Jaribu tena.';
+
+  @override
+  String get listingsStillLoading =>
+      'Matangazo bado yanapakiwa. Jaribu tena baada ya muda mfupi.';
+
+  @override
+  String get listingsLoadBeforeAvailability =>
+      'Matangazo hayakuweza kupakiwa. Jaribu tena kabla ya kubadilisha upatikanaji.';
 }

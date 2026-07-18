@@ -64,6 +64,16 @@ class UserSession {
       isDemo ||
       subscriptionStatus == LandlordSubscriptionStatus.active;
 
+  /// Where this session's workspace lives, or null when the account has no
+  /// workspace to return to (anonymous visitors and prospects, whose home is
+  /// the public explore page itself).
+  String? get workspacePath => switch (role) {
+    AppRole.landlord => hasConfirmedSubscription ? '/dashboard' : '/subscription',
+    AppRole.tenant => '/tenant',
+    AppRole.superAdmin || AppRole.admin => '/admin',
+    AppRole.client => null,
+  };
+
   UserSession copyWith({String? displayName, String? email, String? phone}) =>
       UserSession(
         userId: userId,

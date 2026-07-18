@@ -26,4 +26,23 @@ void main() {
   test('other types fall back to the generic rental-space label', () {
     expect(UnitType.other.displayLabel, 'Rental space');
   });
+
+  test('does not repeat a type already included in the space label', () {
+    final now = DateTime.utc(2026, 7, 14);
+    final unit = Unit(
+      id: 'space-2',
+      propertyId: 'property-1',
+      landlordId: 'landlord-1',
+      label: 'Apartment A1',
+      type: UnitType.apartment,
+      status: UnitStatus.vacant,
+      monthlyRentMinor: 120000000,
+      currency: 'UGX',
+      createdAt: now,
+      updatedAt: now,
+      syncMetadata: const SyncMetadata.pending(),
+    );
+
+    expect(unit.displayName, 'Apartment A1');
+  });
 }

@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/localization/generated/app_localizations.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
@@ -600,7 +600,7 @@ class _PaymentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final copy = AppLocalizations.of(context)!;
+    final copy = appLocalizationsOf(context);
     final paidOn = DateFormat(
       'd MMM',
       Localizations.localeOf(context).toLanguageTag(),

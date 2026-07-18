@@ -125,9 +125,12 @@ while unpaid. A local plan choice, an initiated checkout, or an accepted
 asynchronous command is never payment confirmation. New accounts start as
 `pending_payment`; activation happens only through the audited
 `subscription.confirmPayment` command — platform staff today
-(`scripts/confirm-subscription.mjs`), a verified provider webhook once billing
-integration exists. In-app checkout stays unavailable and fails closed rather
-than simulating payment.
+(`firebase/functions/scripts/confirm-subscription.mjs`), a verified provider webhook once billing
+integration exists. Confirming payment also approves a still-pending landlord
+account in the same transaction, so one confirmed payment activates the
+account and opens the workspace (a suspended account rejects instead —
+reinstatement is a separate, deliberate act). In-app checkout stays
+unavailable and fails closed rather than simulating payment.
 
 The admin subscriptions screen presents this structure with illustrative UGX
 prices clearly labelled as drafts. The client may render plan and entitlement

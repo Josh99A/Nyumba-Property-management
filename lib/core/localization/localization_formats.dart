@@ -8,9 +8,21 @@ import 'package:intl/date_time_patterns.dart';
 /// This runs before the first widget is built so existing `DateFormat` calls
 /// automatically follow the active application locale, including Luganda.
 Future<void>? _initialization;
+bool _initialized = false;
 
-Future<void> initializeNyumbaLocalizationFormats() =>
-    _initialization ??= _initializeNyumbaLocalizationFormats();
+Future<void> initializeNyumbaLocalizationFormats() async {
+  if (_initialized) return;
+  final inFlight = _initialization;
+  if (inFlight != null) return inFlight;
+  final initialization = _initializeNyumbaLocalizationFormats();
+  _initialization = initialization;
+  try {
+    await initialization;
+    _initialized = true;
+  } finally {
+    _initialization = null;
+  }
+}
 
 Future<void> _initializeNyumbaLocalizationFormats() async {
   await local_data.initializeDateFormatting();

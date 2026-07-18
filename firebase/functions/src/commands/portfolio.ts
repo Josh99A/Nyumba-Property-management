@@ -13,6 +13,10 @@ import {
   strictPayload,
   type CommandHandler,
 } from '../shared/handlers';
+import {
+  applyActiveListingRetirement,
+  loadActiveListingRetirement,
+} from '../shared/listing-retirement';
 
 const propertyCreateSchema = strictPayload({
   targetLandlordId: idSchema.optional(),
@@ -122,7 +126,13 @@ const unitFields = {
   bathrooms: z.number().int().min(0).max(100),
   amenities: z.array(z.string().trim().min(1).max(100)).max(50),
 };
-const unitCreateSchema = strictPayload({ propertyId: idSchema, ...unitFields });
+const occupancyStatusSchema = z.enum(['vacant', 'occupied', 'reserved', 'maintenance', 'inactive']);
+const initialAvailabilitySchema = z.enum(['vacant', 'reserved', 'maintenance', 'inactive']);
+const unitCreateSchema = strictPayload({
+  propertyId: idSchema,
+  occupancyStatus: initialAvailabilitySchema.optional(),
+  ...unitFields,
+});
 
 export const unitCreate: CommandHandler<z.infer<typeof unitCreateSchema>> = {
   payloadSchema: unitCreateSchema,
@@ -143,11 +153,12 @@ export const unitCreate: CommandHandler<z.infer<typeof unitCreateSchema>> = {
       throw new DomainError('UNIT_LIMIT_REACHED', { unitLimit: landlord.entitlements.unitLimit });
     }
     const accountRef = db.collection(COLLECTIONS.landlordAccounts).doc(landlord.landlordId);
+    const { occupancyStatus, ...createFields } = cmd.payload;
     tx.create(unitRef, {
       ...newAggregate(cmd.aggregateId!, now),
       landlordId: landlord.landlordId,
-      ...cmd.payload,
-      occupancyStatus: 'vacant',
+      ...createFields,
+      occupancyStatus: occupancyStatus ?? 'vacant',
       currency: CURRENCY,
       activePublicListingId: null,
     });
@@ -155,7 +166,7 @@ export const unitCreate: CommandHandler<z.infer<typeof unitCreateSchema>> = {
       activeUnitCount: landlord.account.activeUnitCount + 1,
       ...bumpVersion(landlord.account, now),
     });
-    return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: [...Object.keys(cmd.payload), 'occupancyStatus', 'currency'] };
+    return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: [...Object.keys(createFields), 'occupancyStatus', 'currency'] };
   },
 };
 
@@ -166,6 +177,7 @@ const unitUpdateSchema = strictPayload({
   bedrooms: unitFields.bedrooms.optional(),
   bathrooms: unitFields.bathrooms.optional(),
   amenities: unitFields.amenities.optional(),
+  occupancyStatus: occupancyStatusSchema.optional(),
 }).refine((value) => Object.values(value).some((field) => field !== undefined));
 
 export const unitUpdate: CommandHandler<z.infer<typeof unitUpdateSchema>> = {
@@ -175,13 +187,55 @@ export const unitUpdate: CommandHandler<z.infer<typeof unitUpdateSchema>> = {
   async apply({ tx, db, actor, cmd, now }) {
     const ref = db.collection(COLLECTIONS.units).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
-    const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, cmd.expectedVersion);
-    if (!actor.platformAdmin && !actor.superAdmin) {
-      const landlord = await requireActiveLandlord(tx, db, actor);
-      requireOwnedByLandlord(current, landlord.landlordId);
+    const current = requireAggregate<Record<string, unknown> & {
+      version: number; landlordId: string; occupancyStatus?: string;
+      activeLeaseId?: string | null; activePublicListingId?: string | null;
+    }>(snapshot, cmd.expectedVersion);
+    const isStaff = actor.platformAdmin || actor.superAdmin;
+    const occupancyChanged =
+      cmd.payload.occupancyStatus !== undefined &&
+      cmd.payload.occupancyStatus !== (current.occupancyStatus ?? 'vacant');
+    // Occupied is always established by the tenancy command. Availability can
+    // be managed directly only while no active lease owns the unit.
+    if (
+      occupancyChanged &&
+      (current.activeLeaseId || cmd.payload.occupancyStatus === 'occupied')
+    ) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'unitOccupancyLeaseManaged' });
     }
+    const unpublishListingId =
+      occupancyChanged && cmd.payload.occupancyStatus !== 'vacant' && current.activePublicListingId
+        ? current.activePublicListingId
+        : null;
+    const landlord = isStaff
+      ? unpublishListingId
+        ? await loadActiveLandlordContext(tx, db, current.landlordId)
+        : null
+      : await requireActiveLandlord(tx, db, actor);
+    if (!isStaff) requireOwnedByLandlord(current, landlord!.landlordId);
+
+    const retirement = unpublishListingId
+      ? await loadActiveListingRetirement(tx, db, current)
+      : null;
+
+    // A space that stops being vacant cannot stay advertised: retire the
+    // public projection in the same transaction so browsers never see an
+    // unavailable space as available.
+    applyActiveListingRetirement(
+      tx,
+      db,
+      landlord!,
+      retirement,
+      cmd.commandId,
+      now,
+    );
+
     const changes = Object.fromEntries(Object.entries(cmd.payload).filter(([, value]) => value !== undefined));
-    tx.update(ref, { ...changes, ...bumpVersion(current, now) });
+    tx.update(ref, {
+      ...changes,
+      ...(unpublishListingId ? { activePublicListingId: null } : {}),
+      ...bumpVersion(current, now),
+    });
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: current.version + 1, changedFields: Object.keys(changes) };
   },
 };

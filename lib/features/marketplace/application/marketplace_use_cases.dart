@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -36,7 +38,9 @@ class CreateListingDraft {
       throw StateError('Landlords can create listings only for their account.');
     }
     final deps = await _ref.read(appDependenciesProvider.future);
-    return deps.listings.createDraft(input);
+    final draft = await deps.listings.createDraft(input);
+    _pushOutboxSoon(deps);
+    return draft;
   }
 }
 
@@ -61,7 +65,9 @@ class UpdateListing {
     if (current.status == ListingStatus.published) {
       throw StateError('Unpublish this listing before editing it.');
     }
-    return deps.listings.update(listing);
+    final updated = await deps.listings.update(listing);
+    _pushOutboxSoon(deps);
+    return updated;
   }
 }
 
@@ -78,7 +84,9 @@ class PublishListing {
     );
     final deps = await _ref.read(appDependenciesProvider.future);
     await _requireListingOwnership(deps.listings.getById, session, listingId);
-    return deps.listings.publish(listingId);
+    final published = await deps.listings.publish(listingId);
+    _pushOutboxSoon(deps);
+    return published;
   }
 }
 
@@ -95,7 +103,9 @@ class UnpublishListing {
     );
     final deps = await _ref.read(appDependenciesProvider.future);
     await _requireListingOwnership(deps.listings.getById, session, listingId);
-    return deps.listings.unpublish(listingId);
+    final unpublished = await deps.listings.unpublish(listingId);
+    _pushOutboxSoon(deps);
+    return unpublished;
   }
 }
 
@@ -107,8 +117,22 @@ class SubmitRentalApplication {
   Future<RentalApplication> call(ApplyForUnitInput input) async {
     _requirePermission(_ref, AppResource.application, CrudOperation.create);
     final deps = await _ref.read(appDependenciesProvider.future);
-    return deps.applications.apply(input);
+    final application = await deps.applications.apply(input);
+    _pushOutboxSoon(deps);
+    return application;
   }
+}
+
+/// Pushes the queued command to the server without blocking the caller.
+///
+/// Marketplace mutations are only visible to other people once the server has
+/// acknowledged them — a publish that sits in the outbox until the next manual
+/// sync looks like a silent failure, because the listing never reaches the
+/// public catalogue. The mutation itself is already durable in the outbox, so
+/// this kick is best-effort: offline or failed pushes fall back to the existing
+/// retry paths (app open, notifications init, the manual sync button).
+void _pushOutboxSoon(AppDependencies deps) {
+  unawaited(deps.syncEngine.syncPending());
 }
 
 UserSession _requirePermission(

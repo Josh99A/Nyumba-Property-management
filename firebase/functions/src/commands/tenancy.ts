@@ -4,6 +4,10 @@ import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/account
 import { COLLECTIONS, LANDLORD_PORTAL_SECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { idSchema, nonNegativeMoney, optionalShortText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import {
+  applyActiveListingRetirement,
+  loadActiveListingRetirement,
+} from '../shared/listing-retirement';
 import { landlordTenancyProjection, tenantLeaseProjection } from '../shared/projections';
 
 // Invite emails are stored lowercased so tenant.claimInvite can match the
@@ -206,7 +210,14 @@ export const tenancyEstablish: CommandHandler<z.infer<typeof tenancyEstablishSch
     ]);
     requireAbsent(leaseSnap);
     requireAbsent(tenantSnap);
-    const unit = requireAggregate<{ version: number; landlordId: string; occupancyStatus: string; propertyId: string; label?: string }>(unitSnap, undefined);
+    const unit = requireAggregate<{
+      version: number;
+      landlordId: string;
+      occupancyStatus: string;
+      propertyId: string;
+      label?: string;
+      activePublicListingId?: string | null;
+    }>(unitSnap, undefined);
     requireOwnedByLandlord(unit, landlord.landlordId);
     if (unit.occupancyStatus !== 'vacant') {
       throw new DomainError('ALREADY_EXISTS', { reason: 'unitOccupied' });
@@ -216,6 +227,7 @@ export const tenancyEstablish: CommandHandler<z.infer<typeof tenancyEstablishSch
     const propertySnap = await tx.get(db.collection(COLLECTIONS.properties).doc(unit.propertyId));
     const property = requireAggregate<{ version: number; landlordId: string; name?: string }>(propertySnap, undefined);
     requireOwnedByLandlord(property, landlord.landlordId);
+    const listingRetirement = await loadActiveListingRetirement(tx, db, unit);
 
     tx.create(tenantRef, {
       ...newAggregate(tenantRecordId, now),
@@ -243,8 +255,17 @@ export const tenancyEstablish: CommandHandler<z.infer<typeof tenancyEstablishSch
     tx.update(unitRef, {
       occupancyStatus: 'occupied',
       activeLeaseId: tenancyId,
+      ...(unit.activePublicListingId ? { activePublicListingId: null } : {}),
       ...bumpVersion(unit, now),
     });
+    applyActiveListingRetirement(
+      tx,
+      db,
+      landlord,
+      listingRetirement,
+      cmd.commandId,
+      now,
+    );
 
     // An opening balance is a real debt, so it becomes a real invoice rather
     // than a client-authored number. Everything downstream derives the
@@ -363,12 +384,31 @@ export const leaseActivate: CommandHandler<Record<string, never>> = {
     if (lease.status !== 'draft') throw new DomainError('VALIDATION_FAILED', { reason: 'leaseNotDraft' });
     const unitRef = db.collection(COLLECTIONS.units).doc(lease.unitId);
     const unitSnap = await tx.get(unitRef);
-    const unit = requireAggregate<{ version: number; landlordId: string; occupancyStatus: string }>(unitSnap, undefined);
+    const unit = requireAggregate<{
+      version: number;
+      landlordId: string;
+      occupancyStatus: string;
+      activePublicListingId?: string | null;
+    }>(unitSnap, undefined);
     requireOwnedByLandlord(unit, landlord.landlordId);
     if (unit.occupancyStatus !== 'vacant') throw new DomainError('ALREADY_EXISTS', { reason: 'unitOccupied' });
+    const listingRetirement = await loadActiveListingRetirement(tx, db, unit);
     const nextLease = { ...lease, status: 'active', activatedAt: now, ...bumpVersion(lease, now) };
     tx.update(leaseRef, { status: 'active', activatedAt: now, ...bumpVersion(lease, now) });
-    tx.update(unitRef, { occupancyStatus: 'occupied', activeLeaseId: cmd.aggregateId!, ...bumpVersion(unit, now) });
+    tx.update(unitRef, {
+      occupancyStatus: 'occupied',
+      activeLeaseId: cmd.aggregateId!,
+      ...(unit.activePublicListingId ? { activePublicListingId: null } : {}),
+      ...bumpVersion(unit, now),
+    });
+    applyActiveListingRetirement(
+      tx,
+      db,
+      landlord,
+      listingRetirement,
+      cmd.commandId,
+      now,
+    );
     if (lease.tenantUserUid) {
       tx.set(db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.leases).doc(cmd.aggregateId!), tenantLeaseProjection(nextLease));
     }
