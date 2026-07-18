@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/localization/generated/app_localizations.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/presentation/surface.dart';
 import '../application/notification_providers.dart';
 import '../application/push_interactions.dart';
@@ -18,7 +18,7 @@ class NotificationBell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadNotificationCountProvider);
-    final copy = AppLocalizations.of(context)!;
+    final copy = appLocalizationsOf(context);
     return Badge(
       isLabelVisible: unread > 0,
       label: Text(unread > 99 ? '99+' : '$unread'),
@@ -52,7 +52,7 @@ class _NotificationCenterSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifications = ref.watch(appNotificationsProvider);
-    final copy = AppLocalizations.of(context)!;
+    final copy = appLocalizationsOf(context);
     return SafeArea(
       child: SizedBox(
         height: MediaQuery.sizeOf(context).height * 0.72,
@@ -120,7 +120,7 @@ class _NotificationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final copy = AppLocalizations.of(context)!;
+    final copy = appLocalizationsOf(context);
     final icon = switch (notification.kind) {
       AppNotificationKind.application => Icons.assignment_outlined,
       AppNotificationKind.enquiry => Icons.forum_outlined,
@@ -210,9 +210,7 @@ class _NotificationTile extends ConsumerWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            AppLocalizations.of(context)!.notificationMarkReadFailed,
-          ),
+          content: Text(appLocalizationsOf(context).notificationMarkReadFailed),
         ),
       );
     }

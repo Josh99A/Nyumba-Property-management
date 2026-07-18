@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -89,12 +91,21 @@ class UpdateProperty {
   }
 }
 
+/// Outcome of a rental-space update, including whether the change forced a
+/// published advert off the public marketplace.
+final class UpdateUnitResult {
+  const UpdateUnitResult({required this.unit, this.unpublishedListing});
+
+  final Unit unit;
+  final Listing? unpublishedListing;
+}
+
 class UpdateUnit {
   const UpdateUnit(this._ref);
 
   final Ref _ref;
 
-  Future<Unit> call(Unit unit) async {
+  Future<UpdateUnitResult> call(Unit unit) async {
     final session = _requirePermission(
       _ref,
       AppResource.unit,
@@ -104,7 +115,35 @@ class UpdateUnit {
       throw StateError('Landlords can update rental spaces they own.');
     }
     final deps = await _ref.read(appDependenciesProvider.future);
-    return deps.units.update(unit);
+    final current = await deps.units.getById(unit.id);
+    if (current == null) throw EntityNotFoundException('unit', unit.id);
+    if (unit.status != current.status &&
+        (unit.status == UnitStatus.occupied ||
+            current.status == UnitStatus.occupied)) {
+      throw DomainValidationException(<String, String>{
+        'unit.status':
+            'manage occupied status by adding or ending the active tenancy',
+      });
+    }
+
+    // A space that is no longer vacant must not stay advertised. Pause the
+    // local listing before the unit change so this device hides it at once;
+    // the server retires the public projection atomically with unit.update.
+    Listing? unpublished;
+    if (unit.status != UnitStatus.vacant && unit.status != current.status) {
+      final listings = await deps.listings.getAll(propertyId: unit.propertyId);
+      for (final listing in listings) {
+        if (listing.unitId == unit.id &&
+            listing.status == ListingStatus.published) {
+          unpublished = await deps.listings.unpublish(listing.id);
+        }
+      }
+    }
+    final updated = await deps.units.update(unit);
+    // Occupancy drives what the public marketplace shows, so push promptly
+    // instead of waiting for the next app-open or manual sync.
+    unawaited(deps.syncEngine.syncPending());
+    return UpdateUnitResult(unit: updated, unpublishedListing: unpublished);
   }
 }
 

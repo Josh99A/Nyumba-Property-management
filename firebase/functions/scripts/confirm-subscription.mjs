@@ -3,6 +3,8 @@
  * Confirms a landlord's subscription payment through the same audited command
  * path a future billing webhook will use — the subscription flips to `active`
  * with a receipt and audit event, exactly as for an in-app platform admin.
+ * A still-pending landlord account is approved in the same transaction, so
+ * one confirmed payment fully activates the account.
  *
  * Usage:
  *   node scripts/confirm-subscription.mjs <email> --reference <text> [--tier <tier>] [--project <projectId>]
@@ -64,4 +66,5 @@ if (response.status === 'rejected') {
   process.exit(3);
 }
 const updated = (await subscription.ref.get()).data();
-console.log(`Payment confirmed for ${email} (uid ${user.uid}): tier ${updated.tier}, status ${updated.status}; audit trail written.`);
+const account = (await db.collection('landlordAccounts').doc(user.uid).get()).data();
+console.log(`Payment confirmed for ${email} (uid ${user.uid}): tier ${updated.tier}, status ${updated.status}, account ${account?.approvalStatus ?? 'missing'}; audit trail written.`);

@@ -73,7 +73,7 @@ Names are versioned contracts. Payload schemas should live beside Functions and 
 | Admin | `landlord.approve`, `landlord.suspend`, `landlord.reinstate` | platform-admin or super-admin claim; mandatory reason and audit; privileged-account management is super-admin-only |
 | Admin | `user.archive`, `user.restore`, `user.delete` | super-admin claim only, never self; mandatory reason and audit; versioned against `users/{uid}`. Archive marks the profile `archived`, disables the Auth account (background job), and unpublishes any landlord listings; restore reverses it. Delete is legal only from `archived`: it tombstones the profile (`isDeleted`, hidden from the directory) and deletes the Auth account via a background job |
 | Admin | `user.changeRole` | super-admin claim only, never self, never on an archived account; ordinary roles (`client`, `tenant`, or `landlord`) only — administrator privileges are Auth custom claims granted exclusively by the ops script. Promotion to landlord provisions the missing landlord aggregates fail-closed (`pending` approval, `pending_payment` subscription); demotion leaves them in place as the audited record |
-| Portfolio | `property.create/update/archive`, `unit.create/update/archive/restore` | owning landlord or audited Admin/Super Admin acting for a canonical target landlord; account/entitlement checks; property create/update accepts at most five validated staged image paths in display order (first is primary); unit counter transaction |
+| Portfolio | `property.create/update/archive`, `unit.create/update/archive/restore` | owning landlord or audited Admin/Super Admin acting for a canonical target landlord; account/entitlement checks; property create/update accepts at most five validated staged image paths in display order (first is primary); unit counter transaction. Landlords may set vacant/reserved/maintenance/inactive availability when no lease is active; `occupied` is tenancy-managed |
 | Tenancy | `tenant.invite/update`, `lease.create/activate/end` | owning landlord; activation checks unit occupancy; tenant acceptance policy **TBD** |
 | Billing | `invoice.generate`, `payment.initiate`, `payment.recordManual`, `receipt.regenerate` | server computes money; provider/server confirms payment |
 | Maintenance | `maintenance.create`, `maintenance.updateStatus`, `maintenance.addComment` | tenant lease scope or owning landlord; transition matrix enforced |
@@ -83,7 +83,7 @@ Names are versioned contracts. Payload schemas should live beside Functions and 
 | Reporting | `report.request` | scoped parameters; asynchronous server-derived document |
 | Documents | `document.finalizeUpload/delete` | staging object ownership, checksum/type/size, owning aggregate access |
 | Subscription | `subscription.selectPlan` | owner only; tier validated against server entitlement config; rejected once `active` — can never change status |
-| Subscription | `subscription.confirmPayment` | Admin/Super Admin only, never self; the audited transition to `active` that the future billing webhook will call |
+| Subscription | `subscription.confirmPayment` | Admin/Super Admin only, never self; the audited transition to `active` that the future billing webhook will call. Also approves a still-`pending` landlord account (`approvalReasonCode: PAYMENT_CONFIRMED`) in the same transaction; rejects over a `suspended` account so payment never undoes a suspension |
 
 New landlord subscriptions start as `pending_payment`, and landlord workspace
 access requires `active`. A landlord may change the tier they intend to pay for
@@ -93,6 +93,13 @@ through `subscription.confirmPayment` — platform staff today (see
 integration exists. There is no self-service confirmation. Exact plan
 pricing/limits and payment provider schemas are **TBD**, so in-app checkout
 remains unavailable and fails closed.
+
+Confirming payment is also the account activation: if the landlord account is
+still `pending` approval, the same transaction approves it, so a confirmed
+payment fully opens the workspace without a separate `landlord.approve` step.
+`landlord.approve` remains available for approving an account ahead of payment.
+A `suspended` account is never reopened by payment — the command rejects, and
+`landlord.reinstate` stays the only path back from suspension.
 
 ## Idempotent execution
 
@@ -179,6 +186,13 @@ schedule expiry and public-media projection jobs
 ```
 
 The client never supplies the public projection as a document. Unpublish/occupancy/suspension/subscription workers set private state and remove public readability idempotently.
+Any transition away from `vacant` retires the active public listing in the same
+transaction. This includes a direct landlord availability change,
+`tenancy.establish`, and `lease.activate`: the private listing becomes
+`unpublished`, the public document stops matching the public query, the unit's
+active-listing pointer is cleared, and public-media cleanup is queued. A client
+cannot set `occupied` through `unit.create` or `unit.update`; an active tenancy
+is the authority for that state.
 
 ### Invoice and payment
 

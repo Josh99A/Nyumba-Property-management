@@ -2278,4 +2278,263 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get subscriptionPaymentConfirmedWorkspace =>
+      'Payment confirmed. Your landlord workspace is now available.';
+
+  @override
+  String get subscriptionPaymentNotConfirmed =>
+      'Payment has not been confirmed yet.';
+
+  @override
+  String subscriptionPlanSelected(String planName) {
+    return '$planName plan selected. Your workspace opens once its payment is confirmed.';
+  }
+
+  @override
+  String get subscriptionActiveTitle => 'Your subscription is active';
+
+  @override
+  String get subscriptionChoosePlanTitle => 'Choose your plan';
+
+  @override
+  String get subscriptionActiveDescription =>
+      'Your payment has been confirmed. You can now enter your landlord workspace.';
+
+  @override
+  String get subscriptionGateDescription =>
+      'Your workspace opens as soon as Nyumba confirms your subscription payment. Tenant and public listing access stay free.';
+
+  @override
+  String get subscriptionTiers => 'Subscription tiers';
+
+  @override
+  String get subscriptionChangeActivePlanDescription =>
+      'Changing an active plan is handled with your next payment — contact Nyumba support.';
+
+  @override
+  String get subscriptionChoosePlanDescription =>
+      'Pick the plan that fits your portfolio. You can switch freely until your payment is confirmed, and pricing is always confirmed with you before you pay.';
+
+  @override
+  String get subscriptionPlanCapacityUnavailable =>
+      'Plan capacity details could not be loaded right now, so they are not shown — nothing is guessed on this device.';
+
+  @override
+  String get subscriptionPaymentConfirmed => 'Payment confirmed';
+
+  @override
+  String get subscriptionAwaitingPaymentConfirmation =>
+      'Awaiting payment confirmation';
+
+  @override
+  String get subscriptionPaymentPastDue => 'Payment is past due';
+
+  @override
+  String get subscriptionCanceled => 'Subscription canceled';
+
+  @override
+  String get subscriptionExpired => 'Subscription expired';
+
+  @override
+  String get subscriptionStatusUnavailable => 'Subscription status unavailable';
+
+  @override
+  String get subscriptionRequired => 'Subscription required';
+
+  @override
+  String get subscriptionSelectedPlanName => 'selected';
+
+  @override
+  String subscriptionPendingMessage(String plan) {
+    return 'Your $plan plan is reserved, and no payment has been confirmed yet.';
+  }
+
+  @override
+  String subscriptionPastDueMessage(String plan) {
+    return 'Your $plan plan payment is past due. Settle it to keep the workspace open.';
+  }
+
+  @override
+  String get subscriptionCanceledMessage =>
+      'A new paid subscription is required before entering the workspace.';
+
+  @override
+  String get subscriptionExpiredMessage =>
+      'Renew your subscription before entering the workspace.';
+
+  @override
+  String subscriptionActiveMessage(String plan) {
+    return 'Payment for your $plan plan has been confirmed.';
+  }
+
+  @override
+  String get subscriptionUnverifiedMessage =>
+      'Nyumba could not verify an active paid subscription for this account.';
+
+  @override
+  String subscriptionHowToPay(String methods) {
+    return 'In-app checkout is coming soon. To activate now, pay via $methods and share the transaction reference with Nyumba support, quoting your account email. Your workspace opens automatically the moment the payment is confirmed — no need to stay on this page.';
+  }
+
+  @override
+  String subscriptionHowToPayWithEmail(String methods, String email) {
+    return 'In-app checkout is coming soon. To activate now, pay via $methods and share the transaction reference with Nyumba support, quoting your account email ($email). Your workspace opens automatically the moment the payment is confirmed — no need to stay on this page.';
+  }
+
+  @override
+  String get subscriptionEnterWorkspace => 'Enter workspace';
+
+  @override
+  String get subscriptionCheckPaymentStatus => 'Check payment status';
+
+  @override
+  String subscriptionPlanCapacity(int unitLimit, int listingLimit) {
+    return 'Up to $unitLimit rental spaces · $listingLimit active listings';
+  }
+
+  @override
+  String get subscriptionStarterPlan => 'Starter';
+
+  @override
+  String get subscriptionProPlan => 'Pro';
+
+  @override
+  String get subscriptionPremiumPlan => 'Premium';
+
+  @override
+  String get subscriptionEnterprisePlan => 'Enterprise';
+
+  @override
+  String get subscriptionStarterAudience =>
+      'Individual landlords and small portfolios';
+
+  @override
+  String get subscriptionProAudience => 'Growing landlords and small teams';
+
+  @override
+  String get subscriptionPremiumAudience => 'Professional property managers';
+
+  @override
+  String get subscriptionEnterpriseAudience =>
+      'Agencies, institutions, and large companies';
+
+  @override
+  String get availabilityManagerTitle => 'Rental space availability';
+
+  @override
+  String get availabilityManagerDescription =>
+      'Update availability here. Only vacant spaces can appear on the public marketplace, and occupied status is set by an active tenancy.';
+
+  @override
+  String get availabilityManageProperties => 'Manage properties';
+
+  @override
+  String get availabilityManageListings => 'Manage listings';
+
+  @override
+  String get availabilityFilterAll => 'All';
+
+  @override
+  String get availabilityStatusVacant => 'Vacant';
+
+  @override
+  String get availabilityStatusOccupied => 'Occupied';
+
+  @override
+  String get availabilityFilterOther => 'Other';
+
+  @override
+  String get availabilityLabel => 'Availability';
+
+  @override
+  String get availabilityPublicScreen => 'Public screen';
+
+  @override
+  String get availabilityManagedByTenancy => 'Managed by active tenancy';
+
+  @override
+  String get availabilityEmpty =>
+      'Add a property and rental space to start managing availability.';
+
+  @override
+  String get availabilityNoMatches =>
+      'No rental spaces match this availability filter.';
+
+  @override
+  String get availabilityListingLive => 'Live on public screen';
+
+  @override
+  String get availabilityListingRemovalRequired => 'Public removal required';
+
+  @override
+  String get availabilityListingPublishingPending => 'Publishing pending';
+
+  @override
+  String get availabilityListingRemovalPending => 'Removal pending';
+
+  @override
+  String get availabilityListingNotPublic => 'Not public';
+
+  @override
+  String get availabilityListingNone => 'No listing';
+
+  @override
+  String get availabilityUnpublishTitle =>
+      'Remove this space from the public screen?';
+
+  @override
+  String get availabilityUnpublishDescription =>
+      'Changing this space from vacant will unpublish its listing. The public screen updates after server confirmation.';
+
+  @override
+  String get availabilityKeepVacant => 'Keep vacant';
+
+  @override
+  String get availabilityChangeAction => 'Change availability';
+
+  @override
+  String get availabilitySavedQueued =>
+      'Availability saved locally and queued to sync.';
+
+  @override
+  String get availabilitySavedRemovalQueued =>
+      'Availability saved locally. The public listing is being removed.';
+
+  @override
+  String availabilityUpdateFailed(String error) {
+    return 'Could not update availability: $error';
+  }
+
+  @override
+  String get availabilityPublicRemovalNotice =>
+      'This change will remove the rental space from the public screen after server confirmation.';
+
+  @override
+  String get availabilityStatusReserved => 'Reserved';
+
+  @override
+  String get availabilityStatusMaintenance => 'Maintenance';
+
+  @override
+  String get availabilityStatusInactive => 'Inactive';
+
+  @override
+  String get availabilityVacantHelp =>
+      'Available to rent and can be advertised.';
+
+  @override
+  String get availabilityOccupiedHelp =>
+      'A tenant is living or working in this space.';
+
+  @override
+  String get availabilityReservedHelp =>
+      'Held for a tenant who has not moved in yet.';
+
+  @override
+  String get availabilityMaintenanceHelp => 'Temporarily closed for repairs.';
+
+  @override
+  String get availabilityInactiveHelp => 'Not offered for rent at the moment.';
 }

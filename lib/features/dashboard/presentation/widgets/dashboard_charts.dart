@@ -8,7 +8,7 @@ import 'package:nyumba_property_management/core/localization/nyumba_localization
 import 'package:intl/intl.dart' show DateFormat;
 
 import '../../../../app/theme/nyumba_colors.dart';
-import '../../../../core/localization/generated/app_localizations.dart';
+import '../../../../core/localization/app_localizations_adapter.dart';
 import '../../../../core/presentation/motion.dart';
 
 /// X-axis labels for a monthly series ending at [now]'s month.
@@ -60,7 +60,7 @@ class OccupancyRing extends StatelessWidget {
     final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.4);
     final dimension = size * textScale;
     return Semantics(
-      label: AppLocalizations.of(context)!.occupancySemantics(percentage),
+      label: appLocalizationsOf(context).occupancySemantics(percentage),
       child: TweenAnimationBuilder<double>(
         tween: Tween(
           begin: NyumbaMotion.reducedMotion(context) ? rate : 0,

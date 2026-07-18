@@ -26,10 +26,23 @@ class AdminUsersScreen extends ConsumerStatefulWidget {
   ConsumerState<AdminUsersScreen> createState() => _AdminUsersScreenState();
 }
 
+enum _PendingLifecycleTarget { archived, active, deleted }
+
+final class _PendingLifecycleAction {
+  const _PendingLifecycleAction({
+    required this.target,
+    required this.expectedVersion,
+  });
+
+  final _PendingLifecycleTarget target;
+  final int expectedVersion;
+}
+
 class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   String _query = '';
   String _role = 'All roles';
   String _status = 'All statuses';
+  final _pendingLifecycleActions = <String, _PendingLifecycleAction>{};
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +50,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     final session = ref.watch(sessionControllerProvider);
     final accountsValue = ref.watch(platformAccountsProvider);
     final accounts = accountsValue.value ?? const <PlatformAccount>[];
+    _reconcilePendingLifecycleActions(accounts);
 
     final query = _query.trim().toLowerCase();
     final filtered = accounts.where((account) {
@@ -307,6 +321,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                 source: source,
                                 canManage: canManage(filtered[index]),
                                 isSuperAdmin: isSuperAdmin,
+                                awaitingConfirmation: _pendingLifecycleActions
+                                    .containsKey(filtered[index].uid),
                                 onAction: (action) =>
                                     _handleAction(action, filtered[index]),
                               ),
@@ -349,7 +365,16 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                     DataCell(_UserIdentity(account: account)),
                                     DataCell(Text.localized(account.roleLabel)),
                                     DataCell(
-                                      _AccountStatusBadge(account.status),
+                                      _pendingLifecycleActions.containsKey(
+                                            account.uid,
+                                          )
+                                          ? StatusBadge(
+                                              label: context.tr(
+                                                'Awaiting confirmation',
+                                              ),
+                                              tone: BadgeTone.warning,
+                                            )
+                                          : _AccountStatusBadge(account.status),
                                     ),
                                     if (source == AdminDirectorySource.live)
                                       DataCell(
@@ -368,6 +393,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                         source: source,
                                         canManage: canManage(account),
                                         isSuperAdmin: isSuperAdmin,
+                                        awaitingConfirmation:
+                                            _pendingLifecycleActions
+                                                .containsKey(account.uid),
                                         onAction: (action) =>
                                             _handleAction(action, account),
                                       ),
@@ -522,6 +550,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           successMessage:
               'Archive request accepted for ${account.displayName}. Sign-in '
               'disablement and listing cleanup are awaiting confirmation.',
+          pendingTarget: _PendingLifecycleTarget.archived,
         );
       case 'restore-archived':
         _runAccountAction(
@@ -537,6 +566,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           successMessage:
               'Restore request accepted for ${account.displayName}. Sign-in '
               'access is awaiting confirmation.',
+          pendingTarget: _PendingLifecycleTarget.active,
         );
       case 'delete-permanently':
         _runAccountAction(
@@ -553,6 +583,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           successMessage:
               'Deletion request accepted for ${account.displayName}. The '
               'sign-in account deletion is awaiting confirmation.',
+          pendingTarget: _PendingLifecycleTarget.deleted,
         );
       case 'demo-status':
         _changeDemoStatus(account);
@@ -685,6 +716,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     required Future<void> Function(AdminAccountCommands, String reason) run,
     required String successMessage,
     bool destructive = false,
+    _PendingLifecycleTarget? pendingTarget,
   }) async {
     var reason = reasonCodes.first;
     final confirmed = await showDialog<bool>(
@@ -745,14 +777,54 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
+    if (pendingTarget != null) {
+      setState(() {
+        _pendingLifecycleActions[account.uid] = _PendingLifecycleAction(
+          target: pendingTarget,
+          expectedVersion: (account.userVersion ?? 0) + 1,
+        );
+      });
+    }
     try {
       await run(ref.read(adminAccountCommandsProvider), reason);
       if (mounted) showAdminMessage(context, successMessage);
     } on Object catch (error) {
       if (mounted) {
+        if (pendingTarget != null) {
+          setState(() => _pendingLifecycleActions.remove(account.uid));
+        }
         showAdminMessage(context, 'The server rejected the action: $error');
       }
     }
+  }
+
+  void _reconcilePendingLifecycleActions(List<PlatformAccount> accounts) {
+    if (_pendingLifecycleActions.isEmpty) return;
+    final byUid = {for (final account in accounts) account.uid: account};
+    final resolved = <String>[];
+    for (final entry in _pendingLifecycleActions.entries) {
+      final account = byUid[entry.key];
+      final pending = entry.value;
+      final versionConfirmed =
+          (account?.userVersion ?? -1) >= pending.expectedVersion;
+      final confirmed = switch (pending.target) {
+        _PendingLifecycleTarget.archived =>
+          versionConfirmed && account?.status == PlatformAccountStatus.archived,
+        _PendingLifecycleTarget.active =>
+          versionConfirmed && account?.status != PlatformAccountStatus.archived,
+        _PendingLifecycleTarget.deleted => account == null,
+      };
+      if (confirmed) resolved.add(entry.key);
+    }
+    if (resolved.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        for (final uid in resolved) {
+          _pendingLifecycleActions.remove(uid);
+        }
+      });
+    });
   }
 
   static String _reasonLabel(String code) => switch (code) {
@@ -1276,6 +1348,7 @@ class _UserCard extends StatelessWidget {
     required this.source,
     required this.canManage,
     required this.isSuperAdmin,
+    required this.awaitingConfirmation,
     required this.onAction,
   });
 
@@ -1283,6 +1356,7 @@ class _UserCard extends StatelessWidget {
   final AdminDirectorySource source;
   final bool canManage;
   final bool isSuperAdmin;
+  final bool awaitingConfirmation;
   final ValueChanged<String> onAction;
 
   @override
@@ -1313,7 +1387,13 @@ class _UserCard extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     StatusBadge(label: account.roleLabel, tone: BadgeTone.info),
-                    _AccountStatusBadge(account.status),
+                    if (awaitingConfirmation)
+                      StatusBadge(
+                        label: context.tr('Awaiting confirmation'),
+                        tone: BadgeTone.warning,
+                      )
+                    else
+                      _AccountStatusBadge(account.status),
                     if (account.subscriptionStatus !=
                         PlatformSubscriptionStatus.none)
                       StatusBadge(
@@ -1341,6 +1421,7 @@ class _UserCard extends StatelessWidget {
             source: source,
             canManage: canManage,
             isSuperAdmin: isSuperAdmin,
+            awaitingConfirmation: awaitingConfirmation,
             onAction: onAction,
           ),
         ],
@@ -1355,6 +1436,7 @@ class _AccountMenu extends StatelessWidget {
     required this.source,
     required this.canManage,
     required this.isSuperAdmin,
+    required this.awaitingConfirmation,
     required this.onAction,
   });
 
@@ -1362,6 +1444,7 @@ class _AccountMenu extends StatelessWidget {
   final AdminDirectorySource source;
   final bool canManage;
   final bool isSuperAdmin;
+  final bool awaitingConfirmation;
   final ValueChanged<String> onAction;
 
   @override
@@ -1369,7 +1452,10 @@ class _AccountMenu extends StatelessWidget {
     final live = source == AdminDirectorySource.live;
     final archived = account.status == PlatformAccountStatus.archived;
     return PopupMenuButton<String>(
-      tooltip: context.tr('Account actions'),
+      enabled: !awaitingConfirmation,
+      tooltip: context.tr(
+        awaitingConfirmation ? 'Awaiting confirmation' : 'Account actions',
+      ),
       onSelected: onAction,
       itemBuilder: (context) => [
         const PopupMenuItem(

@@ -2262,4 +2262,257 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get subscriptionPaymentConfirmedWorkspace =>
+      'تم تأكيد الدفع. مساحة المالك الخاصة بك متاحة الآن.';
+
+  @override
+  String get subscriptionPaymentNotConfirmed => 'لم يتم تأكيد الدفع بعد.';
+
+  @override
+  String subscriptionPlanSelected(String planName) {
+    return 'تم اختيار خطة $planName. ستفتح مساحتك بعد تأكيد دفعها.';
+  }
+
+  @override
+  String get subscriptionActiveTitle => 'اشتراكك نشط';
+
+  @override
+  String get subscriptionChoosePlanTitle => 'اختر خطتك';
+
+  @override
+  String get subscriptionActiveDescription =>
+      'تم تأكيد دفعتك. يمكنك الآن الدخول إلى مساحة المالك الخاصة بك.';
+
+  @override
+  String get subscriptionGateDescription =>
+      'تفتح مساحتك فور تأكيد Nyumba لدفع الاشتراك. يظل وصول المستأجرين والقوائم العامة مجانياً.';
+
+  @override
+  String get subscriptionTiers => 'فئات الاشتراك';
+
+  @override
+  String get subscriptionChangeActivePlanDescription =>
+      'يتم تغيير الخطة النشطة مع دفعتك التالية — تواصل مع دعم Nyumba.';
+
+  @override
+  String get subscriptionChoosePlanDescription =>
+      'اختر الخطة المناسبة لمحفظتك. يمكنك التبديل بحرية حتى يتم تأكيد دفعتك، ويتم دائماً تأكيد السعر معك قبل الدفع.';
+
+  @override
+  String get subscriptionPlanCapacityUnavailable =>
+      'تعذر تحميل تفاصيل سعة الخطة الآن، لذلك لن تُعرض — لا يتم تخمين أي شيء على هذا الجهاز.';
+
+  @override
+  String get subscriptionPaymentConfirmed => 'تم تأكيد الدفع';
+
+  @override
+  String get subscriptionAwaitingPaymentConfirmation => 'في انتظار تأكيد الدفع';
+
+  @override
+  String get subscriptionPaymentPastDue => 'تأخر موعد الدفع';
+
+  @override
+  String get subscriptionCanceled => 'تم إلغاء الاشتراك';
+
+  @override
+  String get subscriptionExpired => 'انتهى الاشتراك';
+
+  @override
+  String get subscriptionStatusUnavailable => 'حالة الاشتراك غير متاحة';
+
+  @override
+  String get subscriptionRequired => 'الاشتراك مطلوب';
+
+  @override
+  String get subscriptionSelectedPlanName => 'المحددة';
+
+  @override
+  String subscriptionPendingMessage(String plan) {
+    return 'تم حجز خطتك $plan، ولم يتم تأكيد أي دفع بعد.';
+  }
+
+  @override
+  String subscriptionPastDueMessage(String plan) {
+    return 'تأخر دفع خطتك $plan. سدده لإبقاء المساحة مفتوحة.';
+  }
+
+  @override
+  String get subscriptionCanceledMessage =>
+      'يلزم اشتراك جديد مدفوع قبل الدخول إلى المساحة.';
+
+  @override
+  String get subscriptionExpiredMessage =>
+      'جدّد اشتراكك قبل الدخول إلى المساحة.';
+
+  @override
+  String subscriptionActiveMessage(String plan) {
+    return 'تم تأكيد دفع خطتك $plan.';
+  }
+
+  @override
+  String get subscriptionUnverifiedMessage =>
+      'تعذر على Nyumba التحقق من اشتراك مدفوع ونشط لهذا الحساب.';
+
+  @override
+  String subscriptionHowToPay(String methods) {
+    return 'الدفع داخل التطبيق قادم قريباً. للتفعيل الآن، ادفع عبر $methods وشارك مرجع المعاملة مع دعم Nyumba، مع ذكر بريد حسابك الإلكتروني. ستفتح مساحتك تلقائياً فور تأكيد الدفع — لا حاجة للبقاء في هذه الصفحة.';
+  }
+
+  @override
+  String subscriptionHowToPayWithEmail(String methods, String email) {
+    return 'الدفع داخل التطبيق قادم قريباً. للتفعيل الآن، ادفع عبر $methods وشارك مرجع المعاملة مع دعم Nyumba، مع ذكر بريد حسابك الإلكتروني ($email). ستفتح مساحتك تلقائياً فور تأكيد الدفع — لا حاجة للبقاء في هذه الصفحة.';
+  }
+
+  @override
+  String get subscriptionEnterWorkspace => 'الدخول إلى المساحة';
+
+  @override
+  String get subscriptionCheckPaymentStatus => 'التحقق من حالة الدفع';
+
+  @override
+  String subscriptionPlanCapacity(int unitLimit, int listingLimit) {
+    return 'حتى $unitLimit وحدات للإيجار · $listingLimit قوائم نشطة';
+  }
+
+  @override
+  String get subscriptionStarterPlan => 'المبتدئة';
+
+  @override
+  String get subscriptionProPlan => 'الاحترافية';
+
+  @override
+  String get subscriptionPremiumPlan => 'المتميزة';
+
+  @override
+  String get subscriptionEnterprisePlan => 'المؤسسات';
+
+  @override
+  String get subscriptionStarterAudience => 'الملاك الأفراد والمحافظ الصغيرة';
+
+  @override
+  String get subscriptionProAudience => 'الملاك المتنامون والفرق الصغيرة';
+
+  @override
+  String get subscriptionPremiumAudience => 'مديرو العقارات المحترفون';
+
+  @override
+  String get subscriptionEnterpriseAudience =>
+      'الوكالات والمؤسسات والشركات الكبيرة';
+
+  @override
+  String get availabilityManagerTitle => 'توفر مساحات الإيجار';
+
+  @override
+  String get availabilityManagerDescription =>
+      'حدّث التوفر هنا. لا تظهر في السوق العامة إلا المساحات الشاغرة، وتُضبط حالة الإشغال من خلال عقد إيجار نشط.';
+
+  @override
+  String get availabilityManageProperties => 'إدارة العقارات';
+
+  @override
+  String get availabilityManageListings => 'إدارة الإعلانات';
+
+  @override
+  String get availabilityFilterAll => 'الكل';
+
+  @override
+  String get availabilityStatusVacant => 'شاغرة';
+
+  @override
+  String get availabilityStatusOccupied => 'مشغولة';
+
+  @override
+  String get availabilityFilterOther => 'أخرى';
+
+  @override
+  String get availabilityLabel => 'التوفر';
+
+  @override
+  String get availabilityPublicScreen => 'الشاشة العامة';
+
+  @override
+  String get availabilityManagedByTenancy => 'تُدار بواسطة عقد إيجار نشط';
+
+  @override
+  String get availabilityEmpty => 'أضف عقارًا ومساحة إيجار لبدء إدارة التوفر.';
+
+  @override
+  String get availabilityNoMatches =>
+      'لا توجد مساحات إيجار تطابق عامل تصفية التوفر هذا.';
+
+  @override
+  String get availabilityListingLive => 'ظاهرة على الشاشة العامة';
+
+  @override
+  String get availabilityListingRemovalRequired =>
+      'يلزم إزالتها من العرض العام';
+
+  @override
+  String get availabilityListingPublishingPending => 'النشر قيد الانتظار';
+
+  @override
+  String get availabilityListingRemovalPending => 'الإزالة قيد الانتظار';
+
+  @override
+  String get availabilityListingNotPublic => 'غير عامة';
+
+  @override
+  String get availabilityListingNone => 'لا يوجد إعلان';
+
+  @override
+  String get availabilityUnpublishTitle =>
+      'إزالة هذه المساحة من الشاشة العامة؟';
+
+  @override
+  String get availabilityUnpublishDescription =>
+      'سيؤدي تغيير هذه المساحة من شاغرة إلى إلغاء نشر إعلانها. تُحدَّث الشاشة العامة بعد تأكيد الخادم.';
+
+  @override
+  String get availabilityKeepVacant => 'إبقاؤها شاغرة';
+
+  @override
+  String get availabilityChangeAction => 'تغيير التوفر';
+
+  @override
+  String get availabilitySavedQueued =>
+      'حُفظ التوفر محليًا ووُضع في قائمة انتظار المزامنة.';
+
+  @override
+  String get availabilitySavedRemovalQueued =>
+      'حُفظ التوفر محليًا. جارٍ إزالة الإعلان العام.';
+
+  @override
+  String availabilityUpdateFailed(String error) {
+    return 'تعذر تحديث التوفر: $error';
+  }
+
+  @override
+  String get availabilityPublicRemovalNotice =>
+      'سيؤدي هذا التغيير إلى إزالة مساحة الإيجار من الشاشة العامة بعد تأكيد الخادم.';
+
+  @override
+  String get availabilityStatusReserved => 'محجوزة';
+
+  @override
+  String get availabilityStatusMaintenance => 'قيد الصيانة';
+
+  @override
+  String get availabilityStatusInactive => 'غير نشطة';
+
+  @override
+  String get availabilityVacantHelp => 'متاحة للإيجار ويمكن الإعلان عنها.';
+
+  @override
+  String get availabilityOccupiedHelp => 'يعيش أو يعمل مستأجر في هذه المساحة.';
+
+  @override
+  String get availabilityReservedHelp => 'محجوزة لمستأجر لم ينتقل إليها بعد.';
+
+  @override
+  String get availabilityMaintenanceHelp => 'مغلقة مؤقتًا للإصلاحات.';
+
+  @override
+  String get availabilityInactiveHelp => 'غير معروضة للإيجار حاليًا.';
 }

@@ -281,13 +281,8 @@ String? redirectForSession(UserSession? session, String path) {
   // tenant whose invitation has not been claimed yet) completes onboarding.
   final needsOnboarding =
       session.role == AppRole.client && !session.isAnonymous && !session.isDemo;
-  final home = switch (session.role) {
-    AppRole.landlord =>
-      session.hasConfirmedSubscription ? '/dashboard' : '/subscription',
-    AppRole.tenant => '/tenant',
-    AppRole.superAdmin || AppRole.admin => '/admin',
-    AppRole.client => needsOnboarding ? '/onboarding' : '/explore',
-  };
+  final home =
+      session.workspacePath ?? (needsOnboarding ? '/onboarding' : '/explore');
   if (path == '/sign-in' || path == '/sign-up') return home;
   if (path == '/onboarding') return needsOnboarding ? null : home;
   if (path == '/subscription') {

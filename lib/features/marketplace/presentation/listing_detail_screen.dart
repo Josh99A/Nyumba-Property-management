@@ -12,6 +12,7 @@ import '../../../core/config/market_config.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
 import '../domain/application.dart';
 import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
@@ -25,6 +26,9 @@ class ListingDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listings = ref.watch(publicListingsProvider);
+    final workspacePath = ref
+        .watch(sessionControllerProvider)
+        ?.workspacePath;
     return Scaffold(
       backgroundColor: context.nyumba.softIvory,
       appBar: AppBar(
@@ -37,10 +41,15 @@ class ListingDetailScreen extends ConsumerWidget {
         ),
         title: const NyumbaLogo(height: 39),
         actions: [
-          TextButton(
-            onPressed: () => context.go('/sign-in'),
-            child: const Text.localized('Sign in'),
-          ),
+          workspacePath == null
+              ? TextButton(
+                  onPressed: () => context.go('/sign-in'),
+                  child: const Text.localized('Sign in'),
+                )
+              : TextButton(
+                  onPressed: () => context.go(workspacePath),
+                  child: const Text.localized('My workspace'),
+                ),
           const SizedBox(width: 12),
         ],
       ),

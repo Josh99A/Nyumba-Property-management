@@ -193,11 +193,20 @@ export const listingUnpublish: CommandHandler<Record<string, never>> = {
     const isStaff = actor.platformAdmin || actor.superAdmin;
     const listingRef = db.collection(COLLECTIONS.privateListings).doc(cmd.aggregateId!);
     const listingSnap = await tx.get(listingRef);
-    const listing = requireAggregate<{ version: number; landlordId: string; unitId: string; publicationState: string }>(listingSnap, cmd.expectedVersion);
+    const listing = requireAggregate<{ version: number; landlordId: string; unitId: string; publicationState: string }>(listingSnap, undefined);
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, listing.landlordId)
       : await requireActiveLandlord(tx, db, actor);
     requireOwnedByLandlord(listing, landlord.landlordId);
+    // Delivery is at least once and the unit.update occupancy path may retire
+    // the listing first, so a listing that is already off the market is a
+    // successful no-op rather than a permanent rejection.
+    if (listing.publicationState === 'unpublished') {
+      return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: listing.version, changedFields: [] };
+    }
+    // A real state transition still requires the client's expected version;
+    // only the already-achieved idempotent state above may absorb a stale one.
+    requireAggregate(listingSnap, cmd.expectedVersion);
     if (listing.publicationState !== 'published') throw new DomainError('VALIDATION_FAILED', { reason: 'listingNotPublished' });
     const unitRef = db.collection(COLLECTIONS.units).doc(listing.unitId);
     const publicRef = db.collection(COLLECTIONS.publicListings).doc(cmd.aggregateId!);

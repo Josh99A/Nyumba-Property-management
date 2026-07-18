@@ -8,7 +8,7 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/theme_mode_controller.dart';
 import '../../../core/domain/sync_metadata.dart';
-import '../../../core/localization/generated/app_localizations.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/responsive.dart';
@@ -156,7 +156,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
 
   Future<void> _selectAppearance(ThemePreference preference) async {
     if (_themePreference == preference) return;
-    final copy = AppLocalizations.of(context)!;
+    final copy = appLocalizationsOf(context);
     final previous = _themePreference;
     setState(() {
       _themePreference = preference;
@@ -193,9 +193,9 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       setState(() {
         _savingAppearance = false;
         _appearanceSaveSucceeded = true;
-        _appearanceMessage = AppLocalizations.of(
+        _appearanceMessage = appLocalizationsOf(
           context,
-        )!.appearanceAppliedOnDevice;
+        ).appearanceAppliedOnDevice;
       });
     } on Object catch (error) {
       if (!mounted || _themePreference != preference) return;
@@ -205,12 +205,12 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       // theme changes for every account created without one.
       final reason = error is FormatException && error.message.isNotEmpty
           ? error.message
-          : AppLocalizations.of(context)!.appearanceSaveTryAgain;
+          : appLocalizationsOf(context).appearanceSaveTryAgain;
       setState(() {
         _themePreference = previous;
         _savingAppearance = false;
         _appearanceSaveSucceeded = false;
-        _appearanceMessage = AppLocalizations.of(context)!.appearanceSaveFailed;
+        _appearanceMessage = appLocalizationsOf(context).appearanceSaveFailed;
       });
       ScaffoldMessenger.of(
         context,
@@ -482,7 +482,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               title: 'Email notifications',
               subtitle: _emailDeliveryConfigured
                   ? 'Receive important account updates by email.'
-                  : AppLocalizations.of(context)!.emailDeliveryNotConfigured,
+                  : appLocalizationsOf(context).emailDeliveryNotConfigured,
               value: _emailNotifications,
               onChanged: _emailDeliveryConfigured
                   ? (value) => setState(() => _emailNotifications = value)

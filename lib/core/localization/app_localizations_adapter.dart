@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 import 'app_language.dart';
 import 'generated/app_localizations.dart';
 import 'generated/app_localizations_ar.dart';
@@ -14,3 +16,8 @@ AppLocalizations appLocalizationsFor(AppLanguage language) =>
       AppLanguage.kiswahili => AppLocalizationsSw(),
       AppLanguage.arabic => AppLocalizationsAr(),
     };
+
+/// Resolves the active generated copy, with English only as an isolated-widget
+/// fallback for previews and tests that deliberately omit localization setup.
+AppLocalizations appLocalizationsOf(BuildContext context) =>
+    AppLocalizations.of(context) ?? AppLocalizationsEn();

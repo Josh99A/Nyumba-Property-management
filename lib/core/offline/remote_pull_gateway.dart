@@ -202,6 +202,9 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
       result['status'] = switch (result['occupancyStatus']) {
         'occupied' => 'occupied',
         'vacant' => 'vacant',
+        'reserved' => 'reserved',
+        'maintenance' => 'maintenance',
+        'inactive' => 'inactive',
         _ => result['status'] ?? 'vacant',
       };
     }
