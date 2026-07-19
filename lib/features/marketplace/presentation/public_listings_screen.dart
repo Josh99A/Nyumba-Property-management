@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text, Tooltip;
 
+import 'package:nyumba_property_management/core/localization/app_localizations_adapter.dart';
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -457,8 +458,15 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                 Expanded(
                                   child: Text(
                                     _hasActiveFilters
-                                        ? context.tr('matchingHomesCount', {'matched': listings.length, 'total': all.length})
-                                        : context.tr('availableHomesCount', {'count': listings.length}),
+                                        ? appLocalizationsOf(context)
+                                              .matchingHomesCount(
+                                                listings.length,
+                                                all.length,
+                                              )
+                                        : appLocalizationsOf(context)
+                                              .availableHomesCount(
+                                                listings.length,
+                                              ),
                                     style: Theme.of(
                                       context,
                                     ).textTheme.headlineSmall,

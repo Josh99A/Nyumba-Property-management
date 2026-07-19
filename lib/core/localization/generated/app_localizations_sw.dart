@@ -2589,4 +2589,26 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get listingsLoadBeforeAvailability =>
       'Matangazo hayakuweza kupakiwa. Jaribu tena kabla ya kubadilisha upatikanaji.';
+
+  @override
+  String availableHomesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Nyumba $count zinapatikana',
+      one: 'Nyumba 1 inapatikana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String matchingHomesCount(int matched, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'nyumba $total',
+      one: 'nyumba 1',
+    );
+    return '$matched kati ya $_temp0 zinafanana';
+  }
 }

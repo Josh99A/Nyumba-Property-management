@@ -17,12 +17,12 @@ import 'package:sembast/sembast_memory.dart';
 void main() {
   late OfflineDatabase database;
   final now = DateTime.utc(2026, 7, 19);
-  var _databaseId = 0;
+  var databaseId = 0;
 
   setUp(() async {
     database = OfflineDatabase(
       await databaseFactoryMemory.openDatabase(
-        'listing-cache-recovery-${_databaseId++}.db',
+        'listing-cache-recovery-${databaseId++}.db',
       ),
     );
     await database.initialize();
