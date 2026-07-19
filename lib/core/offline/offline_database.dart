@@ -169,6 +169,32 @@ final class OfflineDatabase {
     return removed;
   });
 
+  /// Deletes every record of [type] that [isDecodable] rejects. Returns the
+  /// number of records removed.
+  ///
+  /// A record only a previous build could have written (a remote pull that
+  /// predates a mapper field, for example) is permanently unreadable to this
+  /// build, and remote pulls will not repair it: the merge skips records whose
+  /// projection version has not advanced. Dropping the record is safe because
+  /// the next server snapshot rewrites it in the current shape — only
+  /// remote-pulled records can be undecodable, and those never carry outbox
+  /// intents.
+  Future<int> purgeUndecodable(
+    OfflineEntityType type,
+    bool Function(Map<String, Object?> record) isDecodable,
+  ) => database.transaction((transaction) async {
+    final store = _entityStore(type);
+    final snapshots = await store.find(transaction);
+    var removed = 0;
+    for (final snapshot in snapshots) {
+      if (!isDecodable(Map<String, Object?>.from(snapshot.value))) {
+        await store.record(snapshot.key).delete(transaction);
+        removed++;
+      }
+    }
+    return removed;
+  });
+
   StoreRef<String, Map<String, Object?>> _entityStore(OfflineEntityType type) =>
       stringMapStoreFactory.store(type.storeName);
 

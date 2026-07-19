@@ -116,9 +116,7 @@ final class SembastListingRepository implements ListingRepository {
     String? propertyId,
     bool publicOnly = false,
   }) async => _filterAndSort(
-    (await _database.readEntities(
-      OfflineEntityType.listing,
-    )).map(ListingMapper.fromJson),
+    _decodeAll(await _database.readEntities(OfflineEntityType.listing)),
     landlordId: landlordId,
     propertyId: propertyId,
     publicOnly: publicOnly,
@@ -236,7 +234,7 @@ final class SembastListingRepository implements ListingRepository {
       .watchEntities(OfflineEntityType.listing)
       .map(
         (items) => _filterAndSort(
-          items.map(ListingMapper.fromJson),
+          _decodeAll(items),
           landlordId: landlordId,
           propertyId: propertyId,
           publicOnly: publicOnly,
@@ -270,6 +268,23 @@ final class SembastListingRepository implements ListingRepository {
         ],
       )
       .then((_) {});
+
+  /// One record the mapper cannot read (cached under an older pull shape)
+  /// must not blank the whole catalogue: the workspace-open sweep and the
+  /// next server snapshot repair it, so the read simply skips it.
+  static Iterable<Listing> _decodeAll(
+    Iterable<Map<String, Object?>> records,
+  ) sync* {
+    for (final record in records) {
+      final Listing listing;
+      try {
+        listing = ListingMapper.fromJson(record);
+      } on Object {
+        continue;
+      }
+      yield listing;
+    }
+  }
 
   static List<Listing> _filterAndSort(
     Iterable<Listing> listings, {

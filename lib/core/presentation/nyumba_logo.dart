@@ -90,65 +90,68 @@ class _NyumbaMarkPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // A simple house: navy roof, sage walls, gold door. Fewer shapes than the
+    // previous "document under a roof" mark, so it still reads as a home at
+    // app-bar sizes instead of dissolving into clutter.
     final stroke = size.width * .09;
     final roofPaint = Paint()
       ..color = navy
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.square
+      ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    final bodyPaint = Paint()
+    final wallPaint = Paint()
       ..color = sage
       ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke * .78
+      ..strokeWidth = stroke * .82
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
+    // Walls with a rounded floor line, drawn first so the roof overhangs them.
     canvas.drawPath(
       Path()
-        ..moveTo(size.width * .12, size.height * .43)
-        ..lineTo(size.width * .5, size.height * .12)
-        ..lineTo(size.width * .88, size.height * .43),
-      roofPaint,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(size.width * .24, size.height * .43)
-        ..lineTo(size.width * .24, size.height * .82)
+        ..moveTo(size.width * .22, size.height * .46)
+        ..lineTo(size.width * .22, size.height * .8)
         ..quadraticBezierTo(
-          size.width * .24,
+          size.width * .22,
           size.height * .9,
-          size.width * .33,
+          size.width * .32,
           size.height * .9,
         )
-        ..lineTo(size.width * .72, size.height * .9)
-        ..moveTo(size.width * .76, size.height * .43)
-        ..lineTo(size.width * .76, size.height * .72),
-      bodyPaint,
+        ..lineTo(size.width * .68, size.height * .9)
+        ..quadraticBezierTo(
+          size.width * .78,
+          size.height * .9,
+          size.width * .78,
+          size.height * .8,
+        )
+        ..lineTo(size.width * .78, size.height * .46),
+      wallPaint,
     );
 
-    final detailPaint = Paint()
-      ..color = sage
-      ..strokeWidth = stroke * .62
-      ..strokeCap = StrokeCap.round;
-    for (final y in [.55, .68, .81]) {
-      canvas.drawCircle(
-        Offset(size.width * .37, size.height * y),
-        stroke * .34,
-        detailPaint,
-      );
-      canvas.drawLine(
-        Offset(size.width * .48, size.height * y),
-        Offset(size.width * (y == .81 ? .62 : .68), size.height * y),
-        detailPaint,
-      );
-    }
+    // Roof with a slight overhang past the walls.
     canvas.drawPath(
       Path()
-        ..moveTo(size.width * .66, size.height * .73)
-        ..lineTo(size.width * .82, size.height * .73)
-        ..lineTo(size.width * .66, size.height * .9)
-        ..close(),
+        ..moveTo(size.width * .1, size.height * .46)
+        ..lineTo(size.width * .5, size.height * .12)
+        ..lineTo(size.width * .9, size.height * .46),
+      roofPaint,
+    );
+
+    // Gold door, the single warm accent.
+    final doorWidth = size.width * .18;
+    final doorHeight = size.height * .3;
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        Rect.fromLTWH(
+          size.width * .5 - doorWidth / 2,
+          size.height * .9 - doorHeight + stroke * .41,
+          doorWidth,
+          doorHeight,
+        ),
+        topLeft: Radius.circular(doorWidth * .5),
+        topRight: Radius.circular(doorWidth * .5),
+      ),
       Paint()..color = gold,
     );
   }
