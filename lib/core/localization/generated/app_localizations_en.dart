@@ -2548,4 +2548,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get listingsLoadBeforeAvailability =>
       'Listings could not be loaded. Try again before changing availability.';
+
+  @override
+  String availableHomesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count available homes',
+      one: '1 available home',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String matchingHomesCount(int matched, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total homes',
+      one: '1 home',
+    );
+    return '$matched of $_temp0 match';
+  }
 }

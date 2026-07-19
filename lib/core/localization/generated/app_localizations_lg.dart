@@ -2606,4 +2606,26 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get listingsLoadBeforeAvailability =>
       'Enkalala tezisobodde kutikkibwa. Ddamu ogezeeko nga tonnakyusa kubeerawo.';
+
+  @override
+  String availableHomesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Amaka $count galiwo',
+      one: 'Amaka 1 galiwo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String matchingHomesCount(int matched, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'maka $total',
+      one: 'maka 1',
+    );
+    return '$matched ku $_temp0 gakwatagana';
+  }
 }

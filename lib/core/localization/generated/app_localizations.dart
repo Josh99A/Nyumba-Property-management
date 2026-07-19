@@ -4703,6 +4703,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Listings could not be loaded. Try again before changing availability.'**
   String get listingsLoadBeforeAvailability;
+
+  /// Count of available homes on the public marketplace.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 available home} other{{count} available homes}}'**
+  String availableHomesCount(int count);
+
+  /// Count showing filtered results out of total homes.
+  ///
+  /// In en, this message translates to:
+  /// **'{matched} of {total, plural, =1{1 home} other{{total} homes}} match'**
+  String matchingHomesCount(int matched, int total);
 }
 
 class _AppLocalizationsDelegate

@@ -784,4 +784,8 @@
     ,"availabilityLoadFailed": "Okubeerawo kw’ebifo by’obupangisa tekusobodde kutikkibwa. Ddamu ogezeeko."
     ,"listingsStillLoading": "Enkalala zikyatikkibwa. Ddamu ogezeeko mu kaseera katono."
     ,"listingsLoadBeforeAvailability": "Enkalala tezisobodde kutikkibwa. Ddamu ogezeeko nga tonnakyusa kubeerawo."
+    ,"availableHomesCount": "{count, plural, =1{Amaka 1 galiwo} other{Amaka {count} galiwo}}"
+    ,"@availableHomesCount": {"description": "Count of available homes on the public marketplace.", "placeholders": {"count": {"type": "int"}}}
+    ,"matchingHomesCount": "{matched} ku {total, plural, =1{maka 1} other{maka {total}}} gakwatagana"
+    ,"@matchingHomesCount": {"description": "Count showing filtered results out of total homes.", "placeholders": {"matched": {"type": "int"}, "total": {"type": "int"}}}
 }

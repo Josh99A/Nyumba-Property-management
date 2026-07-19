@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/presentation/nyumba_logo.dart';
 import '../theme/nyumba_colors.dart';
 import 'nyumba_loading_indicator.dart';
 
@@ -30,10 +31,12 @@ class NyumbaSplashScreen extends StatelessWidget {
                   vertical: 26,
                 ),
                 decoration: BoxDecoration(
-                  // The brand asset carries its own ivory background, so the
-                  // plate is ivory too: invisible on the light splash, and a
-                  // clean framed logo on the dark one.
-                  color: NyumbaColors.softIvory,
+                  // The plate matches the splash background so it stays
+                  // invisible in both themes, leaving just a soft lift. The
+                  // logo is now the theme-aware NyumbaLogo mark, so it draws
+                  // its own contrast against this surface rather than needing a
+                  // fixed ivory canvas behind it.
+                  color: palette.softIvory,
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
@@ -43,11 +46,7 @@ class NyumbaSplashScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Image.asset(
-                  'assets/branding/nyumba-stacked.png',
-                  width: 236,
-                  fit: BoxFit.contain,
-                ),
+                child: const NyumbaLogo(height: 92),
               ),
             ),
             const Positioned(

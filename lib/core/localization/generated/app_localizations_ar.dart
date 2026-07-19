@@ -2526,4 +2526,26 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get listingsLoadBeforeAvailability =>
       'تعذر تحميل الإعلانات. حاول مرة أخرى قبل تغيير التوفر.';
+
+  @override
+  String availableHomesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count منزل متاح',
+      one: 'منزل واحد متاح',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String matchingHomesCount(int matched, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total منزل',
+      one: 'منزل واحد',
+    );
+    return '$matched من $_temp0 يطابق';
+  }
 }
