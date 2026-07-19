@@ -441,7 +441,7 @@ class _PortfolioUsage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(landlordEntitlementProvider).value;
     return switch (state) {
-      // Nothing to say yet, or nothing to say at all (demo/non-landlord).
+      // Nothing to say yet, or nothing to say at all (non-landlord).
       null || EntitlementNotApplicable() => const SizedBox.shrink(),
       EntitlementUnavailable(:final reason) => _UsageShell(
         title: 'Plan unavailable',

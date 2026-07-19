@@ -7,7 +7,7 @@ import 'package:nyumba_property_management/features/auth/presentation/sign_in_sc
 import 'package:nyumba_property_management/features/auth/presentation/sign_up_screen.dart';
 
 void main() {
-  testWidgets('sign-in surface exposes role demos and client browsing', (
+  testWidgets('sign-in surface offers real sign-in and public browsing only', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -20,10 +20,11 @@ void main() {
     );
 
     expect(find.text('Welcome back'), findsOneWidget);
-    expect(find.text('Landlord'), findsOneWidget);
-    expect(find.text('Tenant'), findsOneWidget);
-    expect(find.text('Admin'), findsOneWidget);
-    expect(find.text('Super Admin'), findsOneWidget);
+    // The demo role shortcuts are gone: no way to enter a fake session.
+    expect(find.text('Explore the role demos'), findsNothing);
+    expect(find.text('Landlord'), findsNothing);
+    expect(find.text('Super Admin'), findsNothing);
+    // Real entry points remain.
     expect(find.text('Browse available homes'), findsWidgets);
     expect(find.byType(GoogleGLogo), findsOneWidget);
     expect(find.byIcon(Icons.g_mobiledata_rounded), findsNothing);

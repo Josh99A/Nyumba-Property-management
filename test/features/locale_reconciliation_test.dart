@@ -158,43 +158,30 @@ void main() {
     expect(saved, isEmpty);
   });
 
-  for (final session in [
-    const UserSession(
-      userId: 'demo-1',
-      displayName: 'Demo user',
-      email: 'demo@nyumba.test',
-      role: AppRole.landlord,
-      isDemo: true,
-    ),
-    const UserSession(
+  test('anonymous selection stays device-only', () async {
+    const session = UserSession(
       userId: 'anon-1',
       displayName: 'Prospective tenant',
       email: '',
       role: AppRole.client,
       isAnonymous: true,
-    ),
-  ]) {
-    test(
-      '${session.isDemo ? 'demo' : 'anonymous'} selection stays device-only',
-      () async {
-        final saved = <UserSettings>[];
-        final container = harness(
-          session: session,
-          device: AppLanguage.english,
-          saved: saved,
-        );
-        addTearDown(container.dispose);
-        await container.read(deviceLanguageProvider.future);
-
-        await container
-            .read(localePreferenceProvider.notifier)
-            .select(AppLanguage.luganda);
-
-        expect(container.read(localePreferenceProvider), AppLanguage.luganda);
-        expect(saved, isEmpty);
-      },
     );
-  }
+    final saved = <UserSettings>[];
+    final container = harness(
+      session: session,
+      device: AppLanguage.english,
+      saved: saved,
+    );
+    addTearDown(container.dispose);
+    await container.read(deviceLanguageProvider.future);
+
+    await container
+        .read(localePreferenceProvider.notifier)
+        .select(AppLanguage.luganda);
+
+    expect(container.read(localePreferenceProvider), AppLanguage.luganda);
+    expect(saved, isEmpty);
+  });
 
   test('rejected reconciliation remains retryable for the same user', () async {
     final saved = <UserSettings>[];

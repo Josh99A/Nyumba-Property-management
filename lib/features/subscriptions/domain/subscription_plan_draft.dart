@@ -37,7 +37,7 @@ final class SubscriptionPlanDraft {
   final String listingsLabel;
   final String support;
 
-  /// Illustrative subscriber count shown on the demo dashboard.
+  /// Subscriber count carried on a plan draft; server-owned in practice.
   final int subscribers;
   final bool recommended;
   final bool enabled;

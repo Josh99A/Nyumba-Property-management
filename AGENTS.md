@@ -49,8 +49,9 @@ Not yet real, and not to be presented as real:
   plain-suspends a non-landlord account, and the app does not pretend
   otherwise.
 
-Demo sessions seed local fixtures and use a stub gateway. Never present demo
-behavior, or an unsynced local write, as server-confirmed.
+Anonymous/unauthenticated workspaces use an in-memory fallback gateway that
+never reaches a server. Never present an unsynced local write as
+server-confirmed.
 
 ## Known model divergence
 

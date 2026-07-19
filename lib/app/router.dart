@@ -280,7 +280,7 @@ String? redirectForSession(UserSession? session, String path) {
   // A signed-in account without a workspace role (fresh landlord sign-up or a
   // tenant whose invitation has not been claimed yet) completes onboarding.
   final needsOnboarding =
-      session.role == AppRole.client && !session.isAnonymous && !session.isDemo;
+      session.role == AppRole.client && !session.isAnonymous;
   final home =
       session.workspacePath ?? (needsOnboarding ? '/onboarding' : '/explore');
   if (path == '/sign-in' || path == '/sign-up') return home;

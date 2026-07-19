@@ -2,7 +2,7 @@
 
 Nyumba is an offline-first Flutter application for rental property management. One responsive codebase supports web, Android, and iOS, with role-aware experiences for landlords, tenants, platform administrators, and prospective tenants.
 
-The current build is a functional implementation baseline backed by Sembast and seeded demo data. The app is connected to the `nyumba-property-management` Firebase project (Blaze plan): `Firebase.initializeApp` runs during bootstrap using options generated locally by the FlutterFire CLI. Generated configuration (`lib/firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`) is **gitignored by design** — every contributor regenerates it with `flutterfire configure`; no credentials, service accounts, or `.env` files are ever committed.
+The current build is a functional implementation baseline backed by Sembast. The app is connected to the `nyumba-property-management` Firebase project (Blaze plan): `Firebase.initializeApp` runs during bootstrap using options generated locally by the FlutterFire CLI. Generated configuration (`lib/firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`) is **gitignored by design** — every contributor regenerates it with `flutterfire configure`; no credentials, service accounts, or `.env` files are ever committed.
 
 ## Implemented experiences
 
@@ -86,7 +86,7 @@ flowchart TB
 5. **Sensitive outcomes stay server-authoritative.** Payments, receipts, lease activation, landlord approval, subscriptions, unit entitlements, and listing publication are confirmed only by trusted backend logic. Cloud Functions update canonical records and create deliberately limited public or tenant projections.
 6. **Remote changes return through the same local database.** Firestore listeners or cursor-based pulls merge authorized server state into Sembast; the UI then reacts to the local stream. This keeps online and offline rendering on one predictable path.
 
-The local database, repositories, outbox, sync engine, and demo gateway are implemented. The Firebase side of the diagram is currently represented by packages, security rules, indexes, and backend contracts; it requires environment credentials and production command handlers before release.
+The local database, repositories, outbox, sync engine, and in-memory fallback gateway are implemented. The Firebase side of the diagram is currently represented by packages, security rules, indexes, and backend contracts; it requires environment credentials and production command handlers before release.
 
 - `lib/app/` contains bootstrap, routing, navigation, and brand theme composition.
 - `lib/core/domain/` contains shared domain primitives and validation.
@@ -125,9 +125,7 @@ flutter devices
 flutter run -d <device-id>
 ```
 
-From **Sign in**, choose **Landlord**, **Tenant**, **Admin**, or **Super Admin** under "Explore the role demos" for a local, offline-only walkthrough. Real accounts use the same screen: sign in with email/password or Google, or create a landlord account via **Sign up**.
-
-Demo identities and data are local only; they are not Firebase accounts and must not be used as production fixtures.
+From **Sign in**, sign in with email/password or Google, or create a landlord account via **Sign up**. Anyone can browse the public marketplace without signing in via **Browse available homes**.
 
 ## Authentication and roles
 

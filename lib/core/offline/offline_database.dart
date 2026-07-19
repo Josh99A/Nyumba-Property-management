@@ -138,7 +138,7 @@ final class OfflineDatabase {
   /// name never changed — so a visitor from that era still has demo listings
   /// in IndexedDB that remote pulls will never remove, because pulls only
   /// merge. Real workspaces must contain only real data: this sweep runs on
-  /// every non-demo open and is cheap once clean (a read per store, no
+  /// every workspace open and is cheap once clean (a read per store, no
   /// writes).
   ///
   /// The `demo-` prefix is unambiguous ownership evidence: real identities are

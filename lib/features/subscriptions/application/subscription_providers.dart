@@ -32,10 +32,9 @@ final landlordEntitlementProvider = StreamProvider<EntitlementState>((
   ref,
 ) async* {
   final session = ref.watch(sessionControllerProvider);
-  // Demo workspaces have no server documents behind them, and only landlords
-  // hold a subscription at all.
+  // Only landlords hold a subscription at all, and there is nothing to read
+  // without a configured Firebase project.
   if (session == null ||
-      session.isDemo ||
       session.role != AppRole.landlord ||
       Firebase.apps.isEmpty) {
     yield const EntitlementNotApplicable();
@@ -210,7 +209,7 @@ class SelectSubscriptionPlan {
 
   Future<void> call(String tier) async {
     final session = _ref.read(sessionControllerProvider);
-    if (session == null || session.isDemo || session.role != AppRole.landlord) {
+    if (session == null || session.role != AppRole.landlord) {
       throw StateError('Sign in as a landlord to choose a plan.');
     }
     if (Firebase.apps.isEmpty) {

@@ -64,7 +64,6 @@ class _AdminAccessOperationsScreenState
       title: 'Access & operations',
       description:
           'See exactly what ${role.label} can create, read, update, and archive.',
-      showsDemoData: false,
       children: [
         _RoleAccessHero(role: role),
         const SizedBox(height: 18),

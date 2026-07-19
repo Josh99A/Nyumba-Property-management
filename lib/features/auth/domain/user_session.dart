@@ -37,7 +37,6 @@ class UserSession {
     this.language,
     this.emailVerified = true,
     this.isAnonymous = false,
-    this.isDemo = false,
   });
 
   final String userId;
@@ -51,7 +50,6 @@ class UserSession {
   final AppLanguage? language;
   final bool emailVerified;
   final bool isAnonymous;
-  final bool isDemo;
 
   String get firstName {
     final trimmed = displayName.trim();
@@ -61,7 +59,6 @@ class UserSession {
 
   bool get hasConfirmedSubscription =>
       role != AppRole.landlord ||
-      isDemo ||
       subscriptionStatus == LandlordSubscriptionStatus.active;
 
   /// Where this session's workspace lives, or null when the account has no
@@ -87,7 +84,6 @@ class UserSession {
         language: language,
         emailVerified: emailVerified,
         isAnonymous: isAnonymous,
-        isDemo: isDemo,
       );
 
   UserSession withSubscription({
@@ -105,6 +101,5 @@ class UserSession {
     language: language,
     emailVerified: emailVerified,
     isAnonymous: isAnonymous,
-    isDemo: isDemo,
   );
 }

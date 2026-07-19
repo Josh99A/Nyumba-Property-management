@@ -26,9 +26,9 @@ import 'package:nyumba_property_management/features/admin/domain/managed_user.da
 ///
 /// This previously enqueued outbox entries anyway, which failed permanently and
 /// invisibly. Live admin sessions no longer read this store at all: they
-/// stream the real directory through `FirestoreAdminDirectory`. This
-/// repository now serves only explicit demo workspaces, and it must not
-/// pretend to sync.
+/// stream the real directory through `FirestoreAdminDirectory`. This local
+/// directory is retained but currently has no reader, and it must not pretend
+/// to sync.
 final class SembastManagedUserRepository implements ManagedUserRepository {
   SembastManagedUserRepository({
     required OfflineDatabase database,
