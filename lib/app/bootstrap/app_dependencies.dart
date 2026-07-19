@@ -8,8 +8,6 @@ import '../../core/offline/firebase_remote_sync_gateway.dart';
 import '../../core/offline/offline_entity.dart';
 import '../../core/offline/remote_pull_gateway.dart';
 import '../../core/offline/sync_engine.dart';
-import '../../features/admin/data/sembast_admin_repository.dart';
-import '../../features/admin/domain/admin_repository.dart';
 import '../../features/auth/application/session_controller.dart';
 import '../../features/auth/domain/user_session.dart';
 import '../../features/documents/data/sembast_lease_document_repository.dart';
@@ -60,8 +58,6 @@ class AppDependencies {
     required this.notices,
     required this.notifications,
     required this.subscriptionPlans,
-    required this.managedUsers,
-    required this.adminActions,
     this.remotePullCoordinator,
   });
 
@@ -80,8 +76,6 @@ class AppDependencies {
   final NoticeRepository notices;
   final AppNotificationRepository notifications;
   final SubscriptionPlanRepository subscriptionPlans;
-  final ManagedUserRepository managedUsers;
-  final AdminActionRepository adminActions;
   final RemotePullCoordinator? remotePullCoordinator;
 
   /// Closing quarantines the workspace: the database file and its unsynced
@@ -232,8 +226,6 @@ Future<AppDependencies> createAppDependencies({
   final subscriptionPlans = SembastSubscriptionPlanRepository(
     database: database,
   );
-  final managedUsers = SembastManagedUserRepository(database: database);
-  final adminActions = SembastAdminActionRepository(database: database);
   // Public browsing is unauthenticated but still server-backed: `publicListings`
   // is world-readable, so an anonymous visitor reads the real catalogue.
   final usesFirebase = Firebase.apps.isNotEmpty;
@@ -346,8 +338,6 @@ Future<AppDependencies> createAppDependencies({
     notices: notices,
     notifications: notifications,
     subscriptionPlans: subscriptionPlans,
-    managedUsers: managedUsers,
-    adminActions: adminActions,
     remotePullCoordinator: remotePullCoordinator,
   );
 }

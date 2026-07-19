@@ -1,12 +1,10 @@
 /// Server-truth view of one platform account, joined from the admin-readable
 /// `users`, `landlordAccounts`, and `subscriptions` documents.
 ///
-/// Unlike [ManagedUser], which is a local-only working directory keyed by
-/// client UUIDs, a [PlatformAccount] is keyed by the Firebase UID and can
-/// therefore address the real account in audited admin commands
-/// (`landlord.approve` / `landlord.suspend` / `landlord.reinstate` /
-/// `subscription.confirmPayment` / `user.archive` / `user.restore` /
-/// `user.delete`).
+/// A [PlatformAccount] is keyed by the Firebase UID and can therefore address
+/// the real account in audited admin commands (`landlord.approve` /
+/// `landlord.suspend` / `landlord.reinstate` / `subscription.confirmPayment` /
+/// `user.archive` / `user.restore` / `user.delete`).
 library;
 
 enum PlatformAccountStatus {
