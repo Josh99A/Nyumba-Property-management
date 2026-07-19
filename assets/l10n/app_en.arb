@@ -795,4 +795,8 @@
     ,"availabilityLoadFailed": "Rental space availability could not be loaded. Try again."
     ,"listingsStillLoading": "Listings are still loading. Try again in a moment."
     ,"listingsLoadBeforeAvailability": "Listings could not be loaded. Try again before changing availability."
+    ,"availableHomesCount": "{count, plural, =1{1 available home} other{{count} available homes}}"
+    ,"@availableHomesCount": {"description": "Count of available homes on the public marketplace.", "placeholders": {"count": {"type": "int"}}}
+    ,"matchingHomesCount": "{matched} of {total, plural, =1{1 home} other{{total} homes}} match"
+    ,"@matchingHomesCount": {"description": "Count showing filtered results out of total homes.", "placeholders": {"matched": {"type": "int"}, "total": {"type": "int"}}}
 }

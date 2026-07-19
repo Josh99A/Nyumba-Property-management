@@ -179,14 +179,25 @@ final class OfflineDatabase {
   /// the next server snapshot rewrites it in the current shape — only
   /// remote-pulled records can be undecodable, and those never carry outbox
   /// intents.
+  ///
+  /// This method checks for pending outbox mutations before removing each
+  /// record. Any undecodable record with a queued local edit is retained to
+  /// prevent data loss.
   Future<int> purgeUndecodable(
     OfflineEntityType type,
     bool Function(Map<String, Object?> record) isDecodable,
   ) => database.transaction((transaction) async {
     final store = _entityStore(type);
     final snapshots = await store.find(transaction);
+    final outboxSnapshots = await _outboxStore.find(transaction);
+    final pendingIds = <String>{
+      for (final snapshot in outboxSnapshots)
+        if (OutboxEntry.fromJson(snapshot.value).entityType == type)
+          OutboxEntry.fromJson(snapshot.value).entityId,
+    };
     var removed = 0;
     for (final snapshot in snapshots) {
+      if (pendingIds.contains(snapshot.key)) continue;
       if (!isDecodable(Map<String, Object?>.from(snapshot.value))) {
         await store.record(snapshot.key).delete(transaction);
         removed++;

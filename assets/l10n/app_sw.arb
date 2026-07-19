@@ -784,4 +784,8 @@
     ,"availabilityLoadFailed": "Upatikanaji wa sehemu za kupangisha haukuweza kupakiwa. Jaribu tena."
     ,"listingsStillLoading": "Matangazo bado yanapakiwa. Jaribu tena baada ya muda mfupi."
     ,"listingsLoadBeforeAvailability": "Matangazo hayakuweza kupakiwa. Jaribu tena kabla ya kubadilisha upatikanaji."
+    ,"availableHomesCount": "{count, plural, =1{Nyumba 1 inapatikana} other{Nyumba {count} zinapatikana}}"
+    ,"@availableHomesCount": {"description": "Count of available homes on the public marketplace.", "placeholders": {"count": {"type": "int"}}}
+    ,"matchingHomesCount": "{matched} kati ya {total, plural, =1{nyumba 1} other{nyumba {total}}} zinafanana"
+    ,"@matchingHomesCount": {"description": "Count showing filtered results out of total homes.", "placeholders": {"matched": {"type": "int"}, "total": {"type": "int"}}}
 }

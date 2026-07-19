@@ -455,10 +455,10 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: Text.localized(
+                                  child: Text(
                                     _hasActiveFilters
-                                        ? '${listings.length} of ${all.length} ${all.length == 1 ? 'home' : 'homes'} match'
-                                        : '${listings.length} available ${listings.length == 1 ? 'home' : 'homes'}',
+                                        ? context.tr('matchingHomesCount', {'matched': listings.length, 'total': all.length})
+                                        : context.tr('availableHomesCount', {'count': listings.length}),
                                     style: Theme.of(
                                       context,
                                     ).textTheme.headlineSmall,

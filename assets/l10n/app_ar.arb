@@ -784,4 +784,8 @@
     ,"availabilityLoadFailed": "تعذر تحميل توفر مساحات الإيجار. حاول مرة أخرى."
     ,"listingsStillLoading": "لا تزال الإعلانات قيد التحميل. حاول مرة أخرى بعد قليل."
     ,"listingsLoadBeforeAvailability": "تعذر تحميل الإعلانات. حاول مرة أخرى قبل تغيير التوفر."
+    ,"availableHomesCount": "{count, plural, =1{منزل واحد متاح} other{{count} منزل متاح}}"
+    ,"@availableHomesCount": {"description": "Count of available homes on the public marketplace.", "placeholders": {"count": {"type": "int"}}}
+    ,"matchingHomesCount": "{matched} من {total, plural, =1{منزل واحد} other{{total} منزل}} يطابق"
+    ,"@matchingHomesCount": {"description": "Count showing filtered results out of total homes.", "placeholders": {"matched": {"type": "int"}, "total": {"type": "int"}}}
 }
