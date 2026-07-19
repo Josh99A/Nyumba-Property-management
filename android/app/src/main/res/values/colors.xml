@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the Flutter splash background (NyumbaColors.softIvory) so the
+         OS launch window hands off to the splash with no colour flash. -->
+    <color name="nyumba_splash_bg">#F7F4ED</color>
+</resources>
