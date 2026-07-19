@@ -3654,12 +3654,6 @@ abstract class AppLocalizations {
   /// **'Your property manager will prepare this document and share it here.'**
   String get legacy_ef5d3aa3c485;
 
-  /// No description provided for @legacy_dc7cb9e237d1.
-  ///
-  /// In en, this message translates to:
-  /// **'Your workspace stays available offline after your first secure sign-in.'**
-  String get legacy_dc7cb9e237d1;
-
   /// No description provided for @welcomeBackName.
   ///
   /// In en, this message translates to:

@@ -1274,8 +1274,8 @@ class _ApplicationsInbox extends StatelessWidget {
         children: [
           CircleAvatar(
             backgroundColor: context.nyumba.midnightNavy,
-            foregroundColor: Colors.white,
-            child: Icon(Icons.mark_email_unread_outlined, size: 20),
+            foregroundColor: context.nyumba.surface,
+            child: const Icon(Icons.mark_email_unread_outlined, size: 20),
           ),
           const SizedBox(width: 13),
           Expanded(

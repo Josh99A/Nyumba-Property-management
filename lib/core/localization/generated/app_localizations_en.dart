@@ -1908,10 +1908,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your property manager will prepare this document and share it here.';
 
   @override
-  String get legacy_dc7cb9e237d1 =>
-      'Your workspace stays available offline after your first secure sign-in.';
-
-  @override
   String welcomeBackName(Object name) {
     return 'Welcome back, $name.';
   }

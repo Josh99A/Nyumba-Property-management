@@ -319,39 +319,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 28),
-                              DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: context.nyumba.sageTint,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: context.nyumba.sageBorder,
-                                  ),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(14),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(
-                                        Icons.offline_bolt_outlined,
-                                        color: context.nyumba.sageDark,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text.localized(
-                                          'Your workspace stays available offline after your first secure sign-in.',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodySmall,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
                               if (!showBrand) ...[
                                 const SizedBox(height: 20),
                                 OutlinedButton(

@@ -1954,10 +1954,6 @@ class AppLocalizationsLg extends AppLocalizations {
       'Omuddukanya ebintu byo ajja kutegeka ekiwandiiko kino era akigabana wano.';
 
   @override
-  String get legacy_dc7cb9e237d1 =>
-      'Ekifo kyo w’okolera kisigala nga kiri ku mutimbagano oluvannyuma lw’okuyingira kwo okusooka okw’obukuumi.';
-
-  @override
   String welcomeBackName(Object name) {
     return 'Tukwanirizza nate, $name.';
   }

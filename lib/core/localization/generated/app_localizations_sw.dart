@@ -1942,10 +1942,6 @@ class AppLocalizationsSw extends AppLocalizations {
       'Msimamizi wako wa mali atatayarisha hati hii na kuishiriki hapa.';
 
   @override
-  String get legacy_dc7cb9e237d1 =>
-      'Nafasi yako ya kazi itaendelea kupatikana nje ya mtandao baada ya kuingia kwa mara ya kwanza kwa usalama.';
-
-  @override
   String welcomeBackName(Object name) {
     return 'Karibu tena, $name.';
   }

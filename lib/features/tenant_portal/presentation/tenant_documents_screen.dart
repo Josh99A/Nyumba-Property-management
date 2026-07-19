@@ -616,8 +616,10 @@ class _PinnedLeaseCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [context.nyumba.navyDark, context.nyumba.midnightNavy],
+        // Brand-fixed navy: the card keeps white foregrounds in both themes,
+        // so the theme-aware palette (light blue in dark mode) cannot be used.
+        gradient: const LinearGradient(
+          colors: [NyumbaColors.navyDark, NyumbaColors.midnightNavy],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -672,7 +674,7 @@ class _PinnedLeaseCard extends StatelessWidget {
           );
           final action = FilledButton.icon(
             style: FilledButton.styleFrom(
-              backgroundColor: context.nyumba.terracottaGold,
+              backgroundColor: NyumbaColors.terracottaGold,
               foregroundColor: Colors.white,
             ),
             onPressed: onOpen,
@@ -832,7 +834,7 @@ class _DocumentPreview extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.nyumba.surface,
         border: Border.all(color: context.nyumba.outline),
         borderRadius: BorderRadius.circular(8),
         boxShadow: const [BoxShadow(color: Color(0x12123A6F), blurRadius: 18)],

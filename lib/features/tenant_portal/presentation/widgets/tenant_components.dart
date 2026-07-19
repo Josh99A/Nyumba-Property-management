@@ -226,8 +226,10 @@ class TenantBalanceHero extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [context.nyumba.navyDark, context.nyumba.midnightNavy],
+        // Brand-fixed navy: the hero keeps white foregrounds in both themes,
+        // so the theme-aware palette (light blue in dark mode) cannot be used.
+        gradient: const LinearGradient(
+          colors: [NyumbaColors.navyDark, NyumbaColors.midnightNavy],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -267,7 +269,7 @@ class TenantBalanceHero extends StatelessWidget {
                               ? Icons.check_circle_outline_rounded
                               : Icons.account_balance_wallet_outlined,
                           color: paid
-                              ? context.nyumba.sageBorder
+                              ? NyumbaColors.sageTint
                               : const Color(0xFFFFD99D),
                           size: 20,
                         ),
@@ -305,8 +307,8 @@ class TenantBalanceHero extends StatelessWidget {
                 final action = FilledButton.icon(
                   style: FilledButton.styleFrom(
                     backgroundColor: paid
-                        ? context.nyumba.sageGreen
-                        : context.nyumba.terracottaGold,
+                        ? NyumbaColors.sageGreen
+                        : NyumbaColors.terracottaGold,
                     foregroundColor: Colors.white,
                   ),
                   onPressed: onPay,

@@ -178,11 +178,10 @@ class _RoleAccessHero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            context.nyumba.midnightNavy,
-            context.nyumba.midnightNavy.withValues(alpha: .88),
-          ],
+        // Brand-fixed navy: the panel keeps white foregrounds in both themes,
+        // so the theme-aware palette (light blue in dark mode) cannot be used.
+        gradient: const LinearGradient(
+          colors: [NyumbaColors.midnightNavy, NyumbaColors.navyDark],
         ),
         borderRadius: BorderRadius.circular(14),
       ),

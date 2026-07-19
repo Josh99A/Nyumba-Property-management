@@ -25,15 +25,20 @@ void showNyumbaToast(
   final context = nyumbaMessengerKey.currentContext;
   if (messenger == null || context == null) return;
 
-  final palette = context.nyumba;
+  // Brand-fixed backgrounds: the toast keeps white foregrounds in both
+  // themes, and the theme-aware palette turns these colors into pale
+  // pastels in dark mode, which would wash out the white text.
   final (background, icon) = switch (variant) {
     NyumbaToastVariant.success => (
-      palette.sageDark,
+      NyumbaColors.sageDark,
       Icons.check_circle_outline_rounded,
     ),
-    NyumbaToastVariant.error => (palette.danger, Icons.error_outline_rounded),
+    NyumbaToastVariant.error => (
+      NyumbaColors.danger,
+      Icons.error_outline_rounded,
+    ),
     NyumbaToastVariant.info => (
-      palette.midnightNavy,
+      NyumbaColors.midnightNavy,
       Icons.info_outline_rounded,
     ),
   };

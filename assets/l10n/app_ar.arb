@@ -592,8 +592,7 @@
     "legacy_dadbc887f26c":  "محفظتك في لمحة",
     "legacy_0b541593e3a7":  "خصائصك",
     "legacy_ef5d3aa3c485":  "سيقوم مدير العقار الخاص بك بإعداد هذه الوثيقة ومشاركتها هنا.",
-    "legacy_dc7cb9e237d1":  "تظل مساحة العمل الخاصة بك متاحة دون الاتصال بالإنترنت بعد تسجيل الدخول الآمن لأول مرة."
-    ,"welcomeBackName": "مرحبًا بعودتك، {name}."
+    "welcomeBackName": "مرحبًا بعودتك، {name}."
     ,"welcomeName": "مرحبًا، {name}"
     ,"editName": "تعديل {name}"
     ,"archiveNameQuestion": "أرشفة {name}؟"

@@ -592,8 +592,7 @@
     "legacy_dadbc887f26c":  "Kwingineko yako katika mtazamo",
     "legacy_0b541593e3a7":  "Mali yako",
     "legacy_ef5d3aa3c485":  "Msimamizi wako wa mali atatayarisha hati hii na kuishiriki hapa.",
-    "legacy_dc7cb9e237d1":  "Nafasi yako ya kazi itaendelea kupatikana nje ya mtandao baada ya kuingia kwa mara ya kwanza kwa usalama."
-    ,"welcomeBackName": "Karibu tena, {name}."
+    "welcomeBackName": "Karibu tena, {name}."
     ,"welcomeName": "Karibu, {name}"
     ,"editName": "Hariri {name}"
     ,"archiveNameQuestion": "Weka {name} kwenye kumbukumbu?"

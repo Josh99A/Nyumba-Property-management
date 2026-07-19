@@ -1892,10 +1892,6 @@ class AppLocalizationsAr extends AppLocalizations {
       'سيقوم مدير العقار الخاص بك بإعداد هذه الوثيقة ومشاركتها هنا.';
 
   @override
-  String get legacy_dc7cb9e237d1 =>
-      'تظل مساحة العمل الخاصة بك متاحة دون الاتصال بالإنترنت بعد تسجيل الدخول الآمن لأول مرة.';
-
-  @override
   String welcomeBackName(Object name) {
     return 'مرحبًا بعودتك، $name.';
   }

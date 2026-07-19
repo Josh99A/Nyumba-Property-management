@@ -592,8 +592,7 @@
     "legacy_dadbc887f26c":  "Your portfolio at a glance",
     "legacy_0b541593e3a7":  "Your properties",
     "legacy_ef5d3aa3c485":  "Your property manager will prepare this document and share it here.",
-    "legacy_dc7cb9e237d1":  "Your workspace stays available offline after your first secure sign-in."
-    ,"welcomeBackName": "Welcome back, {name}."
+    "welcomeBackName": "Welcome back, {name}."
     ,"welcomeName": "Welcome, {name}"
     ,"editName": "Edit {name}"
     ,"archiveNameQuestion": "Archive {name}?"
