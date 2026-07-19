@@ -92,6 +92,17 @@ final class ListingMapper {
     'syncMetadata': SyncMetadataMapper.toJson(listing.syncMetadata),
   };
 
+  /// Whether [fromJson] can read this record. Used by the workspace-open sweep
+  /// to drop cached records written under an older pull shape.
+  static bool canDecode(Map<String, Object?> json) {
+    try {
+      fromJson(json);
+      return true;
+    } on Object {
+      return false;
+    }
+  }
+
   static Listing fromJson(Map<String, Object?> json) {
     final reader = JsonReader(json);
     return Listing(

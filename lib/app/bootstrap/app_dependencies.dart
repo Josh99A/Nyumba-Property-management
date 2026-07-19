@@ -22,6 +22,7 @@ import '../../features/notices/data/sembast_notice_repository.dart';
 import '../../features/notices/domain/notice_repository.dart';
 import '../../features/notifications/data/sembast_app_notification_repository.dart';
 import '../../features/notifications/domain/app_notification_repository.dart';
+import '../../features/marketplace/data/mappers/listing_mapper.dart';
 import '../../features/marketplace/data/sembast_application_repository.dart';
 import '../../features/marketplace/data/sembast_listing_repository.dart';
 import '../../features/marketplace/domain/application_repository.dart';
@@ -208,6 +209,15 @@ Future<AppDependencies> createAppDependencies({
   // pulls never delete, so returning visitors would keep seeing "Kololo Garden
   // Court" forever. Real workspaces hold only real data.
   await database.purgeDemoArtifacts();
+  // Listings pulled by older builds lack fields the current mapper requires
+  // (the public projection once arrived without propertyId/unitId/landlordId),
+  // and the merge never repairs a record whose projection version has not
+  // advanced. Drop what this build cannot read; the next server snapshot
+  // rewrites those records in the current shape.
+  await database.purgeUndecodable(
+    OfflineEntityType.listing,
+    ListingMapper.canDecode,
+  );
   final properties = SembastPropertyRepository(database: database);
   final units = SembastUnitRepository(database: database);
   final listings = SembastListingRepository(
