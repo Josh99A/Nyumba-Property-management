@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
+import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
 import 'package:nyumba_property_management/features/marketplace/data/mappers/listing_mapper.dart';
 import 'package:nyumba_property_management/features/marketplace/data/sembast_listing_repository.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
@@ -83,6 +84,43 @@ void main() {
     );
     expect(
       await database.readEntity(OfflineEntityType.listing, 'valid-listing'),
+      isNotNull,
+    );
+  });
+
+  test('the sweep retains an unreadable record with a queued mutation', () async {
+    final valid = _publishedListing(id: 'valid-listing', now: now);
+    await database.putRemoteEntityIfUnmodified(
+      entityType: OfflineEntityType.listing,
+      entityId: valid.id,
+      entity: ListingMapper.toJson(valid),
+    );
+    // Same legacy (undecodable) shape, but this record carries a pending local
+    // edit in the outbox. The sweep must keep it so the queued mutation is not
+    // lost, even though the mapper cannot decode the record yet.
+    final corrupt = ListingMapper.toJson(valid)
+      ..remove('propertyId')
+      ..['id'] = 'queued-legacy-listing';
+    await database.putEntityAndEnqueue(
+      entityType: OfflineEntityType.listing,
+      entityId: 'queued-legacy-listing',
+      entity: corrupt,
+      mutationId: 'mutation-1',
+      operation: OutboxOperation.update,
+      createdAt: now,
+    );
+
+    final removed = await database.purgeUndecodable(
+      OfflineEntityType.listing,
+      ListingMapper.canDecode,
+    );
+
+    expect(removed, 0);
+    expect(
+      await database.readEntity(
+        OfflineEntityType.listing,
+        'queued-legacy-listing',
+      ),
       isNotNull,
     );
   });
