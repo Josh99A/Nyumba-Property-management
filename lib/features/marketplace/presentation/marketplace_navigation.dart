@@ -16,9 +16,7 @@ MarketplaceNavigationAction marketplaceNavigationAction(UserSession? session) {
   }
   final workspacePath = session.workspacePath;
   final needsOnboarding =
-      session.role == AppRole.client &&
-      !session.isAnonymous &&
-      !session.isDemo;
+      session.role == AppRole.client && !session.isAnonymous;
   if (workspacePath == null && needsOnboarding) {
     return const MarketplaceNavigationAction(
       label: 'Complete setup',

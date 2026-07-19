@@ -14,7 +14,6 @@ import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/toast.dart';
 import '../application/session_controller.dart';
 import '../domain/auth_failure.dart';
-import '../domain/user_session.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
@@ -119,10 +118,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     } finally {
       if (mounted) setState(() => _isGoogleSubmitting = false);
     }
-  }
-
-  void _startDemo(AppRole role) {
-    ref.read(sessionControllerProvider.notifier).startDemo(role);
   }
 
   @override
@@ -325,39 +320,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                 ),
                               ),
                               const SizedBox(height: 28),
-                              const _DividerLabel(
-                                label: 'Explore the role demos',
-                              ),
-                              const SizedBox(height: 18),
-                              Wrap(
-                                spacing: 10,
-                                runSpacing: 10,
-                                children: [
-                                  _DemoButton(
-                                    label: 'Landlord',
-                                    icon: Icons.home_work_outlined,
-                                    onPressed: () =>
-                                        _startDemo(AppRole.landlord),
-                                  ),
-                                  _DemoButton(
-                                    label: 'Tenant',
-                                    icon: Icons.person_outline_rounded,
-                                    onPressed: () => _startDemo(AppRole.tenant),
-                                  ),
-                                  _DemoButton(
-                                    label: 'Admin',
-                                    icon: Icons.admin_panel_settings_outlined,
-                                    onPressed: () => _startDemo(AppRole.admin),
-                                  ),
-                                  _DemoButton(
-                                    label: 'Super Admin',
-                                    icon: Icons.security_rounded,
-                                    onPressed: () =>
-                                        _startDemo(AppRole.superAdmin),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 28),
                               DecoratedBox(
                                 decoration: BoxDecoration(
                                   color: context.nyumba.sageTint,
@@ -496,66 +458,6 @@ class _BrandPanel extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _DividerLabel extends StatelessWidget {
-  const _DividerLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 320) {
-          return Center(
-            child: Text.localized(
-              label,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          );
-        }
-        return Row(
-          children: [
-            const Expanded(child: Divider()),
-            Flexible(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text.localized(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-            ),
-            const Expanded(child: Divider()),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _DemoButton extends StatelessWidget {
-  const _DemoButton({
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 19),
-      label: Text.localized(label),
     );
   }
 }

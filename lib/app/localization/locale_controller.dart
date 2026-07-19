@@ -66,7 +66,7 @@ class LocaleReconciliationController
   void reconcileCurrentSession() {
     final session = ref.read(sessionControllerProvider);
     final generation = ++_generation;
-    if (session == null || session.isDemo || session.isAnonymous) {
+    if (session == null || session.isAnonymous) {
       state = LocaleReconciliationState(
         status: LocaleReconciliationStatus.confirmed,
         userId: session?.userId,
@@ -146,9 +146,9 @@ class LocalePreferenceController extends Notifier<AppLanguage> {
   /// English notifications. Run once per session so the two agree.
   Future<void> reconcileServerLocale() async {
     final session = ref.read(sessionControllerProvider);
-    // Demo and anonymous sessions have no server-side user document to localize
-    // against, mirroring the push-registration policy.
-    if (session == null || session.isDemo || session.isAnonymous) return;
+    // Anonymous sessions have no server-side user document to localize against,
+    // mirroring the push-registration policy.
+    if (session == null || session.isAnonymous) return;
     final effective = state;
     if (effective == session.language) return;
     // No correction needed when the server simply has no preference yet and the
@@ -166,7 +166,7 @@ class LocalePreferenceController extends Notifier<AppLanguage> {
     await ref.read(deviceLanguageProvider.notifier).select(language);
 
     final session = ref.read(sessionControllerProvider);
-    if (session == null || session.isDemo || session.isAnonymous) return;
+    if (session == null || session.isAnonymous) return;
 
     final current = await ref.read(loadUserSettingsProvider)(session.userId);
     final settings = current == null

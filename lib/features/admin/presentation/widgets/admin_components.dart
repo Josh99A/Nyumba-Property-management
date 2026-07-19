@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart' hide Text, Tooltip;
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/nyumba_colors.dart';
@@ -9,7 +8,6 @@ import '../../../../core/config/market_config.dart';
 import '../../../../core/presentation/page_header.dart';
 import '../../../../core/presentation/responsive.dart';
 import '../../../../core/presentation/surface.dart';
-import '../../../auth/application/session_controller.dart';
 
 final NumberFormat _adminCurrency = NumberFormat.currency(
   locale: NyumbaMarket.currencyLocale,
@@ -34,7 +32,6 @@ class AdminPage extends StatelessWidget {
     this.primaryAction,
     this.secondaryAction,
     this.maxWidth = 1540,
-    this.showsDemoData = true,
   });
 
   final String title;
@@ -43,14 +40,6 @@ class AdminPage extends StatelessWidget {
   final Widget? secondaryAction;
   final List<Widget> children;
   final double maxWidth;
-
-  /// Whether this page can render seeded records at all.
-  ///
-  /// Pages that only ever show real data (or say plainly that a figure is
-  /// unavailable) pass false. Everywhere else the banner still self-hides
-  /// unless the session is genuinely a demo one, so a real administrator is
-  /// never warned about demo data they are not being shown.
-  final bool showsDemoData;
 
   @override
   Widget build(BuildContext context) {
@@ -73,55 +62,11 @@ class AdminPage extends StatelessWidget {
                 primaryAction: primaryAction,
                 secondaryAction: secondaryAction,
               ),
-              if (showsDemoData) ...[
-                const SizedBox(height: 14),
-                const AdminDemoDataBanner(),
-              ],
               const SizedBox(height: 22),
               ...children,
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class AdminDemoDataBanner extends ConsumerWidget {
-  const AdminDemoDataBanner({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Seeded records only ever reach an explicit demo session, so warning a
-    // real administrator about demo data would itself be misinformation.
-    final isDemo = ref.watch(sessionControllerProvider)?.isDemo ?? false;
-    if (!isDemo) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: context.nyumba.goldTint,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: context.nyumba.goldBorder),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.science_outlined,
-            size: 18,
-            color: context.nyumba.terracottaDark,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text.localized(
-              'Demo data — the figures on this page are seeded examples, '
-              'not live platform metrics.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: context.nyumba.terracottaDark,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -13,7 +13,7 @@ enum PlatformAccountStatus {
   active('Active'),
   pendingApproval('Pending approval'),
 
-  /// Demo-only: a locally invited directory entry that has no server account.
+  /// An invited directory entry that does not yet have an active account.
   invited('Invited'),
   suspended('Suspended'),
 
@@ -66,10 +66,9 @@ final class PlatformAccount {
     this.subscriptionTier,
     this.subscriptionStatus = PlatformSubscriptionStatus.none,
     this.subscriptionVersion,
-    this.isLocalOnly = false,
   });
 
-  /// Firebase UID for server-backed accounts; a client UUID for demo entries.
+  /// Firebase UID for the server-backed account.
   final String uid;
   final String displayName;
 
@@ -83,12 +82,12 @@ final class PlatformAccount {
   final PlatformAccountStatus status;
   final String joinedLabel;
 
-  /// Only demo entries record these; the server tracks neither.
+  /// Optional directory metadata; not every server account carries these.
   final String? location;
   final String? lastActiveLabel;
 
   /// Concurrency token for the `user.*` lifecycle commands, from the
-  /// `users/{uid}` document. Null for demo entries with no server profile.
+  /// `users/{uid}` document. Null when the account has no server profile.
   final int? userVersion;
 
   /// Concurrency token for `landlord.*` admin commands. Null when the account
@@ -101,9 +100,6 @@ final class PlatformAccount {
 
   /// Concurrency token for `subscription.confirmPayment`.
   final int? subscriptionVersion;
-
-  /// True for demo directory entries that exist only on this device.
-  final bool isLocalOnly;
 
   bool get isLandlord => roleLabel.toLowerCase() == 'landlord';
 }

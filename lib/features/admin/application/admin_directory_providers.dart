@@ -1,21 +1,16 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/bootstrap/app_dependencies.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../auth/domain/user_session.dart';
 import '../data/firestore_admin_directory.dart';
-import '../domain/managed_user.dart';
 import '../domain/platform_account.dart';
 
 /// Where the admin account directory comes from in this session.
 enum AdminDirectorySource {
   /// Real server documents, streamed live. Actions run audited commands.
   live,
-
-  /// Seeded local fixtures in an explicit demo session. Actions stay local.
-  demo,
 
   /// Not an admin session, or no Firebase app is configured.
   unavailable,
@@ -27,7 +22,6 @@ final adminDirectorySourceProvider = Provider<AdminDirectorySource>((ref) {
       (session.role != AppRole.admin && session.role != AppRole.superAdmin)) {
     return AdminDirectorySource.unavailable;
   }
-  if (session.isDemo) return AdminDirectorySource.demo;
   return Firebase.apps.isEmpty
       ? AdminDirectorySource.unavailable
       : AdminDirectorySource.live;
@@ -40,46 +34,20 @@ final adminDirectoryRepositoryProvider = Provider<AdminDirectoryRepository>(
 /// The account directory the admin screens render.
 ///
 /// Live sessions stream the real `users`/`landlordAccounts`/`subscriptions`
-/// join; demo sessions map the seeded local directory into the same shape so
-/// the screens have exactly one honest data path each.
+/// join. Every other session has no directory to show.
 final platformAccountsProvider = StreamProvider<List<PlatformAccount>>((
   ref,
 ) async* {
   switch (ref.watch(adminDirectorySourceProvider)) {
     case AdminDirectorySource.live:
       yield* ref.watch(adminDirectoryRepositoryProvider).watchAccounts();
-    case AdminDirectorySource.demo:
-      final deps = await ref.watch(appDependenciesProvider.future);
-      yield* deps.managedUsers.watchAll().map(
-        (users) => users
-            .map(
-              (user) => PlatformAccount(
-                uid: user.id,
-                displayName: user.name,
-                email: user.email,
-                roleLabel: user.role,
-                status: switch (user.status) {
-                  ManagedUserStatus.active => PlatformAccountStatus.active,
-                  ManagedUserStatus.invited => PlatformAccountStatus.invited,
-                  ManagedUserStatus.suspended =>
-                    PlatformAccountStatus.suspended,
-                },
-                joinedLabel: user.joinedLabel,
-                location: user.location,
-                lastActiveLabel: user.lastActiveLabel,
-                isLocalOnly: true,
-              ),
-            )
-            .toList(growable: false),
-      );
     case AdminDirectorySource.unavailable:
       yield const <PlatformAccount>[];
   }
 });
 
-/// Recent entries of the server-owned audit log. Empty outside live sessions:
-/// the demo workspace shows its local action history instead, and inventing
-/// audit events would defeat the point of an audit log.
+/// Recent entries of the server-owned audit log. Empty outside live sessions,
+/// since inventing audit events would defeat the point of an audit log.
 final adminAuditEventsProvider = StreamProvider<List<AdminAuditEvent>>((
   ref,
 ) async* {
@@ -278,9 +246,6 @@ class AdminAccountCommands {
     if (session == null ||
         (session.role != AppRole.admin && session.role != AppRole.superAdmin)) {
       throw StateError('Administrator permission is required.');
-    }
-    if (session.isDemo) {
-      throw StateError('Demo sessions cannot act on real accounts.');
     }
     if (account.uid == session.userId) {
       throw StateError('You cannot act on your own account.');

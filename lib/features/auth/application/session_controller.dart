@@ -132,47 +132,6 @@ class SessionController extends Notifier<UserSession?> {
     return null;
   }
 
-  void startDemo(AppRole role) {
-    state = switch (role) {
-      AppRole.superAdmin => const UserSession(
-        userId: 'demo-super-admin-001',
-        displayName: 'Nyumba Super Admin',
-        email: 'superadmin@demo.nyumba.ug',
-        role: AppRole.superAdmin,
-        isDemo: true,
-      ),
-      AppRole.landlord => const UserSession(
-        userId: 'demo-landlord-001',
-        displayName: 'Joshua Mugisha',
-        email: 'joshua@demo.nyumba.ug',
-        role: AppRole.landlord,
-        isDemo: true,
-      ),
-      AppRole.tenant => const UserSession(
-        userId: 'demo-tenant-001',
-        displayName: 'Brian Okello',
-        email: 'brian@demo.nyumba.ug',
-        role: AppRole.tenant,
-        isDemo: true,
-      ),
-      AppRole.admin => const UserSession(
-        userId: 'demo-admin-001',
-        displayName: 'Nyumba Admin',
-        email: 'admin@demo.nyumba.ug',
-        role: AppRole.admin,
-        isDemo: true,
-      ),
-      AppRole.client => const UserSession(
-        userId: 'demo-client-001',
-        displayName: 'Prospective tenant',
-        email: '',
-        role: AppRole.client,
-        isDemo: true,
-        isAnonymous: true,
-      ),
-    };
-  }
-
   Future<void> signIn({required String email, required String password}) async {
     _requireFirebase();
     _announceArrival = true;
@@ -389,14 +348,14 @@ class SessionController extends Notifier<UserSession?> {
   /// Registers this device for push once a real session exists.
   ///
   /// Deliberately not awaited: the permission prompt is the OS's, and a user
-  /// who ignores it would otherwise hold up the session resolving. Demo and
-  /// anonymous sessions are skipped — there is no server-side user document to
-  /// hang a token on, and asking a browsing prospect for notification
-  /// permission before they have an account is the prompt everyone blocks.
+  /// who ignores it would otherwise hold up the session resolving. Anonymous
+  /// sessions are skipped — there is no server-side user document to hang a
+  /// token on, and asking a browsing prospect for notification permission
+  /// before they have an account is the prompt everyone blocks.
   void _registerForPush(int generation) {
     final session = state;
     if (generation != _generation) return;
-    if (session == null || session.isDemo || session.isAnonymous) return;
+    if (session == null || session.isAnonymous) return;
     unawaited(
       registerForPush(
         gateway: () => ref.read(authCommandGatewayProvider.future),
@@ -545,7 +504,6 @@ class SessionController extends Notifier<UserSession?> {
     _cancelSubscriptionStateWatch();
     final session = state;
     if (session == null ||
-        session.isDemo ||
         session.role != AppRole.landlord ||
         Firebase.apps.isEmpty) {
       return;
@@ -608,8 +566,7 @@ class SessionController extends Notifier<UserSession?> {
 
   Future<void> signOut() async {
     final current = state;
-    final hasRealFirebaseSession =
-        current != null && !current.isDemo && Firebase.apps.isNotEmpty;
+    final hasRealFirebaseSession = current != null && Firebase.apps.isNotEmpty;
     final shouldUnregisterFromPush =
         hasRealFirebaseSession && !current.isAnonymous;
     if (hasRealFirebaseSession) _cancelTokenRotationWatch();
@@ -667,7 +624,8 @@ class SessionController extends Notifier<UserSession?> {
   static void _requireFirebase() {
     if (Firebase.apps.isEmpty) {
       throw StateError(
-        'Firebase is not configured. Choose an explicit demo role to continue locally.',
+        'Firebase is not configured. Sign-in is unavailable until the app is '
+        'connected to a Nyumba project.',
       );
     }
   }

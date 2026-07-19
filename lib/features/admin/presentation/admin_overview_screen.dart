@@ -39,7 +39,6 @@ class AdminOverviewScreen extends ConsumerWidget {
     return AdminPage(
       // Nothing on this page is seeded any more: it shows real counts or says
       // plainly that a figure is unavailable.
-      showsDemoData: false,
       title: 'Platform overview',
       description: 'Monitor adoption, approvals, and service health.',
       children: [
@@ -266,7 +265,7 @@ class _ApprovalPanel extends StatelessWidget {
           title: 'Approvals need a live admin session',
           message:
               'The approval queue reads server-owned landlord accounts, which '
-              'a demo workspace does not hold.',
+              'need a configured Firebase project and an administrator session.',
           icon: Icons.verified_user_outlined,
         ),
       );
@@ -355,8 +354,8 @@ class _AdminActivityPanel extends ConsumerWidget {
         child: AdminEmptyState(
           title: 'Activity feed needs a live admin session',
           message:
-              'Platform events come from the server audit log, which a demo '
-              'workspace cannot read.',
+              'Platform events come from the server audit log, which needs a '
+              'configured Firebase project and an administrator session.',
           icon: Icons.history_toggle_off_outlined,
         ),
       );

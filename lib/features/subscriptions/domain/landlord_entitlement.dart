@@ -50,7 +50,8 @@ final class EntitlementUnavailable extends EntitlementState {
   final String reason;
 }
 
-/// This session has no plan to show: demo workspaces and non-landlord roles.
+/// This session has no plan to show: non-landlord roles, or no configured
+/// Firebase project.
 final class EntitlementNotApplicable extends EntitlementState {
   const EntitlementNotApplicable();
 }

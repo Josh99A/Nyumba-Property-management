@@ -28,6 +28,37 @@ class _StubSessionController extends SessionController {
   UserSession? build() => session;
 }
 
+/// A session controller whose value starts null and can be updated in-test,
+/// standing in for a real sign-in without needing Firebase.
+class _MutableSessionController extends SessionController {
+  @override
+  UserSession? build() => null;
+
+  void setSession(UserSession? next) => state = next;
+}
+
+/// A real (non-demo) session for [role], mirroring what the router grants once
+/// a person actually signs in. Landlords carry a confirmed subscription so
+/// their workspace routes are reachable.
+UserSession _sessionFor(AppRole role) => UserSession(
+  userId: '${role.name}-1',
+  displayName: '${role.name} user',
+  email: '${role.name}@nyumba.test',
+  role: role,
+  subscriptionStatus: role == AppRole.landlord
+      ? LandlordSubscriptionStatus.active
+      : LandlordSubscriptionStatus.notApplicable,
+  subscriptionTier: role == AppRole.landlord ? 'starter' : null,
+);
+
+ProviderContainer _containerFor(AppRole role) => ProviderContainer(
+  overrides: [
+    sessionControllerProvider.overrideWith(
+      () => _StubSessionController(_sessionFor(role)),
+    ),
+  ],
+);
+
 void main() {
   test('landlord workspace stays locked until payment is confirmed', () {
     const pending = UserSession(
@@ -100,7 +131,11 @@ void main() {
   testWidgets('role changes refresh one stable router instance', (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        sessionControllerProvider.overrideWith(_MutableSessionController.new),
+      ],
+    );
     addTearDown(container.dispose);
 
     final router = container.read(routerProvider);
@@ -114,9 +149,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Welcome back'), findsOneWidget);
 
-    container
-        .read(sessionControllerProvider.notifier)
-        .startDemo(AppRole.landlord);
+    (container.read(sessionControllerProvider.notifier)
+            as _MutableSessionController)
+        .setSession(_sessionFor(AppRole.landlord));
     // The dashboard owns live local streams and entrance animations, so it is
     // intentionally not a permanently settled frame.
     await _pumpFor(tester, const Duration(seconds: 2));
@@ -127,13 +162,10 @@ void main() {
   });
 
   testWidgets('tenant documents route lays out document cards', (tester) async {
-    final container = ProviderContainer();
+    final container = _containerFor(AppRole.tenant);
     addTearDown(container.dispose);
 
     final router = container.read(routerProvider);
-    container
-        .read(sessionControllerProvider.notifier)
-        .startDemo(AppRole.tenant);
     router.go('/tenant/documents');
 
     await tester.pumpWidget(
@@ -215,10 +247,9 @@ void main() {
       AppRole.tenant,
       AppRole.admin,
     ]) {
-      final container = ProviderContainer();
+      final container = _containerFor(role);
       addTearDown(container.dispose);
       final router = container.read(routerProvider);
-      container.read(sessionControllerProvider.notifier).startDemo(role);
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -267,7 +298,6 @@ void main() {
           displayName: 'Tenant',
           email: 't@nyumba.test',
           role: AppRole.tenant,
-          isDemo: true,
         ),
         'My workspace',
       ),
@@ -342,16 +372,13 @@ void main() {
   testWidgets('tenant portal routes render at desktop and phone sizes', (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = _containerFor(AppRole.tenant);
     addTearDown(container.dispose);
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
     });
 
-    container
-        .read(sessionControllerProvider.notifier)
-        .startDemo(AppRole.tenant);
     final router = container.read(routerProvider);
 
     for (final size in const [Size(1280, 720), Size(390, 844)]) {
@@ -378,16 +405,13 @@ void main() {
   testWidgets('landlord workspace routes render at desktop and phone sizes', (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = _containerFor(AppRole.landlord);
     addTearDown(container.dispose);
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
     });
 
-    container
-        .read(sessionControllerProvider.notifier)
-        .startDemo(AppRole.landlord);
     final router = container.read(routerProvider);
 
     for (final size in const [Size(1280, 720), Size(390, 844)]) {
@@ -418,14 +442,13 @@ void main() {
   testWidgets('admin workspace routes render at desktop and phone sizes', (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = _containerFor(AppRole.admin);
     addTearDown(container.dispose);
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
     });
 
-    container.read(sessionControllerProvider.notifier).startDemo(AppRole.admin);
     final router = container.read(routerProvider);
 
     for (final size in const [Size(1280, 720), Size(390, 844)]) {
@@ -460,7 +483,7 @@ void main() {
   testWidgets('the More sheet scrolls instead of overflowing on a phone', (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = _containerFor(AppRole.admin);
     addTearDown(container.dispose);
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -471,7 +494,6 @@ void main() {
     // sheet, more rows than this height can show without scrolling.
     tester.view.physicalSize = const Size(360, 640);
 
-    container.read(sessionControllerProvider.notifier).startDemo(AppRole.admin);
     final router = container.read(routerProvider);
     router.go('/admin');
 
@@ -505,12 +527,9 @@ void main() {
   testWidgets('super admin can open admin and portfolio workspaces', (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = _containerFor(AppRole.superAdmin);
     addTearDown(container.dispose);
 
-    container
-        .read(sessionControllerProvider.notifier)
-        .startDemo(AppRole.superAdmin);
     final router = container.read(routerProvider);
 
     await tester.pumpWidget(
@@ -537,7 +556,7 @@ void main() {
   testWidgets('admin sees visible CRUD operations and protected roles', (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = _containerFor(AppRole.admin);
     addTearDown(container.dispose);
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -546,7 +565,6 @@ void main() {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1280, 900);
 
-    container.read(sessionControllerProvider.notifier).startDemo(AppRole.admin);
     final router = container.read(routerProvider)..go('/admin/access');
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -577,7 +595,7 @@ void main() {
   testWidgets('access operations screen remains usable on a phone', (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = _containerFor(AppRole.superAdmin);
     addTearDown(container.dispose);
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -586,9 +604,6 @@ void main() {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
 
-    container
-        .read(sessionControllerProvider.notifier)
-        .startDemo(AppRole.superAdmin);
     final router = container.read(routerProvider)..go('/admin/access');
     await tester.pumpWidget(
       UncontrolledProviderScope(

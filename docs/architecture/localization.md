@@ -37,7 +37,7 @@ Because server-rendered notifications are localized to the `locale` on the
 user document, a language chosen while signed out must still reach the account.
 When a session first resolves, the app reconciles the effective language to the
 server: if it diverges from the stored profile locale, it is persisted through
-the same `profile.update` intent (skipping demo/anonymous sessions, and never
+the same `profile.update` intent (skipping anonymous sessions, and never
 writing English over an account that simply has no preference yet). Without
 this, a user who picked, say, Kiswahili on the sign-in screen would read the
 app in Kiswahili but receive English notifications.

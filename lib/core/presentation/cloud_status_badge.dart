@@ -41,10 +41,10 @@ class CloudStatusBadge extends ConsumerWidget {
         BadgeTone.warning,
         Icons.cloud_off_outlined,
       ),
-      CloudStatus.demo => (
-        'Demo data',
+      CloudStatus.local => (
+        'On this device',
         BadgeTone.warning,
-        Icons.science_outlined,
+        Icons.smartphone_outlined,
       ),
     };
     final message = switch (status) {
@@ -52,8 +52,8 @@ class CloudStatusBadge extends ConsumerWidget {
       CloudStatus.connecting => 'Contacting Nyumba cloud…',
       CloudStatus.failed =>
         'Cannot reach Nyumba cloud. Showing data saved on this device.',
-      CloudStatus.demo =>
-        'Not connected to a Nyumba project. These are local demo records.',
+      CloudStatus.local =>
+        'Not connected to a Nyumba project. Showing data saved on this device.',
     };
     return Tooltip(
       message: message,

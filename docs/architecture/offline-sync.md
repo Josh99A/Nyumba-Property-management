@@ -146,8 +146,8 @@ Uploads are two-phase:
 
 The application must tolerate local files disappearing before upload and surface a recoverable `LOCAL_ATTACHMENT_MISSING` state. Public listing images are never public merely because they were uploaded; only the server-owned public projection/path is readable publicly.
 
-The checked-in demo baseline has no configured Storage uploader. Its listing and
-property pickers therefore keep bounded image data references only inside local
+A build with no configured Storage uploader has no remote image sink. Its
+listing and property pickers therefore keep bounded image data references only inside local
 records so the selection survives a local repository reload. Property records
 retain at most five ordered images (the first is primary), while listing records
 retain at most ten. Publication

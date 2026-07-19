@@ -19,7 +19,6 @@ class AdminReportsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AdminPage(
-      showsDemoData: false,
       title: 'Reports',
       description: 'Platform-wide payment, adoption, and service reporting.',
       children: [

@@ -13,9 +13,6 @@ import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../auth/domain/user_session.dart';
 import '../application/admin_directory_providers.dart';
-import '../application/admin_providers.dart';
-import '../domain/admin_action.dart';
-import '../domain/managed_user.dart';
 import '../domain/platform_account.dart';
 import 'widgets/admin_components.dart';
 
@@ -106,9 +103,6 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           (account) => account.status == PlatformAccountStatus.pendingApproval,
         )
         .length;
-    final invitedCount = accounts
-        .where((account) => account.status == PlatformAccountStatus.invited)
-        .length;
     final suspendedCount = accounts
         .where((account) => account.status == PlatformAccountStatus.suspended)
         .length;
@@ -135,17 +129,11 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         icon: const Icon(Icons.download_outlined),
         label: const Text.localized('Export'),
       ),
-      primaryAction: source == AdminDirectorySource.demo
-          ? FilledButton.icon(
-              onPressed: _inviteDemoUser,
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: const Text.localized('Invite user'),
-            )
-          : OutlinedButton.icon(
-              onPressed: _explainProvisioning,
-              icon: const Icon(Icons.info_outline_rounded),
-              label: const Text.localized('How accounts are created'),
-            ),
+      primaryAction: OutlinedButton.icon(
+        onPressed: _explainProvisioning,
+        icon: const Icon(Icons.info_outline_rounded),
+        label: const Text.localized('How accounts are created'),
+      ),
       children: [
         AdminMetricGrid(
           children: [
@@ -154,7 +142,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               value: '${accounts.length}',
               caption: source == AdminDirectorySource.live
                   ? 'Live from the server directory'
-                  : 'In this local demo workspace',
+                  : 'Directory unavailable',
               icon: Icons.groups_2_outlined,
               tone: context.nyumba.midnightNavy,
             ),
@@ -167,22 +155,13 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               icon: Icons.verified_user_outlined,
               tone: context.nyumba.sageDark,
             ),
-            if (source == AdminDirectorySource.demo)
-              AdminMetricCard(
-                label: 'Invitations pending',
-                value: '$invitedCount',
-                caption: 'Resend from the account menu',
-                icon: Icons.mark_email_unread_outlined,
-                tone: context.nyumba.terracottaDark,
-              )
-            else
-              AdminMetricCard(
-                label: 'Pending approval',
-                value: '$pendingCount',
-                caption: 'Landlord applications awaiting review',
-                icon: Icons.pending_actions_outlined,
-                tone: context.nyumba.terracottaDark,
-              ),
+            AdminMetricCard(
+              label: 'Pending approval',
+              value: '$pendingCount',
+              caption: 'Landlord applications awaiting review',
+              icon: Icons.pending_actions_outlined,
+              tone: context.nyumba.terracottaDark,
+            ),
             AdminMetricCard(
               label: 'Suspended',
               value: '$suspendedCount',
@@ -238,10 +217,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     values: [
                       'All statuses',
                       PlatformAccountStatus.active.label,
-                      if (source == AdminDirectorySource.demo)
-                        PlatformAccountStatus.invited.label
-                      else
-                        PlatformAccountStatus.pendingApproval.label,
+                      PlatformAccountStatus.pendingApproval.label,
                       PlatformAccountStatus.suspended.label,
                       if (source == AdminDirectorySource.live)
                         PlatformAccountStatus.archived.label,
@@ -306,16 +282,10 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                       ),
-                      StatusBadge(
-                        label: source == AdminDirectorySource.live
-                            ? 'Live server data'
-                            : 'Local demo data',
-                        tone: source == AdminDirectorySource.live
-                            ? BadgeTone.success
-                            : BadgeTone.warning,
-                        icon: source == AdminDirectorySource.live
-                            ? Icons.cloud_done_outlined
-                            : Icons.science_outlined,
+                      const StatusBadge(
+                        label: 'Live server data',
+                        tone: BadgeTone.success,
+                        icon: Icons.cloud_done_outlined,
                       ),
                     ],
                   ),
@@ -379,14 +349,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                               const DataColumn(label: Text.localized('User')),
                               const DataColumn(label: Text.localized('Role')),
                               const DataColumn(label: Text.localized('Status')),
-                              if (source == AdminDirectorySource.live)
-                                const DataColumn(
-                                  label: Text.localized('Subscription'),
-                                )
-                              else
-                                const DataColumn(
-                                  label: Text.localized('Location'),
-                                ),
+                              const DataColumn(
+                                label: Text.localized('Subscription'),
+                              ),
                               const DataColumn(label: Text.localized('Joined')),
                               const DataColumn(label: Text.localized('')),
                             ],
@@ -408,14 +373,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                             )
                                           : _AccountStatusBadge(account.status),
                                     ),
-                                    if (source == AdminDirectorySource.live)
-                                      DataCell(
-                                        _SubscriptionCell(account: account),
-                                      )
-                                    else
-                                      DataCell(
-                                        Text.localized(account.location ?? '—'),
-                                      ),
+                                    DataCell(
+                                      _SubscriptionCell(account: account),
+                                    ),
                                     DataCell(
                                       Text.localized(account.joinedLabel),
                                     ),
@@ -446,11 +406,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     vertical: 12,
                   ),
                   child: Text.localized(
-                    source == AdminDirectorySource.live
-                        ? 'Streaming from the server • admin actions are '
-                              'audited server-side and need a connection'
-                        : 'Local demo records • nothing on this page reaches '
-                              'a server',
+                    'Streaming from the server • admin actions are audited '
+                    'server-side and need a connection',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -459,13 +416,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           ),
         const SizedBox(height: 20),
         if (source == AdminDirectorySource.live)
-          _ServerAuditPanel(events: ref.watch(adminAuditEventsProvider))
-        else
-          _LocalAuditPanel(
-            actions:
-                ref.watch(adminActionsProvider).value ??
-                const <AdminActionRecord>[],
-          ),
+          _ServerAuditPanel(events: ref.watch(adminAuditEventsProvider)),
       ],
     );
   }
@@ -617,10 +568,6 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               'sign-in account deletion is awaiting confirmation.',
           pendingTarget: PendingLifecycleTarget.deleted,
         );
-      case 'demo-status':
-        _changeDemoStatus(account);
-      case 'demo-resend':
-        _resendDemoInvitation(account);
     }
   }
 
@@ -860,195 +807,6 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     _ => code,
   };
 
-  Future<void> _inviteDemoUser() async {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-    var role = 'Landlord';
-    final actorRole = ref.read(sessionControllerProvider)?.role;
-    final assignableRoles = actorRole == null
-        ? const <String>[]
-        : AuthorizationPolicy.assignableAccountRoles(actorRole);
-    if (assignableRoles.isEmpty) {
-      showAdminMessage(context, 'You cannot assign account roles.');
-      return;
-    }
-    role = assignableRoles.contains(role) ? role : assignableRoles.first;
-    final submitted = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text.localized('Invite a user'),
-          content: SizedBox(
-            width: 440,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    labelText: context.tr('Full name'),
-                    prefixIcon: Icon(Icons.person_outline_rounded),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: context.tr('Email address'),
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _FilterDropdown(
-                  value: role,
-                  values: assignableRoles,
-                  icon: Icons.badge_outlined,
-                  onChanged: (value) => setDialogState(() => role = value),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.science_outlined,
-                      size: 18,
-                      color: context.nyumba.terracottaDark,
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text.localized(
-                        'Demo only: this entry stays on this device and no '
-                        'invitation email is sent.',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text.localized('Cancel'),
-            ),
-            FilledButton.icon(
-              onPressed: () {
-                final name = nameController.text.trim();
-                final email = emailController.text.trim();
-                if (name.isEmpty || !email.contains('@')) {
-                  showAdminMessage(
-                    dialogContext,
-                    'Enter a name and valid email address.',
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, true);
-              },
-              icon: const Icon(Icons.send_rounded),
-              label: const Text.localized('Add to demo directory'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (submitted == true && mounted) {
-      try {
-        final user = await ref.read(inviteUserProvider)(
-          InviteManagedUserInput(
-            name: nameController.text.trim(),
-            email: emailController.text.trim(),
-            role: role,
-          ),
-        );
-        if (mounted) {
-          showAdminMessage(
-            context,
-            'Demo directory entry added for ${user.email}.',
-          );
-        }
-      } on Object catch (error) {
-        if (mounted) {
-          showAdminMessage(context, 'Could not add the entry: $error');
-        }
-      }
-    }
-    nameController.dispose();
-    emailController.dispose();
-  }
-
-  Future<void> _resendDemoInvitation(PlatformAccount account) async {
-    try {
-      await ref.read(changeUserStatusProvider)(
-        userId: account.uid,
-        status: ManagedUserStatus.invited,
-      );
-      if (mounted) {
-        showAdminMessage(
-          context,
-          'Demo invitation for ${account.email} refreshed locally.',
-        );
-      }
-    } on Object catch (error) {
-      if (mounted) {
-        showAdminMessage(context, 'Could not update the entry: $error');
-      }
-    }
-  }
-
-  Future<void> _changeDemoStatus(PlatformAccount account) async {
-    final isSuspended = account.status == PlatformAccountStatus.suspended;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text.localized(
-          isSuspended ? 'Restore access?' : 'Suspend this user?',
-        ),
-        content: Text.localized(
-          isSuspended
-              ? '${account.displayName} will be marked active in this demo '
-                    'workspace.'
-              : '${account.displayName} will be marked suspended in this demo '
-                    'workspace.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text.localized('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text.localized(
-              isSuspended ? 'Restore access' : 'Suspend user',
-            ),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    try {
-      await ref.read(changeUserStatusProvider)(
-        userId: account.uid,
-        status: isSuspended
-            ? ManagedUserStatus.active
-            : ManagedUserStatus.suspended,
-      );
-      if (mounted) {
-        showAdminMessage(
-          context,
-          isSuspended
-              ? '${account.displayName} marked active locally.'
-              : '${account.displayName} marked suspended locally.',
-        );
-      }
-    } on Object catch (error) {
-      if (mounted) {
-        showAdminMessage(context, 'Could not update the entry: $error');
-      }
-    }
-  }
-
   Future<void> _showAccount(PlatformAccount account) {
     return showDialog<void>(
       context: context,
@@ -1102,8 +860,6 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                   label: 'Last active',
                   value: account.lastActiveLabel!,
                 ),
-              if (account.isLocalOnly)
-                _AccountFact(label: 'Record', value: 'Local demo entry'),
             ],
           ),
         ),
@@ -1210,65 +966,6 @@ class _AuditEventRow extends StatelessWidget {
 
   static String _shortUid(String uid) =>
       uid.length <= 10 ? uid : '${uid.substring(0, 8)}…';
-}
-
-/// Demo-only history of local directory edits.
-class _LocalAuditPanel extends StatelessWidget {
-  const _LocalAuditPanel({required this.actions});
-
-  final List<AdminActionRecord> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    return AdminPanel(
-      title: 'Recent demo activity',
-      subtitle: 'Local history of edits to this demo directory',
-      child: actions.isEmpty
-          ? const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text.localized('No local directory edits recorded yet.'),
-            )
-          : Column(
-              children: [
-                for (
-                  var index = 0;
-                  index < actions.length && index < 6;
-                  index++
-                ) ...[
-                  Row(
-                    children: [
-                      AdminAvatar(name: actions[index].targetName),
-                      const SizedBox(width: 11),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text.localized(
-                              '${actions[index].action} · ${actions[index].targetName}',
-                              style: Theme.of(context).textTheme.labelLarge,
-                            ),
-                            Text.localized(
-                              '${actions[index].reference} · by '
-                              '${actions[index].performedBy} · '
-                              '${DateFormat('d MMM, HH:mm').format(actions[index].performedAt.toLocal())}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const StatusBadge(
-                        label: 'Local only',
-                        tone: BadgeTone.neutral,
-                      ),
-                    ],
-                  ),
-                  if (index < actions.length - 1 && index < 5)
-                    const Divider(height: 24),
-                ],
-              ],
-            ),
-    );
-  }
 }
 
 class _FilterDropdown extends StatelessWidget {
@@ -1562,34 +1259,6 @@ class _AccountMenu extends StatelessWidget {
             ),
           ),
         ],
-        if (!live &&
-            canManage &&
-            account.status == PlatformAccountStatus.invited)
-          const PopupMenuItem(
-            value: 'demo-resend',
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.forward_to_inbox_outlined),
-              title: Text.localized('Resend invitation'),
-            ),
-          )
-        else if (!live && canManage)
-          PopupMenuItem(
-            value: 'demo-status',
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                account.status == PlatformAccountStatus.suspended
-                    ? Icons.lock_open_outlined
-                    : Icons.person_off_outlined,
-              ),
-              title: Text.localized(
-                account.status == PlatformAccountStatus.suspended
-                    ? 'Restore access'
-                    : 'Suspend access',
-              ),
-            ),
-          ),
       ],
       icon: const Icon(Icons.more_horiz_rounded),
     );

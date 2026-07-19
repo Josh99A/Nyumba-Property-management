@@ -127,28 +127,6 @@ void main() {
     expect(sent, isEmpty);
   });
 
-  test('demo sessions cannot act on real accounts', () {
-    final (container, sent) = harness(
-      session: const UserSession(
-        userId: 'demo-admin-001',
-        displayName: 'Nyumba Admin',
-        email: 'admin@demo.nyumba.ug',
-        role: AppRole.admin,
-        isDemo: true,
-      ),
-    );
-    expect(
-      () => container
-          .read(adminAccountCommandsProvider)
-          .approveLandlord(
-            account: landlord(),
-            reasonCode: 'IDENTITY_VERIFIED',
-          ),
-      throwsStateError,
-    );
-    expect(sent, isEmpty);
-  });
-
   test('admins cannot act on their own account', () {
     final (container, sent) = harness();
     final self = PlatformAccount(
