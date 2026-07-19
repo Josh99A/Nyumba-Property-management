@@ -5,7 +5,6 @@ import 'package:nyumba_property_management/core/documents/nyumba_document_servic
 import 'package:nyumba_property_management/core/offline/firebase_remote_sync_gateway.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/sync_engine.dart';
-import 'package:nyumba_property_management/features/admin/data/sembast_admin_repository.dart';
 import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
 import 'package:nyumba_property_management/features/auth/domain/user_session.dart';
 import 'package:nyumba_property_management/features/documents/data/sembast_lease_document_repository.dart';
@@ -107,8 +106,6 @@ void main() {
       notices: SembastNoticeRepository(database: database),
       notifications: SembastAppNotificationRepository(database: database),
       subscriptionPlans: SembastSubscriptionPlanRepository(database: database),
-      managedUsers: SembastManagedUserRepository(database: database),
-      adminActions: SembastAdminActionRepository(database: database),
     );
 
     final container = ProviderContainer(
