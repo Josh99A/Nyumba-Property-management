@@ -2,20 +2,22 @@
 
 Nyumba is an offline-first Flutter application for rental property management. One responsive codebase supports web, Android, and iOS, with role-aware experiences for landlords, tenants, platform administrators, and prospective tenants.
 
-The current build is a functional implementation baseline backed by Sembast. The app is connected to the `nyumba-property-management` Firebase project (Blaze plan): `Firebase.initializeApp` runs during bootstrap using options generated locally by the FlutterFire CLI. Generated configuration (`lib/firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`) is **gitignored by design** — every contributor regenerates it with `flutterfire configure`; no credentials, service accounts, or `.env` files are ever committed.
+The app runs against a real development Firebase backend (`nyumba-property-management`, Blaze plan): callable command handlers, security rules, indexes, background workers, and transactional email are implemented and deployed by CI from `main`, while Sembast keeps every screen usable offline. Generated configuration (`lib/firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`) is **gitignored by design** — every contributor regenerates it with `flutterfire configure`; no credentials, service accounts, or `.env` files are ever committed.
 
 ## Implemented experiences
 
 - **Client:** browse available units without signing in, view listing details, contact a landlord, and submit a rental application.
 - **Landlord:** use the operational dashboard; manage properties and units; review tenants, finances, payments, maintenance, listings, and applications; advertise an available unit; and generate printable documents.
 - **Tenant:** view rent and lease information, access payment actions, submit and track maintenance requests, and open shared documents.
-- **Admin:** review platform activity, users and landlord status, subscription plans, and system reports.
+- **Admin:** review platform activity, the live account directory (users, landlord status, subscriptions, audit logs), and system reports; approve, suspend, or reinstate landlords through audited server commands.
 
-The application starts at the public listing catalogue (`/explore`). Authentication and role guards then route signed-in users to their permitted workspace.
+The application starts at the public listing catalogue (`/explore`). Authentication and role guards then route signed-in users to their permitted workspace. On Android and iOS, an optional biometric app lock gates re-entry to an existing session; it stores no credentials and never replaces authentication.
+
+Not yet real, and not presented as real: no mobile-money provider is integrated (`payment.initiate` fails closed with `providerNotConfigured`), and App Check enforcement is off (web attestation is active; iOS App Attest is deferred until a paid Apple Developer team exists).
 
 ## Architecture
 
-Nyumba follows feature-first clean architecture with an offline-first data path. The diagram shows both the implemented Flutter/local layers and the Firebase production boundary that the included contracts and rules are designed to connect to.
+Nyumba follows feature-first clean architecture with an offline-first data path. The diagram shows the Flutter/local layers and the server-authoritative Firebase boundary they synchronize with.
 
 ```mermaid
 flowchart TB
@@ -86,7 +88,7 @@ flowchart TB
 5. **Sensitive outcomes stay server-authoritative.** Payments, receipts, lease activation, landlord approval, subscriptions, unit entitlements, and listing publication are confirmed only by trusted backend logic. Cloud Functions update canonical records and create deliberately limited public or tenant projections.
 6. **Remote changes return through the same local database.** Firestore listeners or cursor-based pulls merge authorized server state into Sembast; the UI then reacts to the local stream. This keeps online and offline rendering on one predictable path.
 
-The local database, repositories, outbox, sync engine, and in-memory fallback gateway are implemented. The Firebase side of the diagram is currently represented by packages, security rules, indexes, and backend contracts; it requires environment credentials and production command handlers before release.
+Both sides of the diagram are implemented: the local database, repositories, outbox, sync engine, and in-memory fallback gateway in Flutter, and the callable command router, Firestore/Storage rules, indexes, auth provisioning trigger, and background workers on Firebase — deployed to the development project by CI from `main`. Anonymous/unauthenticated browsing is cloud-backed for public listings; anonymous workspaces otherwise use the in-memory fallback gateway.
 
 - `lib/app/` contains bootstrap, routing, navigation, and brand theme composition.
 - `lib/core/domain/` contains shared domain primitives and validation.
@@ -108,6 +110,10 @@ For an offline-capable mutation, the local entity change and its outbox command 
 Low-risk property and draft edits can appear optimistically. Payments, receipts, subscription state, landlord approval, unit entitlements, lease activation, and listing publication remain server-authoritative. A listing becomes publicly visible only after its publication command is acknowledged and its local state is synced.
 
 See [the offline synchronization contract](docs/architecture/offline-sync.md) for conflict, retry, pull, attachment, and account-switch policies.
+
+## Localization
+
+Nyumba ships in English (`en`), Luganda (`lg`), Kiswahili (`sw`), and Arabic (`ar`), with full right-to-left support for Arabic. The language menu is available before sign-in; an authenticated selection is saved with the user profile and synced offline-first like any other edit. All four `assets/l10n/app_*.arb` catalogs must stay in message-key parity — localization is part of every feature's definition of done. See [the localization contract](docs/architecture/localization.md).
 
 ## Quick start
 
@@ -151,11 +157,13 @@ This writes `lib/firebase_options.dart` and the platform files (`android/app/goo
 
 Deployed to the development project: callable command handlers (`executeCommand`), the auth provisioning trigger, background workers, Firestore/Storage rules and indexes, and the Storage default bucket (all `europe-west1`). Operational configuration is seeded with `firebase/functions/scripts/seed-entitlements.mjs`.
 
+Transactional email is sent through Resend from the `nyumba.online` domain: all email leaves via durable backend jobs (never directly from request handlers), including a daily rent-reminder sweep. The `RESEND_API_KEY` secret lives in the Functions environment, never in the repository.
+
 Remaining backend work before release:
 
 1. Create the staging and production Firebase projects (same region, `europe-west1`) and run `flutterfire configure` against each.
-2. Register every platform with App Check (web reCAPTCHA v3, Android Play Integrity, iOS App Attest), ship the real site key, then flip `ENFORCE_APP_CHECK` in `firebase/functions/src/shared/config.ts` and enable console enforcement for Firestore/Storage.
-3. Integrate the payment provider and replace the starter-trial subscription placeholder with webhook-owned billing state.
+2. Finish App Check: web reCAPTCHA v3 attestation is active but enforcement is off — follow the sequence in [the architecture overview](docs/architecture/README.md) before flipping `ENFORCE_APP_CHECK` in `firebase/functions/src/shared/config.ts` and enabling console enforcement. Android Play Integrity still needs registration; iOS App Attest is deferred until a paid Apple Developer team exists.
+3. Integrate the payment provider and replace the starter-trial subscription placeholder with webhook-owned billing state. Until then, `payment.initiate` fails closed with `providerNotConfigured`.
 4. Configure FCM, and validate rules and commands with the Emulator Suite before each deploy:
 
    ```sh
@@ -163,7 +171,7 @@ Remaining backend work before release:
    npm run test:emulator
    ```
 
-Review [the Firebase handoff](firebase/README.md) and [data and security model](docs/architecture/firebase-data-and-security.md) before implementing remote writes. The supplied rules intentionally deny direct client writes to canonical records.
+Review [the Firebase handoff](firebase/README.md) and [data and security model](docs/architecture/firebase-data-and-security.md) before changing remote write or sync behavior. The rules intentionally deny direct client writes to canonical records — all canonical mutations cross the callable command envelope.
 
 ## Verification
 
@@ -183,6 +191,18 @@ flutter build ios --no-codesign
 ```
 
 The test suite covers the offline database transaction, outbox sync behavior, domain validation, public-listing visibility, and application bootstrap/widget rendering.
+
+For backend changes, run from `firebase/functions/`:
+
+```sh
+npm run typecheck
+npm test                # unit tests, including the job-registry coverage check
+npm run test:emulator   # rules + command integration against the emulator
+```
+
+## CI/CD
+
+The pipeline in `.github/workflows/ci-cd.yml` analyzes and tests every pull request. On push to `main` it additionally deploys the web app to Firebase Hosting (live channel) and produces an APK and unsigned IPA as workflow artifacts; pushing a `v*` tag attaches both builds to a GitHub Release. The gitignored Firebase configuration is recreated in CI from repository secrets — see [docs/CI_CD.md](docs/CI_CD.md) for the required secrets and setup commands.
 
 ## Supported platforms
 
