@@ -140,7 +140,11 @@ jobs:
       # one actually enforced in the project.
       #
       # Needs a service account with Firebase Admin, Cloud Functions Admin, and
-      # Service Account User on nyumba-property-management.
+      # Service Account User on nyumba-property-management. Functions that bind
+      # a Secret Manager secret also need the deployer to hold Secret Manager
+      # Viewer on that secret (grant it per-secret, e.g.
+      # `gcloud secrets add-iam-policy-binding <NAME> --member=serviceAccount:<deployer> --role=roles/secretmanager.viewer`),
+      # or the deploy fails with `secretmanager.secrets.get` denied.
       # Invoked through the binary `npm ci` installed above, so the deploy runs
       # the exact firebase-tools version pinned in functions/package-lock.json
       # rather than whatever npx resolves at run time.

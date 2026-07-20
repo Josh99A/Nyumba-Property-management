@@ -55,6 +55,21 @@ gh secret set FIREBASE_SERVICE_ACCOUNT < path\to\service-account.json
 
 3. Delete the local JSON file afterwards.
 
+### Secret-bound functions
+
+Deploying a function that references a Secret Manager secret (for example
+`RESEND_API_KEY` for Resend email) requires the deploy service account to
+hold **Secret Manager Viewer** on that secret, or the deploy fails with
+`secretmanager.secrets.get` denied. Grant it once per secret:
+
+```powershell
+gcloud secrets add-iam-policy-binding RESEND_API_KEY --project <project-id> --member="serviceAccount:<deploy-sa-email>" --role="roles/secretmanager.viewer"
+```
+
+The functions *runtime* service account separately needs
+`roles/secretmanager.secretAccessor` on the secret; the Firebase CLI grants
+that automatically on the first interactive local deploy.
+
 ## Notes
 
 - **Android signing**: release APKs are currently signed with the debug key
