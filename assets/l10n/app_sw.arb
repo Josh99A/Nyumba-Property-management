@@ -788,4 +788,21 @@
     ,"@availableHomesCount": {"description": "Count of available homes on the public marketplace.", "placeholders": {"count": {"type": "int"}}}
     ,"matchingHomesCount": "{matched} kati ya {total, plural, =1{nyumba 1} other{nyumba {total}}} zinafanana"
     ,"@matchingHomesCount": {"description": "Count showing filtered results out of total homes.", "placeholders": {"matched": {"type": "int"}, "total": {"type": "int"}}}
+    ,"appLockLockedTitle": "Nyumba imefungwa"
+    ,"appLockUnlockHint": "Fungua kwa alama ya kidole chako ili kuendelea."
+    ,"appLockUnlock": "Fungua"
+    ,"appLockUnlocking": "Inafungua…"
+    ,"appLockSignOutInstead": "Toka badala yake"
+    ,"appLockUnlockReason": "Fungua Nyumba"
+    ,"appLockEnableReason": "Thibitisha alama ya kidole chako ili kuwasha kufuli la programu."
+    ,"appLockRetryMessage": "Hatukuweza kuthibitisha alama ya kidole chako. Jaribu tena baada ya muda mfupi."
+    ,"appLockUnavailableMessage": "Alama ya kidole haijasajiliwa tena kwenye kifaa hiki, kwa hivyo kufuli la programu limezimwa."
+    ,"appLockOffer": "Linda eneo lako la kazi kwa kufungua kwa alama ya kidole."
+    ,"enable": "Washa"
+    ,"appLockEnabledToast": "Kufuli la programu limewashwa. Nyumba itaomba alama ya kidole chako unaporudi."
+    ,"appLockNotEnabledToast": "Kufungua kwa alama ya kidole hakukuwashwa."
+    ,"security": "Usalama"
+    ,"securitySubtitle": "Dhibiti jinsi kifaa hiki kinavyofungua eneo lako la kazi."
+    ,"appLockSwitchTitle": "Kufuli la programu la alama ya kidole"
+    ,"appLockSwitchSubtitle": "Omba alama ya kidole Nyumba inapofunguliwa tena."
 }

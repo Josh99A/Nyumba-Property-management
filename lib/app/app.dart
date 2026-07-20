@@ -11,6 +11,7 @@ import '../core/localization/app_localizations_adapter.dart';
 import '../core/localization/nyumba_localizations.dart';
 import '../core/presentation/toast.dart';
 import '../features/auth/application/session_controller.dart';
+import '../features/auth/presentation/app_lock_gate.dart';
 import '../features/profile/domain/user_settings.dart';
 import 'theme/theme_mode_controller.dart';
 import 'theme/nyumba_theme.dart';
@@ -85,8 +86,9 @@ class NyumbaApp extends ConsumerWidget {
       theme: NyumbaTheme.light,
       darkTheme: NyumbaTheme.dark,
       themeMode: themeMode,
-      builder: (context, child) =>
-          SplashGate(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => SplashGate(
+        child: AppLockGate(child: child ?? const SizedBox.shrink()),
+      ),
       locale: Locale(language.code),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: [

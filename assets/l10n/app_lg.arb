@@ -788,4 +788,21 @@
     ,"@availableHomesCount": {"description": "Count of available homes on the public marketplace.", "placeholders": {"count": {"type": "int"}}}
     ,"matchingHomesCount": "{matched} ku {total, plural, =1{maka 1} other{maka {total}}} gakwatagana"
     ,"@matchingHomesCount": {"description": "Count showing filtered results out of total homes.", "placeholders": {"matched": {"type": "int"}, "total": {"type": "int"}}}
+    ,"appLockLockedTitle": "Nyumba esibiddwa"
+    ,"appLockUnlockHint": "Sumulula n'ekinkumu kyo okugenda mu maaso."
+    ,"appLockUnlock": "Sumulula"
+    ,"appLockUnlocking": "Esumululwa…"
+    ,"appLockSignOutInstead": "Fuluma mu kifo ky'ekyo"
+    ,"appLockUnlockReason": "Sumulula Nyumba"
+    ,"appLockEnableReason": "Kakasa ekinkumu kyo okussaako ekisiba kya app."
+    ,"appLockRetryMessage": "Tetusobodde kukakasa kinkumu kyo. Ddamu ogezeeko mu kaseera katono."
+    ,"appLockUnavailableMessage": "Ekinkumu tekikyali ku kyuma kino, n'olwekyo ekisiba kya app kiggyiddwako."
+    ,"appLockOffer": "Kuuma ofiisi yo n'okusumulula okw'ekinkumu."
+    ,"enable": "Ssaako"
+    ,"appLockEnabledToast": "Ekisiba kya app kissiddwako. Nyumba ejja kusaba ekinkumu kyo bw'onookomawo."
+    ,"appLockNotEnabledToast": "Okusumulula okw'ekinkumu tekussiddwako."
+    ,"security": "Obukuumi"
+    ,"securitySubtitle": "Fuga engeri ekyuma kino gye kisumululamu ofiisi yo."
+    ,"appLockSwitchTitle": "Ekisiba kya app eky'ekinkumu"
+    ,"appLockSwitchSubtitle": "Saba ekinkumu Nyumba bw'eddamu okuggulwa."
 }

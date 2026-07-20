@@ -2628,4 +2628,62 @@ class AppLocalizationsLg extends AppLocalizations {
     );
     return '$matched ku $_temp0 gakwatagana';
   }
+
+  @override
+  String get appLockLockedTitle => 'Nyumba esibiddwa';
+
+  @override
+  String get appLockUnlockHint => 'Sumulula n\'ekinkumu kyo okugenda mu maaso.';
+
+  @override
+  String get appLockUnlock => 'Sumulula';
+
+  @override
+  String get appLockUnlocking => 'Esumululwa…';
+
+  @override
+  String get appLockSignOutInstead => 'Fuluma mu kifo ky\'ekyo';
+
+  @override
+  String get appLockUnlockReason => 'Sumulula Nyumba';
+
+  @override
+  String get appLockEnableReason =>
+      'Kakasa ekinkumu kyo okussaako ekisiba kya app.';
+
+  @override
+  String get appLockRetryMessage =>
+      'Tetusobodde kukakasa kinkumu kyo. Ddamu ogezeeko mu kaseera katono.';
+
+  @override
+  String get appLockUnavailableMessage =>
+      'Ekinkumu tekikyali ku kyuma kino, n\'olwekyo ekisiba kya app kiggyiddwako.';
+
+  @override
+  String get appLockOffer => 'Kuuma ofiisi yo n\'okusumulula okw\'ekinkumu.';
+
+  @override
+  String get enable => 'Ssaako';
+
+  @override
+  String get appLockEnabledToast =>
+      'Ekisiba kya app kissiddwako. Nyumba ejja kusaba ekinkumu kyo bw\'onookomawo.';
+
+  @override
+  String get appLockNotEnabledToast =>
+      'Okusumulula okw\'ekinkumu tekussiddwako.';
+
+  @override
+  String get security => 'Obukuumi';
+
+  @override
+  String get securitySubtitle =>
+      'Fuga engeri ekyuma kino gye kisumululamu ofiisi yo.';
+
+  @override
+  String get appLockSwitchTitle => 'Ekisiba kya app eky\'ekinkumu';
+
+  @override
+  String get appLockSwitchSubtitle =>
+      'Saba ekinkumu Nyumba bw\'eddamu okuggulwa.';
 }

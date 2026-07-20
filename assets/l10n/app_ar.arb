@@ -788,4 +788,21 @@
     ,"@availableHomesCount": {"description": "Count of available homes on the public marketplace.", "placeholders": {"count": {"type": "int"}}}
     ,"matchingHomesCount": "{matched} من {total, plural, =1{منزل واحد} other{{total} منزل}} يطابق"
     ,"@matchingHomesCount": {"description": "Count showing filtered results out of total homes.", "placeholders": {"matched": {"type": "int"}, "total": {"type": "int"}}}
+    ,"appLockLockedTitle": "تم قفل Nyumba"
+    ,"appLockUnlockHint": "افتح ببصمة إصبعك للمتابعة."
+    ,"appLockUnlock": "فتح"
+    ,"appLockUnlocking": "جارٍ الفتح…"
+    ,"appLockSignOutInstead": "تسجيل الخروج بدلاً من ذلك"
+    ,"appLockUnlockReason": "افتح تطبيق Nyumba"
+    ,"appLockEnableReason": "أكّد بصمة إصبعك لتفعيل قفل التطبيق."
+    ,"appLockRetryMessage": "تعذر التحقق من بصمة إصبعك. حاول مرة أخرى بعد قليل."
+    ,"appLockUnavailableMessage": "لم تعد بصمة الإصبع مسجلة على هذا الجهاز، لذلك تم إيقاف قفل التطبيق."
+    ,"appLockOffer": "احمِ مساحة عملك بالفتح ببصمة الإصبع."
+    ,"enable": "تفعيل"
+    ,"appLockEnabledToast": "قفل التطبيق مفعّل. سيطلب Nyumba بصمة إصبعك عند عودتك."
+    ,"appLockNotEnabledToast": "لم يتم تفعيل الفتح ببصمة الإصبع."
+    ,"security": "الأمان"
+    ,"securitySubtitle": "تحكم في طريقة فتح هذا الجهاز لمساحة عملك."
+    ,"appLockSwitchTitle": "قفل التطبيق ببصمة الإصبع"
+    ,"appLockSwitchSubtitle": "طلب بصمة إصبعك عند إعادة فتح Nyumba."
 }
