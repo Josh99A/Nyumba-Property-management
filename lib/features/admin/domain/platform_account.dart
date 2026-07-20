@@ -62,6 +62,7 @@ final class PlatformAccount {
     this.landlordAccountVersion,
     this.businessName,
     this.subscriptionTier,
+    this.subscriptionRequestedTier,
     this.subscriptionStatus = PlatformSubscriptionStatus.none,
     this.subscriptionVersion,
   });
@@ -94,12 +95,23 @@ final class PlatformAccount {
   final String? businessName;
 
   final String? subscriptionTier;
+
+  /// Tier the landlord asked to move to via `subscription.requestUpgrade`;
+  /// entitlements stay on [subscriptionTier] until staff confirm payment.
+  final String? subscriptionRequestedTier;
+
   final PlatformSubscriptionStatus subscriptionStatus;
 
   /// Concurrency token for `subscription.confirmPayment`.
   final int? subscriptionVersion;
 
   bool get isLandlord => roleLabel.toLowerCase() == 'landlord';
+
+  /// An active subscription with a pending, different requested tier.
+  bool get hasPendingUpgrade =>
+      subscriptionStatus == PlatformSubscriptionStatus.active &&
+      subscriptionRequestedTier != null &&
+      subscriptionRequestedTier != subscriptionTier;
 }
 
 /// One redacted entry of the server-owned append-only audit log.

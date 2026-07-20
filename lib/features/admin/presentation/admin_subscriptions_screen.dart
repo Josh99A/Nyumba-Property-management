@@ -91,13 +91,17 @@ class _AdminSubscriptionsScreenState
       PlatformSubscriptionStatus.expired,
     });
 
+    // Landlord-requested upgrades on active subscriptions join the queue:
+    // they too are waiting on a verified payment before anything changes.
     final needsConfirmation = withSubscription
         .where(
-          (a) => const {
-            PlatformSubscriptionStatus.pendingPayment,
-            PlatformSubscriptionStatus.trialing,
-            PlatformSubscriptionStatus.pastDue,
-          }.contains(a.subscriptionStatus),
+          (a) =>
+              const {
+                PlatformSubscriptionStatus.pendingPayment,
+                PlatformSubscriptionStatus.trialing,
+                PlatformSubscriptionStatus.pastDue,
+              }.contains(a.subscriptionStatus) ||
+              a.hasPendingUpgrade,
         )
         .toList(growable: false);
 
@@ -205,10 +209,17 @@ class _AdminSubscriptionsScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text.localized(
-                'This activates the ${account.subscriptionTier ?? 'selected'} '
-                'plan, approves the account if it is still pending review, '
-                'and opens the landlord workspace. Only confirm against '
-                'money you have actually verified.',
+                account.hasPendingUpgrade
+                    ? 'This applies the requested upgrade from '
+                          '${account.subscriptionTier} to '
+                          '${account.subscriptionRequestedTier} — the account '
+                          'keeps its current plan until you confirm. Only '
+                          'confirm against money you have actually verified.'
+                    : 'This activates the '
+                          '${account.subscriptionTier ?? 'selected'} '
+                          'plan, approves the account if it is still pending '
+                          'review, and opens the landlord workspace. Only '
+                          'confirm against money you have actually verified.',
               ),
               const SizedBox(height: 14),
               TextField(
@@ -252,6 +263,9 @@ class _AdminSubscriptionsScreenState
             .confirmSubscriptionPayment(
               account: account,
               reference: referenceController.text,
+              // Pin the upgrade target explicitly so a request the landlord
+              // changes mid-dialog cannot silently redirect the confirmation.
+              tier: account.subscriptionRequestedTier,
             );
         if (mounted) {
           showAdminMessage(
@@ -315,9 +329,14 @@ class _PendingPaymentsPanel extends StatelessWidget {
                                   style: Theme.of(context).textTheme.labelLarge,
                                 ),
                                 Text.localized(
-                                  '${account.subscriptionTier ?? 'No tier selected'}'
-                                  ' · ${account.subscriptionStatus.label}'
-                                  '${account.email.isEmpty ? '' : ' · ${account.email}'}',
+                                  account.hasPendingUpgrade
+                                      ? '${account.subscriptionTier} → '
+                                            '${account.subscriptionRequestedTier}'
+                                            ' upgrade requested'
+                                            '${account.email.isEmpty ? '' : ' · ${account.email}'}'
+                                      : '${account.subscriptionTier ?? 'No tier selected'}'
+                                            ' · ${account.subscriptionStatus.label}'
+                                            '${account.email.isEmpty ? '' : ' · ${account.email}'}',
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
@@ -559,8 +578,9 @@ class _PlanEditDialogState extends ConsumerState<_PlanEditDialog> {
 
   int? _minorOrNull(TextEditingController controller) {
     final digits = controller.text.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.isEmpty) return null;
-    return int.parse(digits) * 100;
+    final major = int.tryParse(digits);
+    // Unparseable input (empty, or absurdly long) means "no change".
+    return major == null ? null : major * 100;
   }
 
   Future<void> _save() async {

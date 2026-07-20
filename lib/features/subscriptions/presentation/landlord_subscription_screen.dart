@@ -87,6 +87,27 @@ class _LandlordSubscriptionScreenState
     }
   }
 
+  /// Requests a paid plan change on an active subscription. Nothing changes
+  /// until Nyumba confirms the payment — the toast says exactly that.
+  Future<void> _requestUpgrade(String tier, String planName) async {
+    setState(() => _selectingTier = tier);
+    try {
+      await ref.read(requestPlanUpgradeProvider)(tier);
+      if (!mounted) return;
+      showNyumbaToast(
+        appLocalizationsOf(context).subscriptionUpgradeRequestedToast(planName),
+        variant: NyumbaToastVariant.success,
+      );
+    } on Object catch (error) {
+      showNyumbaToast(
+        describeAuthFailure(error),
+        variant: NyumbaToastVariant.error,
+      );
+    } finally {
+      if (mounted) setState(() => _selectingTier = null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final copy = appLocalizationsOf(context);
@@ -95,6 +116,10 @@ class _LandlordSubscriptionScreenState
         session?.subscriptionStatus ?? LandlordSubscriptionStatus.unavailable;
     final active = status == LandlordSubscriptionStatus.active;
     final tier = session?.subscriptionTier?.toLowerCase();
+    final requestedTier = session?.subscriptionRequestedTier?.toLowerCase();
+    final currentTierIndex = _tiers.indexWhere(
+      (presentation) => presentation.tier == tier,
+    );
     final catalog = ref
         .watch(publicPlanCatalogProvider)
         .maybeWhen(
@@ -156,6 +181,9 @@ class _LandlordSubscriptionScreenState
                     _PaymentStatusCard(
                       status: status,
                       planName: _planName(copy, tier, catalog),
+                      requestedPlanName: active && requestedTier != null
+                          ? _planName(copy, requestedTier, catalog)
+                          : null,
                       accountEmail: session?.email ?? '',
                       isRefreshing: _isRefreshing,
                       onRefresh: _refresh,
@@ -198,11 +226,40 @@ class _LandlordSubscriptionScreenState
                         final width =
                             (constraints.maxWidth - gap * (columns - 1)) /
                             columns;
+                        // Unpaid: any tier can be selected. Active: higher
+                        // tiers become self-service upgrade requests; the
+                        // current and lower tiers stay read-only (downgrades
+                        // go through support, per the downgrade-safety rules).
+                        VoidCallback? actionFor(
+                          int index,
+                          _TierPresentation presentation,
+                        ) {
+                          if (_selectingTier != null ||
+                              tier == presentation.tier) {
+                            return null;
+                          }
+                          final planName =
+                              catalog[presentation.tier]?.displayName ??
+                              _fallbackPlanName(copy, presentation.tier);
+                          if (!active) {
+                            return () =>
+                                _choosePlan(presentation.tier, planName);
+                          }
+                          if (index > currentTierIndex &&
+                              currentTierIndex != -1 &&
+                              requestedTier != presentation.tier) {
+                            return () =>
+                                _requestUpgrade(presentation.tier, planName);
+                          }
+                          return null;
+                        }
+
                         return Wrap(
                           spacing: gap,
                           runSpacing: gap,
                           children: [
-                            for (final presentation in _tiers)
+                            for (final (index, presentation)
+                                in _tiers.indexed)
                               SizedBox(
                                 width: width,
                                 child: _PlanCard(
@@ -216,21 +273,17 @@ class _LandlordSubscriptionScreenState
                                           _fallbackPlanName(copy, includes),
                                   },
                                   selected: tier == presentation.tier,
+                                  selectedLabel: active
+                                      ? copy.subscriptionCurrentPlan
+                                      : copy.selected,
+                                  upgradeRequested:
+                                      active &&
+                                      requestedTier == presentation.tier,
+                                  actionLabel: active
+                                      ? copy.subscriptionUpgrade
+                                      : copy.choosePlan,
                                   busy: _selectingTier == presentation.tier,
-                                  onChoose:
-                                      active ||
-                                          _selectingTier != null ||
-                                          tier == presentation.tier
-                                      ? null
-                                      : () => _choosePlan(
-                                          presentation.tier,
-                                          catalog[presentation.tier]
-                                                  ?.displayName ??
-                                              _fallbackPlanName(
-                                                copy,
-                                                presentation.tier,
-                                              ),
-                                        ),
+                                  onChoose: actionFor(index, presentation),
                                 ),
                               ),
                           ],
@@ -268,6 +321,7 @@ class _PaymentStatusCard extends StatelessWidget {
   const _PaymentStatusCard({
     required this.status,
     required this.planName,
+    required this.requestedPlanName,
     required this.accountEmail,
     required this.isRefreshing,
     required this.onRefresh,
@@ -276,6 +330,11 @@ class _PaymentStatusCard extends StatelessWidget {
 
   final LandlordSubscriptionStatus status;
   final String? planName;
+
+  /// Plan an active landlord asked to upgrade to; non-null only while an
+  /// upgrade awaits payment confirmation.
+  final String? requestedPlanName;
+
   final String accountEmail;
   final bool isRefreshing;
   final VoidCallback onRefresh;
@@ -324,6 +383,23 @@ class _PaymentStatusCard extends StatelessWidget {
                 ),
                 if (!active) ...[
                   const SizedBox(height: 10),
+                  Text(
+                    _howToPay(copy, accountEmail),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.mutedInk,
+                    ),
+                  ),
+                ] else if (requestedPlanName != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    copy.subscriptionUpgradeRequestedMessage(
+                      requestedPlanName!,
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.terracottaDark,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Text(
                     _howToPay(copy, accountEmail),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -409,6 +485,9 @@ class _PlanCard extends StatelessWidget {
     required this.facts,
     required this.includesPlanName,
     required this.selected,
+    required this.selectedLabel,
+    required this.upgradeRequested,
+    required this.actionLabel,
     required this.busy,
     required this.onChoose,
   });
@@ -420,6 +499,16 @@ class _PlanCard extends StatelessWidget {
   final String? includesPlanName;
 
   final bool selected;
+
+  /// "Selected" pre-payment, "Current plan" once active.
+  final String selectedLabel;
+
+  /// This tier is the landlord's pending upgrade request.
+  final bool upgradeRequested;
+
+  /// "Choose plan" pre-payment, "Upgrade" once active.
+  final String actionLabel;
+
   final bool busy;
   final VoidCallback? onChoose;
 
@@ -519,9 +608,26 @@ class _PlanCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    copy.selected,
+                    selectedLabel,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: context.nyumba.sageDark,
+                    ),
+                  ),
+                ],
+              )
+            else if (upgradeRequested)
+              Row(
+                children: [
+                  Icon(
+                    Icons.hourglass_top_rounded,
+                    size: 19,
+                    color: context.nyumba.terracottaDark,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    copy.subscriptionUpgradeRequestedBadge,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: context.nyumba.terracottaDark,
                     ),
                   ),
                 ],
@@ -534,7 +640,7 @@ class _PlanCard extends StatelessWidget {
                         dimension: 17,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(copy.choosePlan),
+                    : Text(actionLabel),
               ),
           ],
         ),

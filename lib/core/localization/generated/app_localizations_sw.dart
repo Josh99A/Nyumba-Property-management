@@ -2346,7 +2346,7 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get subscriptionChangeActivePlanDescription =>
-      'Kubadilisha mpango unaotumika hushughulikiwa na malipo yako yanayofuata — wasiliana na usaidizi wa Nyumba.';
+      'Boresha wakati wowote kwa kuchagua mpango wa juu hapa chini — mabadiliko yanatumika mara Nyumba ithibitishe malipo yako. Kwa kushusha mpango, wasiliana na usaidizi wa Nyumba.';
 
   @override
   String get subscriptionChoosePlanDescription =>
@@ -2451,6 +2451,25 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get subscriptionComingSoon => 'Inakuja hivi karibuni';
+
+  @override
+  String get subscriptionUpgrade => 'Boresha';
+
+  @override
+  String get subscriptionCurrentPlan => 'Mpango wa sasa';
+
+  @override
+  String get subscriptionUpgradeRequestedBadge => 'Uboreshaji umeombwa';
+
+  @override
+  String subscriptionUpgradeRequestedToast(String plan) {
+    return 'Ombi la kuboresha hadi $plan limetumwa. Lipa ili kuliwezesha — mpango wako wa sasa unaendelea kutumika.';
+  }
+
+  @override
+  String subscriptionUpgradeRequestedMessage(String plan) {
+    return 'Uboreshaji wako hadi $plan unasubiri uthibitisho wa malipo. Mpango wako wa sasa na vikomo vyake vinaendelea kutumika hadi Nyumba ithibitishe malipo.';
+  }
 
   @override
   String get subscriptionStarterPlan => 'Mwanzo';

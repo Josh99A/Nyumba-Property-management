@@ -719,7 +719,7 @@
     ,"subscriptionActiveDescription": "Your payment has been confirmed. You can now enter your landlord workspace."
     ,"subscriptionGateDescription": "Your workspace opens as soon as Nyumba confirms your subscription payment. Tenant and public listing access stay free."
     ,"subscriptionTiers": "Subscription tiers"
-    ,"subscriptionChangeActivePlanDescription": "Changing an active plan is handled with your next payment — contact Nyumba support."
+    ,"subscriptionChangeActivePlanDescription": "Upgrade any time by picking a higher plan below — the change applies once Nyumba confirms your payment. For downgrades, contact Nyumba support."
     ,"subscriptionChoosePlanDescription": "Pick the plan that fits your portfolio. You can switch freely until your payment is confirmed, and pricing is always confirmed with you before you pay."
     ,"subscriptionPlanCapacityUnavailable": "Plan capacity details could not be loaded right now, so they are not shown — nothing is guessed on this device."
     ,"subscriptionPaymentConfirmed": "Payment confirmed"
@@ -756,6 +756,13 @@
     ,"subscriptionEverythingInPlus": "Everything in {plan}, plus:"
     ,"@subscriptionEverythingInPlus": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionComingSoon": "Coming soon"
+    ,"subscriptionUpgrade": "Upgrade"
+    ,"subscriptionCurrentPlan": "Current plan"
+    ,"subscriptionUpgradeRequestedBadge": "Upgrade requested"
+    ,"subscriptionUpgradeRequestedToast": "Upgrade to {plan} requested. Pay to activate it — your current plan stays active meanwhile."
+    ,"@subscriptionUpgradeRequestedToast": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionUpgradeRequestedMessage": "Your upgrade to {plan} is awaiting payment confirmation. Your current plan and its limits stay active until Nyumba confirms the payment."
+    ,"@subscriptionUpgradeRequestedMessage": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionStarterPlan": "Starter"
     ,"subscriptionProPlan": "Pro"
     ,"subscriptionPremiumPlan": "Premium"

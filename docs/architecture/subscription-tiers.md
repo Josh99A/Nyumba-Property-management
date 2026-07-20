@@ -32,6 +32,24 @@ did not see. When a feature ships, a super admin flips its flag via
 `plan.update` (no deploy needed). Operational promises delivered by people
 (support tiers, onboarding, SLA) count as implemented.
 
+## Self-service upgrades
+
+An active landlord upgrades from inside the app: the subscription screen
+offers every higher tier as an "Upgrade" action, which runs
+`subscription.requestUpgrade` — recording only `requestedTier` while the paid
+plan, its entitlements, and the workspace stay exactly as paid for. The
+request appears in the admin payment-confirmation queue, and
+`subscription.confirmPayment` applies the new tier against a verified payment
+reference, clearing the request. Downgrades remain a support conversation
+(the downgrade-safety rules below still govern them).
+
+When a landlord hits a plan wall the app prompts the upgrade path instead of
+failing silently: adding a rental space at the unit limit and publishing a
+listing at the active-listing limit both raise an upgrade prompt that names
+the limit and links to the subscription screen. Prompts fire only on a
+server-confirmed entitlement — an unknown or unavailable plan never blocks
+locally; the backend stays the judge.
+
 ## Platform broadcasts
 
 Super admins can send platform announcements (incidents, maintenance windows,

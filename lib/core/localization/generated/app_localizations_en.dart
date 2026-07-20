@@ -2307,7 +2307,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get subscriptionChangeActivePlanDescription =>
-      'Changing an active plan is handled with your next payment — contact Nyumba support.';
+      'Upgrade any time by picking a higher plan below — the change applies once Nyumba confirms your payment. For downgrades, contact Nyumba support.';
 
   @override
   String get subscriptionChoosePlanDescription =>
@@ -2412,6 +2412,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get subscriptionComingSoon => 'Coming soon';
+
+  @override
+  String get subscriptionUpgrade => 'Upgrade';
+
+  @override
+  String get subscriptionCurrentPlan => 'Current plan';
+
+  @override
+  String get subscriptionUpgradeRequestedBadge => 'Upgrade requested';
+
+  @override
+  String subscriptionUpgradeRequestedToast(String plan) {
+    return 'Upgrade to $plan requested. Pay to activate it — your current plan stays active meanwhile.';
+  }
+
+  @override
+  String subscriptionUpgradeRequestedMessage(String plan) {
+    return 'Your upgrade to $plan is awaiting payment confirmation. Your current plan and its limits stay active until Nyumba confirms the payment.';
+  }
 
   @override
   String get subscriptionStarterPlan => 'Starter';

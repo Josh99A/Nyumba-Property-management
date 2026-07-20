@@ -4293,7 +4293,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscriptionChangeActivePlanDescription.
   ///
   /// In en, this message translates to:
-  /// **'Changing an active plan is handled with your next payment — contact Nyumba support.'**
+  /// **'Upgrade any time by picking a higher plan below — the change applies once Nyumba confirms your payment. For downgrades, contact Nyumba support.'**
   String get subscriptionChangeActivePlanDescription;
 
   /// No description provided for @subscriptionChoosePlanDescription.
@@ -4451,6 +4451,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Coming soon'**
   String get subscriptionComingSoon;
+
+  /// No description provided for @subscriptionUpgrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade'**
+  String get subscriptionUpgrade;
+
+  /// No description provided for @subscriptionCurrentPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Current plan'**
+  String get subscriptionCurrentPlan;
+
+  /// No description provided for @subscriptionUpgradeRequestedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade requested'**
+  String get subscriptionUpgradeRequestedBadge;
+
+  /// No description provided for @subscriptionUpgradeRequestedToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to {plan} requested. Pay to activate it — your current plan stays active meanwhile.'**
+  String subscriptionUpgradeRequestedToast(String plan);
+
+  /// No description provided for @subscriptionUpgradeRequestedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your upgrade to {plan} is awaiting payment confirmation. Your current plan and its limits stay active until Nyumba confirms the payment.'**
+  String subscriptionUpgradeRequestedMessage(String plan);
 
   /// No description provided for @subscriptionStarterPlan.
   ///

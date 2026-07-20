@@ -28,6 +28,13 @@ String _audienceLabel(String audience, {String? audienceId}) =>
       _ => audience,
     };
 
+/// Labels for the audience dropdown, where no target is chosen yet — the
+/// scoped audiences describe the selector instead of a concrete target.
+String _audiencePickerLabel(String audience) => switch (audience) {
+  'tier' => 'One subscription plan',
+  _ => _audienceLabel(audience),
+};
+
 /// Platform announcements: super admins broadcast an incident, maintenance
 /// window, or commercial notice to everyone, a target group (role or
 /// subscription tier), or a single account. Delivery is server-owned — the
@@ -257,11 +264,7 @@ class _AdminBroadcastScreenState extends ConsumerState<AdminBroadcastScreen> {
                   for (final audience in broadcastAudiences)
                     DropdownMenuItem(
                       value: audience,
-                      child: Text.localized(
-                        _audienceLabel(audience) == 'One account'
-                            ? 'One account'
-                            : _audienceLabel(audience),
-                      ),
+                      child: Text.localized(_audiencePickerLabel(audience)),
                     ),
                 ],
                 onChanged: _sending

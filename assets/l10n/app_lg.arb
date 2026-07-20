@@ -708,7 +708,7 @@
     ,"subscriptionActiveDescription": "Okusasula kwo kukakasiddwa. Kati osobola okuyingira mu kifo kyo eky'omupangisa."
     ,"subscriptionGateDescription": "Ekifo kyo kiggulwawo amangu ddala nga Nyumba ekakasizza okusasula kw'okwewandiisa. Abapangisa n'abanoonya ennyumba basigala nga bakozesa bwereere."
     ,"subscriptionTiers": "Emitendera gy'okwewandiisa"
-    ,"subscriptionChangeActivePlanDescription": "Okukyusa enteekateeka ekola kukolebwa n'okusasula kwo okuddako — tuukirira obuyambi bwa Nyumba."
+    ,"subscriptionChangeActivePlanDescription": "Linnyisa buli kiseera ng'olonda enteekateeka eya waggulu wansi — enkyukakyuka etandika Nyumba bw'emala okukakasa okusasula kwo. Okukendeeza enteekateeka, tuukirira obuyambi bwa Nyumba."
     ,"subscriptionChoosePlanDescription": "Londa enteekateeka esaanira eby'obugagga byo. Osobola okugikyusa okutuusa okusasula lwe kukakasibwa, era omuwendo gukakasibwa naawe nga tonnasasula."
     ,"subscriptionPlanCapacityUnavailable": "Ebikwata ku busobozi bw'enteekateeka tebifuniddwa kati, n'olwekyo tebiragiddwa — tewali kiteeberezebwa ku kyuma kino."
     ,"subscriptionPaymentConfirmed": "Okusasula kukakasiddwa"
@@ -745,6 +745,13 @@
     ,"subscriptionEverythingInPlus": "Byonna ebiri mu {plan}, ng'ogasseeko:"
     ,"@subscriptionEverythingInPlus": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionComingSoon": "Bijja mangu"
+    ,"subscriptionUpgrade": "Linnyisa"
+    ,"subscriptionCurrentPlan": "Enteekateeka eriwo"
+    ,"subscriptionUpgradeRequestedBadge": "Okulinnyisa kusabiddwa"
+    ,"subscriptionUpgradeRequestedToast": "Okusaba okulinnyisa ku {plan} kuweereddwa. Sasula okukuteeka mu nkola — enteekateeka yo eriwo ekyakola."
+    ,"@subscriptionUpgradeRequestedToast": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionUpgradeRequestedMessage": "Okulinnyisa kwo ku {plan} kulindirira okukakasibwa kw'okusasula. Enteekateeka yo eriwo n'ebipimo byayo bikyakola okutuusa Nyumba lw'ekakasa okusasula."
+    ,"@subscriptionUpgradeRequestedMessage": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionStarterPlan": "Entandikwa"
     ,"subscriptionProPlan": "Pro"
     ,"subscriptionPremiumPlan": "Premium"

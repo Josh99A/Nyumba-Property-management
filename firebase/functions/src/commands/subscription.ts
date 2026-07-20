@@ -10,6 +10,7 @@ interface SubscriptionRecord {
   version: number;
   status: string;
   tier: string;
+  requestedTier?: string | null;
 }
 
 const selectPlanSchema = strictPayload({
@@ -49,6 +50,53 @@ export const subscriptionSelectPlan: CommandHandler<z.infer<typeof selectPlanSch
   },
 };
 
+const requestUpgradeSchema = strictPayload({
+  tier: z.string().trim().min(1).max(40),
+});
+
+/**
+ * Records which tier an active landlord wants to move to.
+ *
+ * The mirror of `subscription.selectPlan` for the paid side of the gate:
+ * self-service, and deliberately powerless. Only `requestedTier` is written —
+ * the current tier, status, and every entitlement stay exactly as paid for
+ * until `subscription.confirmPayment` (platform staff against a verified
+ * payment, or the future billing webhook) applies the change. Re-requesting
+ * overwrites the previous request; requesting the current tier is rejected
+ * rather than treated as a hidden cancel.
+ */
+export const subscriptionRequestUpgrade: CommandHandler<z.infer<typeof requestUpgradeSchema>> = {
+  payloadSchema: requestUpgradeSchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'edit',
+  async apply({ tx, db, actor, cmd, now }) {
+    if (cmd.aggregateId !== actor.uid) throw new DomainError('PERMISSION_DENIED');
+    const ref = db.collection(COLLECTIONS.subscriptions).doc(actor.uid);
+    const [snapshot, entitlements] = await Promise.all([tx.get(ref), loadEntitlements(tx, db)]);
+    const subscription = requireAggregate<SubscriptionRecord>(snapshot, cmd.expectedVersion);
+    // An unpaid subscription changes tier through selectPlan; a plan-change
+    // request only means something once there is an active plan to keep.
+    if (subscription.status !== 'active') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'subscriptionNotActive' });
+    }
+    if (cmd.payload.tier === subscription.tier) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'tierUnchanged' });
+    }
+    planForTier(entitlements, cmd.payload.tier);
+    tx.update(ref, {
+      requestedTier: cmd.payload.tier,
+      upgradeRequestedAt: now,
+      ...bumpVersion(subscription, now),
+    });
+    return {
+      status: 'applied',
+      aggregateId: actor.uid,
+      serverVersion: subscription.version + 1,
+      changedFields: ['requestedTier', 'upgradeRequestedAt'],
+    };
+  },
+};
+
 const confirmPaymentSchema = strictPayload({
   reference: shortText,
   tier: z.string().trim().min(1).max(40).optional(),
@@ -72,6 +120,12 @@ const confirmPaymentSchema = strictPayload({
  * payment opens the workspace without a separate `landlord.approve` step. A
  * `suspended` account rejects instead — payment must never silently undo a
  * compliance suspension; `landlord.reinstate` is the only path back.
+ *
+ * On an already-`active` subscription this same command applies a paid plan
+ * change: the target tier comes from the explicit `tier` payload or the
+ * landlord's `requestedTier` (subscription.requestUpgrade), and confirming
+ * clears the request. An active subscription with no tier change to apply
+ * still rejects — there is no such thing as re-confirming the same plan.
  */
 export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPaymentSchema>> = {
   payloadSchema: confirmPaymentSchema,
@@ -89,7 +143,12 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
       loadEntitlements(tx, db),
     ]);
     const subscription = requireAggregate<SubscriptionRecord>(snapshot, cmd.expectedVersion);
-    if (subscription.status === 'active') {
+    const wasActive = subscription.status === 'active';
+    const tier =
+      cmd.payload.tier
+      ?? (wasActive ? subscription.requestedTier ?? undefined : undefined)
+      ?? subscription.tier;
+    if (wasActive && tier === subscription.tier) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'subscriptionAlreadyActive' });
     }
     const account = accountSnapshot.data() as
@@ -104,13 +163,13 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
     if (account.approvalStatus !== 'pending' && account.approvalStatus !== 'approved') {
       throw new DomainError('VALIDATION_FAILED', { reason: 'accountApprovalStatusInvalid' });
     }
-    const tier = cmd.payload.tier ?? subscription.tier;
     planForTier(entitlements, tier);
     tx.update(ref, {
       tier,
       status: 'active',
-      activatedAt: now,
+      requestedTier: null,
       paymentReference: cmd.payload.reference,
+      ...(wasActive ? { planChangedAt: now } : { activatedAt: now }),
       ...bumpVersion(subscription, now),
     });
     if (account.approvalStatus === 'pending') {
@@ -125,7 +184,13 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
       status: 'applied',
       aggregateId: landlordId,
       serverVersion: subscription.version + 1,
-      changedFields: ['status', 'tier', 'activatedAt', 'paymentReference'],
+      changedFields: [
+        'status',
+        'tier',
+        'requestedTier',
+        'paymentReference',
+        wasActive ? 'planChangedAt' : 'activatedAt',
+      ],
     };
   },
 };
@@ -145,7 +210,11 @@ const planFeatureSchema = z
  * envelope's optimistic-concurrency field.
  */
 const updatePlanSchema = strictPayload({
-  tier: z.string().trim().min(1).max(40),
+  // Lowercase alphanumeric-hyphen only: the value addresses both a document
+  // ID and the `plans.${tier}` field path, so path-reserved characters
+  // (dots especially) must never validate even though unknown tiers already
+  // fail closed before any write.
+  tier: z.string().trim().min(1).max(40).regex(/^[a-z0-9-]+$/),
   expectedCatalogVersion: z.number().int().min(1),
   displayName: shortText.optional(),
   tagline: z.string().trim().min(1).max(200).optional(),

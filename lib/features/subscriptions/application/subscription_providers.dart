@@ -318,6 +318,48 @@ class SelectSubscriptionPlan {
   }
 }
 
+final requestPlanUpgradeProvider = Provider<RequestPlanUpgrade>(
+  RequestPlanUpgrade.new,
+);
+
+/// Records which tier an active landlord wants to move to, through the
+/// server-authoritative `subscription.requestUpgrade` command.
+///
+/// The paid-side mirror of [SelectSubscriptionPlan]: it writes only
+/// `requestedTier` — the current plan, its entitlements, and the subscription
+/// status stay exactly as paid for until platform staff (or the future
+/// billing webhook) confirm the upgrade payment.
+class RequestPlanUpgrade {
+  const RequestPlanUpgrade(this._ref);
+
+  final Ref _ref;
+
+  Future<void> call(String tier) async {
+    final session = _ref.read(sessionControllerProvider);
+    if (session == null || session.role != AppRole.landlord) {
+      throw StateError('Sign in as a landlord to request an upgrade.');
+    }
+    if (Firebase.apps.isEmpty) {
+      throw StateError('Connect to the internet to request an upgrade.');
+    }
+    final subscription = await FirebaseFirestore.instance
+        .collection('subscriptions')
+        .doc(session.userId)
+        .get(const GetOptions(source: Source.server));
+    final version = (subscription.data()?['version'] as num?)?.toInt();
+    if (version == null) {
+      throw StateError('Your subscription record could not be read.');
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: 'subscription.requestUpgrade',
+      aggregateId: session.userId,
+      expectedVersion: version,
+      payload: <String, Object?>{'tier': tier},
+    );
+  }
+}
+
 final updatePlanCatalogProvider = Provider<UpdatePlanCatalog>(
   UpdatePlanCatalog.new,
 );
