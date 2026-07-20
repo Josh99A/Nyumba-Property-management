@@ -202,7 +202,7 @@ npm run test:emulator   # rules + command integration against the emulator
 
 ## CI/CD
 
-The pipeline in `.github/workflows/ci-cd.yml` analyzes and tests every pull request. On push to `main` it additionally deploys the web app to Firebase Hosting (live channel) and produces an APK and unsigned IPA as workflow artifacts; pushing a `v*` tag attaches both builds to a GitHub Release. Gitignored Firebase configuration is recreated in CI from repository secrets — see [docs/CI_CD.md](docs/CI_CD.md) for the required secrets and setup commands.
+The pipeline in `.github/workflows/ci-cd.yml` analyzes and tests every pull request. On push to `main` it additionally deploys the web app to Firebase Hosting (live channel) and produces an APK and unsigned IPA as workflow artifacts; pushing a `v*` tag attaches both builds to a GitHub Release. The gitignored Firebase configuration is recreated in CI from repository secrets — see [docs/CI_CD.md](docs/CI_CD.md) for the required secrets and setup commands.
 
 ## Supported platforms
 
