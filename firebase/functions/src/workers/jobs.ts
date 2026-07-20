@@ -16,6 +16,16 @@ import {
 } from './media-publication';
 import { fanoutNotice } from './notice-fanout';
 import { deliverContactRequest, notifyLandlordApplication } from './notifications';
+import { EMAIL_SECRETS } from '../shared/email';
+import {
+  sendLandlordApprovedEmail,
+  sendLeaseExpiryEmail,
+  sendListingExpiryWarningEmail,
+  sendMaintenanceStatusEmail,
+  sendPaymentReceiptEmail,
+  sendRentReminderEmail,
+  sendTenantInviteEmail,
+} from './email';
 import { initiatePayment } from './payment-provider';
 import { renderReceipt } from './receipt-render';
 import { generateReport } from './report-generation';
@@ -44,6 +54,13 @@ const processors = new Map<string, JobProcessor>([
   ['generateReport', generateReport],
   ['setAuthUserDisabled', setAuthUserDisabled],
   ['deleteAuthUser', deleteAuthUser],
+  ['sendTenantInviteEmail', sendTenantInviteEmail],
+  ['sendPaymentReceiptEmail', sendPaymentReceiptEmail],
+  ['sendLandlordApprovedEmail', sendLandlordApprovedEmail],
+  ['sendRentReminderEmail', sendRentReminderEmail],
+  ['sendMaintenanceStatusEmail', sendMaintenanceStatusEmail],
+  ['sendLeaseExpiryEmail', sendLeaseExpiryEmail],
+  ['sendListingExpiryWarningEmail', sendListingExpiryWarningEmail],
 ]);
 
 /** Visible for tests, which assert no command enqueues an unregistered type. */
@@ -105,12 +122,12 @@ export async function processJobById(jobId: string): Promise<void> {
 }
 
 export const processBackendJob = onDocumentCreated(
-  { document: `${COLLECTIONS.backendJobs}/{jobId}`, region: REGION },
+  { document: `${COLLECTIONS.backendJobs}/{jobId}`, region: REGION, secrets: EMAIL_SECRETS },
   async (event) => processJobById(event.params.jobId),
 );
 
 export const sweepBackendJobs = onSchedule(
-  { schedule: 'every 5 minutes', region: REGION, timeZone: 'UTC' },
+  { schedule: 'every 5 minutes', region: REGION, timeZone: 'UTC', secrets: EMAIL_SECRETS },
   async () => {
     const now = Timestamp.now();
     const [pending, orphaned] = await Promise.all([

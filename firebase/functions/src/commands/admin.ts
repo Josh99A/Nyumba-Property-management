@@ -49,6 +49,11 @@ function adminTransition(from: string, to: string, enqueueUnpublish = false): Co
           now,
         );
       }
+      // First approval only: reinstatement returns an account it already
+      // welcomed, and suspension is deliberately silent in email.
+      if (from === 'pending' && to === 'approved') {
+        createJob(tx, db, `${cmd.commandId}_approved_email`, 'sendLandlordApprovedEmail', { landlordId }, now);
+      }
       return {
         status: enqueueUnpublish ? 'accepted' : 'applied',
         aggregateId: landlordId,

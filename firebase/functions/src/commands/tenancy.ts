@@ -3,7 +3,7 @@ import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../s
 import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
 import { COLLECTIONS, LANDLORD_PORTAL_SECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
-import { idSchema, nonNegativeMoney, optionalShortText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import { createJob, idSchema, nonNegativeMoney, optionalShortText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
 import {
   applyActiveListingRetirement,
   loadActiveListingRetirement,
@@ -32,6 +32,9 @@ export const tenantInvite: CommandHandler<z.infer<typeof tenantCreateSchema>> = 
     const snapshot = await tx.get(ref);
     requireAbsent(snapshot);
     tx.create(ref, { ...newAggregate(cmd.aggregateId!, now), landlordId: landlord.landlordId, inviteState: 'pending', ...cmd.payload });
+    // The invite email is how the person learns the tenancy exists; the
+    // record above is canonical, so the email job may retry independently.
+    createJob(tx, db, `${cmd.commandId}_invite_email`, 'sendTenantInviteEmail', { tenantRecordId: cmd.aggregateId! }, now);
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: Object.keys(cmd.payload) };
   },
 };
@@ -266,6 +269,7 @@ export const tenancyEstablish: CommandHandler<z.infer<typeof tenancyEstablishSch
       cmd.commandId,
       now,
     );
+    createJob(tx, db, `${cmd.commandId}_invite_email`, 'sendTenantInviteEmail', { tenantRecordId }, now);
 
     // An opening balance is a real debt, so it becomes a real invoice rather
     // than a client-authored number. Everything downstream derives the

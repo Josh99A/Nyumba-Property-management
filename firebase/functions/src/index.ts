@@ -6,10 +6,17 @@ import { COLLECTIONS } from './shared/collections';
 import { REGION } from './shared/config';
 import { expirePublicListings } from './workers/listing-expiry';
 import { processBackendJob, sweepBackendJobs } from './workers/jobs';
+import { sweepEmailReminders } from './workers/email-reminders';
 
 initializeApp();
 
-export { executeCommand, processBackendJob, sweepBackendJobs, expirePublicListings };
+export {
+  executeCommand,
+  processBackendJob,
+  sweepBackendJobs,
+  expirePublicListings,
+  sweepEmailReminders,
+};
 
 /**
  * Marks the profile of a deleted Auth account. Without this, deleting an

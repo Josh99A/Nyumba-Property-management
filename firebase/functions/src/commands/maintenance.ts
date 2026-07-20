@@ -3,7 +3,7 @@ import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../s
 import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
 import { COLLECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
-import { idSchema, longText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import { createJob, idSchema, longText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
 import { tenantMaintenanceProjection } from '../shared/projections';
 
 const createSchema = strictPayload({
@@ -103,6 +103,11 @@ export const maintenanceUpdateStatus: CommandHandler<z.infer<typeof statusSchema
     tx.update(ref, changes);
     if (request.tenantUserUid) {
       tx.set(db.collection(COLLECTIONS.tenantPortals).doc(request.tenantUserUid).collection(TENANT_PORTAL_SECTIONS.maintenance).doc(cmd.aggregateId!), tenantMaintenanceProjection({ ...request, ...changes }));
+    }
+    // A landlord's transition is news to the tenant; a tenant canceling their
+    // own request is not.
+    if (!isTenant && request.tenantUserUid) {
+      createJob(tx, db, `${cmd.commandId}_status_email`, 'sendMaintenanceStatusEmail', { requestId: cmd.aggregateId!, status: cmd.payload.status }, now);
     }
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: request.version + 1, changedFields: ['status', 'statusNote'] };
   },

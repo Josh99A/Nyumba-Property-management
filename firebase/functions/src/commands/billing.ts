@@ -168,6 +168,7 @@ export const paymentRecordManual: CommandHandler<z.infer<typeof manualPaymentSch
       receiptCounter: receiptNumber, ...bumpVersion(landlord.account, now),
     });
     createJob(tx, db, `${cmd.commandId}_render`, 'renderReceipt', { receiptId }, now);
+    createJob(tx, db, `${cmd.commandId}_receipt_email`, 'sendPaymentReceiptEmail', { receiptId }, now);
     if (invoice.tenantUserUid) {
       const portal = db.collection(COLLECTIONS.tenantPortals).doc(invoice.tenantUserUid);
       tx.set(portal.collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!), tenantPaymentProjection(payment));
@@ -358,6 +359,7 @@ export const paymentRecordAgainstTenancy: CommandHandler<z.infer<typeof recordAg
       ...bumpVersion(landlord.account, now),
     });
     createJob(tx, db, `${cmd.commandId}_render`, 'renderReceipt', { receiptId }, now);
+    createJob(tx, db, `${cmd.commandId}_receipt_email`, 'sendPaymentReceiptEmail', { receiptId }, now);
     if (lease.tenantUserUid) {
       const portal = db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid);
       tx.set(portal.collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!), tenantPaymentProjection(payment));
