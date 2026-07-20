@@ -49,6 +49,10 @@ final class LocalAuthBiometricAuthenticator implements BiometricAuthenticator {
         _ => BiometricOutcome.failure,
       };
       return BiometricResult(outcome, message: error.message);
+    } on Object catch (error) {
+      // MissingPluginException and friends are not PlatformExceptions; an
+      // uncaught throw here would leave callers' in-flight flags stuck.
+      return BiometricResult(BiometricOutcome.failure, message: '$error');
     }
   }
 }

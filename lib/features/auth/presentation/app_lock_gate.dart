@@ -91,7 +91,13 @@ class _AppLockGateState extends ConsumerState<AppLockGate>
 
     return Stack(
       children: [
-        widget.child,
+        // The overlay stops pointers, but screen readers and keyboard Tab
+        // traversal walk the widget tree, not the paint order — the covered
+        // workspace must leave the semantics tree and focus scope too.
+        ExcludeSemantics(
+          excluding: covered,
+          child: ExcludeFocus(excluding: covered, child: widget.child),
+        ),
         if (covered) const Positioned.fill(child: AppLockScreen()),
       ],
     );

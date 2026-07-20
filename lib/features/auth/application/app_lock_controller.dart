@@ -100,9 +100,15 @@ class AppLockController extends Notifier<AppLockState> {
     if (state.unlocking) return BiometricOutcome.dismissed;
     if (!state.locked) return BiometricOutcome.success;
     state = state.copyWith(unlocking: true);
-    final result = await ref
-        .read(biometricAuthenticatorProvider)
-        .authenticate(reason);
+    var result = const BiometricResult(BiometricOutcome.failure);
+    try {
+      result = await ref
+          .read(biometricAuthenticatorProvider)
+          .authenticate(reason);
+    } on Object {
+      // Treated as a failed attempt: the switch below always runs, so the
+      // unlocking flag can never stay stuck and the lock stays engaged.
+    }
     switch (result.outcome) {
       case BiometricOutcome.success:
         state = state.copyWith(locked: false, unlocking: false);

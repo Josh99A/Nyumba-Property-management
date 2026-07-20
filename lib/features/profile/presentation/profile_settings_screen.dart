@@ -45,6 +45,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   bool _loading = true;
   bool _saving = false;
   bool _savingAppearance = false;
+  bool _togglingAppLock = false;
   String? _appearanceMessage;
   bool _appearanceSaveSucceeded = false;
 
@@ -547,22 +548,35 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   }
 
   Future<void> _toggleAppLock(bool value) async {
-    final controller = ref.read(appLockControllerProvider.notifier);
-    if (!value) {
-      await controller.disable();
-      return;
+    // The OS prompt takes a while; flipping the switch again meanwhile must
+    // not stack a second prompt on top of the first.
+    if (_togglingAppLock) return;
+    _togglingAppLock = true;
+    try {
+      final controller = ref.read(appLockControllerProvider.notifier);
+      if (!value) {
+        await controller.disable();
+        return;
+      }
+      // Enabling runs one OS prompt first, proving the biometric works on
+      // this device before the app starts relying on it.
+      var enabled = false;
+      try {
+        enabled = await controller.enable(
+          context.tr('Confirm your fingerprint to turn on app lock.'),
+        );
+      } on Object {
+        // Reported below; the switch stays off.
+      }
+      if (!mounted || enabled) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text.localized('Fingerprint unlock was not turned on.'),
+        ),
+      );
+    } finally {
+      _togglingAppLock = false;
     }
-    // Enabling runs one OS prompt first, proving the biometric works on this
-    // device before the app starts relying on it.
-    final enabled = await controller.enable(
-      context.tr('Confirm your fingerprint to turn on app lock.'),
-    );
-    if (!mounted || enabled) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text.localized('Fingerprint unlock was not turned on.'),
-      ),
-    );
   }
 
   Widget _settingSwitch({
