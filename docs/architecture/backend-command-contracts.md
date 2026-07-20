@@ -84,15 +84,20 @@ Names are versioned contracts. Payload schemas should live beside Functions and 
 | Documents | `document.finalizeUpload/delete` | staging object ownership, checksum/type/size, owning aggregate access |
 | Subscription | `subscription.selectPlan` | owner only; tier validated against server entitlement config; rejected once `active` — can never change status |
 | Subscription | `subscription.confirmPayment` | Admin/Super Admin only, never self; the audited transition to `active` that the future billing webhook will call. Also approves a still-`pending` landlord account (`approvalReasonCode: PAYMENT_CONFIRMED`) in the same transaction; rejects over a `suspended` account so payment never undoes a suspension |
+| Subscription | `plan.update` | super-admin claim only; edits one existing `planCatalog/{tier}` (prices, presentation, feature `implemented` flags, visibility) and mirrors changed limits into `backendConfig/entitlements` in the same transaction so display and enforcement cannot drift. Tier travels in the payload (`expectedCatalogVersion` is the concurrency token) because tier IDs are shorter than the envelope aggregateId pattern. Rejects a yearly price above twelve monthly payments |
+| Communication | `platform.broadcast` | super-admin claim only; records a `platformBroadcasts/{id}` announcement targeted at `all_users`, a role group (`landlords`/`tenants`/`clients`), one subscription `tier`, or one `user`, then hands delivery (notification inbox + push + email copy) to the durable `broadcastFanout` job. Scoped audiences are validated up front — unknown tiers fail closed, missing/deleted users reject with NOT_FOUND |
 
 New landlord subscriptions start as `pending_payment`, and landlord workspace
 access requires `active`. A landlord may change the tier they intend to pay for
 with `subscription.selectPlan` while unpaid, but activation happens only
 through `subscription.confirmPayment` — platform staff today (see
 `scripts/confirm-subscription.mjs`), a signed billing webhook once provider
-integration exists. There is no self-service confirmation. Exact plan
-pricing/limits and payment provider schemas are **TBD**, so in-app checkout
-remains unavailable and fails closed.
+integration exists. There is no self-service confirmation. Plan prices and
+limits live in the server-owned catalog (seeded by
+`scripts/seed-entitlements.mjs`, edited by super admins via `plan.update` —
+see docs/architecture/subscription-tiers.md for the launch prices). Payment
+provider schemas remain **TBD**, so in-app checkout remains unavailable and
+fails closed.
 
 Confirming payment is also the account activation: if the landlord account is
 still `pending` approval, the same transaction approves it, so a confirmed

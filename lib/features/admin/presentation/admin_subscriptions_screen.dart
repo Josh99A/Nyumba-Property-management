@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Text, Tooltip;
+import 'package:intl/intl.dart';
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
@@ -7,10 +8,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/session_controller.dart';
+import '../../auth/domain/user_session.dart';
 import '../../subscriptions/application/subscription_providers.dart';
 import '../application/admin_directory_providers.dart';
 import '../domain/platform_account.dart';
 import 'widgets/admin_components.dart';
+
+final _catalogUgx = NumberFormat.currency(
+  locale: 'en_UG',
+  symbol: 'UGX ',
+  decimalDigits: 0,
+);
 
 (Color, IconData) _tierVisual(BuildContext context, String tier) =>
     switch (tier.toLowerCase()) {
@@ -393,16 +402,36 @@ class _LiveTierMix extends StatelessWidget {
 }
 
 /// The public server-owned plan catalog — the entitlements landlords actually
-/// get. Prices are deliberately absent until commercial terms are final.
+/// get. Super admins edit prices, limits, and feature availability through
+/// the audited `plan.update` command; everyone else reads.
 class _ServerCatalogPanel extends ConsumerWidget {
   const _ServerCatalogPanel();
+
+  String? _priceLabel(PublicPlanFacts plan) {
+    final monthly = plan.monthlyPriceMinor;
+    if (monthly == null) return null;
+    final parts = ['${_catalogUgx.format(monthly / 100)}/mo'];
+    final yearly = plan.yearlyPriceMinor;
+    if (yearly != null) {
+      final savings = plan.yearlySavingsPercent;
+      parts.add(
+        '${_catalogUgx.format(yearly / 100)}/yr'
+        '${savings == null ? '' : ' (save $savings%)'}',
+      );
+    }
+    return parts.join(' · ');
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final catalog = ref.watch(publicPlanCatalogProvider);
+    final isSuperAdmin =
+        ref.watch(sessionControllerProvider)?.role == AppRole.superAdmin;
     return AdminPanel(
       title: 'Server plan catalog',
-      subtitle: 'planCatalog documents — server-owned, read-only here',
+      subtitle: isSuperAdmin
+          ? 'planCatalog documents — edits run the audited plan.update command'
+          : 'planCatalog documents — server-owned, read-only for this role',
       child: switch (catalog) {
         AsyncValue(hasValue: true, :final value) when value!.isEmpty =>
           const Padding(
@@ -437,10 +466,34 @@ class _ServerCatalogPanel extends ConsumerWidget {
                                   '${plan.activeListingLimit} active listings',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
+                        if (_priceLabel(plan) case final price?)
+                          Text(
+                            price,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: context.nyumba.sageDark),
+                          ),
+                        if (plan.features.any((f) => !f.implemented))
+                          Text.localized(
+                            '${plan.features.where((f) => !f.implemented).length} '
+                            'listed benefits still on the roadmap',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: context.nyumba.mutedInk),
+                          ),
                       ],
                     ),
                   ),
                   const StatusBadge(label: 'Public', tone: BadgeTone.info),
+                  if (isSuperAdmin) ...[
+                    const SizedBox(width: 6),
+                    IconButton(
+                      tooltip: context.tr('Edit plan'),
+                      icon: const Icon(Icons.edit_outlined, size: 19),
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (_) => _PlanEditDialog(plan: plan),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               if (index < value.length - 1) const Divider(height: 24),
@@ -456,6 +509,217 @@ class _ServerCatalogPanel extends ConsumerWidget {
           child: Center(child: CircularProgressIndicator()),
         ),
       },
+    );
+  }
+}
+
+/// Super-admin plan editing. Prices are entered in whole UGX; feature
+/// switches control the `implemented` flag the plan cards grey out on. Saving
+/// sends only what changed through `plan.update` — the catalog stream then
+/// re-renders every screen from the server's answer.
+class _PlanEditDialog extends ConsumerStatefulWidget {
+  const _PlanEditDialog({required this.plan});
+
+  final PublicPlanFacts plan;
+
+  @override
+  ConsumerState<_PlanEditDialog> createState() => _PlanEditDialogState();
+}
+
+class _PlanEditDialogState extends ConsumerState<_PlanEditDialog> {
+  late final TextEditingController _monthly;
+  late final TextEditingController _yearly;
+  late final TextEditingController _unitLimit;
+  late final TextEditingController _listingLimit;
+  late final Map<String, bool> _implemented;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final plan = widget.plan;
+    String money(int? minor) => minor == null ? '' : '${minor ~/ 100}';
+    _monthly = TextEditingController(text: money(plan.monthlyPriceMinor));
+    _yearly = TextEditingController(text: money(plan.yearlyPriceMinor));
+    _unitLimit = TextEditingController(text: '${plan.unitLimit}');
+    _listingLimit = TextEditingController(text: '${plan.activeListingLimit}');
+    _implemented = {
+      for (final feature in plan.features) feature.id: feature.implemented,
+    };
+  }
+
+  @override
+  void dispose() {
+    _monthly.dispose();
+    _yearly.dispose();
+    _unitLimit.dispose();
+    _listingLimit.dispose();
+    super.dispose();
+  }
+
+  int? _minorOrNull(TextEditingController controller) {
+    final digits = controller.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return null;
+    return int.parse(digits) * 100;
+  }
+
+  Future<void> _save() async {
+    final plan = widget.plan;
+    final monthly = _minorOrNull(_monthly);
+    final yearly = _minorOrNull(_yearly);
+    final unitLimit = int.tryParse(_unitLimit.text.trim());
+    final listingLimit = int.tryParse(_listingLimit.text.trim());
+    final featuresChanged = plan.features.any(
+      (feature) => _implemented[feature.id] != feature.implemented,
+    );
+    setState(() => _busy = true);
+    try {
+      await ref.read(updatePlanCatalogProvider)(
+        current: plan,
+        monthlyPriceMinor:
+            monthly != null && monthly != plan.monthlyPriceMinor
+            ? monthly
+            : null,
+        yearlyPriceMinor: yearly != null && yearly != plan.yearlyPriceMinor
+            ? yearly
+            : null,
+        unitLimit: unitLimit != null && unitLimit != plan.unitLimit
+            ? unitLimit
+            : null,
+        activeListingLimit:
+            listingLimit != null && listingLimit != plan.activeListingLimit
+            ? listingLimit
+            : null,
+        features: featuresChanged
+            ? [
+                for (final feature in plan.features)
+                  PublicPlanFeature(
+                    id: feature.id,
+                    label: feature.label,
+                    implemented: _implemented[feature.id] ?? false,
+                  ),
+              ]
+            : null,
+      );
+      if (mounted) {
+        Navigator.pop(context);
+        showAdminMessage(context, 'The ${plan.displayName} plan was updated.');
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        setState(() => _busy = false);
+        showAdminMessage(context, 'The server rejected the edit: $error');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final plan = widget.plan;
+    return AlertDialog(
+      title: Text.localized('Edit the ${plan.displayName} plan'),
+      content: SizedBox(
+        width: 460,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text.localized(
+                'Changes apply to every screen that renders this plan and to '
+                'the limits the backend enforces. Prices are whole UGX per '
+                'billing period.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _monthly,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: context.tr('Monthly price (UGX)'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _yearly,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: context.tr('Yearly price (UGX)'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _unitLimit,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: context.tr('Rental space limit'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _listingLimit,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: context.tr('Active listing limit'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (plan.features.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text.localized(
+                  'Benefits — switch on when a feature ships',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                const SizedBox(height: 4),
+                for (final feature in plan.features)
+                  SwitchListTile.adaptive(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text.localized(
+                      feature.label,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    value: _implemented[feature.id] ?? false,
+                    onChanged: _busy
+                        ? null
+                        : (value) =>
+                              setState(() => _implemented[feature.id] = value),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.pop(context),
+          child: const Text.localized('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _busy ? null : _save,
+          child: _busy
+              ? const SizedBox.square(
+                  dimension: 17,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text.localized('Save changes'),
+        ),
+      ],
     );
   }
 }

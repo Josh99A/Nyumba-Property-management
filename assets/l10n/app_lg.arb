@@ -736,6 +736,15 @@
     ,"subscriptionCheckPaymentStatus": "Kebera embeera y'okusasula"
     ,"subscriptionPlanCapacity": "Okutuuka ku bifo {unitLimit} eby'okupangisa · eby'okulanga {listingLimit} ebikola"
     ,"@subscriptionPlanCapacity": {"placeholders": {"unitLimit": {"type": "int"}, "listingLimit": {"type": "int"}}}
+    ,"subscriptionMonthlyPrice": "{price} buli mwezi"
+    ,"@subscriptionMonthlyPrice": {"placeholders": {"price": {"type": "String"}}}
+    ,"subscriptionYearlyPrice": "{price} buli mwaka"
+    ,"@subscriptionYearlyPrice": {"placeholders": {"price": {"type": "String"}}}
+    ,"subscriptionYearlySavings": "Kekkereza {percent}% ng'osasula buli mwaka"
+    ,"@subscriptionYearlySavings": {"placeholders": {"percent": {"type": "int"}}}
+    ,"subscriptionEverythingInPlus": "Byonna ebiri mu {plan}, ng'ogasseeko:"
+    ,"@subscriptionEverythingInPlus": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionComingSoon": "Bijja mangu"
     ,"subscriptionStarterPlan": "Entandikwa"
     ,"subscriptionProPlan": "Pro"
     ,"subscriptionPremiumPlan": "Premium"

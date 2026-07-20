@@ -736,6 +736,15 @@
     ,"subscriptionCheckPaymentStatus": "Angalia hali ya malipo"
     ,"subscriptionPlanCapacity": "Hadi nafasi {unitLimit} za kukodisha · matangazo {listingLimit} yanayotumika"
     ,"@subscriptionPlanCapacity": {"placeholders": {"unitLimit": {"type": "int"}, "listingLimit": {"type": "int"}}}
+    ,"subscriptionMonthlyPrice": "{price} kwa mwezi"
+    ,"@subscriptionMonthlyPrice": {"placeholders": {"price": {"type": "String"}}}
+    ,"subscriptionYearlyPrice": "{price} kwa mwaka"
+    ,"@subscriptionYearlyPrice": {"placeholders": {"price": {"type": "String"}}}
+    ,"subscriptionYearlySavings": "Okoa {percent}% ukilipa kwa mwaka"
+    ,"@subscriptionYearlySavings": {"placeholders": {"percent": {"type": "int"}}}
+    ,"subscriptionEverythingInPlus": "Kila kilichomo katika {plan}, pamoja na:"
+    ,"@subscriptionEverythingInPlus": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionComingSoon": "Inakuja hivi karibuni"
     ,"subscriptionStarterPlan": "Mwanzo"
     ,"subscriptionProPlan": "Pro"
     ,"subscriptionPremiumPlan": "Premium"

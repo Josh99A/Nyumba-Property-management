@@ -747,6 +747,15 @@
     ,"subscriptionCheckPaymentStatus": "Check payment status"
     ,"subscriptionPlanCapacity": "Up to {unitLimit} rental spaces · {listingLimit} active listings"
     ,"@subscriptionPlanCapacity": {"placeholders": {"unitLimit": {"type": "int"}, "listingLimit": {"type": "int"}}}
+    ,"subscriptionMonthlyPrice": "{price} per month"
+    ,"@subscriptionMonthlyPrice": {"placeholders": {"price": {"type": "String"}}}
+    ,"subscriptionYearlyPrice": "{price} per year"
+    ,"@subscriptionYearlyPrice": {"placeholders": {"price": {"type": "String"}}}
+    ,"subscriptionYearlySavings": "Save {percent}% with yearly billing"
+    ,"@subscriptionYearlySavings": {"placeholders": {"percent": {"type": "int"}}}
+    ,"subscriptionEverythingInPlus": "Everything in {plan}, plus:"
+    ,"@subscriptionEverythingInPlus": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionComingSoon": "Coming soon"
     ,"subscriptionStarterPlan": "Starter"
     ,"subscriptionProPlan": "Pro"
     ,"subscriptionPremiumPlan": "Premium"

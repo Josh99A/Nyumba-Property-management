@@ -2,7 +2,7 @@ import type { CommandHandler } from '../shared/handlers';
 import { landlordApprove, landlordReinstate, landlordSuspend, userArchive, userChangeRole, userDelete, userRestore } from './admin';
 import { applicationSubmit, applicationWithdraw, contactSubmit } from './applications';
 import { invoiceGenerate, paymentInitiate, paymentRecordAgainstTenancy, paymentRecordManual, receiptRegenerate } from './billing';
-import { noticePublish } from './communication';
+import { noticePublish, platformBroadcast } from './communication';
 import { documentDelete, documentFinalizeUpload } from './documents';
 import {
   landlordOnboard,
@@ -15,7 +15,7 @@ import { listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from
 import { propertyArchive, propertyCreate, propertyUpdate, unitArchive, unitCreate, unitRestore, unitUpdate } from './portfolio';
 import { notificationMarkRead } from './notifications';
 import { reportRequest } from './reports';
-import { subscriptionConfirmPayment, subscriptionSelectPlan } from './subscription';
+import { planUpdate, subscriptionConfirmPayment, subscriptionSelectPlan } from './subscription';
 import { leaseActivate, leaseCreate, leaseEnd, tenancyEstablish, tenantClaimInvite, tenantInvite, tenantUpdate } from './tenancy';
 
 // Payload types are enforced by each handler's strict runtime schema before
@@ -35,6 +35,8 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['user.changeRole', userChangeRole],
   ['subscription.selectPlan', subscriptionSelectPlan],
   ['subscription.confirmPayment', subscriptionConfirmPayment],
+  ['plan.update', planUpdate],
+  ['platform.broadcast', platformBroadcast],
   ['property.create', propertyCreate],
   ['property.update', propertyUpdate],
   ['property.archive', propertyArchive],

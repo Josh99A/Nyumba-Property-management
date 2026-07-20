@@ -80,6 +80,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Platform announcements. Written only by the `platform.broadcast`
+    // command; staff read them for the admin history panel, recipients get
+    // their copy through the notification inbox instead.
+    match /platformBroadcasts/{broadcastId} {
+      allow read: if isPlatformAdmin();
+      allow write: if false;
+    }
+
     // Canonical landlord-private documents. Landlord list queries must include
     // landlordId == request.auth.uid; Rules do not act as a result filter.
     match /properties/{propertyId} {

@@ -2373,6 +2373,29 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String subscriptionMonthlyPrice(String price) {
+    return '$price شهرياً';
+  }
+
+  @override
+  String subscriptionYearlyPrice(String price) {
+    return '$price سنوياً';
+  }
+
+  @override
+  String subscriptionYearlySavings(int percent) {
+    return 'وفّر $percent% مع الفوترة السنوية';
+  }
+
+  @override
+  String subscriptionEverythingInPlus(String plan) {
+    return 'كل ما في $plan، بالإضافة إلى:';
+  }
+
+  @override
+  String get subscriptionComingSoon => 'قريباً';
+
+  @override
   String get subscriptionStarterPlan => 'المبتدئة';
 
   @override

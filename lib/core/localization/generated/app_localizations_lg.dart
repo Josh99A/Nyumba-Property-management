@@ -2444,6 +2444,29 @@ class AppLocalizationsLg extends AppLocalizations {
   }
 
   @override
+  String subscriptionMonthlyPrice(String price) {
+    return '$price buli mwezi';
+  }
+
+  @override
+  String subscriptionYearlyPrice(String price) {
+    return '$price buli mwaka';
+  }
+
+  @override
+  String subscriptionYearlySavings(int percent) {
+    return 'Kekkereza $percent% ng\'osasula buli mwaka';
+  }
+
+  @override
+  String subscriptionEverythingInPlus(String plan) {
+    return 'Byonna ebiri mu $plan, ng\'ogasseeko:';
+  }
+
+  @override
+  String get subscriptionComingSoon => 'Bijja mangu';
+
+  @override
   String get subscriptionStarterPlan => 'Entandikwa';
 
   @override

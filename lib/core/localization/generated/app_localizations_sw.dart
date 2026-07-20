@@ -2430,6 +2430,29 @@ class AppLocalizationsSw extends AppLocalizations {
   }
 
   @override
+  String subscriptionMonthlyPrice(String price) {
+    return '$price kwa mwezi';
+  }
+
+  @override
+  String subscriptionYearlyPrice(String price) {
+    return '$price kwa mwaka';
+  }
+
+  @override
+  String subscriptionYearlySavings(int percent) {
+    return 'Okoa $percent% ukilipa kwa mwaka';
+  }
+
+  @override
+  String subscriptionEverythingInPlus(String plan) {
+    return 'Kila kilichomo katika $plan, pamoja na:';
+  }
+
+  @override
+  String get subscriptionComingSoon => 'Inakuja hivi karibuni';
+
+  @override
   String get subscriptionStarterPlan => 'Mwanzo';
 
   @override

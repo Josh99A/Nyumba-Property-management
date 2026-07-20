@@ -32,7 +32,13 @@ export interface InboxNotificationContent
   /** Stable per business event, so a retried job cannot duplicate the inbox. */
   id: string;
   kind: 'application' | 'enquiry' | 'tenant_notice' | 'system';
-  templateKey: NotificationTemplateKey;
+  templateKey?: NotificationTemplateKey;
+  /**
+   * Author-written copy (platform broadcasts) delivered verbatim to every
+   * recipient in place of a localized template. Exactly one of `templateKey`
+   * or `custom` must be provided.
+   */
+  custom?: { title: string; body: string };
   relatedEntityId?: string;
 }
 
@@ -159,10 +165,14 @@ export async function deliverUserNotification(
 ): Promise<PushDeliveryResult> {
   const db = getFirestore();
   const user = await db.collection(COLLECTIONS.users).doc(uid).get();
-  const rendered = notificationTemplate(
-    content.templateKey,
-    supportedLocale(user.data()?.locale),
-  );
+  if (!content.custom && !content.templateKey) {
+    throw new Error('Inbox notification needs either a templateKey or custom content.');
+  }
+  const rendered = content.custom
+    ?? notificationTemplate(
+      content.templateKey!,
+      supportedLocale(user.data()?.locale),
+    );
   const localizedContent: NotificationContent = {
     ...rendered,
     ...(content.data ? { data: content.data } : {}),

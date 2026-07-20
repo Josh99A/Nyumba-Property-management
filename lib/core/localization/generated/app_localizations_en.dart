@@ -2391,6 +2391,29 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String subscriptionMonthlyPrice(String price) {
+    return '$price per month';
+  }
+
+  @override
+  String subscriptionYearlyPrice(String price) {
+    return '$price per year';
+  }
+
+  @override
+  String subscriptionYearlySavings(int percent) {
+    return 'Save $percent% with yearly billing';
+  }
+
+  @override
+  String subscriptionEverythingInPlus(String plan) {
+    return 'Everything in $plan, plus:';
+  }
+
+  @override
+  String get subscriptionComingSoon => 'Coming soon';
+
+  @override
   String get subscriptionStarterPlan => 'Starter';
 
   @override

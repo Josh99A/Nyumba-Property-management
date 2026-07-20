@@ -4422,6 +4422,36 @@ abstract class AppLocalizations {
   /// **'Up to {unitLimit} rental spaces · {listingLimit} active listings'**
   String subscriptionPlanCapacity(int unitLimit, int listingLimit);
 
+  /// No description provided for @subscriptionMonthlyPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'{price} per month'**
+  String subscriptionMonthlyPrice(String price);
+
+  /// No description provided for @subscriptionYearlyPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'{price} per year'**
+  String subscriptionYearlyPrice(String price);
+
+  /// No description provided for @subscriptionYearlySavings.
+  ///
+  /// In en, this message translates to:
+  /// **'Save {percent}% with yearly billing'**
+  String subscriptionYearlySavings(int percent);
+
+  /// No description provided for @subscriptionEverythingInPlus.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything in {plan}, plus:'**
+  String subscriptionEverythingInPlus(String plan);
+
+  /// No description provided for @subscriptionComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get subscriptionComingSoon;
+
   /// No description provided for @subscriptionStarterPlan.
   ///
   /// In en, this message translates to:

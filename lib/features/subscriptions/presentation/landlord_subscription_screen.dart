@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/market_config.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/localization/generated/app_localizations.dart';
+import '../../../core/localization/nyumba_localizations.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/surface.dart';
@@ -14,6 +16,12 @@ import '../../auth/application/session_controller.dart';
 import '../../auth/domain/auth_failure.dart';
 import '../../auth/domain/user_session.dart';
 import '../application/subscription_providers.dart';
+
+final _ugx = NumberFormat.currency(
+  locale: 'en_UG',
+  symbol: 'UGX ',
+  decimalDigits: 0,
+);
 
 /// Pre-payment gate for landlord accounts. Lets the landlord pick the plan
 /// they intend to pay for and shows live payment status; the workspace itself
@@ -200,6 +208,13 @@ class _LandlordSubscriptionScreenState
                                 child: _PlanCard(
                                   presentation: presentation,
                                   facts: catalog[presentation.tier],
+                                  includesPlanName: switch (catalog[presentation
+                                      .tier]?.includesTier) {
+                                    null => null,
+                                    final includes =>
+                                      catalog[includes]?.displayName ??
+                                          _fallbackPlanName(copy, includes),
+                                  },
                                   selected: tier == presentation.tier,
                                   busy: _selectingTier == presentation.tier,
                                   onChoose:
@@ -392,6 +407,7 @@ class _PlanCard extends StatelessWidget {
   const _PlanCard({
     required this.presentation,
     required this.facts,
+    required this.includesPlanName,
     required this.selected,
     required this.busy,
     required this.onChoose,
@@ -399,6 +415,10 @@ class _PlanCard extends StatelessWidget {
 
   final _TierPresentation presentation;
   final PublicPlanFacts? facts;
+
+  /// Display name of the tier whose benefits this plan inherits.
+  final String? includesPlanName;
+
   final bool selected;
   final bool busy;
   final VoidCallback? onChoose;
@@ -417,6 +437,10 @@ class _PlanCard extends StatelessWidget {
                 facts!.unitLimit,
                 facts!.activeListingLimit,
               );
+    final monthly = facts?.monthlyPriceMinor;
+    final yearly = facts?.yearlyPriceMinor;
+    final savings = facts?.yearlySavingsPercent;
+    final features = facts?.features ?? const <PublicPlanFeature>[];
     return NyumbaSurface(
       onTap: onChoose,
       borderColor: selected
@@ -441,9 +465,48 @@ class _PlanCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(audience, style: Theme.of(context).textTheme.bodySmall),
+            if (monthly != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                copy.subscriptionMonthlyPrice(_ugx.format(monthly / 100)),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (yearly != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Text(
+                    savings == null
+                        ? copy.subscriptionYearlyPrice(
+                            _ugx.format(yearly / 100),
+                          )
+                        : '${copy.subscriptionYearlyPrice(_ugx.format(yearly / 100))}'
+                              ' · ${copy.subscriptionYearlySavings(savings)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.sageDark,
+                    ),
+                  ),
+                ),
+            ],
             if (capacity != null) ...[
               const SizedBox(height: 12),
               Text(capacity, style: Theme.of(context).textTheme.labelLarge),
+            ],
+            if (features.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              if (includesPlanName != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    copy.subscriptionEverythingInPlus(includesPlanName!),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: context.nyumba.mutedInk,
+                    ),
+                  ),
+                ),
+              for (final feature in features)
+                _PlanFeatureLine(feature: feature),
             ],
             const SizedBox(height: 14),
             if (selected)
@@ -475,6 +538,49 @@ class _PlanCard extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One benefit line. Unimplemented benefits stay visible but greyed out with
+/// a "coming soon" marker — sold on the roadmap, never mistaken for shipped.
+class _PlanFeatureLine extends StatelessWidget {
+  const _PlanFeatureLine({required this.feature});
+
+  final PublicPlanFeature feature;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = appLocalizationsOf(context);
+    final muted = context.nyumba.mutedInk.withValues(alpha: 0.55);
+    final implemented = feature.implemented;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              implemented ? Icons.check_rounded : Icons.schedule_rounded,
+              size: 15,
+              color: implemented ? context.nyumba.sageDark : muted,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              implemented
+                  ? context.tr(feature.label)
+                  : '${context.tr(feature.label)}'
+                        ' · ${copy.subscriptionComingSoon}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: implemented ? null : muted,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
