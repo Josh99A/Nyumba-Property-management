@@ -59,6 +59,64 @@ void main() {
     expect(await database.outboxCount(), 0);
   });
 
+  test('close waits for an in-flight sync pass before completing', () async {
+    await _enqueueProperty(database, now);
+    final gateway = _GatedGateway(now);
+    final networkStatus = _ScriptedNetworkStatus();
+    final engine = SyncEngine(
+      database: database,
+      gateway: gateway,
+      clock: FixedClock(now.add(const Duration(minutes: 1))),
+      networkStatus: networkStatus,
+    );
+    final trigger = ReconnectSyncTrigger(
+      syncEngine: engine,
+      networkStatus: networkStatus,
+    );
+
+    networkStatus.goOnline();
+    await gateway.started.future;
+
+    var closed = false;
+    final closing = trigger.close().then((_) => closed = true);
+    await pumpEventQueue();
+    expect(closed, isFalse, reason: 'close must wait for the sync pass');
+
+    gateway.release();
+    await closing;
+    expect(await database.outboxCount(), 0);
+  });
+
+  test('close completes even when the in-flight sync pass fails', () async {
+    await _enqueueProperty(database, now);
+    final gateway = _GatedGateway(now, fail: true);
+    final networkStatus = _ScriptedNetworkStatus();
+    final engine = SyncEngine(
+      database: database,
+      gateway: gateway,
+      clock: FixedClock(now.add(const Duration(minutes: 1))),
+      networkStatus: networkStatus,
+    );
+    final trigger = ReconnectSyncTrigger(
+      syncEngine: engine,
+      networkStatus: networkStatus,
+    );
+
+    networkStatus.goOnline();
+    await gateway.started.future;
+
+    final closing = trigger.close();
+    gateway.release();
+    await closing;
+
+    final outbox = await database.readOutbox();
+    expect(
+      outbox.single.state,
+      OutboxState.permanentlyFailed,
+      reason: 'the failure is recorded, not rethrown out of close',
+    );
+  });
+
   test('close stops reacting to later connectivity changes', () async {
     await _enqueueProperty(database, now);
     final gateway = _RecordingGateway(now);
@@ -111,6 +169,29 @@ final class _ScriptedNetworkStatus implements NetworkStatus {
 
   @override
   Stream<bool> get changes => _changes.stream;
+}
+
+/// Holds every push at [started] until [release], so tests can observe a
+/// shutdown that races an in-flight sync pass.
+final class _GatedGateway implements RemoteSyncGateway {
+  _GatedGateway(this.now, {this.fail = false});
+
+  final DateTime now;
+  final bool fail;
+  final Completer<void> started = Completer<void>();
+  final Completer<void> _gate = Completer<void>();
+
+  void release() => _gate.complete();
+
+  @override
+  Future<RemoteWriteResult> push(RemoteMutation mutation) async {
+    if (!started.isCompleted) started.complete();
+    await _gate.future;
+    if (fail) {
+      throw const RemoteSyncException('server rejected', retryable: false);
+    }
+    return RemoteWriteResult(committedAt: now, serverRevision: 'revision-1');
+  }
 }
 
 final class _RecordingGateway implements RemoteSyncGateway {

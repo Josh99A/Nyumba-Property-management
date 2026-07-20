@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_initializing_formals
+
 import 'dart:async';
 
 import 'network_status.dart';
@@ -13,11 +15,28 @@ final class ReconnectSyncTrigger {
   ReconnectSyncTrigger({
     required SyncEngine syncEngine,
     required NetworkStatus networkStatus,
-  }) : _subscription = networkStatus.changes
-           .where((online) => online)
-           .listen((_) => unawaited(syncEngine.syncPending()));
+  }) : _syncEngine = syncEngine {
+    _subscription = networkStatus.changes
+        .where((online) => online)
+        .listen(_onOnline);
+  }
 
-  final StreamSubscription<bool> _subscription;
+  final SyncEngine _syncEngine;
+  late final StreamSubscription<bool> _subscription;
+  Future<void>? _inflight;
 
-  Future<void> close() => _subscription.cancel();
+  void _onOnline(bool _) {
+    // Retain the handle so close() can quiesce. A failed run is already
+    // recorded in the outbox retry state, so the error is swallowed here
+    // rather than surfacing as an unhandled async error.
+    _inflight = _syncEngine.syncPending().then((_) {}, onError: (_) {});
+  }
+
+  /// Stops reacting to connectivity and waits for any trigger-started sync
+  /// pass to finish, so the workspace database can close without an in-flight
+  /// run behind it.
+  Future<void> close() async {
+    await _subscription.cancel();
+    await _inflight;
+  }
 }

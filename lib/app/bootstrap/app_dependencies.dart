@@ -89,8 +89,13 @@ class AppDependencies {
   /// Closing quarantines the workspace: the database file and its unsynced
   /// outbox stay on disk untouched for the next sign-in of this account.
   Future<void> close() async {
-    resumeSyncTrigger?.dispose();
-    await reconnectSyncTrigger?.close();
+    // Both triggers stop listening immediately and then quiesce: closing may
+    // wait on the same in-flight engine run, so start both before awaiting
+    // either. The database must not close under an active sync pass.
+    final resumeClosed = resumeSyncTrigger?.close();
+    final reconnectClosed = reconnectSyncTrigger?.close();
+    await resumeClosed;
+    await reconnectClosed;
     await remotePullCoordinator?.close();
     await database.close();
   }

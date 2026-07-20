@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/app/bootstrap/resume_sync_trigger.dart';
@@ -37,7 +39,7 @@ void main() {
         clock: FixedClock(now.add(const Duration(minutes: 1))),
       ),
     );
-    addTearDown(trigger.dispose);
+    addTearDown(trigger.close);
 
     _cycleToBackgroundAndBack(binding);
     await pumpEventQueue();
@@ -48,7 +50,31 @@ void main() {
     expect(await database.outboxCount(), 0);
   });
 
-  test('dispose stops reacting to later resumes', () async {
+  test('close waits for an in-flight sync pass before completing', () async {
+    await _enqueueProperty(database, now);
+    final gateway = _GatedGateway(now);
+    final trigger = ResumeSyncTrigger(
+      syncEngine: SyncEngine(
+        database: database,
+        gateway: gateway,
+        clock: FixedClock(now.add(const Duration(minutes: 1))),
+      ),
+    );
+
+    _cycleToBackgroundAndBack(binding);
+    await gateway.started.future;
+
+    var closed = false;
+    final closing = trigger.close().then((_) => closed = true);
+    await pumpEventQueue();
+    expect(closed, isFalse, reason: 'close must wait for the sync pass');
+
+    gateway.release();
+    await closing;
+    expect(await database.outboxCount(), 0);
+  });
+
+  test('close stops reacting to later resumes', () async {
     await _enqueueProperty(database, now);
     final gateway = _RecordingGateway(now);
     final trigger = ResumeSyncTrigger(
@@ -59,7 +85,7 @@ void main() {
       ),
     );
 
-    trigger.dispose();
+    await trigger.close();
     _cycleToBackgroundAndBack(binding);
     await pumpEventQueue();
 
@@ -97,6 +123,25 @@ Future<void> _enqueueProperty(OfflineDatabase database, DateTime now) {
     operation: OutboxOperation.create,
     createdAt: now,
   );
+}
+
+/// Holds every push at [started] until [release], so tests can observe a
+/// shutdown that races an in-flight sync pass.
+final class _GatedGateway implements RemoteSyncGateway {
+  _GatedGateway(this.now);
+
+  final DateTime now;
+  final Completer<void> started = Completer<void>();
+  final Completer<void> _gate = Completer<void>();
+
+  void release() => _gate.complete();
+
+  @override
+  Future<RemoteWriteResult> push(RemoteMutation mutation) async {
+    if (!started.isCompleted) started.complete();
+    await _gate.future;
+    return RemoteWriteResult(committedAt: now, serverRevision: 'revision-1');
+  }
 }
 
 final class _RecordingGateway implements RemoteSyncGateway {
