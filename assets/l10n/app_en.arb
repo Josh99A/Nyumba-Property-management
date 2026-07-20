@@ -799,4 +799,21 @@
     ,"@availableHomesCount": {"description": "Count of available homes on the public marketplace.", "placeholders": {"count": {"type": "int"}}}
     ,"matchingHomesCount": "{matched} of {total, plural, =1{1 home} other{{total} homes}} match"
     ,"@matchingHomesCount": {"description": "Count showing filtered results out of total homes.", "placeholders": {"matched": {"type": "int"}, "total": {"type": "int"}}}
+    ,"appLockLockedTitle": "Nyumba is locked"
+    ,"appLockUnlockHint": "Unlock with your fingerprint to continue."
+    ,"appLockUnlock": "Unlock"
+    ,"appLockUnlocking": "Unlocking…"
+    ,"appLockSignOutInstead": "Sign out instead"
+    ,"appLockUnlockReason": "Unlock Nyumba"
+    ,"appLockEnableReason": "Confirm your fingerprint to turn on app lock."
+    ,"appLockRetryMessage": "We could not confirm your fingerprint. Try again in a moment."
+    ,"appLockUnavailableMessage": "Fingerprint is no longer set up on this device, so app lock was turned off."
+    ,"appLockOffer": "Protect your workspace with fingerprint unlock."
+    ,"enable": "Enable"
+    ,"appLockEnabledToast": "App lock is on. Nyumba will ask for your fingerprint when you return."
+    ,"appLockNotEnabledToast": "Fingerprint unlock was not turned on."
+    ,"security": "Security"
+    ,"securitySubtitle": "Control how this device unlocks your workspace."
+    ,"appLockSwitchTitle": "Fingerprint app lock"
+    ,"appLockSwitchSubtitle": "Ask for your fingerprint when Nyumba reopens."
 }

@@ -4715,6 +4715,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{matched} of {total, plural, =1{1 home} other{{total} homes}} match'**
   String matchingHomesCount(int matched, int total);
+
+  /// No description provided for @appLockLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba is locked'**
+  String get appLockLockedTitle;
+
+  /// No description provided for @appLockUnlockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock with your fingerprint to continue.'**
+  String get appLockUnlockHint;
+
+  /// No description provided for @appLockUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get appLockUnlock;
+
+  /// No description provided for @appLockUnlocking.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocking…'**
+  String get appLockUnlocking;
+
+  /// No description provided for @appLockSignOutInstead.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out instead'**
+  String get appLockSignOutInstead;
+
+  /// No description provided for @appLockUnlockReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Nyumba'**
+  String get appLockUnlockReason;
+
+  /// No description provided for @appLockEnableReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your fingerprint to turn on app lock.'**
+  String get appLockEnableReason;
+
+  /// No description provided for @appLockRetryMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not confirm your fingerprint. Try again in a moment.'**
+  String get appLockRetryMessage;
+
+  /// No description provided for @appLockUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint is no longer set up on this device, so app lock was turned off.'**
+  String get appLockUnavailableMessage;
+
+  /// No description provided for @appLockOffer.
+  ///
+  /// In en, this message translates to:
+  /// **'Protect your workspace with fingerprint unlock.'**
+  String get appLockOffer;
+
+  /// No description provided for @enable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get enable;
+
+  /// No description provided for @appLockEnabledToast.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock is on. Nyumba will ask for your fingerprint when you return.'**
+  String get appLockEnabledToast;
+
+  /// No description provided for @appLockNotEnabledToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint unlock was not turned on.'**
+  String get appLockNotEnabledToast;
+
+  /// No description provided for @security.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get security;
+
+  /// No description provided for @securitySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Control how this device unlocks your workspace.'**
+  String get securitySubtitle;
+
+  /// No description provided for @appLockSwitchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint app lock'**
+  String get appLockSwitchTitle;
+
+  /// No description provided for @appLockSwitchSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for your fingerprint when Nyumba reopens.'**
+  String get appLockSwitchSubtitle;
 }
 
 class _AppLocalizationsDelegate

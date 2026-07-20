@@ -2570,4 +2570,61 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$matched of $_temp0 match';
   }
+
+  @override
+  String get appLockLockedTitle => 'Nyumba is locked';
+
+  @override
+  String get appLockUnlockHint => 'Unlock with your fingerprint to continue.';
+
+  @override
+  String get appLockUnlock => 'Unlock';
+
+  @override
+  String get appLockUnlocking => 'Unlocking…';
+
+  @override
+  String get appLockSignOutInstead => 'Sign out instead';
+
+  @override
+  String get appLockUnlockReason => 'Unlock Nyumba';
+
+  @override
+  String get appLockEnableReason =>
+      'Confirm your fingerprint to turn on app lock.';
+
+  @override
+  String get appLockRetryMessage =>
+      'We could not confirm your fingerprint. Try again in a moment.';
+
+  @override
+  String get appLockUnavailableMessage =>
+      'Fingerprint is no longer set up on this device, so app lock was turned off.';
+
+  @override
+  String get appLockOffer => 'Protect your workspace with fingerprint unlock.';
+
+  @override
+  String get enable => 'Enable';
+
+  @override
+  String get appLockEnabledToast =>
+      'App lock is on. Nyumba will ask for your fingerprint when you return.';
+
+  @override
+  String get appLockNotEnabledToast => 'Fingerprint unlock was not turned on.';
+
+  @override
+  String get security => 'Security';
+
+  @override
+  String get securitySubtitle =>
+      'Control how this device unlocks your workspace.';
+
+  @override
+  String get appLockSwitchTitle => 'Fingerprint app lock';
+
+  @override
+  String get appLockSwitchSubtitle =>
+      'Ask for your fingerprint when Nyumba reopens.';
 }

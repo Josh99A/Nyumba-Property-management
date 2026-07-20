@@ -2548,4 +2548,58 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$matched من $_temp0 يطابق';
   }
+
+  @override
+  String get appLockLockedTitle => 'تم قفل Nyumba';
+
+  @override
+  String get appLockUnlockHint => 'افتح ببصمة إصبعك للمتابعة.';
+
+  @override
+  String get appLockUnlock => 'فتح';
+
+  @override
+  String get appLockUnlocking => 'جارٍ الفتح…';
+
+  @override
+  String get appLockSignOutInstead => 'تسجيل الخروج بدلاً من ذلك';
+
+  @override
+  String get appLockUnlockReason => 'افتح تطبيق Nyumba';
+
+  @override
+  String get appLockEnableReason => 'أكّد بصمة إصبعك لتفعيل قفل التطبيق.';
+
+  @override
+  String get appLockRetryMessage =>
+      'تعذر التحقق من بصمة إصبعك. حاول مرة أخرى بعد قليل.';
+
+  @override
+  String get appLockUnavailableMessage =>
+      'لم تعد بصمة الإصبع مسجلة على هذا الجهاز، لذلك تم إيقاف قفل التطبيق.';
+
+  @override
+  String get appLockOffer => 'احمِ مساحة عملك بالفتح ببصمة الإصبع.';
+
+  @override
+  String get enable => 'تفعيل';
+
+  @override
+  String get appLockEnabledToast =>
+      'قفل التطبيق مفعّل. سيطلب Nyumba بصمة إصبعك عند عودتك.';
+
+  @override
+  String get appLockNotEnabledToast => 'لم يتم تفعيل الفتح ببصمة الإصبع.';
+
+  @override
+  String get security => 'الأمان';
+
+  @override
+  String get securitySubtitle => 'تحكم في طريقة فتح هذا الجهاز لمساحة عملك.';
+
+  @override
+  String get appLockSwitchTitle => 'قفل التطبيق ببصمة الإصبع';
+
+  @override
+  String get appLockSwitchSubtitle => 'طلب بصمة إصبعك عند إعادة فتح Nyumba.';
 }

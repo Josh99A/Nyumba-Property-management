@@ -13,6 +13,7 @@ import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
+import '../../auth/application/app_lock_controller.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
 import '../application/profile_use_cases.dart';
@@ -468,6 +469,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         ),
       ),
       const SizedBox(height: 18),
+      ..._securitySection(),
       NyumbaSurface(
         padding: const EdgeInsetsDirectional.fromSTEB(22, 22, 22, 10),
         child: Column(
@@ -511,6 +513,57 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       ),
     ],
   );
+
+  /// Empty on devices that cannot offer biometric unlock (including web), so
+  /// nobody sees a switch that could never work.
+  List<Widget> _securitySection() {
+    final supported = ref.watch(biometricSupportProvider).value ?? false;
+    if (!supported) return const [];
+    final lockEnabled = ref.watch(
+      appLockControllerProvider.select((lock) => lock.enabled),
+    );
+    return [
+      NyumbaSurface(
+        padding: const EdgeInsetsDirectional.fromSTEB(22, 22, 22, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const NyumbaSectionHeader(
+              title: 'Security',
+              subtitle: 'Control how this device unlocks your workspace.',
+            ),
+            const SizedBox(height: 10),
+            _settingSwitch(
+              title: 'Fingerprint app lock',
+              subtitle: 'Ask for your fingerprint when Nyumba reopens.',
+              value: lockEnabled,
+              onChanged: _toggleAppLock,
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 18),
+    ];
+  }
+
+  Future<void> _toggleAppLock(bool value) async {
+    final controller = ref.read(appLockControllerProvider.notifier);
+    if (!value) {
+      await controller.disable();
+      return;
+    }
+    // Enabling runs one OS prompt first, proving the biometric works on this
+    // device before the app starts relying on it.
+    final enabled = await controller.enable(
+      context.tr('Confirm your fingerprint to turn on app lock.'),
+    );
+    if (!mounted || enabled) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text.localized('Fingerprint unlock was not turned on.'),
+      ),
+    );
+  }
 
   Widget _settingSwitch({
     required String title,

@@ -2611,4 +2611,64 @@ class AppLocalizationsSw extends AppLocalizations {
     );
     return '$matched kati ya $_temp0 zinafanana';
   }
+
+  @override
+  String get appLockLockedTitle => 'Nyumba imefungwa';
+
+  @override
+  String get appLockUnlockHint =>
+      'Fungua kwa alama ya kidole chako ili kuendelea.';
+
+  @override
+  String get appLockUnlock => 'Fungua';
+
+  @override
+  String get appLockUnlocking => 'Inafungua…';
+
+  @override
+  String get appLockSignOutInstead => 'Toka badala yake';
+
+  @override
+  String get appLockUnlockReason => 'Fungua Nyumba';
+
+  @override
+  String get appLockEnableReason =>
+      'Thibitisha alama ya kidole chako ili kuwasha kufuli la programu.';
+
+  @override
+  String get appLockRetryMessage =>
+      'Hatukuweza kuthibitisha alama ya kidole chako. Jaribu tena baada ya muda mfupi.';
+
+  @override
+  String get appLockUnavailableMessage =>
+      'Alama ya kidole haijasajiliwa tena kwenye kifaa hiki, kwa hivyo kufuli la programu limezimwa.';
+
+  @override
+  String get appLockOffer =>
+      'Linda eneo lako la kazi kwa kufungua kwa alama ya kidole.';
+
+  @override
+  String get enable => 'Washa';
+
+  @override
+  String get appLockEnabledToast =>
+      'Kufuli la programu limewashwa. Nyumba itaomba alama ya kidole chako unaporudi.';
+
+  @override
+  String get appLockNotEnabledToast =>
+      'Kufungua kwa alama ya kidole hakukuwashwa.';
+
+  @override
+  String get security => 'Usalama';
+
+  @override
+  String get securitySubtitle =>
+      'Dhibiti jinsi kifaa hiki kinavyofungua eneo lako la kazi.';
+
+  @override
+  String get appLockSwitchTitle => 'Kufuli la programu la alama ya kidole';
+
+  @override
+  String get appLockSwitchSubtitle =>
+      'Omba alama ya kidole Nyumba inapofunguliwa tena.';
 }

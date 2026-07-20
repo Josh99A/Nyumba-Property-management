@@ -1,5 +1,7 @@
 package com.nyumba.nyumba_property_management
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity (not FlutterActivity) because local_auth's
+// androidx.biometric prompt requires a FragmentActivity host.
+class MainActivity : FlutterFragmentActivity()
