@@ -43,6 +43,7 @@ describe('background job registry', () => {
     // make the assertion above vacuously pass.
     const enqueued = commandEnqueuedJobTypes();
     expect([...enqueued.keys()].sort()).toEqual([
+      'broadcastFanout',
       'cleanupListingMedia',
       'deleteAuthUser',
       'deliverContactRequest',

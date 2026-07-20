@@ -34,6 +34,7 @@ class UserSession {
     this.accountStatus = AccountStatus.active,
     this.subscriptionStatus = LandlordSubscriptionStatus.notApplicable,
     this.subscriptionTier,
+    this.subscriptionRequestedTier,
     this.language,
     this.emailVerified = true,
     this.isAnonymous = false,
@@ -47,6 +48,11 @@ class UserSession {
   final AccountStatus accountStatus;
   final LandlordSubscriptionStatus subscriptionStatus;
   final String? subscriptionTier;
+
+  /// Tier this landlord asked to upgrade to (`subscription.requestUpgrade`);
+  /// entitlements stay on [subscriptionTier] until staff confirm the payment.
+  final String? subscriptionRequestedTier;
+
   final AppLanguage? language;
   final bool emailVerified;
   final bool isAnonymous;
@@ -81,6 +87,7 @@ class UserSession {
         accountStatus: accountStatus,
         subscriptionStatus: subscriptionStatus,
         subscriptionTier: subscriptionTier,
+        subscriptionRequestedTier: subscriptionRequestedTier,
         language: language,
         emailVerified: emailVerified,
         isAnonymous: isAnonymous,
@@ -89,6 +96,7 @@ class UserSession {
   UserSession withSubscription({
     required LandlordSubscriptionStatus status,
     required String? tier,
+    String? requestedTier,
   }) => UserSession(
     userId: userId,
     displayName: displayName,
@@ -98,6 +106,7 @@ class UserSession {
     accountStatus: accountStatus,
     subscriptionStatus: status,
     subscriptionTier: tier,
+    subscriptionRequestedTier: requestedTier,
     language: language,
     emailVerified: emailVerified,
     isAnonymous: isAnonymous,

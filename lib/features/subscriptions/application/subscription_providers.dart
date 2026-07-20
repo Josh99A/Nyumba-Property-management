@@ -116,30 +116,96 @@ Future<EntitlementState> _readPlan(
   }
 }
 
+/// One benefit line on a plan card. `implemented: false` marks a benefit the
+/// plan is sold with but that has not shipped yet — the UI greys it out
+/// instead of hiding it, so nobody pays for a promise they did not see.
+final class PublicPlanFeature {
+  const PublicPlanFeature({
+    required this.id,
+    required this.label,
+    required this.implemented,
+  });
+
+  final String id;
+  final String label;
+  final bool implemented;
+}
+
 /// Public plan facts for the pre-payment subscription screen.
 ///
 /// Read from `planCatalog/{tier}` — server-owned, exposed by rule only while
-/// `isPublic == true`. Limits are never invented on-device: a tier with no
-/// catalog entry renders without numbers rather than with guessed ones.
+/// `isPublic == true`. Limits, prices, and benefit lists are never invented
+/// on-device: a tier with no catalog entry renders without numbers rather
+/// than with guessed ones.
 final class PublicPlanFacts {
   const PublicPlanFacts({
     required this.tier,
     required this.displayName,
     required this.unitLimit,
     required this.activeListingLimit,
+    required this.version,
     this.tagline,
     this.capacityLabel,
+    this.monthlyPriceMinor,
+    this.yearlyPriceMinor,
+    this.includesTier,
+    this.features = const <PublicPlanFeature>[],
   });
 
   final String tier;
   final String displayName;
   final int unitLimit;
   final int activeListingLimit;
+
+  /// Catalog document version — the concurrency token `plan.update` checks.
+  final int version;
+
   final String? tagline;
 
   /// Server-owned wording that replaces the numeric capacity line, e.g.
   /// Enterprise's custom limits.
   final String? capacityLabel;
+
+  /// UGX minor units (x100); absent until the catalog is seeded with prices.
+  final int? monthlyPriceMinor;
+  final int? yearlyPriceMinor;
+
+  /// Tier whose benefits this plan inherits ("Everything in X, plus").
+  final String? includesTier;
+
+  final List<PublicPlanFeature> features;
+
+  /// Whole-percent saving of yearly billing against twelve monthly payments,
+  /// or null when either price is missing or there is no saving to claim.
+  int? get yearlySavingsPercent {
+    final monthly = monthlyPriceMinor;
+    final yearly = yearlyPriceMinor;
+    if (monthly == null || yearly == null || monthly <= 0) return null;
+    final saving = 100 - (yearly * 100 / (monthly * 12));
+    final rounded = saving.round();
+    return rounded > 0 ? rounded : null;
+  }
+}
+
+List<PublicPlanFeature> _parsePlanFeatures(Object? raw) {
+  if (raw is! List) return const <PublicPlanFeature>[];
+  final features = <PublicPlanFeature>[];
+  for (final entry in raw) {
+    if (entry is! Map) continue;
+    final id = entry['id'];
+    final label = entry['label'];
+    if (id is! String || id.isEmpty || label is! String || label.isEmpty) {
+      continue;
+    }
+    features.add(
+      PublicPlanFeature(
+        id: id,
+        label: label,
+        implemented: entry['implemented'] == true,
+      ),
+    );
+  }
+  return features;
 }
 
 /// The publicly advertised plans, keyed by tier ID. Empty while offline,
@@ -174,15 +240,30 @@ final publicPlanCatalogProvider = StreamProvider<Map<String, PublicPlanFacts>>((
         }
         final tagline = data['tagline'];
         final capacityLabel = data['capacityLabel'];
+        final version = data['version'];
+        final monthlyPriceMinor = data['monthlyPriceMinor'];
+        final yearlyPriceMinor = data['yearlyPriceMinor'];
+        final includesTier = data['includesTier'];
         plans[document.id] = PublicPlanFacts(
           tier: document.id,
           displayName: displayName,
           unitLimit: unitLimit,
           activeListingLimit: activeListingLimit,
+          version: version is int && version > 0 ? version : 1,
           tagline: tagline is String && tagline.isNotEmpty ? tagline : null,
           capacityLabel: capacityLabel is String && capacityLabel.isNotEmpty
               ? capacityLabel
               : null,
+          monthlyPriceMinor: monthlyPriceMinor is int && monthlyPriceMinor >= 0
+              ? monthlyPriceMinor
+              : null,
+          yearlyPriceMinor: yearlyPriceMinor is int && yearlyPriceMinor >= 0
+              ? yearlyPriceMinor
+              : null,
+          includesTier: includesTier is String && includesTier.isNotEmpty
+              ? includesTier
+              : null,
+          features: _parsePlanFeatures(data['features']),
         );
       }
       yield plans;
@@ -234,6 +315,100 @@ class SelectSubscriptionPlan {
       expectedVersion: version,
       payload: <String, Object?>{'tier': tier},
     );
+  }
+}
+
+final requestPlanUpgradeProvider = Provider<RequestPlanUpgrade>(
+  RequestPlanUpgrade.new,
+);
+
+/// Records which tier an active landlord wants to move to, through the
+/// server-authoritative `subscription.requestUpgrade` command.
+///
+/// The paid-side mirror of [SelectSubscriptionPlan]: it writes only
+/// `requestedTier` — the current plan, its entitlements, and the subscription
+/// status stay exactly as paid for until platform staff (or the future
+/// billing webhook) confirm the upgrade payment.
+class RequestPlanUpgrade {
+  const RequestPlanUpgrade(this._ref);
+
+  final Ref _ref;
+
+  Future<void> call(String tier) async {
+    final session = _ref.read(sessionControllerProvider);
+    if (session == null || session.role != AppRole.landlord) {
+      throw StateError('Sign in as a landlord to request an upgrade.');
+    }
+    if (Firebase.apps.isEmpty) {
+      throw StateError('Connect to the internet to request an upgrade.');
+    }
+    final subscription = await FirebaseFirestore.instance
+        .collection('subscriptions')
+        .doc(session.userId)
+        .get(const GetOptions(source: Source.server));
+    final version = (subscription.data()?['version'] as num?)?.toInt();
+    if (version == null) {
+      throw StateError('Your subscription record could not be read.');
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: 'subscription.requestUpgrade',
+      aggregateId: session.userId,
+      expectedVersion: version,
+      payload: <String, Object?>{'tier': tier},
+    );
+  }
+}
+
+final updatePlanCatalogProvider = Provider<UpdatePlanCatalog>(
+  UpdatePlanCatalog.new,
+);
+
+/// Super-admin editing of the server-owned plan catalog through the audited
+/// `plan.update` command: prices, capacity limits, and which benefits are
+/// flagged as implemented. Nothing changes locally — the catalog stream
+/// re-emits once the server has accepted the edit.
+class UpdatePlanCatalog {
+  const UpdatePlanCatalog(this._ref);
+
+  final Ref _ref;
+
+  Future<void> call({
+    required PublicPlanFacts current,
+    int? monthlyPriceMinor,
+    int? yearlyPriceMinor,
+    int? unitLimit,
+    int? activeListingLimit,
+    String? tagline,
+    List<PublicPlanFeature>? features,
+  }) async {
+    final session = _ref.read(sessionControllerProvider);
+    if (session?.role != AppRole.superAdmin) {
+      throw StateError('Only a super administrator can edit plans.');
+    }
+    final payload = <String, Object?>{
+      'tier': current.tier,
+      'expectedCatalogVersion': current.version,
+      'monthlyPriceMinor': ?monthlyPriceMinor,
+      'yearlyPriceMinor': ?yearlyPriceMinor,
+      'unitLimit': ?unitLimit,
+      'activeListingLimit': ?activeListingLimit,
+      if (tagline != null && tagline.trim().isNotEmpty) 'tagline': tagline.trim(),
+      if (features != null)
+        'features': <Object?>[
+          for (final feature in features)
+            <String, Object?>{
+              'id': feature.id,
+              'label': feature.label,
+              'implemented': feature.implemented,
+            },
+        ],
+    };
+    if (payload.length <= 2) {
+      throw StateError('Change at least one plan detail before saving.');
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(type: 'plan.update', payload: payload);
   }
 }
 

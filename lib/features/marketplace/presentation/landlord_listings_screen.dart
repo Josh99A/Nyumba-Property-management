@@ -19,6 +19,9 @@ import '../../auth/domain/authorization_policy.dart';
 import '../../portfolio/domain/property.dart';
 import '../../portfolio/domain/unit.dart';
 import '../../portfolio/application/rental_space_labels.dart';
+import '../../subscriptions/application/subscription_providers.dart';
+import '../../subscriptions/domain/landlord_entitlement.dart';
+import '../../subscriptions/presentation/upgrade_prompt.dart';
 import '../domain/application.dart';
 import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
@@ -239,6 +242,29 @@ class _LandlordListingsScreenState
   }
 
   Future<void> _publish(Listing listing) async {
+    // At the plan's active-listing limit, prompt for an upgrade instead of
+    // queueing a publication the server would reject. Only a confirmed
+    // entitlement blocks locally; an unknown plan leaves the server to judge.
+    if (ref.read(landlordEntitlementProvider).value
+        case EntitlementKnown(entitlement: final plan)) {
+      final listings =
+          ref.read(landlordListingsProvider).value ?? const <Listing>[];
+      final activeCount = listings
+          .where((l) => l.status == ListingStatus.published)
+          .length;
+      if (activeCount >= plan.activeListingLimit) {
+        await showUpgradePrompt(
+          context,
+          title: 'Listing limit reached',
+          message:
+              'Your ${plan.displayName} plan allows up to '
+              '${plan.activeListingLimit} active listings and all of them are '
+              'in use. Unpublish a listing, or upgrade to advertise more at '
+              'once.',
+        );
+        return;
+      }
+    }
     try {
       await ref.read(publishListingProvider)(listing.id);
       if (mounted) {
@@ -928,10 +954,16 @@ class _LandlordListingsScreenState
                       },
                     ),
                     const SizedBox(height: 14),
-                    const Align(
+                    Align(
                       alignment: AlignmentDirectional.centerStart,
                       child: StatusBadge(
-                        label: 'Advertising enabled · Pro plan',
+                        label: switch (ref
+                            .read(landlordEntitlementProvider)
+                            .value) {
+                          EntitlementKnown(entitlement: final plan) =>
+                            'Advertising enabled · ${plan.displayName} plan',
+                          _ => 'Advertising follows your subscription plan',
+                        },
                         tone: BadgeTone.success,
                       ),
                     ),

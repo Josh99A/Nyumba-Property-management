@@ -145,6 +145,9 @@ final class FirestoreAdminDirectory implements AdminDirectoryRepository {
           subscriptionTier: subscription == null
               ? null
               : _text(subscription['tier']),
+          subscriptionRequestedTier: subscription == null
+              ? null
+              : _text(subscription['requestedTier']),
           subscriptionStatus: subscription == null
               ? PlatformSubscriptionStatus.none
               : PlatformSubscriptionStatus.fromServer(

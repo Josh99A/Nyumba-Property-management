@@ -708,7 +708,7 @@
     ,"subscriptionActiveDescription": "Malipo yako yamethibitishwa. Sasa unaweza kuingia kwenye nafasi yako ya mwenye nyumba."
     ,"subscriptionGateDescription": "Nafasi yako itafunguka mara tu Nyumba inapothibitisha malipo ya usajili. Ufikiaji wa wapangaji na matangazo ya umma utaendelea kuwa bila malipo."
     ,"subscriptionTiers": "Viwango vya usajili"
-    ,"subscriptionChangeActivePlanDescription": "Kubadilisha mpango unaotumika hushughulikiwa na malipo yako yanayofuata — wasiliana na usaidizi wa Nyumba."
+    ,"subscriptionChangeActivePlanDescription": "Boresha wakati wowote kwa kuchagua mpango wa juu hapa chini — mabadiliko yanatumika mara Nyumba ithibitishe malipo yako. Kwa kushusha mpango, wasiliana na usaidizi wa Nyumba."
     ,"subscriptionChoosePlanDescription": "Chagua mpango unaofaa mali zako. Unaweza kubadilisha hadi malipo yako yathibitishwe, na bei itathibitishwa nawe kabla ya kulipa."
     ,"subscriptionPlanCapacityUnavailable": "Maelezo ya uwezo wa mpango hayakuweza kupakiwa sasa, kwa hiyo hayaonyeshwi — hakuna kinachokisiwa kwenye kifaa hiki."
     ,"subscriptionPaymentConfirmed": "Malipo yamethibitishwa"
@@ -736,6 +736,22 @@
     ,"subscriptionCheckPaymentStatus": "Angalia hali ya malipo"
     ,"subscriptionPlanCapacity": "Hadi nafasi {unitLimit} za kukodisha · matangazo {listingLimit} yanayotumika"
     ,"@subscriptionPlanCapacity": {"placeholders": {"unitLimit": {"type": "int"}, "listingLimit": {"type": "int"}}}
+    ,"subscriptionMonthlyPrice": "{price} kwa mwezi"
+    ,"@subscriptionMonthlyPrice": {"placeholders": {"price": {"type": "String"}}}
+    ,"subscriptionYearlyPrice": "{price} kwa mwaka"
+    ,"@subscriptionYearlyPrice": {"placeholders": {"price": {"type": "String"}}}
+    ,"subscriptionYearlySavings": "Okoa {percent}% ukilipa kwa mwaka"
+    ,"@subscriptionYearlySavings": {"placeholders": {"percent": {"type": "int"}}}
+    ,"subscriptionEverythingInPlus": "Kila kilichomo katika {plan}, pamoja na:"
+    ,"@subscriptionEverythingInPlus": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionComingSoon": "Inakuja hivi karibuni"
+    ,"subscriptionUpgrade": "Boresha"
+    ,"subscriptionCurrentPlan": "Mpango wa sasa"
+    ,"subscriptionUpgradeRequestedBadge": "Uboreshaji umeombwa"
+    ,"subscriptionUpgradeRequestedToast": "Ombi la kuboresha hadi {plan} limetumwa. Lipa ili kuliwezesha — mpango wako wa sasa unaendelea kutumika."
+    ,"@subscriptionUpgradeRequestedToast": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionUpgradeRequestedMessage": "Uboreshaji wako hadi {plan} unasubiri uthibitisho wa malipo. Mpango wako wa sasa na vikomo vyake vinaendelea kutumika hadi Nyumba ithibitishe malipo."
+    ,"@subscriptionUpgradeRequestedMessage": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionStarterPlan": "Mwanzo"
     ,"subscriptionProPlan": "Pro"
     ,"subscriptionPremiumPlan": "Premium"

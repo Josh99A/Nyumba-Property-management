@@ -148,6 +148,13 @@ const _adminDestinations = [
     selectedIcon: Icons.analytics_rounded,
     path: '/admin/reports',
   ),
+  AppDestination(
+    label: 'Announcements',
+    shortLabel: 'Notices',
+    icon: Icons.campaign_outlined,
+    selectedIcon: Icons.campaign_rounded,
+    path: '/admin/broadcast',
+  ),
 ];
 
 const _staffDestinations = [..._adminDestinations, ..._landlordDestinations];

@@ -403,6 +403,7 @@ class SessionController extends Notifier<UserSession?> {
     var accountStatus = _statusFromServer(data['status']?.toString());
     var subscriptionStatus = LandlordSubscriptionStatus.notApplicable;
     String? subscriptionTier;
+    String? subscriptionRequestedTier;
     if (role == AppRole.landlord) {
       // Approval lives on the server-owned landlord account, not the user
       // document, so suspension or pending review applies on next load.
@@ -427,6 +428,11 @@ class SessionController extends Notifier<UserSession?> {
       subscriptionTier = rawTier is String && rawTier.trim().isNotEmpty
           ? rawTier.trim()
           : null;
+      final rawRequestedTier = subscriptionData?['requestedTier'];
+      subscriptionRequestedTier =
+          rawRequestedTier is String && rawRequestedTier.trim().isNotEmpty
+          ? rawRequestedTier.trim()
+          : null;
     }
     if (generation != _generation) return null;
     final session = UserSession(
@@ -440,6 +446,7 @@ class SessionController extends Notifier<UserSession?> {
       accountStatus: accountStatus,
       subscriptionStatus: subscriptionStatus,
       subscriptionTier: subscriptionTier,
+      subscriptionRequestedTier: subscriptionRequestedTier,
       language: data['locale'] is String
           ? AppLanguage.fromCode(data['locale'] as String)
           : null,
@@ -526,11 +533,17 @@ class SessionController extends Notifier<UserSession?> {
             final tier = rawTier is String && rawTier.trim().isNotEmpty
                 ? rawTier.trim()
                 : null;
+            final rawRequestedTier = data?['requestedTier'];
             state = current.withSubscription(
               status: _subscriptionStatusFromServer(
                 data?['status']?.toString(),
               ),
               tier: tier,
+              requestedTier:
+                  rawRequestedTier is String &&
+                      rawRequestedTier.trim().isNotEmpty
+                  ? rawRequestedTier.trim()
+                  : null,
             );
           },
           onError: (_) {
@@ -540,6 +553,7 @@ class SessionController extends Notifier<UserSession?> {
             state = current.withSubscription(
               status: LandlordSubscriptionStatus.unavailable,
               tier: current.subscriptionTier,
+              requestedTier: current.subscriptionRequestedTier,
             );
           },
         );

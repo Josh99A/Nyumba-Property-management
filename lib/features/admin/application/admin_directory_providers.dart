@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
@@ -91,6 +93,120 @@ const changeRoleReasonCodes = [
 /// privileges are Auth custom claims granted only by the audited ops script,
 /// never from inside the app.
 const assignableServerRoles = ['landlord', 'tenant', 'client'];
+
+/// Audiences the `platform.broadcast` command accepts, in presentation order.
+const broadcastAudiences = [
+  'all_users',
+  'landlords',
+  'tenants',
+  'clients',
+  'tier',
+  'user',
+];
+
+/// One sent (or sending) platform announcement, read from the server-owned
+/// `platformBroadcasts` collection for the admin history panel.
+final class PlatformBroadcast {
+  const PlatformBroadcast({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.audience,
+    required this.audienceId,
+    required this.deliveryState,
+    required this.recipientCount,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String title;
+  final String body;
+  final String audience;
+  final String? audienceId;
+  final String deliveryState;
+  final int? recipientCount;
+  final DateTime? createdAt;
+}
+
+/// Recent platform broadcasts, newest first. Empty outside live admin
+/// sessions — the collection is server-owned and staff-read by rule.
+final platformBroadcastsProvider = StreamProvider<List<PlatformBroadcast>>((
+  ref,
+) async* {
+  if (ref.watch(adminDirectorySourceProvider) != AdminDirectorySource.live) {
+    yield const <PlatformBroadcast>[];
+    return;
+  }
+  yield* FirebaseFirestore.instance
+      .collection('platformBroadcasts')
+      .orderBy('createdAt', descending: true)
+      .limit(20)
+      .snapshots()
+      .map(
+        (snapshot) => [
+          for (final document in snapshot.docs)
+            PlatformBroadcast(
+              id: document.id,
+              title: document.data()['title'] as String? ?? '',
+              body: document.data()['body'] as String? ?? '',
+              audience: document.data()['audience'] as String? ?? 'all_users',
+              audienceId: document.data()['audienceId'] as String?,
+              deliveryState:
+                  document.data()['deliveryState'] as String? ?? 'pending',
+              recipientCount: (document.data()['recipientCount'] as num?)
+                  ?.toInt(),
+              createdAt: (document.data()['createdAt'] as Timestamp?)?.toDate(),
+            ),
+        ],
+      );
+});
+
+final sendPlatformBroadcastProvider = Provider<SendPlatformBroadcast>(
+  SendPlatformBroadcast.new,
+);
+
+/// Sends a platform announcement through the audited, super-admin-only
+/// `platform.broadcast` command. Delivery (inbox, push, email) is the
+/// server's durable job — nothing is sent from the client.
+class SendPlatformBroadcast {
+  const SendPlatformBroadcast(this._ref);
+
+  final Ref _ref;
+
+  Future<void> call({
+    required String title,
+    required String body,
+    required String audience,
+    String? audienceId,
+  }) async {
+    final session = _ref.read(sessionControllerProvider);
+    if (session?.role != AppRole.superAdmin) {
+      throw StateError('Only a super administrator can send a broadcast.');
+    }
+    if (title.trim().isEmpty || body.trim().isEmpty) {
+      throw StateError('A broadcast needs both a title and a message.');
+    }
+    if (!broadcastAudiences.contains(audience)) {
+      throw StateError('That audience is not supported.');
+    }
+    final scoped = audience == 'tier' || audience == 'user';
+    if (scoped && (audienceId == null || audienceId.trim().isEmpty)) {
+      throw StateError('Choose who this broadcast targets.');
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: 'platform.broadcast',
+      aggregateId: 'broadcast_${const Uuid().v7().replaceAll('-', '')}',
+      expectedVersion: 0,
+      payload: <String, Object?>{
+        'title': title.trim(),
+        'body': body.trim(),
+        'audience': audience,
+        if (scoped) 'audienceId': audienceId!.trim(),
+      },
+    );
+  }
+}
 
 final adminAccountCommandsProvider = Provider<AdminAccountCommands>(
   AdminAccountCommands.new,

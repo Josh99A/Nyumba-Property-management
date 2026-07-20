@@ -16,6 +16,9 @@ import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../marketplace/application/marketplace_use_cases.dart';
 import '../../marketplace/domain/listing.dart';
+import '../../subscriptions/application/subscription_providers.dart';
+import '../../subscriptions/domain/landlord_entitlement.dart';
+import '../../subscriptions/presentation/upgrade_prompt.dart';
 import '../application/portfolio_use_cases.dart';
 import '../application/rental_space_labels.dart';
 import '../domain/property.dart';
@@ -377,6 +380,26 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   Future<void> _showAddUnit() async {
     final property = await ref.read(getPropertyByIdProvider)(widget.propertyId);
     if (property == null || !mounted) return;
+
+    // Hitting the plan's rental-space limit prompts an upgrade instead of a
+    // form that the server would reject. Only a confirmed entitlement blocks
+    // here — when the plan is unknown the server stays the judge.
+    if (ref.read(landlordEntitlementProvider).value
+        case EntitlementKnown(entitlement: final plan)) {
+      final unitCount =
+          ref.read(portfolioUnitsProvider).value?.length ?? 0;
+      if (unitCount >= plan.unitLimit) {
+        await showUpgradePrompt(
+          context,
+          title: 'Rental space limit reached',
+          message:
+              'Your ${plan.displayName} plan includes up to '
+              '${plan.unitLimit} rental spaces and all of them are in use. '
+              'Upgrade to a higher plan to add more.',
+        );
+        return;
+      }
+    }
 
     final formKey = GlobalKey<FormState>();
     final label = TextEditingController();

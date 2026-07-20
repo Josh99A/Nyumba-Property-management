@@ -708,7 +708,7 @@
     ,"subscriptionActiveDescription": "تم تأكيد دفعتك. يمكنك الآن الدخول إلى مساحة المالك الخاصة بك."
     ,"subscriptionGateDescription": "تفتح مساحتك فور تأكيد Nyumba لدفع الاشتراك. يظل وصول المستأجرين والقوائم العامة مجانياً."
     ,"subscriptionTiers": "فئات الاشتراك"
-    ,"subscriptionChangeActivePlanDescription": "يتم تغيير الخطة النشطة مع دفعتك التالية — تواصل مع دعم Nyumba."
+    ,"subscriptionChangeActivePlanDescription": "قم بالترقية في أي وقت باختيار خطة أعلى أدناه — يسري التغيير بمجرد تأكيد Nyumba لدفعتك. لتخفيض الخطة، تواصل مع دعم Nyumba."
     ,"subscriptionChoosePlanDescription": "اختر الخطة المناسبة لمحفظتك. يمكنك التبديل بحرية حتى يتم تأكيد دفعتك، ويتم دائماً تأكيد السعر معك قبل الدفع."
     ,"subscriptionPlanCapacityUnavailable": "تعذر تحميل تفاصيل سعة الخطة الآن، لذلك لن تُعرض — لا يتم تخمين أي شيء على هذا الجهاز."
     ,"subscriptionPaymentConfirmed": "تم تأكيد الدفع"
@@ -736,6 +736,22 @@
     ,"subscriptionCheckPaymentStatus": "التحقق من حالة الدفع"
     ,"subscriptionPlanCapacity": "حتى {unitLimit} وحدات للإيجار · {listingLimit} قوائم نشطة"
     ,"@subscriptionPlanCapacity": {"placeholders": {"unitLimit": {"type": "int"}, "listingLimit": {"type": "int"}}}
+    ,"subscriptionMonthlyPrice": "{price} شهرياً"
+    ,"@subscriptionMonthlyPrice": {"placeholders": {"price": {"type": "String"}}}
+    ,"subscriptionYearlyPrice": "{price} سنوياً"
+    ,"@subscriptionYearlyPrice": {"placeholders": {"price": {"type": "String"}}}
+    ,"subscriptionYearlySavings": "وفّر {percent}% مع الفوترة السنوية"
+    ,"@subscriptionYearlySavings": {"placeholders": {"percent": {"type": "int"}}}
+    ,"subscriptionEverythingInPlus": "كل ما في {plan}، بالإضافة إلى:"
+    ,"@subscriptionEverythingInPlus": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionComingSoon": "قريباً"
+    ,"subscriptionUpgrade": "ترقية"
+    ,"subscriptionCurrentPlan": "الخطة الحالية"
+    ,"subscriptionUpgradeRequestedBadge": "تم طلب الترقية"
+    ,"subscriptionUpgradeRequestedToast": "تم طلب الترقية إلى {plan}. ادفع لتفعيلها — تبقى خطتك الحالية نشطة في هذه الأثناء."
+    ,"@subscriptionUpgradeRequestedToast": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionUpgradeRequestedMessage": "ترقيتك إلى {plan} في انتظار تأكيد الدفع. تبقى خطتك الحالية وحدودها نشطة حتى تؤكد Nyumba الدفع."
+    ,"@subscriptionUpgradeRequestedMessage": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionStarterPlan": "المبتدئة"
     ,"subscriptionProPlan": "الاحترافية"
     ,"subscriptionPremiumPlan": "المتميزة"

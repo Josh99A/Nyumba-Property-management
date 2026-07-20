@@ -2359,7 +2359,7 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get subscriptionChangeActivePlanDescription =>
-      'Okukyusa enteekateeka ekola kukolebwa n\'okusasula kwo okuddako — tuukirira obuyambi bwa Nyumba.';
+      'Linnyisa buli kiseera ng\'olonda enteekateeka eya waggulu wansi — enkyukakyuka etandika Nyumba bw\'emala okukakasa okusasula kwo. Okukendeeza enteekateeka, tuukirira obuyambi bwa Nyumba.';
 
   @override
   String get subscriptionChoosePlanDescription =>
@@ -2441,6 +2441,48 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String subscriptionPlanCapacity(int unitLimit, int listingLimit) {
     return 'Okutuuka ku bifo $unitLimit eby\'okupangisa · eby\'okulanga $listingLimit ebikola';
+  }
+
+  @override
+  String subscriptionMonthlyPrice(String price) {
+    return '$price buli mwezi';
+  }
+
+  @override
+  String subscriptionYearlyPrice(String price) {
+    return '$price buli mwaka';
+  }
+
+  @override
+  String subscriptionYearlySavings(int percent) {
+    return 'Kekkereza $percent% ng\'osasula buli mwaka';
+  }
+
+  @override
+  String subscriptionEverythingInPlus(String plan) {
+    return 'Byonna ebiri mu $plan, ng\'ogasseeko:';
+  }
+
+  @override
+  String get subscriptionComingSoon => 'Bijja mangu';
+
+  @override
+  String get subscriptionUpgrade => 'Linnyisa';
+
+  @override
+  String get subscriptionCurrentPlan => 'Enteekateeka eriwo';
+
+  @override
+  String get subscriptionUpgradeRequestedBadge => 'Okulinnyisa kusabiddwa';
+
+  @override
+  String subscriptionUpgradeRequestedToast(String plan) {
+    return 'Okusaba okulinnyisa ku $plan kuweereddwa. Sasula okukuteeka mu nkola — enteekateeka yo eriwo ekyakola.';
+  }
+
+  @override
+  String subscriptionUpgradeRequestedMessage(String plan) {
+    return 'Okulinnyisa kwo ku $plan kulindirira okukakasibwa kw\'okusasula. Enteekateeka yo eriwo n\'ebipimo byayo bikyakola okutuusa Nyumba lw\'ekakasa okusasula.';
   }
 
   @override

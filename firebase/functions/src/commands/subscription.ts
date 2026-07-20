@@ -1,15 +1,16 @@
 import { z } from 'zod';
 import { bumpVersion, requireAggregate } from '../shared/aggregates';
-import { requirePlatformAdmin } from '../shared/actor';
+import { requirePlatformAdmin, requireSuperAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { loadEntitlements, planForTier } from '../shared/config';
 import { DomainError } from '../shared/errors';
-import { shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import { nonNegativeMoney, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
 
 interface SubscriptionRecord {
   version: number;
   status: string;
   tier: string;
+  requestedTier?: string | null;
 }
 
 const selectPlanSchema = strictPayload({
@@ -49,6 +50,53 @@ export const subscriptionSelectPlan: CommandHandler<z.infer<typeof selectPlanSch
   },
 };
 
+const requestUpgradeSchema = strictPayload({
+  tier: z.string().trim().min(1).max(40),
+});
+
+/**
+ * Records which tier an active landlord wants to move to.
+ *
+ * The mirror of `subscription.selectPlan` for the paid side of the gate:
+ * self-service, and deliberately powerless. Only `requestedTier` is written —
+ * the current tier, status, and every entitlement stay exactly as paid for
+ * until `subscription.confirmPayment` (platform staff against a verified
+ * payment, or the future billing webhook) applies the change. Re-requesting
+ * overwrites the previous request; requesting the current tier is rejected
+ * rather than treated as a hidden cancel.
+ */
+export const subscriptionRequestUpgrade: CommandHandler<z.infer<typeof requestUpgradeSchema>> = {
+  payloadSchema: requestUpgradeSchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'edit',
+  async apply({ tx, db, actor, cmd, now }) {
+    if (cmd.aggregateId !== actor.uid) throw new DomainError('PERMISSION_DENIED');
+    const ref = db.collection(COLLECTIONS.subscriptions).doc(actor.uid);
+    const [snapshot, entitlements] = await Promise.all([tx.get(ref), loadEntitlements(tx, db)]);
+    const subscription = requireAggregate<SubscriptionRecord>(snapshot, cmd.expectedVersion);
+    // An unpaid subscription changes tier through selectPlan; a plan-change
+    // request only means something once there is an active plan to keep.
+    if (subscription.status !== 'active') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'subscriptionNotActive' });
+    }
+    if (cmd.payload.tier === subscription.tier) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'tierUnchanged' });
+    }
+    planForTier(entitlements, cmd.payload.tier);
+    tx.update(ref, {
+      requestedTier: cmd.payload.tier,
+      upgradeRequestedAt: now,
+      ...bumpVersion(subscription, now),
+    });
+    return {
+      status: 'applied',
+      aggregateId: actor.uid,
+      serverVersion: subscription.version + 1,
+      changedFields: ['requestedTier', 'upgradeRequestedAt'],
+    };
+  },
+};
+
 const confirmPaymentSchema = strictPayload({
   reference: shortText,
   tier: z.string().trim().min(1).max(40).optional(),
@@ -72,6 +120,12 @@ const confirmPaymentSchema = strictPayload({
  * payment opens the workspace without a separate `landlord.approve` step. A
  * `suspended` account rejects instead — payment must never silently undo a
  * compliance suspension; `landlord.reinstate` is the only path back.
+ *
+ * On an already-`active` subscription this same command applies a paid plan
+ * change: the target tier comes from the explicit `tier` payload or the
+ * landlord's `requestedTier` (subscription.requestUpgrade), and confirming
+ * clears the request. An active subscription with no tier change to apply
+ * still rejects — there is no such thing as re-confirming the same plan.
  */
 export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPaymentSchema>> = {
   payloadSchema: confirmPaymentSchema,
@@ -89,7 +143,12 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
       loadEntitlements(tx, db),
     ]);
     const subscription = requireAggregate<SubscriptionRecord>(snapshot, cmd.expectedVersion);
-    if (subscription.status === 'active') {
+    const wasActive = subscription.status === 'active';
+    const tier =
+      cmd.payload.tier
+      ?? (wasActive ? subscription.requestedTier ?? undefined : undefined)
+      ?? subscription.tier;
+    if (wasActive && tier === subscription.tier) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'subscriptionAlreadyActive' });
     }
     const account = accountSnapshot.data() as
@@ -104,13 +163,13 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
     if (account.approvalStatus !== 'pending' && account.approvalStatus !== 'approved') {
       throw new DomainError('VALIDATION_FAILED', { reason: 'accountApprovalStatusInvalid' });
     }
-    const tier = cmd.payload.tier ?? subscription.tier;
     planForTier(entitlements, tier);
     tx.update(ref, {
       tier,
       status: 'active',
-      activatedAt: now,
+      requestedTier: null,
       paymentReference: cmd.payload.reference,
+      ...(wasActive ? { planChangedAt: now } : { activatedAt: now }),
       ...bumpVersion(subscription, now),
     });
     if (account.approvalStatus === 'pending') {
@@ -125,7 +184,129 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
       status: 'applied',
       aggregateId: landlordId,
       serverVersion: subscription.version + 1,
-      changedFields: ['status', 'tier', 'activatedAt', 'paymentReference'],
+      changedFields: [
+        'status',
+        'tier',
+        'requestedTier',
+        'paymentReference',
+        wasActive ? 'planChangedAt' : 'activatedAt',
+      ],
+    };
+  },
+};
+
+const planFeatureSchema = z
+  .object({
+    id: z.string().trim().min(1).max(60).regex(/^[a-z0-9-]+$/),
+    label: z.string().trim().min(1).max(120),
+    implemented: z.boolean(),
+  })
+  .strict();
+
+/**
+ * Tier IDs like `pro` are shorter than the envelope's aggregateId pattern
+ * allows, so the tier travels in the payload and the catalog document's own
+ * `version` is checked through `expectedCatalogVersion` instead of the
+ * envelope's optimistic-concurrency field.
+ */
+const updatePlanSchema = strictPayload({
+  // Lowercase alphanumeric-hyphen only: the value addresses both a document
+  // ID and the `plans.${tier}` field path, so path-reserved characters
+  // (dots especially) must never validate even though unknown tiers already
+  // fail closed before any write.
+  tier: z.string().trim().min(1).max(40).regex(/^[a-z0-9-]+$/),
+  expectedCatalogVersion: z.number().int().min(1),
+  displayName: shortText.optional(),
+  tagline: z.string().trim().min(1).max(200).optional(),
+  capacityLabel: z.string().trim().min(1).max(200).nullable().optional(),
+  monthlyPriceMinor: nonNegativeMoney.optional(),
+  yearlyPriceMinor: nonNegativeMoney.optional(),
+  unitLimit: z.number().int().min(0).max(1_000_000).optional(),
+  activeListingLimit: z.number().int().min(0).max(1_000_000).optional(),
+  isPublic: z.boolean().optional(),
+  features: z.array(planFeatureSchema).max(40).optional(),
+});
+
+const EDITABLE_PLAN_FIELDS = [
+  'displayName',
+  'tagline',
+  'capacityLabel',
+  'monthlyPriceMinor',
+  'yearlyPriceMinor',
+  'unitLimit',
+  'activeListingLimit',
+  'isPublic',
+  'features',
+] as const;
+
+interface PlanCatalogRecord {
+  version: number;
+  monthlyPriceMinor?: number;
+  yearlyPriceMinor?: number;
+}
+
+/**
+ * Super-admin editing of one plan's commercial terms: prices, yearly price,
+ * capacity limits, presentation copy, visibility, and the feature list with
+ * its `implemented` flags. Writes `planCatalog/{tier}` (what clients render)
+ * and, when a limit changes, the same values into
+ * `backendConfig/entitlements` (what commands enforce) in one transaction so
+ * the two can never advertise different capacity. Existing tiers only — the
+ * four-tier structure is normative (docs/architecture/subscription-tiers.md),
+ * and an unknown tier fails closed like every other entitlement path.
+ */
+export const planUpdate: CommandHandler<z.infer<typeof updatePlanSchema>> = {
+  payloadSchema: updatePlanSchema,
+  aggregateIdMode: 'forbidden',
+  expectedVersionMode: 'none',
+  async apply({ tx, db, actor, cmd, now }) {
+    requireSuperAdmin(actor);
+    const { tier, expectedCatalogVersion, ...edits } = cmd.payload;
+    const changedFields = EDITABLE_PLAN_FIELDS.filter((field) => edits[field] !== undefined);
+    if (changedFields.length === 0) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'noFieldsToUpdate' });
+    }
+    const catalogRef = db.collection(COLLECTIONS.planCatalog).doc(tier);
+    const entitlementsRef = db.collection(COLLECTIONS.backendConfig).doc('entitlements');
+    const [catalogSnap, entitlements] = await Promise.all([
+      tx.get(catalogRef),
+      loadEntitlements(tx, db),
+    ]);
+    const catalog = requireAggregate<PlanCatalogRecord>(catalogSnap, expectedCatalogVersion);
+    const plan = planForTier(entitlements, tier);
+
+    // A yearly price above twelve months of the monthly price would render as
+    // a negative "saving"; reject the pair rather than advertising it.
+    const monthly = edits.monthlyPriceMinor ?? catalog.monthlyPriceMinor;
+    const yearly = edits.yearlyPriceMinor ?? catalog.yearlyPriceMinor;
+    if (
+      typeof monthly === 'number' && typeof yearly === 'number'
+      && monthly > 0 && yearly > monthly * 12
+    ) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'yearlyPriceExceedsMonthlyTimesTwelve' });
+    }
+
+    const catalogUpdate: Record<string, unknown> = { ...bumpVersion(catalog, now) };
+    for (const field of changedFields) catalogUpdate[field] = edits[field];
+    tx.update(catalogRef, catalogUpdate);
+
+    // Limits are enforced from the entitlements config, not the catalog;
+    // mirror them so display and enforcement cannot drift apart.
+    const unitLimit = edits.unitLimit ?? plan.unitLimit;
+    const activeListingLimit = edits.activeListingLimit ?? plan.activeListingLimit;
+    if (edits.unitLimit !== undefined || edits.activeListingLimit !== undefined) {
+      tx.update(entitlementsRef, {
+        version: entitlements.version + 1,
+        [`plans.${tier}`]: { ...plan, unitLimit, activeListingLimit },
+        updatedAt: now,
+      });
+    }
+
+    return {
+      status: 'applied',
+      aggregateId: tier,
+      serverVersion: catalog.version + 1,
+      changedFields: [...changedFields],
     };
   },
 };

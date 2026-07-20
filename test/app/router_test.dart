@@ -266,6 +266,17 @@ void main() {
       await _pumpFor(tester, const Duration(seconds: 1));
 
       final explore = find.text('Explore homes');
+      if (explore.evaluate().isEmpty) {
+        // The staff sidebar holds more destinations than fit in 900px and
+        // scrolls; the ListView virtualizes, so bring the explore entry into
+        // view before asserting. The sidebar is the first scrollable in the
+        // shell row.
+        await tester.scrollUntilVisible(
+          explore,
+          72,
+          scrollable: find.byType(Scrollable).first,
+        );
+      }
       expect(
         explore,
         findsOneWidget,

@@ -2290,7 +2290,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get subscriptionChangeActivePlanDescription =>
-      'يتم تغيير الخطة النشطة مع دفعتك التالية — تواصل مع دعم Nyumba.';
+      'قم بالترقية في أي وقت باختيار خطة أعلى أدناه — يسري التغيير بمجرد تأكيد Nyumba لدفعتك. لتخفيض الخطة، تواصل مع دعم Nyumba.';
 
   @override
   String get subscriptionChoosePlanDescription =>
@@ -2370,6 +2370,48 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String subscriptionPlanCapacity(int unitLimit, int listingLimit) {
     return 'حتى $unitLimit وحدات للإيجار · $listingLimit قوائم نشطة';
+  }
+
+  @override
+  String subscriptionMonthlyPrice(String price) {
+    return '$price شهرياً';
+  }
+
+  @override
+  String subscriptionYearlyPrice(String price) {
+    return '$price سنوياً';
+  }
+
+  @override
+  String subscriptionYearlySavings(int percent) {
+    return 'وفّر $percent% مع الفوترة السنوية';
+  }
+
+  @override
+  String subscriptionEverythingInPlus(String plan) {
+    return 'كل ما في $plan، بالإضافة إلى:';
+  }
+
+  @override
+  String get subscriptionComingSoon => 'قريباً';
+
+  @override
+  String get subscriptionUpgrade => 'ترقية';
+
+  @override
+  String get subscriptionCurrentPlan => 'الخطة الحالية';
+
+  @override
+  String get subscriptionUpgradeRequestedBadge => 'تم طلب الترقية';
+
+  @override
+  String subscriptionUpgradeRequestedToast(String plan) {
+    return 'تم طلب الترقية إلى $plan. ادفع لتفعيلها — تبقى خطتك الحالية نشطة في هذه الأثناء.';
+  }
+
+  @override
+  String subscriptionUpgradeRequestedMessage(String plan) {
+    return 'ترقيتك إلى $plan في انتظار تأكيد الدفع. تبقى خطتك الحالية وحدودها نشطة حتى تؤكد Nyumba الدفع.';
   }
 
   @override

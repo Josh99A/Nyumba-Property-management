@@ -14,6 +14,7 @@ import {
   publishListingMedia,
   purgeDocument,
 } from './media-publication';
+import { fanoutBroadcast } from './broadcast-fanout';
 import { fanoutNotice } from './notice-fanout';
 import { deliverContactRequest, notifyLandlordApplication } from './notifications';
 import { EMAIL_SECRETS } from '../shared/email';
@@ -46,6 +47,7 @@ const processors = new Map<string, JobProcessor>([
   ['movePrivateDocument', movePrivateDocument],
   ['purgeDocument', purgeDocument],
   ['noticeFanout', fanoutNotice],
+  ['broadcastFanout', fanoutBroadcast],
   ['unpublishLandlordListings', unpublishLandlordListings],
   ['initiatePayment', initiatePayment],
   ['renderReceipt', renderReceipt],

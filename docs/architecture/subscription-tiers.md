@@ -1,9 +1,65 @@
 # Subscription tiers and entitlements
 
 This document is the normative tier structure for Nyumba subscriptions. It
-resolves the tier *shape*; monetary prices, billing intervals, trials, and
-transaction fees remain **TBD** and belong in versioned server-owned
-configuration (see [firebase-data-and-security.md](firebase-data-and-security.md)).
+resolves the tier *shape* and the launch pricing; trials and transaction fees
+remain **TBD**. Prices, limits, and feature availability live in versioned
+server-owned configuration (see
+[firebase-data-and-security.md](firebase-data-and-security.md)) — this
+document records the decisions, the catalog serves them.
+
+## Pricing (decided 2026-07-20)
+
+| Billing | Starter | Pro | Premium | Enterprise |
+|---|---:|---:|---:|---:|
+| Monthly (UGX) | 50,000 | 100,000 | 200,000 | 300,000 |
+| Yearly (UGX) | 500,000 | 1,000,000 | 2,000,000 | 3,000,000 |
+
+Yearly billing is priced at ten months (two months free, shown to landlords
+as a ~17% saving). Prices are stored on `planCatalog/{tier}` in UGX minor
+units (`monthlyPriceMinor`, `yearlyPriceMinor`) and are seeded by
+`firebase/functions/scripts/seed-entitlements.mjs`. Super admins change them at
+runtime through the audited `plan.update` command (admin Subscriptions
+screen); the client never hard-codes a price, and the saving percentage is
+derived from the two stored prices rather than stored itself.
+
+## Feature availability ("coming soon" greying)
+
+Each catalog entry carries a `features` list — `{id, label, implemented}` —
+covering the tier's incremental benefits. Benefits with `implemented: false`
+are sold on the roadmap and MUST stay visible but greyed out with a "coming
+soon" marker wherever plans are rendered, so nobody pays for a promise they
+did not see. When a feature ships, a super admin flips its flag via
+`plan.update` (no deploy needed). Operational promises delivered by people
+(support tiers, onboarding, SLA) count as implemented.
+
+## Self-service upgrades
+
+An active landlord upgrades from inside the app: the subscription screen
+offers every higher tier as an "Upgrade" action, which runs
+`subscription.requestUpgrade` — recording only `requestedTier` while the paid
+plan, its entitlements, and the workspace stay exactly as paid for. The
+request appears in the admin payment-confirmation queue, and
+`subscription.confirmPayment` applies the new tier against a verified payment
+reference, clearing the request. Downgrades remain a support conversation
+(the downgrade-safety rules below still govern them).
+
+When a landlord hits a plan wall the app prompts the upgrade path instead of
+failing silently: adding a rental space at the unit limit and publishing a
+listing at the active-listing limit both raise an upgrade prompt that names
+the limit and links to the subscription screen. Prompts fire only on a
+server-confirmed entitlement — an unknown or unavailable plan never blocks
+locally; the backend stays the judge.
+
+## Platform broadcasts
+
+Super admins can send platform announcements (incidents, maintenance windows,
+commercial notices) through the `platform.broadcast` command: to everyone, a
+role group (landlords/tenants/clients), every account on one subscription
+tier, or a single account. Delivery is a durable backend job that writes each
+recipient's notification inbox, sends a push nudge, and emails a courtesy
+copy. Broadcast records live in server-owned `platformBroadcasts` documents,
+readable by platform staff for the history panel on the admin Announcements
+screen.
 
 ## Who subscribes
 
@@ -132,10 +188,11 @@ account and opens the workspace (a suspended account rejects instead —
 reinstatement is a separate, deliberate act). In-app checkout stays
 unavailable and fails closed rather than simulating payment.
 
-The admin subscriptions screen presents this structure with illustrative UGX
-prices clearly labelled as drafts. The client may render plan and entitlement
-state, but enforcement (unit counting, publishing entitlement, billing state)
-is exclusively server-side, per
+The admin subscriptions screen renders the same server-owned catalog —
+prices, limits, and roadmap counts — and offers super admins the `plan.update`
+editor. The client may render plan and entitlement state, but enforcement
+(unit counting, publishing entitlement, billing state) is exclusively
+server-side, per
 [backend-command-contracts.md](backend-command-contracts.md).
 
 Benchmarks consulted: DoorLoop, TenantCloud, and Buildium keep core rent,

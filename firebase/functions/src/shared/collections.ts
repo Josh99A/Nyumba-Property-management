@@ -25,6 +25,7 @@ export const COLLECTIONS = {
   backendJobDedupe: 'backendJobDedupe',
   providerEvents: 'providerEvents',
   backendConfig: 'backendConfig',
+  platformBroadcasts: 'platformBroadcasts',
   deviceTokenOwners: 'deviceTokenOwners',
   notificationInboxes: 'notificationInboxes',
   tenantPortals: 'tenantPortals',
