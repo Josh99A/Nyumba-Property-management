@@ -6,6 +6,8 @@ import '../../core/offline/offline_database.dart';
 import '../../core/offline/in_memory_sync_gateway.dart';
 import '../../core/offline/firebase_remote_sync_gateway.dart';
 import '../../core/offline/offline_entity.dart';
+import '../../core/offline/network_status.dart';
+import '../../core/offline/reconnect_sync_trigger.dart';
 import '../../core/offline/remote_pull_gateway.dart';
 import '../../core/offline/sync_engine.dart';
 import '../../features/auth/application/session_controller.dart';
@@ -41,6 +43,7 @@ import '../../features/profile/data/sembast_user_settings_repository.dart';
 import '../../features/profile/domain/user_settings.dart';
 import '../../features/profile/domain/user_settings_repository.dart';
 import '../bootstrap/local_database_opener.dart';
+import '../bootstrap/resume_sync_trigger.dart';
 
 class AppDependencies {
   const AppDependencies({
@@ -60,6 +63,8 @@ class AppDependencies {
     required this.notifications,
     required this.subscriptionPlans,
     this.remotePullCoordinator,
+    this.reconnectSyncTrigger,
+    this.resumeSyncTrigger,
   });
 
   final OfflineDatabase database;
@@ -78,10 +83,14 @@ class AppDependencies {
   final AppNotificationRepository notifications;
   final SubscriptionPlanRepository subscriptionPlans;
   final RemotePullCoordinator? remotePullCoordinator;
+  final ReconnectSyncTrigger? reconnectSyncTrigger;
+  final ResumeSyncTrigger? resumeSyncTrigger;
 
   /// Closing quarantines the workspace: the database file and its unsynced
   /// outbox stay on disk untouched for the next sign-in of this account.
   Future<void> close() async {
+    resumeSyncTrigger?.dispose();
+    await reconnectSyncTrigger?.close();
     await remotePullCoordinator?.close();
     await database.close();
   }
@@ -240,10 +249,30 @@ Future<AppDependencies> createAppDependencies({
   // is world-readable, so an anonymous visitor reads the real catalogue.
   final usesFirebase = Firebase.apps.isNotEmpty;
   final isAuthenticated = session != null;
-  final gateway = usesFirebase && isAuthenticated
+  final usesRemoteGateway = usesFirebase && isAuthenticated;
+  final gateway = usesRemoteGateway
       ? await FirebaseRemoteSyncGateway.create()
       : InMemorySyncGateway();
-  final syncEngine = SyncEngine(database: database, gateway: gateway);
+  // Connectivity gating and reconnect-triggered flushes only make sense when
+  // pushes actually cross the network. The in-memory gateway works offline;
+  // gating it on connectivity would strand outbox entries for no reason.
+  final NetworkStatus networkStatus = usesRemoteGateway
+      ? ConnectivityNetworkStatus()
+      : const AlwaysOnlineNetworkStatus();
+  final syncEngine = SyncEngine(
+    database: database,
+    gateway: gateway,
+    networkStatus: networkStatus,
+  );
+  final reconnectSyncTrigger = usesRemoteGateway
+      ? ReconnectSyncTrigger(
+          syncEngine: syncEngine,
+          networkStatus: networkStatus,
+        )
+      : null;
+  final resumeSyncTrigger = usesRemoteGateway
+      ? ResumeSyncTrigger(syncEngine: syncEngine)
+      : null;
   RemotePullCoordinator? remotePullCoordinator;
 
   if (usesFirebase) {
@@ -349,5 +378,7 @@ Future<AppDependencies> createAppDependencies({
     notifications: notifications,
     subscriptionPlans: subscriptionPlans,
     remotePullCoordinator: remotePullCoordinator,
+    reconnectSyncTrigger: reconnectSyncTrigger,
+    resumeSyncTrigger: resumeSyncTrigger,
   );
 }
