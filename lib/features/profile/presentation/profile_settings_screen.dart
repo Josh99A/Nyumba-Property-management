@@ -389,6 +389,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
 
   Widget _preferenceCards() => Column(
     children: [
+      ..._securitySection(),
       NyumbaSurface(
         padding: const EdgeInsets.all(22),
         child: Column(
@@ -470,7 +471,6 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         ),
       ),
       const SizedBox(height: 18),
-      ..._securitySection(),
       NyumbaSurface(
         padding: const EdgeInsetsDirectional.fromSTEB(22, 22, 22, 10),
         child: Column(
@@ -516,30 +516,111 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   );
 
   /// Empty on devices that cannot offer biometric unlock (including web), so
-  /// nobody sees a switch that could never work.
+  /// nobody sees a control that could never work.
+  ///
+  /// Leads the preference column and states its action on a filled button
+  /// rather than a switch: turning the lock on is a one-time setup step that
+  /// has to be findable, and a bare switch here was indistinguishable from
+  /// the notification switches further down.
   List<Widget> _securitySection() {
     final supported = ref.watch(biometricSupportProvider).value ?? false;
     if (!supported) return const [];
     final lockEnabled = ref.watch(
       appLockControllerProvider.select((lock) => lock.enabled),
     );
+    final theme = Theme.of(context);
+    final subtle = theme.textTheme.bodySmall?.copyWith(
+      color: context.nyumba.mutedInk,
+    );
     return [
       NyumbaSurface(
-        padding: const EdgeInsetsDirectional.fromSTEB(22, 22, 22, 10),
+        padding: const EdgeInsets.all(22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const NyumbaSectionHeader(
-              title: 'Security',
-              subtitle: 'Control how this device unlocks your workspace.',
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: context.nyumba.navyTint,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.fingerprint_rounded,
+                    size: 24,
+                    color: context.nyumba.midnightNavy,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.localized(
+                        'Fingerprint unlock',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 3),
+                      Text.localized(
+                        'Nyumba holds tenant and payment records on this device.',
+                        style: subtle,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            _settingSwitch(
-              title: 'Fingerprint app lock',
-              subtitle: 'Ask for your fingerprint when Nyumba reopens.',
-              value: lockEnabled,
-              onChanged: _toggleAppLock,
-            ),
+            const SizedBox(height: 18),
+            if (lockEnabled) ...[
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 18,
+                    color: context.nyumba.sageDark,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text.localized(
+                      'On. Your fingerprint is required when Nyumba reopens.',
+                      style: subtle,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _togglingAppLock
+                      ? null
+                      : () => _toggleAppLock(false),
+                  icon: const Icon(Icons.lock_open_outlined),
+                  label: const Text.localized('Turn off fingerprint unlock'),
+                ),
+              ),
+            ] else
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _togglingAppLock
+                      ? null
+                      : () => _toggleAppLock(true),
+                  icon: _togglingAppLock
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.fingerprint_rounded),
+                  label: Text.localized(
+                    _togglingAppLock
+                        ? 'Waiting for your fingerprint…'
+                        : 'Turn on fingerprint unlock',
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -551,7 +632,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     // The OS prompt takes a while; flipping the switch again meanwhile must
     // not stack a second prompt on top of the first.
     if (_togglingAppLock) return;
-    _togglingAppLock = true;
+    setState(() => _togglingAppLock = true);
     try {
       final controller = ref.read(appLockControllerProvider.notifier);
       if (!value) {
@@ -576,6 +657,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       );
     } finally {
       _togglingAppLock = false;
+      if (mounted) setState(() {});
     }
   }
 

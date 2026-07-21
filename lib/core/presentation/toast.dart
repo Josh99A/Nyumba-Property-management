@@ -56,7 +56,17 @@ void showNyumbaToast(
         duration: variant == NyumbaToastVariant.error
             ? const Duration(seconds: 6)
             : const Duration(seconds: 4),
-        action: action,
+        // Re-styled rather than passed through: plain label text disappears
+        // against these saturated brand backgrounds, so the action is given
+        // the filled chip treatment that makes it read as a button.
+        action: action == null
+            ? null
+            : SnackBarAction(
+                label: action.label,
+                onPressed: action.onPressed,
+                textColor: background,
+                backgroundColor: Colors.white,
+              ),
         content: Row(
           children: [
             Icon(icon, color: Colors.white, size: 20),

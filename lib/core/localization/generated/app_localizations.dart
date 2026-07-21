@@ -4866,29 +4866,41 @@ abstract class AppLocalizations {
   /// **'Fingerprint unlock was not turned on.'**
   String get appLockNotEnabledToast;
 
-  /// No description provided for @security.
+  /// No description provided for @appLockCardTitle.
   ///
   /// In en, this message translates to:
-  /// **'Security'**
-  String get security;
+  /// **'Fingerprint unlock'**
+  String get appLockCardTitle;
 
-  /// No description provided for @securitySubtitle.
+  /// No description provided for @appLockCardSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Control how this device unlocks your workspace.'**
-  String get securitySubtitle;
+  /// **'Nyumba holds tenant and payment records on this device.'**
+  String get appLockCardSubtitle;
 
-  /// No description provided for @appLockSwitchTitle.
+  /// No description provided for @appLockOnStatus.
   ///
   /// In en, this message translates to:
-  /// **'Fingerprint app lock'**
-  String get appLockSwitchTitle;
+  /// **'On. Your fingerprint is required when Nyumba reopens.'**
+  String get appLockOnStatus;
 
-  /// No description provided for @appLockSwitchSubtitle.
+  /// No description provided for @appLockTurnOn.
   ///
   /// In en, this message translates to:
-  /// **'Ask for your fingerprint when Nyumba reopens.'**
-  String get appLockSwitchSubtitle;
+  /// **'Turn on fingerprint unlock'**
+  String get appLockTurnOn;
+
+  /// No description provided for @appLockTurnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off fingerprint unlock'**
+  String get appLockTurnOff;
+
+  /// No description provided for @appLockWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for your fingerprint…'**
+  String get appLockWaiting;
 }
 
 class _AppLocalizationsDelegate

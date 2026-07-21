@@ -2640,14 +2640,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get appLockNotEnabledToast => 'لم يتم تفعيل الفتح ببصمة الإصبع.';
 
   @override
-  String get security => 'الأمان';
+  String get appLockCardTitle => 'الفتح ببصمة الإصبع';
 
   @override
-  String get securitySubtitle => 'تحكم في طريقة فتح هذا الجهاز لمساحة عملك.';
+  String get appLockCardSubtitle =>
+      'يحتفظ Nyumba بسجلات المستأجرين والمدفوعات على هذا الجهاز.';
 
   @override
-  String get appLockSwitchTitle => 'قفل التطبيق ببصمة الإصبع';
+  String get appLockOnStatus =>
+      'مفعّل. ستكون بصمة إصبعك مطلوبة عند إعادة فتح Nyumba.';
 
   @override
-  String get appLockSwitchSubtitle => 'طلب بصمة إصبعك عند إعادة فتح Nyumba.';
+  String get appLockTurnOn => 'تفعيل الفتح ببصمة الإصبع';
+
+  @override
+  String get appLockTurnOff => 'إيقاف الفتح ببصمة الإصبع';
+
+  @override
+  String get appLockWaiting => 'في انتظار بصمة إصبعك…';
 }

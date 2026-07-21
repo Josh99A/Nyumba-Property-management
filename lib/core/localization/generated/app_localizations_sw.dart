@@ -2707,16 +2707,22 @@ class AppLocalizationsSw extends AppLocalizations {
       'Kufungua kwa alama ya kidole hakukuwashwa.';
 
   @override
-  String get security => 'Usalama';
+  String get appLockCardTitle => 'Kufungua kwa alama ya kidole';
 
   @override
-  String get securitySubtitle =>
-      'Dhibiti jinsi kifaa hiki kinavyofungua eneo lako la kazi.';
+  String get appLockCardSubtitle =>
+      'Nyumba huhifadhi kumbukumbu za wapangaji na malipo kwenye kifaa hiki.';
 
   @override
-  String get appLockSwitchTitle => 'Kufuli la programu la alama ya kidole';
+  String get appLockOnStatus =>
+      'Imewashwa. Alama ya kidole chako inahitajika Nyumba inapofunguliwa tena.';
 
   @override
-  String get appLockSwitchSubtitle =>
-      'Omba alama ya kidole Nyumba inapofunguliwa tena.';
+  String get appLockTurnOn => 'Washa kufungua kwa alama ya kidole';
+
+  @override
+  String get appLockTurnOff => 'Zima kufungua kwa alama ya kidole';
+
+  @override
+  String get appLockWaiting => 'Inasubiri alama ya kidole chako…';
 }

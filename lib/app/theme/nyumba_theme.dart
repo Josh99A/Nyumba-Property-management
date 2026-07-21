@@ -209,6 +209,10 @@ abstract final class NyumbaTheme {
         behavior: SnackBarBehavior.floating,
         backgroundColor: snackBackground,
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
+        // Without this the action falls back to colorScheme.inversePrimary,
+        // which is a muted tone against these dark navy backgrounds and reads
+        // as disabled label text rather than the button it is.
+        actionTextColor: Colors.white,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(10)),
         ),
