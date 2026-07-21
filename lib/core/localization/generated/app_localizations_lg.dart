@@ -2722,16 +2722,22 @@ class AppLocalizationsLg extends AppLocalizations {
       'Okusumulula okw\'ekinkumu tekussiddwako.';
 
   @override
-  String get security => 'Obukuumi';
+  String get appLockCardTitle => 'Okusumulula n\'ekinkumu';
 
   @override
-  String get securitySubtitle =>
-      'Fuga engeri ekyuma kino gye kisumululamu ofiisi yo.';
+  String get appLockCardSubtitle =>
+      'Nyumba etereka ebiwandiiko by\'abapangisa n\'ebisasulwa ku kyuma kino.';
 
   @override
-  String get appLockSwitchTitle => 'Ekisiba kya app eky\'ekinkumu';
+  String get appLockOnStatus =>
+      'Kissiddwako. Ekinkumu kyo kyetaagisa Nyumba bw\'eddamu okuggulwa.';
 
   @override
-  String get appLockSwitchSubtitle =>
-      'Saba ekinkumu Nyumba bw\'eddamu okuggulwa.';
+  String get appLockTurnOn => 'Ssaako okusumulula n\'ekinkumu';
+
+  @override
+  String get appLockTurnOff => 'Ggyako okusumulula n\'ekinkumu';
+
+  @override
+  String get appLockWaiting => 'Elindirira ekinkumu kyo…';
 }

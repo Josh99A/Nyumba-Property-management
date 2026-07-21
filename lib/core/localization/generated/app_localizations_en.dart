@@ -2663,16 +2663,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appLockNotEnabledToast => 'Fingerprint unlock was not turned on.';
 
   @override
-  String get security => 'Security';
+  String get appLockCardTitle => 'Fingerprint unlock';
 
   @override
-  String get securitySubtitle =>
-      'Control how this device unlocks your workspace.';
+  String get appLockCardSubtitle =>
+      'Nyumba holds tenant and payment records on this device.';
 
   @override
-  String get appLockSwitchTitle => 'Fingerprint app lock';
+  String get appLockOnStatus =>
+      'On. Your fingerprint is required when Nyumba reopens.';
 
   @override
-  String get appLockSwitchSubtitle =>
-      'Ask for your fingerprint when Nyumba reopens.';
+  String get appLockTurnOn => 'Turn on fingerprint unlock';
+
+  @override
+  String get appLockTurnOff => 'Turn off fingerprint unlock';
+
+  @override
+  String get appLockWaiting => 'Waiting for your fingerprint…';
 }
