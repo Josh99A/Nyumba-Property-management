@@ -64,6 +64,8 @@ final class PlatformAccount {
     this.subscriptionTier,
     this.subscriptionRequestedTier,
     this.subscriptionUpgradeChannel,
+    this.subscriptionRenewalDueAt,
+    this.subscriptionGraceEndsAt,
     this.subscriptionStatus = PlatformSubscriptionStatus.none,
     this.subscriptionVersion,
   });
@@ -106,12 +108,26 @@ final class PlatformAccount {
   /// electronic ones auto-activate through the aggregator webhook.
   final String? subscriptionUpgradeChannel;
 
+  /// End of the paid period. Past this date the subscription is overdue but
+  /// deliberately stays active through the grace window.
+  final DateTime? subscriptionRenewalDueAt;
+
+  /// When the grace window closes and the workspace locks. Non-null only
+  /// while a payment is overdue.
+  final DateTime? subscriptionGraceEndsAt;
+
   final PlatformSubscriptionStatus subscriptionStatus;
 
   /// Concurrency token for `subscription.confirmPayment`.
   final int? subscriptionVersion;
 
   bool get isLandlord => roleLabel.toLowerCase() == 'landlord';
+
+  /// Payment is past its due date and the workspace is running on borrowed
+  /// time. Still active, so the landlord keeps working until grace ends.
+  bool get isInPaymentGrace =>
+      subscriptionStatus == PlatformSubscriptionStatus.active &&
+      subscriptionGraceEndsAt != null;
 
   /// An active subscription with a different requested tier that a landlord
   /// asked to pay for in cash — the only upgrades staff confirm by hand.

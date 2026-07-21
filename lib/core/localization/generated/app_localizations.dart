@@ -4554,6 +4554,30 @@ abstract class AppLocalizations {
   /// **'Mobile money and card payments are coming soon. For now, choose Cash to upgrade — an admin activates it once your payment is verified.'**
   String get subscriptionElectronicComingSoon;
 
+  /// No description provided for @subscriptionRenewsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Renews on {date}'**
+  String subscriptionRenewsOn(String date);
+
+  /// No description provided for @subscriptionOverdueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment is overdue'**
+  String get subscriptionOverdueTitle;
+
+  /// No description provided for @subscriptionOverdueLocksIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Your workspace stays open for {days} more day(s), then locks on {date} unless payment is confirmed. Nothing is deleted, and your tenants are not affected.'**
+  String subscriptionOverdueLocksIn(int days, String date);
+
+  /// No description provided for @subscriptionOverdueLocksToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Your workspace locks today unless payment is confirmed. Nothing is deleted, and your tenants are not affected.'**
+  String get subscriptionOverdueLocksToday;
+
   /// No description provided for @subscriptionStarterPlan.
   ///
   /// In en, this message translates to:

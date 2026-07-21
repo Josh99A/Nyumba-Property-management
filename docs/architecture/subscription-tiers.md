@@ -70,6 +70,43 @@ the limit and links to the subscription screen. Prompts fire only on a
 server-confirmed entitlement — an unknown or unavailable plan never blocks
 locally; the backend stays the judge.
 
+## Renewal, grace period, and lapse
+
+A confirmed payment buys one period — `billingInterval` (`monthly`/`yearly`,
+recorded by `subscription.confirmPayment`) sets `renewalDueAt`. The daily
+`sweepSubscriptionRenewals` job then runs the whole unpaid path so nobody is
+locked out unannounced:
+
+| When | What happens |
+|---|---|
+| 7 days before `renewalDueAt` | "Payment due soon" notice |
+| `renewalDueAt` passes | `graceEndsAt` is set to +7 days and an "overdue" notice goes out. **The subscription stays `active`** — the landlord keeps working |
+| 3 days of grace left | "Workspace locks soon" notice |
+| `graceEndsAt` passes | Status → `expired`, which locks the workspace |
+
+The grace window is deliberately expressed on a still-`active` subscription.
+Every landlord command requires `active` (`loadActiveLandlordContext`), so
+setting `past_due` at the deadline would revoke access instantly and make the
+grace period meaningless.
+
+**Lapsing only locks the workspace.** Nothing is deleted, listings are left
+as they are, and tenants keep their portal, balances, receipts and documents
+in full — a landlord who stopped paying must never cost their tenants access
+to their own records. Confirming a payment restores the workspace and starts
+a fresh period, wiping the overdue state.
+
+## Administrator subscription actions
+
+| Command | Effect |
+|---|---|
+| `subscription.confirmPayment` | Activates or upgrades against a verified payment reference, and starts a fresh period |
+| `subscription.rejectPayment` | Staff checked and the money is not there. Clears the pending request and notifies the landlord with a reason; the current plan and entitlements are untouched |
+| `subscription.downgrade` | Moves an active subscription to a smaller plan without payment. **Downward only** — judged by the server-owned unit limit, so an admin session can never grant paid capacity for free. The paid period is left alone |
+| `subscription.deactivate` | Ends the subscription, locking the workspace under the same preserve-everything rules as a lapse. Not a compliance tool — abuse is `landlord.suspend`, which also takes adverts down |
+
+All are platform-admin only, never against the actor's own account, audited,
+and each notifies the landlord.
+
 ## Platform broadcasts
 
 Super admins can send platform announcements (incidents, maintenance windows,

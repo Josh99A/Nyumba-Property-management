@@ -21,6 +21,8 @@ final _catalogUgx = NumberFormat.currency(
   decimalDigits: 0,
 );
 
+final _renewalDate = DateFormat('d MMM yyyy');
+
 (Color, IconData) _tierVisual(BuildContext context, String tier) =>
     switch (tier.toLowerCase()) {
       'starter' => (context.nyumba.sageDark, Icons.home_work_outlined),
@@ -163,6 +165,19 @@ class _AdminSubscriptionsScreenState
           _PendingPaymentsPanel(
             accounts: needsConfirmation,
             onConfirm: _confirmPayment,
+            onReject: _rejectPayment,
+          ),
+          const SizedBox(height: 20),
+          _ActiveSubscriptionsPanel(
+            accounts: withSubscription
+                .where(
+                  (a) =>
+                      a.subscriptionStatus ==
+                      PlatformSubscriptionStatus.active,
+                )
+                .toList(growable: false),
+            onDowngrade: _downgrade,
+            onDeactivate: _deactivate,
           ),
           const SizedBox(height: 20),
           LayoutBuilder(
@@ -284,6 +299,243 @@ class _AdminSubscriptionsScreenState
     }
     referenceController.dispose();
   }
+
+  /// Records that staff checked and found no money. Clears the request and
+  /// tells the landlord why, without touching their current plan.
+  Future<void> _rejectPayment(PlatformAccount account) async {
+    final noteController = TextEditingController();
+    final reasonCode = await _pickReason(
+      title: 'Reject the payment from ${account.displayName}?',
+      description:
+          'Use this when you checked and the money is not there. Their '
+          'current plan and entitlements do not change — only the pending '
+          'request is cleared, and the landlord is told why so they can try '
+          'again.',
+      reasonCodes: rejectPaymentReasonCodes,
+      confirmLabel: 'Reject payment',
+      noteController: noteController,
+      noteLabel: 'Note to the landlord (optional)',
+    );
+    if (reasonCode != null && mounted) {
+      try {
+        await ref
+            .read(adminAccountCommandsProvider)
+            .rejectSubscriptionPayment(
+              account: account,
+              reasonCode: reasonCode,
+              note: noteController.text,
+            );
+        if (mounted) {
+          showAdminMessage(
+            context,
+            'Payment for ${account.displayName} was rejected and they have '
+            'been notified.',
+          );
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          showAdminMessage(context, 'The server rejected that action: $error');
+        }
+      }
+    }
+    noteController.dispose();
+  }
+
+  /// Moves a landlord to a smaller plan. The server refuses anything that is
+  /// not genuinely a downgrade.
+  Future<void> _downgrade(PlatformAccount account) async {
+    final catalog = ref
+        .read(publicPlanCatalogProvider)
+        .maybeWhen(
+          data: (plans) => plans,
+          orElse: () => const <String, PublicPlanFacts>{},
+        );
+    final options = catalog.values
+        .where((plan) => plan.tier != account.subscriptionTier)
+        .toList(growable: false);
+    if (options.isEmpty) {
+      showAdminMessage(context, 'No other plans are published to move to.');
+      return;
+    }
+    var tier = options.first.tier;
+    final reasonCode = await _pickReason(
+      title: 'Change the plan for ${account.displayName}?',
+      description:
+          'Downgrades only — the server rejects anything that would raise '
+          'the plan, because paid capacity is granted by confirming a '
+          'payment. Nothing is deleted: if they are over the new limit, '
+          'existing data stays and only new rental spaces and listings are '
+          'held.',
+      reasonCodes: downgradeReasonCodes,
+      confirmLabel: 'Change plan',
+      extraBuilder: (setDialogState) => Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: DropdownButtonFormField<String>(
+          initialValue: tier,
+          decoration: InputDecoration(labelText: context.tr('New plan')),
+          items: [
+            for (final plan in options)
+              DropdownMenuItem(
+                value: plan.tier,
+                child: Text.localized(plan.displayName),
+              ),
+          ],
+          onChanged: (value) =>
+              setDialogState(() => tier = value ?? options.first.tier),
+        ),
+      ),
+    );
+    if (reasonCode != null && mounted) {
+      try {
+        await ref
+            .read(adminAccountCommandsProvider)
+            .downgradeSubscription(
+              account: account,
+              tier: tier,
+              reasonCode: reasonCode,
+            );
+        if (mounted) {
+          showAdminMessage(
+            context,
+            '${account.displayName} was moved to the $tier plan.',
+          );
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          showAdminMessage(context, 'The server rejected that change: $error');
+        }
+      }
+    }
+  }
+
+  /// Ends a subscription, locking the workspace but preserving every record.
+  Future<void> _deactivate(PlatformAccount account) async {
+    final reasonCode = await _pickReason(
+      title: 'End the subscription for ${account.displayName}?',
+      description:
+          'This locks their workspace immediately. Nothing is deleted — '
+          'properties, tenants, payments and documents are all kept — and '
+          'their tenants keep full portal access. Confirming a payment '
+          'reopens the workspace with everything intact.',
+      reasonCodes: deactivateSubscriptionReasonCodes,
+      confirmLabel: 'End subscription',
+      destructive: true,
+    );
+    if (reasonCode != null && mounted) {
+      try {
+        await ref
+            .read(adminAccountCommandsProvider)
+            .deactivateSubscription(
+              account: account,
+              reasonCode: reasonCode,
+            );
+        if (mounted) {
+          showAdminMessage(
+            context,
+            'The subscription for ${account.displayName} was ended.',
+          );
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          showAdminMessage(context, 'The server rejected that action: $error');
+        }
+      }
+    }
+  }
+
+  /// Shared audited-action dialog: an explanation, a mandatory reason code,
+  /// and optional extra fields. Returns the chosen reason, or null if the
+  /// operator backed out.
+  Future<String?> _pickReason({
+    required String title,
+    required String description,
+    required List<String> reasonCodes,
+    required String confirmLabel,
+    TextEditingController? noteController,
+    String? noteLabel,
+    Widget Function(void Function(void Function()) setDialogState)?
+    extraBuilder,
+    bool destructive = false,
+  }) {
+    var reasonCode = reasonCodes.first;
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text.localized(title),
+          content: SizedBox(
+            width: 460,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.localized(
+                    description,
+                    style: Theme.of(dialogContext).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    initialValue: reasonCode,
+                    decoration: InputDecoration(
+                      labelText: dialogContext.tr('Reason (recorded in audit)'),
+                    ),
+                    items: [
+                      for (final code in reasonCodes)
+                        DropdownMenuItem(
+                          value: code,
+                          child: Text.localized(_reasonLabel(code)),
+                        ),
+                    ],
+                    onChanged: (value) => setDialogState(
+                      () => reasonCode = value ?? reasonCodes.first,
+                    ),
+                  ),
+                  if (extraBuilder != null) extraBuilder(setDialogState),
+                  if (noteController != null) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: noteController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: dialogContext.tr(noteLabel ?? 'Note'),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text.localized('Cancel'),
+            ),
+            FilledButton(
+              style: destructive
+                  ? FilledButton.styleFrom(
+                      backgroundColor: dialogContext.nyumba.danger,
+                    )
+                  : null,
+              onPressed: () => Navigator.pop(dialogContext, reasonCode),
+              child: Text.localized(confirmLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Turns a server reason code into readable text, e.g. `PAYMENT_NOT_RECEIVED`
+/// into "Payment not received".
+String _reasonLabel(String code) {
+  final words = code.toLowerCase().split('_');
+  if (words.isEmpty) return code;
+  return [
+    words.first[0].toUpperCase() + words.first.substring(1),
+    ...words.skip(1),
+  ].join(' ');
 }
 
 /// Subscriptions the staff can act on, with the audited confirm-payment flow.
@@ -291,7 +543,10 @@ class _PendingPaymentsPanel extends StatelessWidget {
   const _PendingPaymentsPanel({
     required this.accounts,
     required this.onConfirm,
+    required this.onReject,
   });
+
+  final ValueChanged<PlatformAccount> onReject;
 
   final List<PlatformAccount> accounts;
   final ValueChanged<PlatformAccount> onConfirm;
@@ -344,10 +599,28 @@ class _PendingPaymentsPanel extends StatelessWidget {
                           ),
                         ],
                       );
-                      final action = FilledButton.icon(
-                        onPressed: () => onConfirm(account),
-                        icon: const Icon(Icons.price_check_rounded, size: 18),
-                        label: const Text.localized('Confirm payment'),
+                      // Confirm and reject sit together: staff who checked and
+                      // found no money need a way to close the request, or it
+                      // sits here forever while the landlord assumes progress.
+                      final action = Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.end,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () => onReject(account),
+                            icon: const Icon(Icons.block_outlined, size: 18),
+                            label: const Text.localized('Reject'),
+                          ),
+                          FilledButton.icon(
+                            onPressed: () => onConfirm(account),
+                            icon: const Icon(
+                              Icons.price_check_rounded,
+                              size: 18,
+                            ),
+                            label: const Text.localized('Confirm payment'),
+                          ),
+                        ],
                       );
                       if (constraints.maxWidth < 560) {
                         return Column(
@@ -364,6 +637,137 @@ class _PendingPaymentsPanel extends StatelessWidget {
                           Expanded(child: identity),
                           const SizedBox(width: 16),
                           action,
+                        ],
+                      );
+                    },
+                  ),
+                  if (index < accounts.length - 1) const Divider(height: 26),
+                ],
+              ],
+            ),
+    );
+  }
+}
+
+/// Active subscriptions, with the plan-change and end-subscription actions
+/// and the overdue/grace state the renewal sweep maintains.
+class _ActiveSubscriptionsPanel extends StatelessWidget {
+  const _ActiveSubscriptionsPanel({
+    required this.accounts,
+    required this.onDowngrade,
+    required this.onDeactivate,
+  });
+
+  final List<PlatformAccount> accounts;
+  final ValueChanged<PlatformAccount> onDowngrade;
+  final ValueChanged<PlatformAccount> onDeactivate;
+
+  String _statusLine(PlatformAccount account) {
+    final parts = <String>[account.subscriptionTier ?? 'No tier'];
+    if (account.subscriptionGraceEndsAt case final graceEnds?) {
+      final daysLeft = graceEnds.difference(DateTime.now()).inDays;
+      parts.add(
+        daysLeft <= 0
+            ? 'payment overdue · locks today'
+            : 'payment overdue · locks in $daysLeft day'
+                  '${daysLeft == 1 ? '' : 's'}',
+      );
+    } else if (account.subscriptionRenewalDueAt case final due?) {
+      parts.add('renews ${_renewalDate.format(due.toLocal())}');
+    }
+    if (account.email.isNotEmpty) parts.add(account.email);
+    return parts.join(' · ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminPanel(
+      title: 'Active subscriptions',
+      subtitle:
+          'Change a plan or end a subscription. Ending locks the workspace '
+          'and never deletes data or affects tenants',
+      child: accounts.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text.localized('No active subscriptions yet.'),
+            )
+          : Column(
+              children: [
+                for (final (index, account) in accounts.indexed) ...[
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final overdue = account.isInPaymentGrace;
+                      final identity = Row(
+                        children: [
+                          AdminAvatar(name: account.displayName),
+                          const SizedBox(width: 11),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text.localized(
+                                  account.displayName,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelLarge,
+                                ),
+                                Text.localized(
+                                  _statusLine(account),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: overdue
+                                            ? context.nyumba.danger
+                                            : null,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (overdue)
+                            const StatusBadge(
+                              label: 'In grace',
+                              tone: BadgeTone.warning,
+                            ),
+                        ],
+                      );
+                      final actions = Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.end,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () => onDowngrade(account),
+                            icon: const Icon(
+                              Icons.trending_down_rounded,
+                              size: 18,
+                            ),
+                            label: const Text.localized('Change plan'),
+                          ),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: context.nyumba.danger,
+                            ),
+                            onPressed: () => onDeactivate(account),
+                            icon: const Icon(Icons.lock_outline, size: 18),
+                            label: const Text.localized('End subscription'),
+                          ),
+                        ],
+                      );
+                      if (constraints.maxWidth < 640) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            identity,
+                            const SizedBox(height: 10),
+                            actions,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: identity),
+                          const SizedBox(width: 16),
+                          actions,
                         ],
                       );
                     },

@@ -116,6 +116,58 @@ Future<EntitlementState> _readPlan(
   }
 }
 
+/// When the current paid period ends, and — once it has lapsed — when the
+/// grace window closes and the workspace locks.
+///
+/// An overdue subscription deliberately stays `active` through the grace
+/// window, so this rides alongside the entitlement rather than replacing it:
+/// the landlord keeps working while the deadline is shown.
+final class SubscriptionRenewalState {
+  const SubscriptionRenewalState({this.renewalDueAt, this.graceEndsAt});
+
+  final DateTime? renewalDueAt;
+
+  /// Non-null only while a payment is overdue.
+  final DateTime? graceEndsAt;
+
+  bool get isOverdue => graceEndsAt != null;
+
+  /// Whole days until the workspace locks; negative once the deadline passes.
+  int? get daysUntilLock => graceEndsAt == null
+      ? null
+      : graceEndsAt!.difference(DateTime.now()).inHours ~/ 24;
+}
+
+/// The signed-in landlord's renewal deadline, read live from the server-owned
+/// subscription document. Empty for everyone else.
+final subscriptionRenewalProvider = StreamProvider<SubscriptionRenewalState>((
+  ref,
+) async* {
+  final session = ref.watch(sessionControllerProvider);
+  if (session == null ||
+      session.role != AppRole.landlord ||
+      Firebase.apps.isEmpty) {
+    yield const SubscriptionRenewalState();
+    return;
+  }
+  try {
+    await for (final snapshot
+        in FirebaseFirestore.instance
+            .collection('subscriptions')
+            .doc(session.userId)
+            .snapshots()) {
+      final data = snapshot.data();
+      yield SubscriptionRenewalState(
+        renewalDueAt: (data?['renewalDueAt'] as Timestamp?)?.toDate(),
+        graceEndsAt: (data?['graceEndsAt'] as Timestamp?)?.toDate(),
+      );
+    }
+  } on FirebaseException {
+    // A deadline we cannot read is one we must not assert.
+    yield const SubscriptionRenewalState();
+  }
+});
+
 /// One benefit line on a plan card. `implemented: false` marks a benefit the
 /// plan is sold with but that has not shipped yet — the UI greys it out
 /// instead of hiding it, so nobody pays for a promise they did not see.

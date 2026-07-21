@@ -15,7 +15,15 @@ import { listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from
 import { propertyArchive, propertyCreate, propertyUpdate, unitArchive, unitCreate, unitRestore, unitUpdate } from './portfolio';
 import { notificationMarkRead } from './notifications';
 import { reportRequest } from './reports';
-import { planUpdate, subscriptionConfirmPayment, subscriptionRequestUpgrade, subscriptionSelectPlan } from './subscription';
+import {
+  planUpdate,
+  subscriptionConfirmPayment,
+  subscriptionDeactivate,
+  subscriptionDowngrade,
+  subscriptionRejectPayment,
+  subscriptionRequestUpgrade,
+  subscriptionSelectPlan,
+} from './subscription';
 import { leaseActivate, leaseCreate, leaseEnd, tenancyEstablish, tenantClaimInvite, tenantInvite, tenantUpdate } from './tenancy';
 
 // Payload types are enforced by each handler's strict runtime schema before
@@ -36,6 +44,9 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['subscription.selectPlan', subscriptionSelectPlan],
   ['subscription.requestUpgrade', subscriptionRequestUpgrade],
   ['subscription.confirmPayment', subscriptionConfirmPayment],
+  ['subscription.rejectPayment', subscriptionRejectPayment],
+  ['subscription.downgrade', subscriptionDowngrade],
+  ['subscription.deactivate', subscriptionDeactivate],
   ['plan.update', planUpdate],
   ['platform.broadcast', platformBroadcast],
   ['property.create', propertyCreate],

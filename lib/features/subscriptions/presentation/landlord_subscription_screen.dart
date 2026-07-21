@@ -24,6 +24,8 @@ final _ugx = NumberFormat.currency(
   decimalDigits: 0,
 );
 
+final _renewalDate = DateFormat('d MMMM yyyy');
+
 /// Pre-payment gate for landlord accounts. Lets the landlord pick the plan
 /// they intend to pay for and shows live payment status; the workspace itself
 /// unlocks only when the server-owned subscription turns `active`, which the
@@ -260,6 +262,12 @@ class _LandlordSubscriptionScreenState
                     const SizedBox(height: 24),
                     _PaymentStatusCard(
                       status: status,
+                      renewal: ref
+                          .watch(subscriptionRenewalProvider)
+                          .maybeWhen(
+                            data: (state) => state,
+                            orElse: () => const SubscriptionRenewalState(),
+                          ),
                       planName: _planName(copy, tier, catalog),
                       requestedPlanName: active && requestedTier != null
                           ? _planName(copy, requestedTier, catalog)
@@ -402,6 +410,7 @@ String? _planName(
 class _PaymentStatusCard extends StatelessWidget {
   const _PaymentStatusCard({
     required this.status,
+    required this.renewal,
     required this.planName,
     required this.requestedPlanName,
     required this.accountEmail,
@@ -411,6 +420,10 @@ class _PaymentStatusCard extends StatelessWidget {
   });
 
   final LandlordSubscriptionStatus status;
+
+  /// Renewal deadline and, once overdue, the grace window.
+  final SubscriptionRenewalState renewal;
+
   final String? planName;
 
   /// Plan an active landlord asked to upgrade to; non-null only while an
@@ -463,6 +476,49 @@ class _PaymentStatusCard extends StatelessWidget {
                   _statusMessage(copy, status, planName),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+                // An overdue-but-active subscription is the grace window: the
+                // workspace still works, so the deadline is a warning rather
+                // than a lockout notice.
+                if (active && renewal.isOverdue) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    copy.subscriptionOverdueTitle,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: context.nyumba.danger,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    switch (renewal.daysUntilLock) {
+                      final days? when days > 0 =>
+                        copy.subscriptionOverdueLocksIn(
+                          days,
+                          _renewalDate.format(renewal.graceEndsAt!.toLocal()),
+                        ),
+                      _ => copy.subscriptionOverdueLocksToday,
+                    },
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.terracottaDark,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _howToPay(copy, accountEmail),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.mutedInk,
+                    ),
+                  ),
+                ] else if (active && renewal.renewalDueAt != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    copy.subscriptionRenewsOn(
+                      _renewalDate.format(renewal.renewalDueAt!.toLocal()),
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.mutedInk,
+                    ),
+                  ),
+                ],
                 if (!active) ...[
                   const SizedBox(height: 10),
                   Text(

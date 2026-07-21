@@ -2457,6 +2457,23 @@ class AppLocalizationsAr extends AppLocalizations {
       'مدفوعات المحفظة الإلكترونية والبطاقة قادمة قريباً. في الوقت الحالي، اختر نقداً للترقية — يفعّلها المسؤول بمجرد التحقق من دفعتك.';
 
   @override
+  String subscriptionRenewsOn(String date) {
+    return 'يتجدد في $date';
+  }
+
+  @override
+  String get subscriptionOverdueTitle => 'دفعتك متأخرة';
+
+  @override
+  String subscriptionOverdueLocksIn(int days, String date) {
+    return 'تبقى مساحة عملك مفتوحة $days يوماً إضافياً، ثم تُقفل في $date ما لم يتم تأكيد الدفع. لا يُحذف أي شيء، ولا يتأثر المستأجرون لديك.';
+  }
+
+  @override
+  String get subscriptionOverdueLocksToday =>
+      'تُقفل مساحة عملك اليوم ما لم يتم تأكيد الدفع. لا يُحذف أي شيء، ولا يتأثر المستأجرون لديك.';
+
+  @override
   String get subscriptionStarterPlan => 'المبتدئة';
 
   @override

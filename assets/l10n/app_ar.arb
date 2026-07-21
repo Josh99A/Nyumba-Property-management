@@ -766,6 +766,12 @@
     ,"subscriptionUpgradeCashRequested": "تم طلب الترقية إلى {plan}. ادفع لـ Nyumba نقداً — يفعّلها المسؤول بمجرد التحقق من الدفع. تبقى خطتك الحالية نشطة في هذه الأثناء."
     ,"@subscriptionUpgradeCashRequested": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionElectronicComingSoon": "مدفوعات المحفظة الإلكترونية والبطاقة قادمة قريباً. في الوقت الحالي، اختر نقداً للترقية — يفعّلها المسؤول بمجرد التحقق من دفعتك."
+    ,"subscriptionRenewsOn": "يتجدد في {date}"
+    ,"@subscriptionRenewsOn": {"placeholders": {"date": {"type": "String"}}}
+    ,"subscriptionOverdueTitle": "دفعتك متأخرة"
+    ,"subscriptionOverdueLocksIn": "تبقى مساحة عملك مفتوحة {days} يوماً إضافياً، ثم تُقفل في {date} ما لم يتم تأكيد الدفع. لا يُحذف أي شيء، ولا يتأثر المستأجرون لديك."
+    ,"@subscriptionOverdueLocksIn": {"placeholders": {"days": {"type": "int"}, "date": {"type": "String"}}}
+    ,"subscriptionOverdueLocksToday": "تُقفل مساحة عملك اليوم ما لم يتم تأكيد الدفع. لا يُحذف أي شيء، ولا يتأثر المستأجرون لديك."
     ,"subscriptionStarterPlan": "المبتدئة"
     ,"subscriptionProPlan": "الاحترافية"
     ,"subscriptionPremiumPlan": "المتميزة"

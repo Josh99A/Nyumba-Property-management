@@ -766,6 +766,12 @@
     ,"subscriptionUpgradeCashRequested": "Okusaba okulinnyisa ku {plan} kuweereddwa. Sasula Nyumba sente enkalu — omukulu aginnyisa okusasula bwe kumala okukakasibwa. Enteekateeka yo eriwo ekyakola."
     ,"@subscriptionUpgradeCashRequested": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionElectronicComingSoon": "Okusasula n'esente za ssimu ne kaadi bijja mangu. Kati, londa Sente enkalu okulinnyisa — omukulu aginnyisa okusasula kwo bwe kumala okukakasibwa."
+    ,"subscriptionRenewsOn": "Eddamu ku {date}"
+    ,"@subscriptionRenewsOn": {"placeholders": {"date": {"type": "String"}}}
+    ,"subscriptionOverdueTitle": "Okusasula kwo kuyise ku kiseera"
+    ,"subscriptionOverdueLocksIn": "Ekifo kyo eky'okukolerako kisigala nga kiggule ennaku {days} endala, oluvannyuma kiggalwa ku {date} okuggyako ng'okusasula kukakasibwa. Tewali kisangulwa, era abapangisa bo tebakosebwa."
+    ,"@subscriptionOverdueLocksIn": {"placeholders": {"days": {"type": "int"}, "date": {"type": "String"}}}
+    ,"subscriptionOverdueLocksToday": "Ekifo kyo eky'okukolerako kiggalwa leero okuggyako ng'okusasula kukakasibwa. Tewali kisangulwa, era abapangisa bo tebakosebwa."
     ,"subscriptionStarterPlan": "Entandikwa"
     ,"subscriptionProPlan": "Pro"
     ,"subscriptionPremiumPlan": "Premium"

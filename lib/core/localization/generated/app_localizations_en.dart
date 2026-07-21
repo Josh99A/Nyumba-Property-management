@@ -2476,6 +2476,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Mobile money and card payments are coming soon. For now, choose Cash to upgrade — an admin activates it once your payment is verified.';
 
   @override
+  String subscriptionRenewsOn(String date) {
+    return 'Renews on $date';
+  }
+
+  @override
+  String get subscriptionOverdueTitle => 'Your payment is overdue';
+
+  @override
+  String subscriptionOverdueLocksIn(int days, String date) {
+    return 'Your workspace stays open for $days more day(s), then locks on $date unless payment is confirmed. Nothing is deleted, and your tenants are not affected.';
+  }
+
+  @override
+  String get subscriptionOverdueLocksToday =>
+      'Your workspace locks today unless payment is confirmed. Nothing is deleted, and your tenants are not affected.';
+
+  @override
   String get subscriptionStarterPlan => 'Starter';
 
   @override

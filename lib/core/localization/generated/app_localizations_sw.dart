@@ -2515,6 +2515,23 @@ class AppLocalizationsSw extends AppLocalizations {
       'Malipo ya pesa za simu na kadi yanakuja hivi karibuni. Kwa sasa, chagua Fedha taslimu kuboresha — msimamizi anaiwezesha malipo yako yatakapothibitishwa.';
 
   @override
+  String subscriptionRenewsOn(String date) {
+    return 'Inahuishwa tarehe $date';
+  }
+
+  @override
+  String get subscriptionOverdueTitle => 'Malipo yako yamechelewa';
+
+  @override
+  String subscriptionOverdueLocksIn(int days, String date) {
+    return 'Nafasi yako ya kazi inabaki wazi kwa siku $days zaidi, kisha inafungwa tarehe $date isipokuwa malipo yathibitishwe. Hakuna kinachofutwa, na wapangaji wako hawaathiriki.';
+  }
+
+  @override
+  String get subscriptionOverdueLocksToday =>
+      'Nafasi yako ya kazi inafungwa leo isipokuwa malipo yathibitishwe. Hakuna kinachofutwa, na wapangaji wako hawaathiriki.';
+
+  @override
   String get subscriptionStarterPlan => 'Mwanzo';
 
   @override

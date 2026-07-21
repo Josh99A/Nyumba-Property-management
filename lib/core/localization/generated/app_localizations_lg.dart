@@ -2529,6 +2529,23 @@ class AppLocalizationsLg extends AppLocalizations {
       'Okusasula n\'esente za ssimu ne kaadi bijja mangu. Kati, londa Sente enkalu okulinnyisa — omukulu aginnyisa okusasula kwo bwe kumala okukakasibwa.';
 
   @override
+  String subscriptionRenewsOn(String date) {
+    return 'Eddamu ku $date';
+  }
+
+  @override
+  String get subscriptionOverdueTitle => 'Okusasula kwo kuyise ku kiseera';
+
+  @override
+  String subscriptionOverdueLocksIn(int days, String date) {
+    return 'Ekifo kyo eky\'okukolerako kisigala nga kiggule ennaku $days endala, oluvannyuma kiggalwa ku $date okuggyako ng\'okusasula kukakasibwa. Tewali kisangulwa, era abapangisa bo tebakosebwa.';
+  }
+
+  @override
+  String get subscriptionOverdueLocksToday =>
+      'Ekifo kyo eky\'okukolerako kiggalwa leero okuggyako ng\'okusasula kukakasibwa. Tewali kisangulwa, era abapangisa bo tebakosebwa.';
+
+  @override
   String get subscriptionStarterPlan => 'Entandikwa';
 
   @override

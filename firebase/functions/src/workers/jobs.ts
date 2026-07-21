@@ -28,6 +28,7 @@ import {
   sendTenantInviteEmail,
 } from './email';
 import { initiatePayment } from './payment-provider';
+import { sendSubscriptionNoticeEmail } from './subscription-notices';
 import { renderReceipt } from './receipt-render';
 import { generateReport } from './report-generation';
 import { unpublishLandlordListings } from './unpublish-landlord';
@@ -63,6 +64,7 @@ const processors = new Map<string, JobProcessor>([
   ['sendMaintenanceStatusEmail', sendMaintenanceStatusEmail],
   ['sendLeaseExpiryEmail', sendLeaseExpiryEmail],
   ['sendListingExpiryWarningEmail', sendListingExpiryWarningEmail],
+  ['sendSubscriptionNoticeEmail', sendSubscriptionNoticeEmail],
 ]);
 
 /** Visible for tests, which assert no command enqueues an unregistered type. */

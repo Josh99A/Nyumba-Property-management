@@ -1,11 +1,11 @@
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import { Timestamp, type Firestore, type Transaction } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, requireAggregate } from '../shared/aggregates';
 import { requirePlatformAdmin, requireSuperAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { loadEntitlements, planForTier } from '../shared/config';
 import { DomainError } from '../shared/errors';
-import { nonNegativeMoney, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import { createJob, nonNegativeMoney, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
 
 interface SubscriptionRecord {
   version: number;
@@ -14,6 +14,7 @@ interface SubscriptionRecord {
   requestedTier?: string | null;
   upgradeBillingChannel?: string | null;
   upgradeState?: string | null;
+  billingInterval?: string | null;
 }
 
 /**
@@ -156,7 +157,28 @@ export const subscriptionRequestUpgrade: CommandHandler<z.infer<typeof requestUp
 const confirmPaymentSchema = strictPayload({
   reference: shortText,
   tier: z.string().trim().min(1).max(40).optional(),
+  billingInterval: z.enum(['monthly', 'yearly']).optional(),
 });
+
+/**
+ * End of a paid period. Calendar-aware rather than a fixed day count, so a
+ * monthly subscription confirmed on the 31st lands on the last day of a
+ * shorter month instead of skipping it.
+ */
+function periodEnd(from: Timestamp, interval: 'monthly' | 'yearly'): Timestamp {
+  const date = from.toDate();
+  const target = new Date(date);
+  if (interval === 'yearly') {
+    target.setUTCFullYear(target.getUTCFullYear() + 1);
+  } else {
+    const day = target.getUTCDate();
+    target.setUTCMonth(target.getUTCMonth() + 1);
+    // Rolled into the following month (e.g. 31 Jan + 1 month): step back to
+    // the last day of the intended month.
+    if (target.getUTCDate() !== day) target.setUTCDate(0);
+  }
+  return Timestamp.fromDate(target);
+}
 
 /**
  * Marks a landlord subscription as paid and opens the workspace.
@@ -225,6 +247,11 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
       throw new DomainError('VALIDATION_FAILED', { reason: 'accountApprovalStatusInvalid' });
     }
     planForTier(entitlements, tier);
+    // A confirmed payment always buys a fresh period and wipes any overdue
+    // state, so paying inside the grace window restores a clean subscription
+    // rather than leaving a stale deadline that would expire it anyway.
+    const interval = cmd.payload.billingInterval
+      ?? (subscription.billingInterval === 'yearly' ? 'yearly' : 'monthly');
     tx.update(ref, {
       tier,
       status: 'active',
@@ -232,6 +259,10 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
       upgradeBillingChannel: null,
       upgradeState: null,
       paymentReference: cmd.payload.reference,
+      billingInterval: interval,
+      renewalDueAt: periodEnd(now, interval),
+      graceEndsAt: null,
+      paymentOverdueSince: null,
       ...(wasActive ? { planChangedAt: now } : { activatedAt: now }),
       ...bumpVersion(subscription, now),
     });
@@ -254,8 +285,210 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
         'upgradeBillingChannel',
         'upgradeState',
         'paymentReference',
+        'billingInterval',
+        'renewalDueAt',
+        'graceEndsAt',
         wasActive ? 'planChangedAt' : 'activatedAt',
       ],
+    };
+  },
+};
+
+const rejectPaymentSchema = strictPayload({
+  reasonCode: z.enum([
+    'PAYMENT_NOT_RECEIVED',
+    'AMOUNT_INCORRECT',
+    'REFERENCE_INVALID',
+    'DUPLICATE_REQUEST',
+    'ADMIN_CORRECTION',
+  ]),
+  note: z.string().trim().max(500).optional(),
+});
+
+/**
+ * Rejects a payment a landlord claimed to have made.
+ *
+ * The counterpart to `subscription.confirmPayment`: staff who checked and
+ * found no money must be able to say so, instead of leaving the request
+ * sitting in the queue forever with the landlord assuming it is in progress.
+ *
+ * Deliberately never punitive — it clears the pending request and records why,
+ * leaving the subscription exactly as it was. An unpaid account stays
+ * `pending_payment` (still able to select a plan and try again) and a paid one
+ * keeps the plan and period it already has; only the rejected *request* goes
+ * away. The landlord is told, so a rejection is never silent.
+ */
+export const subscriptionRejectPayment: CommandHandler<z.infer<typeof rejectPaymentSchema>> = {
+  payloadSchema: rejectPaymentSchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'edit',
+  async apply({ tx, db, actor, cmd, now }) {
+    requirePlatformAdmin(actor);
+    const landlordId = cmd.aggregateId!;
+    if (landlordId === actor.uid) throw new DomainError('PERMISSION_DENIED');
+    const ref = db.collection(COLLECTIONS.subscriptions).doc(landlordId);
+    const snapshot = await tx.get(ref);
+    const subscription = requireAggregate<SubscriptionRecord>(snapshot, cmd.expectedVersion);
+    // Rejecting needs something outstanding to reject: either a landlord's
+    // pending upgrade request, or an account still awaiting its first payment.
+    const hasPendingUpgrade = typeof subscription.requestedTier === 'string'
+      && subscription.requestedTier !== subscription.tier;
+    if (!hasPendingUpgrade && subscription.status === 'active') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'noPaymentAwaitingReview' });
+    }
+    tx.update(ref, {
+      requestedTier: null,
+      upgradeBillingChannel: null,
+      upgradeState: null,
+      paymentRejectedAt: now,
+      paymentRejectionReasonCode: cmd.payload.reasonCode,
+      paymentRejectionNote: cmd.payload.note ?? null,
+      ...bumpVersion(subscription, now),
+    });
+    createJob(tx, db, `${cmd.commandId}_notice`, 'sendSubscriptionNoticeEmail', {
+      landlordId,
+      kind: 'payment_rejected',
+      reasonCode: cmd.payload.reasonCode,
+      note: cmd.payload.note ?? null,
+    }, now);
+    return {
+      status: 'accepted',
+      aggregateId: landlordId,
+      serverVersion: subscription.version + 1,
+      changedFields: ['requestedTier', 'paymentRejectedAt', 'paymentRejectionReasonCode'],
+      reasonCode: cmd.payload.reasonCode,
+    };
+  },
+};
+
+const downgradeSchema = strictPayload({
+  tier: z.string().trim().min(1).max(40),
+  reasonCode: z.enum([
+    'LANDLORD_REQUESTED',
+    'PAYMENT_SHORTFALL',
+    'ADMIN_CORRECTION',
+  ]),
+});
+
+/**
+ * Moves an active subscription to a smaller plan, without a payment.
+ *
+ * Downward only. Letting this command raise a tier would hand any admin
+ * session a way to grant paid capacity for free; upgrades keep going through
+ * `confirmPayment` against a verified payment. "Smaller" is judged by the
+ * server-owned unit limit rather than a hard-coded tier order, so it stays
+ * correct when super admins re-price or re-scope plans via `plan.update`.
+ *
+ * Downgrade safety (docs/architecture/subscription-tiers.md) is preserved: the
+ * subscription stays active, nothing is deleted, tenants are untouched, and an
+ * over-limit landlord simply cannot create more units or publish more listings
+ * until they are back within the new plan. The paid period is left alone —
+ * money already paid is not shortened by moving to a cheaper plan.
+ */
+export const subscriptionDowngrade: CommandHandler<z.infer<typeof downgradeSchema>> = {
+  payloadSchema: downgradeSchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'edit',
+  async apply({ tx, db, actor, cmd, now }) {
+    requirePlatformAdmin(actor);
+    const landlordId = cmd.aggregateId!;
+    if (landlordId === actor.uid) throw new DomainError('PERMISSION_DENIED');
+    const ref = db.collection(COLLECTIONS.subscriptions).doc(landlordId);
+    const [snapshot, entitlements] = await Promise.all([tx.get(ref), loadEntitlements(tx, db)]);
+    const subscription = requireAggregate<SubscriptionRecord>(snapshot, cmd.expectedVersion);
+    if (cmd.payload.tier === subscription.tier) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'tierUnchanged' });
+    }
+    const current = planForTier(entitlements, subscription.tier);
+    const target = planForTier(entitlements, cmd.payload.tier);
+    if (target.unitLimit > current.unitLimit) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'notADowngrade' });
+    }
+    tx.update(ref, {
+      tier: cmd.payload.tier,
+      // A pending upgrade cannot survive a downgrade: it would re-raise the
+      // tier the moment anyone confirmed it.
+      requestedTier: null,
+      upgradeBillingChannel: null,
+      upgradeState: null,
+      planChangedAt: now,
+      downgradeReasonCode: cmd.payload.reasonCode,
+      ...bumpVersion(subscription, now),
+    });
+    createJob(tx, db, `${cmd.commandId}_notice`, 'sendSubscriptionNoticeEmail', {
+      landlordId,
+      kind: 'downgraded',
+      tier: cmd.payload.tier,
+      reasonCode: cmd.payload.reasonCode,
+    }, now);
+    return {
+      status: 'accepted',
+      aggregateId: landlordId,
+      serverVersion: subscription.version + 1,
+      changedFields: ['tier', 'requestedTier', 'planChangedAt', 'downgradeReasonCode'],
+      reasonCode: cmd.payload.reasonCode,
+    };
+  },
+};
+
+const deactivateSchema = strictPayload({
+  reasonCode: z.enum([
+    'NON_PAYMENT',
+    'LANDLORD_REQUESTED',
+    'DUPLICATE_ACCOUNT',
+    'ADMIN_CORRECTION',
+  ]),
+});
+
+/**
+ * Ends a landlord's subscription, closing their workspace.
+ *
+ * The manual counterpart to the grace-period sweep. Because every landlord
+ * command requires an `active` subscription, `canceled` is what actually locks
+ * the workspace — and that is the whole effect. Nothing is deleted, listings
+ * are left as they are, and tenants keep their portal, their lease, their
+ * balances and their documents: a landlord who stopped paying must never cost
+ * their tenants access to their own records. Reversal is `confirmPayment`,
+ * which restores the workspace and starts a fresh paid period.
+ *
+ * This is not a compliance tool. Suspending an account for abuse is
+ * `landlord.suspend`, which also takes their adverts down.
+ */
+export const subscriptionDeactivate: CommandHandler<z.infer<typeof deactivateSchema>> = {
+  payloadSchema: deactivateSchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'edit',
+  async apply({ tx, db, actor, cmd, now }) {
+    requirePlatformAdmin(actor);
+    const landlordId = cmd.aggregateId!;
+    if (landlordId === actor.uid) throw new DomainError('PERMISSION_DENIED');
+    const ref = db.collection(COLLECTIONS.subscriptions).doc(landlordId);
+    const snapshot = await tx.get(ref);
+    const subscription = requireAggregate<SubscriptionRecord>(snapshot, cmd.expectedVersion);
+    if (subscription.status === 'canceled' || subscription.status === 'expired') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'subscriptionAlreadyEnded' });
+    }
+    tx.update(ref, {
+      status: 'canceled',
+      requestedTier: null,
+      upgradeBillingChannel: null,
+      upgradeState: null,
+      graceEndsAt: null,
+      canceledAt: now,
+      cancelReasonCode: cmd.payload.reasonCode,
+      ...bumpVersion(subscription, now),
+    });
+    createJob(tx, db, `${cmd.commandId}_notice`, 'sendSubscriptionNoticeEmail', {
+      landlordId,
+      kind: 'deactivated',
+      reasonCode: cmd.payload.reasonCode,
+    }, now);
+    return {
+      status: 'accepted',
+      aggregateId: landlordId,
+      serverVersion: subscription.version + 1,
+      changedFields: ['status', 'canceledAt', 'cancelReasonCode'],
+      reasonCode: cmd.payload.reasonCode,
     };
   },
 };
