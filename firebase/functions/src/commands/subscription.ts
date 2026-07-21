@@ -206,9 +206,14 @@ function periodEnd(from: Timestamp, interval: 'monthly' | 'yearly'): Timestamp {
  * tier change to apply still rejects — there is no such thing as re-confirming
  * the same plan.
  *
- * This is the administrator (cash) path; it is also the exact transition the
- * electronic aggregator's signed webhook will call to auto-activate a
- * `mobile_money`/`card` upgrade without an administrator.
+ * This is the administrator (cash) path. The electronic aggregator's signed
+ * webhook will call this same transition to auto-activate a
+ * `mobile_money`/`card` upgrade without an administrator — but an
+ * administrator may not stand in for it: a pending upgrade left
+ * `awaiting_payment` is rejected rather than adopted, so a plan can never open
+ * on a checkout the provider never confirmed. Passing `tier` explicitly
+ * remains available as a deliberate, audited override when a provider
+ * callback has to be rescued by hand.
  */
 export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPaymentSchema>> = {
   payloadSchema: confirmPaymentSchema,
@@ -227,6 +232,21 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
     ]);
     const subscription = requireAggregate<SubscriptionRecord>(snapshot, cmd.expectedVersion);
     const wasActive = subscription.status === 'active';
+    // An electronic upgrade belongs to the aggregator: its signed webhook
+    // calls this transition once money actually moved. An administrator must
+    // not adopt one implicitly, or a plan opens on a checkout nobody
+    // completed. Passing `tier` explicitly stays allowed — that is a
+    // deliberate, audited override for rescuing a failed provider callback,
+    // not an accident.
+    if (
+      wasActive
+      && cmd.payload.tier === undefined
+      && subscription.upgradeState === 'awaiting_payment'
+    ) {
+      throw new DomainError('VALIDATION_FAILED', {
+        reason: 'electronicUpgradeAwaitingProvider',
+      });
+    }
     const tier =
       cmd.payload.tier
       ?? (wasActive ? subscription.requestedTier ?? undefined : undefined)

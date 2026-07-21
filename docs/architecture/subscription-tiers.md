@@ -51,6 +51,15 @@ upgrade is confirmed:
   activates a plan against money that never moved. Until then the app tells
   the landlord electronic checkout is coming soon and to pay cash.
 
+**Activation for an electronic upgrade is the provider's alone.** An upgrade
+left `awaiting_payment` is not an administrator's to confirm: staff have no
+way to verify an aggregator collection, so `confirmPayment` rejects it with
+`electronicUpgradeAwaitingProvider` rather than adopting the requested tier.
+The admin queue reflects this too — it surfaces cash upgrades only. The one
+exception is deliberate and audited: passing `tier` explicitly overrides,
+which is how a genuinely-paid upgrade is rescued when a provider callback
+fails.
+
 In every case `requestUpgrade` records only intent — the paid plan, its
 entitlements, and the workspace stay exactly as paid for until the matching
 confirmation runs. Downgrades remain a support conversation (the
