@@ -33,6 +33,9 @@ const TENANT_PAYMENT_FIELDS = [
   ...AGGREGATE_FIELDS,
   'leaseId', 'invoiceId', 'amountMinor', 'currency', 'method', 'rail',
   'reference', 'status', 'confirmedAt', 'receiptId', 'allocations',
+  // A tenant must be able to see what became of a payment they declared, and
+  // why, without asking their landlord.
+  'declaredAt', 'note', 'rejectedAt', 'rejectionReasonCode', 'rejectionNote',
 ] as const;
 
 const TENANT_RECEIPT_FIELDS = [

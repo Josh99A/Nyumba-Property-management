@@ -52,6 +52,8 @@ describe('background job registry', () => {
       'movePrivateDocument',
       'noticeFanout',
       'notifyLandlordApplication',
+      'notifyLandlordPaymentDeclared',
+      'notifyTenantPaymentRejected',
       'publishListingMedia',
       'purgeDocument',
       'renderReceipt',

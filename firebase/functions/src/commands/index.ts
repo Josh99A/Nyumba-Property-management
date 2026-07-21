@@ -1,7 +1,16 @@
 import type { CommandHandler } from '../shared/handlers';
 import { landlordApprove, landlordReinstate, landlordSuspend, userArchive, userChangeRole, userDelete, userRestore } from './admin';
 import { applicationSubmit, applicationWithdraw, contactSubmit } from './applications';
-import { invoiceGenerate, paymentInitiate, paymentRecordAgainstTenancy, paymentRecordManual, receiptRegenerate } from './billing';
+import {
+  invoiceGenerate,
+  paymentConfirmDeclared,
+  paymentDeclare,
+  paymentInitiate,
+  paymentRecordAgainstTenancy,
+  paymentRecordManual,
+  paymentRejectDeclared,
+  receiptRegenerate,
+} from './billing';
 import { noticePublish, platformBroadcast } from './communication';
 import { documentDelete, documentFinalizeUpload } from './documents';
 import {
@@ -69,6 +78,9 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['payment.recordManual', paymentRecordManual],
   ['payment.recordAgainstTenancy', paymentRecordAgainstTenancy],
   ['payment.initiate', paymentInitiate],
+  ['payment.declare', paymentDeclare],
+  ['payment.confirmDeclared', paymentConfirmDeclared],
+  ['payment.rejectDeclared', paymentRejectDeclared],
   ['receipt.regenerate', receiptRegenerate],
   ['maintenance.create', maintenanceCreate],
   ['maintenance.updateStatus', maintenanceUpdateStatus],

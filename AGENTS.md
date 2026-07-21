@@ -29,7 +29,12 @@ Not yet real, and not to be presented as real:
   with `providerNotConfigured`, and electronic subscription upgrades fail
   closed with `PAYMENT_PROVIDER_UNAVAILABLE`. Both surface a plain message and
   point at the manual path; do not simulate a successful collection to make a
-  flow demoable. Provider choice, fees, reconciliation, and the webhook
+  flow demoable. Rent therefore moves outside the app and someone reports it:
+  a landlord recording money they hold settles immediately
+  (`payment.recordAgainstTenancy`), while a tenant's report
+  (`payment.declare`, proof reference mandatory) is only a claim — it
+  allocates nothing and moves no balance until the landlord confirms it, or
+  a tenant could clear their own arrears by asserting them away. Provider choice, fees, reconciliation, and the webhook
   contract are TBD. Settlement is **not** TBD: Nyumba collects subscriptions
   only, and rent must settle to the landlord (see
   `docs/architecture/README.md`).

@@ -30,6 +30,8 @@ const _expectedCommands = <(OfflineEntityType, OutboxOperation), String>{
   (OfflineEntityType.application, OutboxOperation.apply): 'application.submit',
   (OfflineEntityType.application, OutboxOperation.update):
       'application.withdraw',
+  // A landlord recording money they hold. The tenant's counterpart carries
+  // `declaredByTenant` and maps to `payment.declare` (covered below).
   (OfflineEntityType.payment, OutboxOperation.create):
       'payment.recordAgainstTenancy',
   (OfflineEntityType.maintenanceRequest, OutboxOperation.create):
@@ -389,6 +391,53 @@ void main() {
         'method': 'mtn_momo',
         'period': 'July 2026',
       });
+    });
+
+    test('a tenant-declared payment maps to payment.declare with its proof', () {
+      // The landlord-only command rejects a tenant actor outright, so routing
+      // a declaration there made every tenant-reported payment fail
+      // permanently while the app said it was queued.
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.payment,
+          OutboxOperation.create,
+          payload: const <String, Object?>{
+            'tenancyId': 'lease-1',
+            'amountMinor': 450000,
+            'method': 'mtnMomo',
+            'period': 'July 2026',
+            'reference': 'MP2607.1234.A56789',
+            'declaredByTenant': true,
+          },
+        ),
+      );
+      expect(envelope['type'], 'payment.declare');
+      expect(envelope['payload'], const <String, Object?>{
+        'tenancyId': 'lease-1',
+        'amountMinor': 450000,
+        'method': 'mtn_momo',
+        'period': 'July 2026',
+        // Proof must survive the mapping: it is the only thing the landlord
+        // has to judge the claim on.
+        'reference': 'MP2607.1234.A56789',
+      });
+    });
+
+    test('a landlord-recorded payment still settles directly', () {
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.payment,
+          OutboxOperation.create,
+          payload: const <String, Object?>{
+            'tenancyId': 'lease-1',
+            'amountMinor': 450000,
+            'method': 'cash',
+            'period': 'July 2026',
+            'declaredByTenant': false,
+          },
+        ),
+      );
+      expect(envelope['type'], 'payment.recordAgainstTenancy');
     });
 
     test('rejects an unmapped mutation without retrying forever', () {

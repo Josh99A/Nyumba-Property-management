@@ -366,6 +366,20 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
           if (payload['balanceMinor'] != null)
             'openingBalanceMinor': payload['balanceMinor'],
         }),
+      // A tenant reporting rent they paid and a landlord recording rent they
+      // received are different acts with different authority: the tenant's is
+      // a claim the landlord must confirm, so it routes to `payment.declare`.
+      // Sending it to the landlord-only command would fail PERMISSION_DENIED
+      // on every attempt.
+      (OfflineEntityType.payment, OutboxOperation.create)
+          when payload['declaredByTenant'] == true =>
+        _RemoteCommand('payment.declare', <String, Object?>{
+          'tenancyId': payload['tenancyId'],
+          'amountMinor': payload['amountMinor'],
+          'method': _snakeCase(payload['method']?.toString() ?? ''),
+          'period': payload['period'],
+          'reference': payload['reference'],
+        }),
       (OfflineEntityType.payment, OutboxOperation.create) =>
         _RemoteCommand('payment.recordAgainstTenancy', <String, Object?>{
           'tenancyId': payload['tenancyId'],

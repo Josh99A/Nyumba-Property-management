@@ -16,7 +16,12 @@ import {
 } from './media-publication';
 import { fanoutBroadcast } from './broadcast-fanout';
 import { fanoutNotice } from './notice-fanout';
-import { deliverContactRequest, notifyLandlordApplication } from './notifications';
+import {
+  deliverContactRequest,
+  notifyLandlordApplication,
+  notifyLandlordPaymentDeclared,
+  notifyTenantPaymentRejected,
+} from './notifications';
 import { EMAIL_SECRETS } from '../shared/email';
 import {
   sendLandlordApprovedEmail,
@@ -54,6 +59,8 @@ const processors = new Map<string, JobProcessor>([
   ['renderReceipt', renderReceipt],
   ['notifyLandlordApplication', notifyLandlordApplication],
   ['deliverContactRequest', deliverContactRequest],
+  ['notifyLandlordPaymentDeclared', notifyLandlordPaymentDeclared],
+  ['notifyTenantPaymentRejected', notifyTenantPaymentRejected],
   ['generateReport', generateReport],
   ['setAuthUserDisabled', setAuthUserDisabled],
   ['deleteAuthUser', deleteAuthUser],

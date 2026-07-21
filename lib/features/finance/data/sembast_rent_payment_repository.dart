@@ -44,6 +44,10 @@ final class SembastRentPaymentRepository implements RentPaymentRepository {
       period: input.period?.trim().isNotEmpty == true
           ? input.period!.trim()
           : DateFormat('MMMM y').format(now),
+      reference: input.reference?.trim().isNotEmpty == true
+          ? input.reference!.trim()
+          : null,
+      declaredByTenant: input.declaredByTenant,
       paidOn: now,
       createdAt: now,
       updatedAt: now,
