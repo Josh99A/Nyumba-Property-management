@@ -134,6 +134,8 @@
     "print":  "طباعة",
     "openDocument":  "فتح المستند",
     "subscription":  "الاشتراك",
+    "navMySubscription":  "اشتراكي",
+    "navSubscriptionShort":  "الخطة",
     "choosePlan":  "اختيار الخطة",
     "confirmPayment":  "تأكيد الدفع",
     "approveLandlord":  "الموافقة على المالك",
