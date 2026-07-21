@@ -322,19 +322,38 @@ final requestPlanUpgradeProvider = Provider<RequestPlanUpgrade>(
   RequestPlanUpgrade.new,
 );
 
-/// Records which tier an active landlord wants to move to, through the
-/// server-authoritative `subscription.requestUpgrade` command.
+/// How a landlord chooses to pay for a plan change. Cash is verified by an
+/// administrator; mobile money and card are electronic and auto-confirm the
+/// moment a payment aggregator is connected (they fail closed until then).
+enum UpgradeBillingChannel {
+  mobileMoney('mobile_money'),
+  card('card'),
+  cash('cash');
+
+  const UpgradeBillingChannel(this.wire);
+
+  /// The value the `subscription.requestUpgrade` command expects.
+  final String wire;
+
+  bool get isElectronic => this != UpgradeBillingChannel.cash;
+}
+
+/// Records which tier an active landlord wants to move to and how they intend
+/// to pay, through the server-authoritative `subscription.requestUpgrade`
+/// command.
 ///
-/// The paid-side mirror of [SelectSubscriptionPlan]: it writes only
-/// `requestedTier` — the current plan, its entitlements, and the subscription
-/// status stay exactly as paid for until platform staff (or the future
-/// billing webhook) confirm the upgrade payment.
+/// The paid-side mirror of [SelectSubscriptionPlan]: it never grants
+/// entitlements. Cash parks the request for an administrator to activate after
+/// verifying the money; mobile money and card are electronic and auto-confirm
+/// through the aggregator's webhook — and fail closed with
+/// `PAYMENT_PROVIDER_UNAVAILABLE` until one is connected, so a plan is never
+/// upgraded against money that never moved.
 class RequestPlanUpgrade {
   const RequestPlanUpgrade(this._ref);
 
   final Ref _ref;
 
-  Future<void> call(String tier) async {
+  Future<void> call(String tier, UpgradeBillingChannel channel) async {
     final session = _ref.read(sessionControllerProvider);
     if (session == null || session.role != AppRole.landlord) {
       throw StateError('Sign in as a landlord to request an upgrade.');
@@ -355,7 +374,7 @@ class RequestPlanUpgrade {
       type: 'subscription.requestUpgrade',
       aggregateId: session.userId,
       expectedVersion: version,
-      payload: <String, Object?>{'tier': tier},
+      payload: <String, Object?>{'tier': tier, 'billingChannel': channel.wire},
     );
   }
 }

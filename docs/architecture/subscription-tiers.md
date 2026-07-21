@@ -35,13 +35,33 @@ did not see. When a feature ships, a super admin flips its flag via
 ## Self-service upgrades
 
 An active landlord upgrades from inside the app: the subscription screen
-offers every higher tier as an "Upgrade" action, which runs
-`subscription.requestUpgrade` — recording only `requestedTier` while the paid
-plan, its entitlements, and the workspace stay exactly as paid for. The
-request appears in the admin payment-confirmation queue, and
-`subscription.confirmPayment` applies the new tier against a verified payment
-reference, clearing the request. Downgrades remain a support conversation
-(the downgrade-safety rules below still govern them).
+offers every higher tier as an "Upgrade" action. Tapping it asks **how they
+will pay** before anything is recorded, and the chosen method decides how the
+upgrade is confirmed:
+
+- **Cash** → `subscription.requestUpgrade` records `requestedTier` +
+  `billingChannel: cash` + `upgradeState: awaiting_admin`. The request appears
+  in the admin payment-confirmation queue, and `subscription.confirmPayment`
+  applies the new tier against a verified reference once the cash is received.
+- **Mobile money / card** → the electronic path. A real aggregator collects
+  the money and its signed webhook calls the same `confirmPayment` transition
+  to auto-activate the upgrade with **no admin in the loop**. This path
+  **fails closed** (`PAYMENT_PROVIDER_UNAVAILABLE`) until an aggregator is
+  configured in `backendConfig/subscriptionBilling.enabled`, so the app never
+  activates a plan against money that never moved. Until then the app tells
+  the landlord electronic checkout is coming soon and to pay cash.
+
+In every case `requestUpgrade` records only intent — the paid plan, its
+entitlements, and the workspace stay exactly as paid for until the matching
+confirmation runs. Downgrades remain a support conversation (the
+downgrade-safety rules below still govern them).
+
+**Wiring an aggregator later:** register a `PaymentProviderAdapter`
+(`workers/payment-provider.ts`), set `backendConfig/subscriptionBilling.enabled`,
+and add the signed webhook that calls `subscription.confirmPayment` for the
+subscription owner. No client change is needed — the electronic path already
+routes through `requestUpgrade` and stops failing closed the moment billing is
+enabled.
 
 When a landlord hits a plan wall the app prompts the upgrade path instead of
 failing silently: adding a rental space at the unit limit and publishing a

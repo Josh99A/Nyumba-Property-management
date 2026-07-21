@@ -2492,6 +2492,43 @@ class AppLocalizationsLg extends AppLocalizations {
   }
 
   @override
+  String subscriptionChoosePaymentMethodTitle(String plan) {
+    return 'Linnyisa ku $plan';
+  }
+
+  @override
+  String get subscriptionChoosePaymentMethodSubtitle =>
+      'Londa engeri gy\'onoosasulira okulinnyisa kuno.';
+
+  @override
+  String get subscriptionPayMobileMoney => 'Sente za ssimu';
+
+  @override
+  String get subscriptionPayMobileMoneySub => 'MTN MoMo oba Airtel Money';
+
+  @override
+  String get subscriptionPayCard => 'Kaadi';
+
+  @override
+  String get subscriptionPayCardSub => 'Kaadi ya bbanka oba ya credit';
+
+  @override
+  String get subscriptionPayCash => 'Sente enkalu';
+
+  @override
+  String get subscriptionPayCashSub =>
+      'Sasula Nyumba butereevu; omukulu y\'aginnyisa';
+
+  @override
+  String subscriptionUpgradeCashRequested(String plan) {
+    return 'Okusaba okulinnyisa ku $plan kuweereddwa. Sasula Nyumba sente enkalu — omukulu aginnyisa okusasula bwe kumala okukakasibwa. Enteekateeka yo eriwo ekyakola.';
+  }
+
+  @override
+  String get subscriptionElectronicComingSoon =>
+      'Okusasula n\'esente za ssimu ne kaadi bijja mangu. Kati, londa Sente enkalu okulinnyisa — omukulu aginnyisa okusasula kwo bwe kumala okukakasibwa.';
+
+  @override
   String get subscriptionStarterPlan => 'Entandikwa';
 
   @override

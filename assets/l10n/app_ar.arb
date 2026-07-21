@@ -754,6 +754,18 @@
     ,"@subscriptionUpgradeRequestedToast": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionUpgradeRequestedMessage": "ترقيتك إلى {plan} في انتظار تأكيد الدفع. تبقى خطتك الحالية وحدودها نشطة حتى تؤكد Nyumba الدفع."
     ,"@subscriptionUpgradeRequestedMessage": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChoosePaymentMethodTitle": "الترقية إلى {plan}"
+    ,"@subscriptionChoosePaymentMethodTitle": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChoosePaymentMethodSubtitle": "اختر كيف ستدفع مقابل هذه الترقية."
+    ,"subscriptionPayMobileMoney": "المحفظة الإلكترونية"
+    ,"subscriptionPayMobileMoneySub": "MTN MoMo أو Airtel Money"
+    ,"subscriptionPayCard": "بطاقة"
+    ,"subscriptionPayCardSub": "بطاقة خصم أو ائتمان"
+    ,"subscriptionPayCash": "نقداً"
+    ,"subscriptionPayCashSub": "ادفع لـ Nyumba مباشرة؛ يفعّلها المسؤول"
+    ,"subscriptionUpgradeCashRequested": "تم طلب الترقية إلى {plan}. ادفع لـ Nyumba نقداً — يفعّلها المسؤول بمجرد التحقق من الدفع. تبقى خطتك الحالية نشطة في هذه الأثناء."
+    ,"@subscriptionUpgradeCashRequested": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionElectronicComingSoon": "مدفوعات المحفظة الإلكترونية والبطاقة قادمة قريباً. في الوقت الحالي، اختر نقداً للترقية — يفعّلها المسؤول بمجرد التحقق من دفعتك."
     ,"subscriptionStarterPlan": "المبتدئة"
     ,"subscriptionProPlan": "الاحترافية"
     ,"subscriptionPremiumPlan": "المتميزة"

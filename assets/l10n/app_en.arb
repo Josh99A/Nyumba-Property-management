@@ -765,6 +765,18 @@
     ,"@subscriptionUpgradeRequestedToast": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionUpgradeRequestedMessage": "Your upgrade to {plan} is awaiting payment confirmation. Your current plan and its limits stay active until Nyumba confirms the payment."
     ,"@subscriptionUpgradeRequestedMessage": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChoosePaymentMethodTitle": "Upgrade to {plan}"
+    ,"@subscriptionChoosePaymentMethodTitle": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChoosePaymentMethodSubtitle": "Choose how you'll pay for this upgrade."
+    ,"subscriptionPayMobileMoney": "Mobile money"
+    ,"subscriptionPayMobileMoneySub": "MTN MoMo or Airtel Money"
+    ,"subscriptionPayCard": "Card"
+    ,"subscriptionPayCardSub": "Debit or credit card"
+    ,"subscriptionPayCash": "Cash"
+    ,"subscriptionPayCashSub": "Pay Nyumba directly; an admin activates it"
+    ,"subscriptionUpgradeCashRequested": "Upgrade to {plan} requested. Pay Nyumba in cash — an admin activates it once the payment is verified. Your current plan stays active meanwhile."
+    ,"@subscriptionUpgradeCashRequested": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionElectronicComingSoon": "Mobile money and card payments are coming soon. For now, choose Cash to upgrade — an admin activates it once your payment is verified."
     ,"subscriptionStarterPlan": "Starter"
     ,"subscriptionProPlan": "Pro"
     ,"subscriptionPremiumPlan": "Premium"

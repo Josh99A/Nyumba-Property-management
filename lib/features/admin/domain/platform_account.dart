@@ -63,6 +63,7 @@ final class PlatformAccount {
     this.businessName,
     this.subscriptionTier,
     this.subscriptionRequestedTier,
+    this.subscriptionUpgradeChannel,
     this.subscriptionStatus = PlatformSubscriptionStatus.none,
     this.subscriptionVersion,
   });
@@ -100,6 +101,11 @@ final class PlatformAccount {
   /// entitlements stay on [subscriptionTier] until staff confirm payment.
   final String? subscriptionRequestedTier;
 
+  /// How the landlord chose to pay for the pending upgrade: `cash`,
+  /// `mobile_money`, or `card`. Only cash upgrades need a manual confirmation;
+  /// electronic ones auto-activate through the aggregator webhook.
+  final String? subscriptionUpgradeChannel;
+
   final PlatformSubscriptionStatus subscriptionStatus;
 
   /// Concurrency token for `subscription.confirmPayment`.
@@ -107,11 +113,17 @@ final class PlatformAccount {
 
   bool get isLandlord => roleLabel.toLowerCase() == 'landlord';
 
-  /// An active subscription with a pending, different requested tier.
+  /// An active subscription with a different requested tier that a landlord
+  /// asked to pay for in cash — the only upgrades staff confirm by hand.
+  /// Electronic upgrades (mobile money/card) auto-activate on payment and
+  /// deliberately never appear in the manual queue. A missing channel is
+  /// treated as cash so a legacy request is never stranded.
   bool get hasPendingUpgrade =>
       subscriptionStatus == PlatformSubscriptionStatus.active &&
       subscriptionRequestedTier != null &&
-      subscriptionRequestedTier != subscriptionTier;
+      subscriptionRequestedTier != subscriptionTier &&
+      (subscriptionUpgradeChannel == null ||
+          subscriptionUpgradeChannel == 'cash');
 }
 
 /// One redacted entry of the server-owned append-only audit log.

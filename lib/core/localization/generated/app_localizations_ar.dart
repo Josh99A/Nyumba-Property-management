@@ -2421,6 +2421,42 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String subscriptionChoosePaymentMethodTitle(String plan) {
+    return 'الترقية إلى $plan';
+  }
+
+  @override
+  String get subscriptionChoosePaymentMethodSubtitle =>
+      'اختر كيف ستدفع مقابل هذه الترقية.';
+
+  @override
+  String get subscriptionPayMobileMoney => 'المحفظة الإلكترونية';
+
+  @override
+  String get subscriptionPayMobileMoneySub => 'MTN MoMo أو Airtel Money';
+
+  @override
+  String get subscriptionPayCard => 'بطاقة';
+
+  @override
+  String get subscriptionPayCardSub => 'بطاقة خصم أو ائتمان';
+
+  @override
+  String get subscriptionPayCash => 'نقداً';
+
+  @override
+  String get subscriptionPayCashSub => 'ادفع لـ Nyumba مباشرة؛ يفعّلها المسؤول';
+
+  @override
+  String subscriptionUpgradeCashRequested(String plan) {
+    return 'تم طلب الترقية إلى $plan. ادفع لـ Nyumba نقداً — يفعّلها المسؤول بمجرد التحقق من الدفع. تبقى خطتك الحالية نشطة في هذه الأثناء.';
+  }
+
+  @override
+  String get subscriptionElectronicComingSoon =>
+      'مدفوعات المحفظة الإلكترونية والبطاقة قادمة قريباً. في الوقت الحالي، اختر نقداً للترقية — يفعّلها المسؤول بمجرد التحقق من دفعتك.';
+
+  @override
   String get subscriptionStarterPlan => 'المبتدئة';
 
   @override

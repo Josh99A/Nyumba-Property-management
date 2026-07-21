@@ -210,11 +210,11 @@ class _AdminSubscriptionsScreenState
             children: [
               Text.localized(
                 account.hasPendingUpgrade
-                    ? 'This applies the requested upgrade from '
+                    ? 'This applies the requested cash upgrade from '
                           '${account.subscriptionTier} to '
                           '${account.subscriptionRequestedTier} — the account '
                           'keeps its current plan until you confirm. Only '
-                          'confirm against money you have actually verified.'
+                          'confirm against cash you have actually received.'
                     : 'This activates the '
                           '${account.subscriptionTier ?? 'selected'} '
                           'plan, approves the account if it is still pending '
@@ -332,7 +332,7 @@ class _PendingPaymentsPanel extends StatelessWidget {
                                   account.hasPendingUpgrade
                                       ? '${account.subscriptionTier} → '
                                             '${account.subscriptionRequestedTier}'
-                                            ' upgrade requested'
+                                            ' cash upgrade'
                                             '${account.email.isEmpty ? '' : ' · ${account.email}'}'
                                       : '${account.subscriptionTier ?? 'No tier selected'}'
                                             ' · ${account.subscriptionStatus.label}'

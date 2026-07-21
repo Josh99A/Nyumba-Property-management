@@ -754,6 +754,18 @@
     ,"@subscriptionUpgradeRequestedToast": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionUpgradeRequestedMessage": "Okulinnyisa kwo ku {plan} kulindirira okukakasibwa kw'okusasula. Enteekateeka yo eriwo n'ebipimo byayo bikyakola okutuusa Nyumba lw'ekakasa okusasula."
     ,"@subscriptionUpgradeRequestedMessage": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChoosePaymentMethodTitle": "Linnyisa ku {plan}"
+    ,"@subscriptionChoosePaymentMethodTitle": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChoosePaymentMethodSubtitle": "Londa engeri gy'onoosasulira okulinnyisa kuno."
+    ,"subscriptionPayMobileMoney": "Sente za ssimu"
+    ,"subscriptionPayMobileMoneySub": "MTN MoMo oba Airtel Money"
+    ,"subscriptionPayCard": "Kaadi"
+    ,"subscriptionPayCardSub": "Kaadi ya bbanka oba ya credit"
+    ,"subscriptionPayCash": "Sente enkalu"
+    ,"subscriptionPayCashSub": "Sasula Nyumba butereevu; omukulu y'aginnyisa"
+    ,"subscriptionUpgradeCashRequested": "Okusaba okulinnyisa ku {plan} kuweereddwa. Sasula Nyumba sente enkalu — omukulu aginnyisa okusasula bwe kumala okukakasibwa. Enteekateeka yo eriwo ekyakola."
+    ,"@subscriptionUpgradeCashRequested": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionElectronicComingSoon": "Okusasula n'esente za ssimu ne kaadi bijja mangu. Kati, londa Sente enkalu okulinnyisa — omukulu aginnyisa okusasula kwo bwe kumala okukakasibwa."
     ,"subscriptionStarterPlan": "Entandikwa"
     ,"subscriptionProPlan": "Pro"
     ,"subscriptionPremiumPlan": "Premium"

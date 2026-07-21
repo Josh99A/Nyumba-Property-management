@@ -754,6 +754,18 @@
     ,"@subscriptionUpgradeRequestedToast": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionUpgradeRequestedMessage": "Uboreshaji wako hadi {plan} unasubiri uthibitisho wa malipo. Mpango wako wa sasa na vikomo vyake vinaendelea kutumika hadi Nyumba ithibitishe malipo."
     ,"@subscriptionUpgradeRequestedMessage": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChoosePaymentMethodTitle": "Boresha hadi {plan}"
+    ,"@subscriptionChoosePaymentMethodTitle": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChoosePaymentMethodSubtitle": "Chagua jinsi utakavyolipia uboreshaji huu."
+    ,"subscriptionPayMobileMoney": "Pesa za simu"
+    ,"subscriptionPayMobileMoneySub": "MTN MoMo au Airtel Money"
+    ,"subscriptionPayCard": "Kadi"
+    ,"subscriptionPayCardSub": "Kadi ya benki au mkopo"
+    ,"subscriptionPayCash": "Fedha taslimu"
+    ,"subscriptionPayCashSub": "Lipa Nyumba moja kwa moja; msimamizi anaiwezesha"
+    ,"subscriptionUpgradeCashRequested": "Ombi la kuboresha hadi {plan} limetumwa. Lipa Nyumba kwa fedha taslimu — msimamizi anaiwezesha malipo yatakapothibitishwa. Mpango wako wa sasa unaendelea kutumika."
+    ,"@subscriptionUpgradeCashRequested": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionElectronicComingSoon": "Malipo ya pesa za simu na kadi yanakuja hivi karibuni. Kwa sasa, chagua Fedha taslimu kuboresha — msimamizi anaiwezesha malipo yako yatakapothibitishwa."
     ,"subscriptionStarterPlan": "Mwanzo"
     ,"subscriptionProPlan": "Pro"
     ,"subscriptionPremiumPlan": "Premium"

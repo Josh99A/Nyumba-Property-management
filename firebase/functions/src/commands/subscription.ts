@@ -1,3 +1,4 @@
+import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, requireAggregate } from '../shared/aggregates';
 import { requirePlatformAdmin, requireSuperAdmin } from '../shared/actor';
@@ -11,6 +12,33 @@ interface SubscriptionRecord {
   status: string;
   tier: string;
   requestedTier?: string | null;
+  upgradeBillingChannel?: string | null;
+  upgradeState?: string | null;
+}
+
+/**
+ * How a landlord intends to pay for a plan change.
+ *
+ * `cash` is the manual path: an administrator verifies the physical money and
+ * activates the upgrade. `mobile_money`/`card` are the electronic path: a real
+ * aggregator collects the money and its signed webhook auto-activates the
+ * upgrade with no administrator in the loop. Electronic collection fails
+ * closed until an aggregator is configured (see `loadSubscriptionBilling`), so
+ * a plan can never be upgraded without money actually moving.
+ */
+const BILLING_CHANNELS = ['mobile_money', 'card', 'cash'] as const;
+
+/**
+ * Server-owned electronic-billing configuration. Absent or `enabled !== true`
+ * means no aggregator is wired, so electronic subscription payments fail
+ * closed — mirroring `backendConfig/paymentProvider` for tenant rent.
+ */
+async function loadSubscriptionBilling(
+  tx: Transaction,
+  db: Firestore,
+): Promise<{ enabled: boolean }> {
+  const snapshot = await tx.get(db.collection(COLLECTIONS.backendConfig).doc('subscriptionBilling'));
+  return { enabled: snapshot.data()?.enabled === true };
 }
 
 const selectPlanSchema = strictPayload({
@@ -52,18 +80,32 @@ export const subscriptionSelectPlan: CommandHandler<z.infer<typeof selectPlanSch
 
 const requestUpgradeSchema = strictPayload({
   tier: z.string().trim().min(1).max(40),
+  billingChannel: z.enum(BILLING_CHANNELS),
 });
 
 /**
- * Records which tier an active landlord wants to move to.
+ * Records which tier an active landlord wants to move to, and how they intend
+ * to pay for it.
  *
  * The mirror of `subscription.selectPlan` for the paid side of the gate:
- * self-service, and deliberately powerless. Only `requestedTier` is written —
- * the current tier, status, and every entitlement stay exactly as paid for
- * until `subscription.confirmPayment` (platform staff against a verified
- * payment, or the future billing webhook) applies the change. Re-requesting
- * overwrites the previous request; requesting the current tier is rejected
- * rather than treated as a hidden cancel.
+ * self-service, and deliberately powerless over entitlements. The current
+ * tier, status, and every entitlement stay exactly as paid for until the
+ * matching confirmation applies the change — so this command can never open
+ * capacity nobody paid for. Re-requesting overwrites the previous request;
+ * requesting the current tier is rejected rather than treated as a hidden
+ * cancel.
+ *
+ * The chosen `billingChannel` decides how the upgrade is confirmed:
+ *
+ * - `cash`: the manual path. The request is parked as `awaiting_admin`, and an
+ *   administrator activates it through `subscription.confirmPayment` once the
+ *   physical money is verified.
+ * - `mobile_money` / `card`: the electronic path. A real aggregator collects
+ *   the money and its signed webhook activates the upgrade automatically, with
+ *   no administrator in the loop. This fails closed with
+ *   `PAYMENT_PROVIDER_UNAVAILABLE` until an aggregator is configured
+ *   (`backendConfig/subscriptionBilling.enabled`), because simulating an
+ *   electronic payment would activate a plan against money that never moved.
  */
 export const subscriptionRequestUpgrade: CommandHandler<z.infer<typeof requestUpgradeSchema>> = {
   payloadSchema: requestUpgradeSchema,
@@ -72,7 +114,11 @@ export const subscriptionRequestUpgrade: CommandHandler<z.infer<typeof requestUp
   async apply({ tx, db, actor, cmd, now }) {
     if (cmd.aggregateId !== actor.uid) throw new DomainError('PERMISSION_DENIED');
     const ref = db.collection(COLLECTIONS.subscriptions).doc(actor.uid);
-    const [snapshot, entitlements] = await Promise.all([tx.get(ref), loadEntitlements(tx, db)]);
+    const [snapshot, entitlements, billing] = await Promise.all([
+      tx.get(ref),
+      loadEntitlements(tx, db),
+      loadSubscriptionBilling(tx, db),
+    ]);
     const subscription = requireAggregate<SubscriptionRecord>(snapshot, cmd.expectedVersion);
     // An unpaid subscription changes tier through selectPlan; a plan-change
     // request only means something once there is an active plan to keep.
@@ -83,8 +129,18 @@ export const subscriptionRequestUpgrade: CommandHandler<z.infer<typeof requestUp
       throw new DomainError('VALIDATION_FAILED', { reason: 'tierUnchanged' });
     }
     planForTier(entitlements, cmd.payload.tier);
+
+    const channel = cmd.payload.billingChannel;
+    // Electronic collection has no configured aggregator yet, so it fails
+    // closed rather than parking an upgrade that nothing could ever confirm.
+    if (channel !== 'cash' && !billing.enabled) {
+      throw new DomainError('PAYMENT_PROVIDER_UNAVAILABLE');
+    }
+    const upgradeState = channel === 'cash' ? 'awaiting_admin' : 'awaiting_payment';
     tx.update(ref, {
       requestedTier: cmd.payload.tier,
+      upgradeBillingChannel: channel,
+      upgradeState,
       upgradeRequestedAt: now,
       ...bumpVersion(subscription, now),
     });
@@ -92,7 +148,7 @@ export const subscriptionRequestUpgrade: CommandHandler<z.infer<typeof requestUp
       status: 'applied',
       aggregateId: actor.uid,
       serverVersion: subscription.version + 1,
-      changedFields: ['requestedTier', 'upgradeRequestedAt'],
+      changedFields: ['requestedTier', 'upgradeBillingChannel', 'upgradeState', 'upgradeRequestedAt'],
     };
   },
 };
@@ -124,8 +180,13 @@ const confirmPaymentSchema = strictPayload({
  * On an already-`active` subscription this same command applies a paid plan
  * change: the target tier comes from the explicit `tier` payload or the
  * landlord's `requestedTier` (subscription.requestUpgrade), and confirming
- * clears the request. An active subscription with no tier change to apply
- * still rejects — there is no such thing as re-confirming the same plan.
+ * clears the request and its billing channel. An active subscription with no
+ * tier change to apply still rejects — there is no such thing as re-confirming
+ * the same plan.
+ *
+ * This is the administrator (cash) path; it is also the exact transition the
+ * electronic aggregator's signed webhook will call to auto-activate a
+ * `mobile_money`/`card` upgrade without an administrator.
  */
 export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPaymentSchema>> = {
   payloadSchema: confirmPaymentSchema,
@@ -168,6 +229,8 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
       tier,
       status: 'active',
       requestedTier: null,
+      upgradeBillingChannel: null,
+      upgradeState: null,
       paymentReference: cmd.payload.reference,
       ...(wasActive ? { planChangedAt: now } : { activatedAt: now }),
       ...bumpVersion(subscription, now),
@@ -188,6 +251,8 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
         'status',
         'tier',
         'requestedTier',
+        'upgradeBillingChannel',
+        'upgradeState',
         'paymentReference',
         wasActive ? 'planChangedAt' : 'activatedAt',
       ],
