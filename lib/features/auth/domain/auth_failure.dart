@@ -2,6 +2,9 @@
 // file through firebase_auth's re-export of firebase_core.
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../../core/offline/command_failure.dart';
+import '../../../core/offline/remote_sync_gateway.dart';
+
 /// Sign-in succeeded but the address is unproven, so the session stays closed
 /// and a fresh verification link goes out.
 class EmailNotVerifiedException implements Exception {
@@ -37,6 +40,9 @@ String describeAuthFailure(Object error) {
     return 'Verify ${error.email} before signing in.';
   }
   if (error is FirebaseAuthException) return _describeAuth(error);
+  // Every backend mutation answers with a stable domain code; without this the
+  // whole command surface collapsed into "Something went wrong".
+  if (error is RemoteSyncException) return describeCommandFailure(error);
   if (error is FirebaseException) return _describeBackend(error);
   if (error is StateError) return error.message;
   return 'Something went wrong. Please try again.';

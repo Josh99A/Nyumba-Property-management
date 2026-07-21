@@ -117,6 +117,9 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         throw RemoteSyncException(
           error?['code']?.toString() ?? 'VALIDATION_FAILED',
           retryable: false,
+          // The server's safe remediation data is what lets the UI name the
+          // actual problem instead of showing a generic failure.
+          details: _optionalStringMap(error?['details']),
         );
       }
       if (status != 'applied' && status != 'accepted') {
@@ -136,6 +139,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         domainCode ?? error.code,
         retryable: !idempotencyReuse,
         cause: error,
+        details: _optionalStringMap(details?['details']),
       );
     } on Object catch (error) {
       throw RemoteSyncException('Callable command failed.', cause: error);

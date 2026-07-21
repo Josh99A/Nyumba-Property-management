@@ -55,11 +55,38 @@ abstract interface class RemoteSyncGateway {
 }
 
 final class RemoteSyncException implements Exception {
-  const RemoteSyncException(this.message, {this.retryable = true, this.cause});
+  const RemoteSyncException(
+    this.message, {
+    this.retryable = true,
+    this.cause,
+    this.details,
+  });
 
+  /// The stable domain error code when the server rejected a command
+  /// (`VALIDATION_FAILED`, `PERMISSION_DENIED`, …), otherwise a description of
+  /// a transport failure. Branch on this, never on the transport status.
   final String message;
+
   final bool retryable;
   final Object? cause;
+
+  /// Safe remediation data the server attached to the error, e.g.
+  /// `{'reason': 'tierUnchanged'}`. Never carries another user's record.
+  final Map<String, Object?>? details;
+
+  /// The server's machine-readable explanation of a `VALIDATION_FAILED`, when
+  /// it sent one — the difference between "something went wrong" and naming
+  /// the actual problem.
+  String? get reason => details?['reason']?.toString();
+
+  /// Payload fields the server's schema rejected, when it named them.
+  List<String> get rejectedFields => switch (details?['fields']) {
+    final List<Object?> fields => [
+      for (final field in fields)
+        if (field != null) field.toString(),
+    ],
+    _ => const <String>[],
+  };
 
   @override
   String toString() => 'RemoteSyncException: $message';
