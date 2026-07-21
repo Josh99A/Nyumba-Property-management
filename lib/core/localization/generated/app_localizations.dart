@@ -906,6 +906,18 @@ abstract class AppLocalizations {
   /// **'Subscription'**
   String get subscription;
 
+  /// No description provided for @navMySubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'My subscription'**
+  String get navMySubscription;
+
+  /// No description provided for @navSubscriptionShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get navSubscriptionShort;
+
   /// No description provided for @choosePlan.
   ///
   /// In en, this message translates to:

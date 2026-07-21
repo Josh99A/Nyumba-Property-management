@@ -82,7 +82,9 @@ void main() {
     expect(redirectForSession(pending, '/properties'), '/subscription');
     expect(redirectForSession(pending, '/subscription'), isNull);
     expect(redirectForSession(active, '/dashboard'), isNull);
-    expect(redirectForSession(active, '/subscription'), '/dashboard');
+    // Active landlords keep access to the subscription screen — it is the
+    // self-service upgrade path once payment is confirmed.
+    expect(redirectForSession(active, '/subscription'), isNull);
   });
 
   testWidgets('subscription gate renders at desktop and phone sizes', (
@@ -287,6 +289,49 @@ void main() {
       expect(router.routeInformationProvider.value.uri.path, '/explore');
       expect(tester.takeException(), isNull);
     }
+  });
+
+  testWidgets('the landlord shell links to the subscription screen', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 900);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final container = _containerFor(AppRole.landlord);
+    addTearDown(container.dispose);
+    final router = container.read(routerProvider);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    router.go('/settings');
+    await _pumpFor(tester, const Duration(seconds: 1));
+
+    final subscription = find.text('My subscription');
+    if (subscription.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        subscription,
+        72,
+        scrollable: find.byType(Scrollable).first,
+      );
+    }
+    expect(
+      subscription,
+      findsOneWidget,
+      reason: 'landlord shell should list the subscription destination',
+    );
+    await tester.tap(subscription);
+    await _pumpFor(tester, const Duration(seconds: 1));
+    // An active landlord stays on the subscription screen — the upgrade path
+    // — instead of being bounced back to the dashboard.
+    expect(router.routeInformationProvider.value.uri.path, '/subscription');
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('the explore page routes signed-in actors back to a workspace', (

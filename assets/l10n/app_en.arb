@@ -134,6 +134,8 @@
     "print":  "Print",
     "openDocument":  "Open document",
     "subscription":  "Subscription",
+    "navMySubscription":  "My subscription",
+    "navSubscriptionShort":  "Plan",
     "choosePlan":  "Choose plan",
     "confirmPayment":  "Confirm payment",
     "approveLandlord":  "Approve landlord",

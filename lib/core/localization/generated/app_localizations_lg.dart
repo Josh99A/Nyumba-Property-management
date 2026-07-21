@@ -425,6 +425,12 @@ class AppLocalizationsLg extends AppLocalizations {
   String get subscription => 'Obwammemba';
 
   @override
+  String get navMySubscription => 'Obwammemba bwange';
+
+  @override
+  String get navSubscriptionShort => 'Enteekateeka';
+
+  @override
   String get choosePlan => 'Londa pulaani';
 
   @override

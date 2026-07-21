@@ -424,6 +424,12 @@ class AppLocalizationsSw extends AppLocalizations {
   String get subscription => 'Usajili';
 
   @override
+  String get navMySubscription => 'Usajili wangu';
+
+  @override
+  String get navSubscriptionShort => 'Mpango';
+
+  @override
   String get choosePlan => 'Chagua mpango';
 
   @override

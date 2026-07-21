@@ -134,6 +134,8 @@
     "print":  "Chapisha",
     "openDocument":  "Fungua waraka",
     "subscription":  "Usajili",
+    "navMySubscription":  "Usajili wangu",
+    "navSubscriptionShort":  "Mpango",
     "choosePlan":  "Chagua mpango",
     "confirmPayment":  "Thibitisha malipo",
     "approveLandlord":  "Idhinisha mwenye nyumba",

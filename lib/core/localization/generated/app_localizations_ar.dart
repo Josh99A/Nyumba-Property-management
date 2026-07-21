@@ -421,6 +421,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get subscription => 'الاشتراك';
 
   @override
+  String get navMySubscription => 'اشتراكي';
+
+  @override
+  String get navSubscriptionShort => 'الخطة';
+
+  @override
   String get choosePlan => 'اختيار الخطة';
 
   @override

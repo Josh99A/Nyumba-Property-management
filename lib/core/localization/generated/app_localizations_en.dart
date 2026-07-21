@@ -422,6 +422,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subscription => 'Subscription';
 
   @override
+  String get navMySubscription => 'My subscription';
+
+  @override
+  String get navSubscriptionShort => 'Plan';
+
+  @override
   String get choosePlan => 'Choose plan';
 
   @override
