@@ -38,6 +38,12 @@ const adapters = new Map<string, PaymentProviderAdapter>();
  * Committing a speculative integration would mean untested code holding real
  * money, so the registry is deliberately empty and initiation fails closed
  * until a real adapter is registered here.
+ *
+ * Whatever is registered here collects **rent**, which is the landlord's money.
+ * It must land in a landlord-owned destination (a provider subaccount or
+ * equivalent), not in Nyumba's merchant balance to be forwarded later — Nyumba
+ * only ever collects subscription payments. An adapter that pools rent
+ * centrally is wrong even if it reconciles correctly.
  */
 export function registerPaymentProvider(adapter: PaymentProviderAdapter): void {
   adapters.set(adapter.key, adapter);

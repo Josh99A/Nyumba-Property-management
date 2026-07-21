@@ -26,8 +26,13 @@ Not yet real, and not to be presented as real:
 
 - **Payments.** No mobile-money provider is integrated. `payment.initiate`
   enqueues a job whose adapter registry is empty, so initiation fails closed
-  with `providerNotConfigured`. Provider choice, fees, reconciliation, and the
-  webhook contract are TBD.
+  with `providerNotConfigured`, and electronic subscription upgrades fail
+  closed with `PAYMENT_PROVIDER_UNAVAILABLE`. Both surface a plain message and
+  point at the manual path; do not simulate a successful collection to make a
+  flow demoable. Provider choice, fees, reconciliation, and the webhook
+  contract are TBD. Settlement is **not** TBD: Nyumba collects subscriptions
+  only, and rent must settle to the landlord (see
+  `docs/architecture/README.md`).
 - **App Check.** Attestation is active on web (the dev project's reCAPTCHA v3
   site key is wired into the deploy workflow) but **enforcement is off** —
   follow the sequence in `docs/architecture/README.md` before flipping
