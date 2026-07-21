@@ -159,6 +159,17 @@ const _adminDestinations = [
 
 const _staffDestinations = [..._adminDestinations, ..._landlordDestinations];
 
+/// The landlord's own plan — the payment gate before activation and the
+/// self-service upgrade path afterwards. Landlord-only: platform staff
+/// manage subscriptions from the admin workspace instead.
+const _subscriptionDestination = AppDestination(
+  label: 'My subscription',
+  shortLabel: 'Plan',
+  icon: Icons.workspace_premium_outlined,
+  selectedIcon: Icons.workspace_premium_rounded,
+  path: '/subscription',
+);
+
 /// The public marketplace, reachable from every workspace: landlords check how
 /// their advertisements actually look, tenants and staff browse what is
 /// available. The route lives outside the shell — the explore page carries its
@@ -244,7 +255,11 @@ class NyumbaAppShell extends ConsumerWidget {
   }
 
   List<AppDestination> _destinationsFor(AppRole role) => switch (role) {
-    AppRole.landlord => const [..._landlordDestinations, _exploreDestination],
+    AppRole.landlord => const [
+      ..._landlordDestinations,
+      _subscriptionDestination,
+      _exploreDestination,
+    ],
     AppRole.tenant => const [..._tenantDestinations, _exploreDestination],
     AppRole.superAdmin ||
     AppRole.admin => const [..._staffDestinations, _exploreDestination],

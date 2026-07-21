@@ -82,7 +82,9 @@ void main() {
     expect(redirectForSession(pending, '/properties'), '/subscription');
     expect(redirectForSession(pending, '/subscription'), isNull);
     expect(redirectForSession(active, '/dashboard'), isNull);
-    expect(redirectForSession(active, '/subscription'), '/dashboard');
+    // Active landlords keep access to the subscription screen — it is the
+    // self-service upgrade path once payment is confirmed.
+    expect(redirectForSession(active, '/subscription'), isNull);
   });
 
   testWidgets('subscription gate renders at desktop and phone sizes', (

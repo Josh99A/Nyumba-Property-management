@@ -294,9 +294,9 @@ String? redirectForSession(UserSession? session, String path) {
   if (path == '/sign-in' || path == '/sign-up') return home;
   if (path == '/onboarding') return needsOnboarding ? null : home;
   if (path == '/subscription') {
-    return session.role == AppRole.landlord && !session.hasConfirmedSubscription
-        ? null
-        : home;
+    // Landlords can always open their subscription: it is the payment gate
+    // before activation and the self-service upgrade path afterwards.
+    return session.role == AppRole.landlord ? null : home;
   }
   if (publicPath) return null;
   if (session.role == AppRole.landlord && !session.hasConfirmedSubscription) {
