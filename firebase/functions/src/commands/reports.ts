@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { newAggregate, requireAbsent } from '../shared/aggregates';
-import { requireActiveLandlord } from '../shared/accounts';
+import { requireWorkspace } from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
 import { createJob, strictPayload, type CommandHandler } from '../shared/handlers';
 
@@ -16,7 +16,7 @@ export const reportRequest: CommandHandler<z.infer<typeof reportSchema>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'viewReports');
     const ref = db.collection(COLLECTIONS.reportSnapshots).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     requireAbsent(snapshot);

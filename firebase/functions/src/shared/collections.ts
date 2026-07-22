@@ -2,6 +2,8 @@
 export const COLLECTIONS = {
   users: 'users',
   landlordAccounts: 'landlordAccounts',
+  staffInvites: 'staffInvites',
+  staffMemberships: 'staffMemberships',
   subscriptions: 'subscriptions',
   planCatalog: 'planCatalog',
   properties: 'properties',

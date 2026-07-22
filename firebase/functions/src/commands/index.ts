@@ -24,6 +24,7 @@ import { listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from
 import { propertyArchive, propertyCreate, propertyUpdate, unitArchive, unitCreate, unitRestore, unitUpdate } from './portfolio';
 import { notificationMarkRead } from './notifications';
 import { reportRequest } from './reports';
+import { staffClaimInvite, staffInvite, staffRevoke, staffUpdatePermissions } from './staff';
 import {
   planUpdate,
   subscriptionConfirmPayment,
@@ -58,6 +59,10 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['subscription.deactivate', subscriptionDeactivate],
   ['plan.update', planUpdate],
   ['platform.broadcast', platformBroadcast],
+  ['staff.invite', staffInvite],
+  ['staff.claimInvite', staffClaimInvite],
+  ['staff.revoke', staffRevoke],
+  ['staff.updatePermissions', staffUpdatePermissions],
   ['property.create', propertyCreate],
   ['property.update', propertyUpdate],
   ['property.archive', propertyArchive],

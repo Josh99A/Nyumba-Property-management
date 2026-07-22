@@ -173,6 +173,14 @@
       ]
     },
     {
+      "collectionGroup": "staffInvites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "landlordId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "contactRequests",
       "queryScope": "COLLECTION",
       "fields": [

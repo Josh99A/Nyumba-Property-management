@@ -82,7 +82,11 @@ abstract final class AuthorizationPolicy {
         AppResource.platformConfiguration => _readUpdate,
         _ => _all,
       },
-      AppRole.landlord => switch (resource) {
+      // Staff share the landlord's route/control visibility; the finer,
+      // per-capability gate is `UserSession.can`, and the server is always the
+      // real authority. Owner-only surfaces (subscription, staff management)
+      // are kept from staff by the router, not this map.
+      AppRole.landlord || AppRole.staff => switch (resource) {
         AppResource.profile || AppResource.subscription => _readUpdate,
         AppResource.landlordAccount => _read,
         AppResource.property ||

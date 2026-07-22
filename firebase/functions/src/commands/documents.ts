@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
-import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
+import { requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
 import { MAX_DOCUMENT_BYTES, MAX_IMAGE_BYTES } from '../shared/config';
 import { DomainError } from '../shared/errors';
@@ -45,7 +45,7 @@ export const documentFinalizeUpload: CommandHandler<z.infer<typeof uploadSchema>
     if (owner.tenantUserUid === actor.uid) {
       landlordId = owner.landlordId as string;
     } else {
-      const landlord = await requireActiveLandlord(tx, db, actor);
+      const landlord = await requireWorkspace(tx, db, actor, 'manageDocuments');
       requireOwnedByLandlord(owner, landlord.landlordId);
       landlordId = landlord.landlordId;
     }
@@ -70,7 +70,7 @@ export const documentDelete: CommandHandler<Record<string, never>> = {
     const snapshot = await tx.get(ref);
     const document = requireAggregate<{ version: number; landlordId: string; uploadedByUid: string }>(snapshot, cmd.expectedVersion);
     if (document.uploadedByUid !== actor.uid) {
-      const landlord = await requireActiveLandlord(tx, db, actor);
+      const landlord = await requireWorkspace(tx, db, actor, 'manageDocuments');
       requireOwnedByLandlord(document, landlord.landlordId);
     }
     const purgeAt = Timestamp.fromMillis(now.toMillis() + 90 * 24 * 60 * 60 * 1000);

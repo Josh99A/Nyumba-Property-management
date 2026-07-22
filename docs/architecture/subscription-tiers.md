@@ -135,6 +135,51 @@ their portal (balances, payments, documents, maintenance requests), and
 anonymous prospects always keep public listing browsing, contact, and
 applications.
 
+## Staff accounts and roles
+
+Beyond the owner, a landlord can invite **staff** to help run their workspace.
+This is implemented end to end:
+
+- The owner invites by email with a chosen set of permissions
+  (`staff.invite`). Each invite takes one seat; the plan's `staffSeatLimit`
+  caps how many (Starter 0, Pro 2, Premium 9, Enterprise custom — the
+  "Landlord/staff accounts" row below counts the owner too). A revoked invite
+  frees its seat.
+- **Standard vs custom roles.** On plans without the custom-role entitlement
+  (Pro) every seat is coerced to the fixed standard preset — the full
+  operational set. Premium and above (`customStaffRoles`) may grant any subset
+  and change it later (`staff.updatePermissions`).
+- The invitee joins by signing in with that verified email
+  (`staff.claimInvite`), which links a deterministic `staffMemberships` doc so
+  Firestore Rules can authorize their workspace reads with a single `exists()`.
+- **Enforcement.** Every operational command resolves the actor to the owner's
+  workspace and checks the granted capability through `requireWorkspace`
+  (`shared/accounts.ts`); owner-only surfaces (subscription, plan, staff
+  management, account lifecycle) stay owner-only. Staff inherit the owner's
+  approval and subscription gating — a lapsed workspace locks them out too.
+- **Capabilities**: manage properties, tenants/leases, billing, maintenance,
+  listings, communication, documents, and view reports — one per operational
+  command group.
+- **Reads are redacted to match the writes.** Firestore Rules gate every
+  landlord-private collection, portal section, and report snapshot on the
+  capability that covers it (`ownsOrStaffCan` / `staffCan`), so a
+  maintenance-only teammate never sees the financial ledger. The client
+  subscribes only to the pulls its capabilities open
+  ([app_dependencies.dart](lib/app/bootstrap/app_dependencies.dart)), so it
+  never fires a read the server would deny.
+
+| Read | Capability |
+|---|---|
+| `properties`, `units` | `manageProperties` |
+| `tenantRecords`, `leases`, portal `tenancies` | `manageTenants` |
+| `invoices`, `payments`, `receipts`, portal `payments` | `manageBilling` |
+| `maintenanceRequests` | `manageMaintenance` |
+| `privateListings` | `manageListings` |
+| `notices` | `manageCommunication` |
+| `documents` | `manageDocuments` |
+| `reportSnapshots` | `viewReports` |
+| `applications`, `contactRequests` | `manageListings` or `manageTenants` |
+
 ## Tier matrix
 
 | Capability | Starter | Pro | Premium | Enterprise |

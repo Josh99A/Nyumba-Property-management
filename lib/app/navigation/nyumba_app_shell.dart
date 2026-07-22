@@ -159,6 +159,15 @@ const _adminDestinations = [
 
 const _staffDestinations = [..._adminDestinations, ..._landlordDestinations];
 
+/// Managing staff seats and their permissions. Owner-only: a staff member
+/// cannot manage the team, so this never appears in their navigation.
+const _teamDestination = AppDestination(
+  label: 'Team',
+  icon: Icons.groups_outlined,
+  selectedIcon: Icons.groups_rounded,
+  path: '/team',
+);
+
 /// The landlord's own plan — the payment gate before activation and the
 /// self-service upgrade path afterwards. Landlord-only: platform staff
 /// manage subscriptions from the admin workspace instead.
@@ -257,9 +266,13 @@ class NyumbaAppShell extends ConsumerWidget {
   List<AppDestination> _destinationsFor(AppRole role) => switch (role) {
     AppRole.landlord => const [
       ..._landlordDestinations,
+      _teamDestination,
       _subscriptionDestination,
       _exploreDestination,
     ],
+    // A staff member works the owner's pages but manages neither the team nor
+    // the subscription — both are the owner's alone.
+    AppRole.staff => const [..._landlordDestinations, _exploreDestination],
     AppRole.tenant => const [..._tenantDestinations, _exploreDestination],
     AppRole.superAdmin ||
     AppRole.admin => const [..._staffDestinations, _exploreDestination],

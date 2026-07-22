@@ -16,6 +16,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/notifications/push_registration.dart';
 import '../../../core/localization/app_language.dart';
 import '../../../core/offline/firebase_remote_sync_gateway.dart';
+import '../../staff/domain/staff_permission.dart';
 import '../domain/auth_failure.dart';
 import '../domain/user_session.dart';
 
@@ -395,7 +396,7 @@ class SessionController extends Notifier<UserSession?> {
     final data = userDocument?.data() ?? const <String, dynamic>{};
     final superAdmin = token.claims?['superAdmin'] == true;
     final platformAdmin = token.claims?['platformAdmin'] == true;
-    final role = superAdmin
+    var role = superAdmin
         ? AppRole.superAdmin
         : platformAdmin
         ? AppRole.admin
@@ -404,12 +405,31 @@ class SessionController extends Notifier<UserSession?> {
     var subscriptionStatus = LandlordSubscriptionStatus.notApplicable;
     String? subscriptionTier;
     String? subscriptionRequestedTier;
-    if (role == AppRole.landlord) {
-      // Approval lives on the server-owned landlord account, not the user
-      // document, so suspension or pending review applies on next load.
+    String? workspaceId;
+    var permissions = const <StaffPermission>{};
+
+    // A plain account may already be an accepted staff member of a landlord's
+    // workspace. The membership doc is the source of truth (users/{uid}.role is
+    // left untouched so a person can be both), so resolve it before deciding
+    // this is a bare client.
+    if (role == AppRole.client && !user.isAnonymous) {
+      final membership = await _resolveStaffMembership(user.uid, generation);
+      if (generation != _generation) return null;
+      if (membership != null) {
+        role = AppRole.staff;
+        workspaceId = membership.landlordId;
+        permissions = membership.permissions;
+      }
+    }
+
+    // Owners and staff both read the workspace's server-owned approval and
+    // subscription state; staff inherit the owner's gating because they act in
+    // the owner's space.
+    if (role == AppRole.landlord || role == AppRole.staff) {
+      final workspaceUid = role == AppRole.landlord ? user.uid : workspaceId!;
       final account = await FirebaseFirestore.instance
           .collection('landlordAccounts')
-          .doc(user.uid)
+          .doc(workspaceUid)
           .get(const GetOptions(source: Source.server));
       accountStatus = switch (account.data()?['approvalStatus']?.toString()) {
         'pending' => AccountStatus.pendingApproval,
@@ -418,7 +438,7 @@ class SessionController extends Notifier<UserSession?> {
       };
       final subscription = await FirebaseFirestore.instance
           .collection('subscriptions')
-          .doc(user.uid)
+          .doc(workspaceUid)
           .get(const GetOptions(source: Source.server));
       final subscriptionData = subscription.data();
       subscriptionStatus = _subscriptionStatusFromServer(
@@ -452,6 +472,9 @@ class SessionController extends Notifier<UserSession?> {
           : null,
       emailVerified: user.emailVerified,
       isAnonymous: user.isAnonymous,
+      workspaceId: role == AppRole.landlord ? user.uid : workspaceId,
+      permissions: permissions,
+      isWorkspaceOwner: role == AppRole.landlord,
     );
     state = session;
     if (role == AppRole.client && !user.isAnonymous) {
@@ -500,24 +523,75 @@ class SessionController extends Notifier<UserSession?> {
   Future<void> _autoClaimInvites(int generation) async {
     try {
       if (generation != _generation) return;
-      await claimTenantInvites();
+      final linkedTenant = await claimTenantInvites();
+      // A tenant claim reloads the session as a tenant; only look for a staff
+      // membership while this is still a plain client account.
+      if (linkedTenant == 0 && generation == _generation) {
+        await claimStaffInvites();
+      }
     } on Object {
       // Best-effort: offline or backend-unavailable claims retry on the next
       // sign-in, and the onboarding screen exposes a manual retry.
     }
   }
 
+  /// Finds an active staff membership for [uid] and the workspace it grants
+  /// access to. Returns null when there is none, or when the lookup cannot
+  /// reach the server — the account then resolves as a plain client and
+  /// re-resolves on the next sign-in.
+  Future<({String landlordId, Set<StaffPermission> permissions})?>
+  _resolveStaffMembership(String uid, int generation) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('staffMemberships')
+          .where('memberUid', isEqualTo: uid)
+          .limit(5)
+          .get(const GetOptions(source: Source.server));
+      if (generation != _generation) return null;
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['active'] == true && data['landlordId'] is String) {
+          return (
+            landlordId: data['landlordId'] as String,
+            permissions: StaffPermission.parse(data['permissions']),
+          );
+        }
+      }
+    } on Object {
+      // Offline or unavailable: fall back to the plain client role.
+    }
+    return null;
+  }
+
+  /// Links any pending staff invitations addressed to this verified email.
+  /// Returns how many memberships were linked; the session reloads as a staff
+  /// member when the first one links.
+  Future<int> claimStaffInvites() async {
+    _requireFirebase();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.isAnonymous) return 0;
+    final gateway = await ref.read(authCommandGatewayProvider.future);
+    final response = await gateway.sendCommand(type: 'staff.claimInvite');
+    final result = response['result'];
+    final linked = result is Map
+        ? (result['linkedMemberships'] as num?)?.toInt() ?? 0
+        : 0;
+    if (linked > 0) await refreshSession();
+    return linked;
+  }
+
   void _watchLandlordSubscription(int generation) {
     _cancelSubscriptionStateWatch();
     final session = state;
     if (session == null ||
-        session.role != AppRole.landlord ||
+        (session.role != AppRole.landlord && session.role != AppRole.staff) ||
         Firebase.apps.isEmpty) {
       return;
     }
+    // Staff watch the owner's subscription: a lapse must lock their access too.
     _subscriptionStateSubscription = FirebaseFirestore.instance
         .collection('subscriptions')
-        .doc(session.userId)
+        .doc(session.effectiveWorkspaceId)
         .snapshots(includeMetadataChanges: true)
         .listen(
           (snapshot) {

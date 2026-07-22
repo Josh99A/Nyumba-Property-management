@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import {
   loadActiveLandlordContext,
-  requireActiveLandlord,
   requireOwnedByLandlord,
+  requireWorkspace,
 } from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
 import { LISTING_LIFETIME_DAYS } from '../shared/config';
@@ -55,7 +55,7 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
     const unit = requireAggregate<Record<string, unknown> & { version: number; landlordId: string }>(unitSnap, undefined);
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, unit.landlordId)
-      : await requireActiveLandlord(tx, db, actor);
+      : await requireWorkspace(tx, db, actor, 'manageListings');
     requireOwnedByLandlord(unit, landlord.landlordId);
     if (cmd.expectedVersion === 0) {
       requireAbsent(listingSnap);
@@ -92,7 +92,7 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
     const isStaff = actor.platformAdmin || actor.superAdmin;
     const actorLandlord = isStaff
       ? null
-      : await requireActiveLandlord(tx, db, actor);
+      : await requireWorkspace(tx, db, actor, 'manageListings');
     if (actorLandlord && !actorLandlord.entitlements.advertising) {
       throw new DomainError('ENTITLEMENT_MISSING', { entitlement: 'advertising' });
     }
@@ -196,7 +196,7 @@ export const listingUnpublish: CommandHandler<Record<string, never>> = {
     const listing = requireAggregate<{ version: number; landlordId: string; unitId: string; publicationState: string }>(listingSnap, undefined);
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, listing.landlordId)
-      : await requireActiveLandlord(tx, db, actor);
+      : await requireWorkspace(tx, db, actor, 'manageListings');
     requireOwnedByLandlord(listing, landlord.landlordId);
     // Delivery is at least once and the unit.update occupancy path may retire
     // the listing first, so a listing that is already off the market is a
@@ -237,7 +237,7 @@ export const listingRenew: CommandHandler<Record<string, never>> = {
     const listing = requireAggregate<{ version: number; landlordId: string; publicationState: string }>(listingSnap, cmd.expectedVersion);
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, listing.landlordId)
-      : await requireActiveLandlord(tx, db, actor);
+      : await requireWorkspace(tx, db, actor, 'manageListings');
     requireOwnedByLandlord(listing, landlord.landlordId);
     if (!landlord.entitlements.advertising) throw new DomainError('ENTITLEMENT_MISSING', { entitlement: 'advertising' });
     if (listing.publicationState !== 'published' || publicSnap.data()?.status !== 'published') {

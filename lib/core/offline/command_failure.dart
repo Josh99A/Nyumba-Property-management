@@ -33,6 +33,12 @@ String describeCommandFailure(RemoteSyncException error) {
     'UNIT_LIMIT_REACHED' =>
       'You have reached the limit your plan allows. Upgrade your plan to add '
           'more.',
+    'SEAT_LIMIT_REACHED' =>
+      'You have used every staff seat your plan allows. Upgrade your plan to '
+          'add more team members.',
+    'CUSTOM_ROLES_UNAVAILABLE' =>
+      'Custom staff permissions are a Premium feature. Upgrade your plan to '
+          'tailor what each team member can do.',
     'PAYMENT_PROVIDER_UNAVAILABLE' =>
       'Electronic payments are not available yet. Pay Nyumba directly and an '
           'administrator will confirm it.',
