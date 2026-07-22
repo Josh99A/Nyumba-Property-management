@@ -235,11 +235,21 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                           builder: (context, constraints) {
                             const gap = 10.0;
                             // Two dropdowns per row on phones, three plus the
-                            // clear action on wider screens.
-                            final columns = context.isCompact ? 2 : 3;
-                            final itemWidth =
-                                (constraints.maxWidth - gap * (columns - 1)) /
-                                columns;
+                            // clear action on wider screens. Measured against
+                            // this box rather than the window: the filters sit
+                            // inside a 780-wide cap, and a window-class answer
+                            // asked for two columns even when the box itself
+                            // had no room for them.
+                            final columns = constraints.maxWidth >= 560
+                                ? 3
+                                : constraints.maxWidth >= 240
+                                ? 2
+                                : 1;
+                            final itemWidth = gridItemWidth(
+                              constraints.maxWidth,
+                              columns: columns,
+                              gap: gap,
+                            );
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -251,8 +261,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                 Wrap(
                                   spacing: gap,
                                   runSpacing: gap,
-                                  crossAxisAlignment:
-                                      WrapCrossAlignment.center,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
                                     SizedBox(
                                       width: itemWidth,
@@ -264,14 +273,11 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                           for (final band in _PriceBand.values)
                                             DropdownMenuItem(
                                               value: band,
-                                              child: Text.localized(
-                                                band.label,
-                                              ),
+                                              child: Text.localized(band.label),
                                             ),
                                         ],
-                                        onChanged: (value) => setState(
-                                          () => _priceBand = value,
-                                        ),
+                                        onChanged: (value) =>
+                                            setState(() => _priceBand = value),
                                       ),
                                     ),
                                     SizedBox(
@@ -290,9 +296,8 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                               ),
                                             ),
                                         ],
-                                        onChanged: (value) => setState(
-                                          () => _bedrooms = value,
-                                        ),
+                                        onChanged: (value) =>
+                                            setState(() => _bedrooms = value),
                                       ),
                                     ),
                                     if (availableUnitTypes.isNotEmpty)
@@ -318,9 +323,8 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                                 ),
                                               ),
                                           ],
-                                          onChanged: (value) => setState(
-                                            () => _unitType = value,
-                                          ),
+                                          onChanged: (value) =>
+                                              setState(() => _unitType = value),
                                         ),
                                       ),
                                     if (_hasActiveFilters)
@@ -426,8 +430,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                       ),
                       const SizedBox(height: 18),
                       FilledButton.icon(
-                        onPressed: () =>
-                            ref.invalidate(publicListingsProvider),
+                        onPressed: () => ref.invalidate(publicListingsProvider),
                         icon: const Icon(Icons.refresh_rounded, size: 18),
                         label: const Text.localized('Try again'),
                       ),
@@ -458,15 +461,17 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                 Expanded(
                                   child: Text(
                                     _hasActiveFilters
-                                        ? appLocalizationsOf(context)
-                                              .matchingHomesCount(
-                                                listings.length,
-                                                all.length,
-                                              )
-                                        : appLocalizationsOf(context)
-                                              .availableHomesCount(
-                                                listings.length,
-                                              ),
+                                        ? appLocalizationsOf(
+                                            context,
+                                          ).matchingHomesCount(
+                                            listings.length,
+                                            all.length,
+                                          )
+                                        : appLocalizationsOf(
+                                            context,
+                                          ).availableHomesCount(
+                                            listings.length,
+                                          ),
                                     style: Theme.of(
                                       context,
                                     ).textTheme.headlineSmall,
