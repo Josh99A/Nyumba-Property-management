@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -83,7 +85,8 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                 ),
                 error: (error, stack) => NyumbaStatusMessage.fromError(
                   error,
-                  subject: 'tenants',
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context).statusSubjectTenants,
                   onRetry: () => ref.invalidate(tenanciesProvider),
                 ),
                 data: (tenancies) => _buildLoaded(context, tenancies, outbox),

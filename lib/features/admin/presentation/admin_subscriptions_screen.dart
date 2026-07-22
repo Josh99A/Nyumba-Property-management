@@ -5,6 +5,7 @@ import 'package:nyumba_property_management/core/localization/localized_material.
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
@@ -122,8 +123,12 @@ class _AdminSubscriptionsScreenState
         else if (accountsValue.hasError && accounts.isEmpty)
           NyumbaStatusMessage(
             severity: NyumbaMessageSeverity.critical,
-            title: 'Could not load subscriptions',
-            message: 'The server directory could not be read.',
+            title: appLocalizationsOf(
+              context,
+            ).adminSubscriptionsLoadFailedTitle,
+            message: appLocalizationsOf(
+              context,
+            ).adminSubscriptionsLoadFailedMessage,
             details: '${accountsValue.error}',
             onRetry: () => ref.invalidate(platformAccountsProvider),
           )
@@ -926,7 +931,8 @@ class _ServerCatalogPanel extends ConsumerWidget {
           padding: const EdgeInsets.all(12),
           child: NyumbaStatusMessage.fromError(
             error,
-            subject: 'the plan catalog',
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectPlanCatalog,
           ),
         ),
         _ => const Padding(

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
 import '../../app/theme/nyumba_colors.dart';
+import '../localization/app_localizations_adapter.dart';
+import '../localization/generated/app_localizations.dart';
 
 /// How urgent a status is for the reader, ordered from most benign to most
 /// urgent. [debug] is reserved for raw technical detail that only matters when
@@ -31,6 +33,7 @@ class NyumbaStatusMessage extends StatefulWidget {
   /// (e.g. `'tenants'`, `'your properties'`) so the copy reads naturally.
   factory NyumbaStatusMessage.fromError(
     Object error, {
+    required AppLocalizations localizations,
     required String subject,
     Key? key,
     VoidCallback? onRetry,
@@ -42,17 +45,12 @@ class NyumbaStatusMessage extends StatefulWidget {
     // into this build. Here it's flutter_secure_storage, whose key unlocks the
     // encrypted local database — without it the data genuinely cannot be read,
     // so this is critical and not something the reader can just dismiss.
-    if (lower.contains('missingpluginexception') ||
-        lower.contains('no implementation found for method')) {
+    if (lower.contains('flutter_secure_storage')) {
       return NyumbaStatusMessage(
         key: key,
         severity: NyumbaMessageSeverity.critical,
-        title: 'We can’t open your secure local storage',
-        message:
-            'A device feature this app needs (secure storage) isn’t '
-            'available in the version that’s running, so $subject can’t '
-            'be loaded. Fully close the app and open it again. If the message '
-            'keeps coming back, reinstall or update the app.',
+        title: localizations.statusMessageSecureStorageTitle,
+        message: localizations.statusMessageSecureStorageMessage(subject),
         details: raw,
         onRetry: onRetry,
       );
@@ -67,11 +65,8 @@ class NyumbaStatusMessage extends StatefulWidget {
       return NyumbaStatusMessage(
         key: key,
         severity: NyumbaMessageSeverity.warning,
-        title: 'You appear to be offline',
-        message:
-            'We couldn’t reach the server to refresh $subject. You can '
-            'keep working with what’s on this device; changes will sync '
-            'once you’re back online.',
+        title: localizations.statusMessageOfflineTitle,
+        message: localizations.statusMessageOfflineMessage(subject),
         details: raw,
         onRetry: onRetry,
       );
@@ -82,10 +77,8 @@ class NyumbaStatusMessage extends StatefulWidget {
     return NyumbaStatusMessage(
       key: key,
       severity: NyumbaMessageSeverity.critical,
-      title: 'We couldn’t load $subject',
-      message:
-          'Something went wrong while reading your local data. Try again, and '
-          'if it keeps failing, share the technical details below with support.',
+      title: localizations.statusMessageLoadFailedTitle(subject),
+      message: localizations.statusMessageLoadFailedMessage,
       details: raw,
       onRetry: onRetry,
     );
@@ -113,41 +106,42 @@ class _NyumbaStatusMessageState extends State<NyumbaStatusMessage> {
   bool _showDetails = false;
 
   ({Color foreground, Color background, Color border, IconData icon, String label})
-  _tokens(BuildContext context) => switch (widget.severity) {
+  _tokens(BuildContext context, AppLocalizations copy) => switch (widget.severity) {
     NyumbaMessageSeverity.debug => (
       foreground: context.nyumba.mutedInk,
       background: context.nyumba.neutralTint,
       border: context.nyumba.outline,
       icon: Icons.bug_report_outlined,
-      label: 'Debug',
+      label: copy.statusMessageSeverityDebug,
     ),
     NyumbaMessageSeverity.info => (
       foreground: context.nyumba.midnightNavy,
       background: context.nyumba.navyTint,
       border: context.nyumba.navyBorder,
       icon: Icons.info_outline_rounded,
-      label: 'Info',
+      label: copy.statusMessageSeverityInfo,
     ),
     NyumbaMessageSeverity.warning => (
       foreground: context.nyumba.terracottaDark,
       background: context.nyumba.goldTint,
       border: context.nyumba.goldBorder,
       icon: Icons.warning_amber_rounded,
-      label: 'Warning',
+      label: copy.statusMessageSeverityWarning,
     ),
     NyumbaMessageSeverity.critical => (
       foreground: context.nyumba.danger,
       background: context.nyumba.dangerTint,
       border: context.nyumba.dangerBorder,
       icon: Icons.error_outline_rounded,
-      label: 'Critical',
+      label: copy.statusMessageSeverityCritical,
     ),
   };
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final t = _tokens(context);
+    final copy = appLocalizationsOf(context);
+    final t = _tokens(context, copy);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -198,7 +192,7 @@ class _NyumbaStatusMessageState extends State<NyumbaStatusMessage> {
                   FilledButton.tonalIcon(
                     onPressed: widget.onRetry,
                     icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text.localized('Try again'),
+                    label: Text(copy.statusMessageTryAgain),
                   ),
                 if (widget.onRetry != null && widget.details != null)
                   const SizedBox(width: 8),
@@ -213,7 +207,9 @@ class _NyumbaStatusMessageState extends State<NyumbaStatusMessage> {
                       size: 18,
                     ),
                     label: Text.localized(
-                      _showDetails ? 'Hide technical details' : 'Technical details',
+                      _showDetails
+                          ? copy.statusMessageHideTechnicalDetails
+                          : copy.statusMessageTechnicalDetails,
                     ),
                   ),
               ],

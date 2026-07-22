@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/localization/command_failure_localizations.dart';
 import '../../../core/presentation/google_g_logo.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/language_menu_button.dart';
@@ -73,7 +75,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       );
     } on Object catch (error) {
       showNyumbaToast(
-        describeAuthFailure(error),
+        _describeFailure(error),
         variant: NyumbaToastVariant.error,
       );
     } finally {
@@ -90,13 +92,21 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     } on Object catch (error) {
       if (isAuthCancellation(error)) return;
       showNyumbaToast(
-        describeAuthFailure(error),
+        _describeFailure(error),
         variant: NyumbaToastVariant.error,
       );
     } finally {
       if (mounted) setState(() => _isGoogleSubmitting = false);
     }
   }
+
+  String _describeFailure(Object error) => describeAuthFailure(
+    error,
+    commandFailureLocalizer: (failure) => localizeCommandFailure(
+      appLocalizationsOf(context),
+      failure,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {

@@ -545,17 +545,17 @@ class SessionController extends Notifier<UserSession?> {
       final snapshot = await FirebaseFirestore.instance
           .collection('staffMemberships')
           .where('memberUid', isEqualTo: uid)
-          .limit(5)
+          .where('active', isEqualTo: true)
+          .limit(2)
           .get(const GetOptions(source: Source.server));
       if (generation != _generation) return null;
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        if (data['active'] == true && data['landlordId'] is String) {
-          return (
-            landlordId: data['landlordId'] as String,
-            permissions: StaffPermission.parse(data['permissions']),
-          );
-        }
+      if (snapshot.docs.length != 1) return null;
+      final data = snapshot.docs.single.data();
+      if (data['landlordId'] is String) {
+        return (
+          landlordId: data['landlordId'] as String,
+          permissions: StaffPermission.parse(data['permissions']),
+        );
       }
     } on Object {
       // Offline or unavailable: fall back to the plain client role.

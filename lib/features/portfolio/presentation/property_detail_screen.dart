@@ -78,7 +78,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final listings = listingsValue.value ?? const <Listing>[];
     bool allows(AppResource resource, CrudOperation operation) =>
         session != null &&
-        AuthorizationPolicy.allows(session.role, resource, operation);
+        AuthorizationPolicy.allowsSession(session, resource, operation);
     final canUpdateProperty = allows(
       AppResource.property,
       CrudOperation.update,

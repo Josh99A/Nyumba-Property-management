@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -58,7 +60,8 @@ class ListingDetailScreen extends ConsumerWidget {
               constraints: const BoxConstraints(maxWidth: 560),
               child: NyumbaStatusMessage.fromError(
                 error,
-                subject: 'this home',
+                localizations: appLocalizationsOf(context),
+                subject: appLocalizationsOf(context).statusSubjectThisHome,
                 onRetry: () => ref.invalidate(publicListingsProvider),
               ),
             ),

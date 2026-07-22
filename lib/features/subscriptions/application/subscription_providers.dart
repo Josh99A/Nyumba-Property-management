@@ -493,8 +493,8 @@ class UpdatePlanDraft {
   Future<SubscriptionPlanDraft> call(UpdatePlanDraftInput input) async {
     final session = _ref.read(sessionControllerProvider);
     if (session == null ||
-        !AuthorizationPolicy.allows(
-          session.role,
+        !AuthorizationPolicy.allowsSession(
+          session,
           AppResource.planCatalog,
           CrudOperation.update,
         )) {

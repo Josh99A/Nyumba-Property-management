@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -67,7 +69,8 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
         children: [
           NyumbaStatusMessage.fromError(
             error,
-            subject: 'your payments',
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectYourPayments,
             onRetry: () => ref.invalidate(myTenancyProvider(_tenantId)),
           ),
         ],

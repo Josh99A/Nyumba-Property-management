@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -72,7 +74,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                 ),
                 error: (error, stack) => NyumbaStatusMessage.fromError(
                   error,
-                  subject: 'maintenance requests',
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context)
+                      .statusSubjectMaintenanceRequests,
                   onRetry: () => ref.invalidate(maintenanceRequestsProvider),
                 ),
                 data: (requests) => _buildLoaded(context, requests, outbox),

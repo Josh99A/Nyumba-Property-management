@@ -60,7 +60,8 @@ class TenantHomeScreen extends ConsumerWidget {
         children: [
           NyumbaStatusMessage.fromError(
             error,
-            subject: 'your home',
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectYourHome,
             onRetry: () => ref.invalidate(myTenancyProvider(tenantId)),
           ),
         ],

@@ -44,6 +44,7 @@ void main() {
         subscriptionTier: 'pro',
       );
       expect(owner.effectiveWorkspaceId, 'owner-1');
+      expect(owner.isWorkspaceOwner, isTrue);
       for (final permission in StaffPermission.values) {
         expect(owner.can(permission), isTrue, reason: permission.id);
       }
@@ -66,6 +67,7 @@ void main() {
       final staff = _staff();
       expect(redirectForSession(staff, '/dashboard'), isNull);
       expect(redirectForSession(staff, '/properties'), isNull);
+      expect(redirectForSession(staff, '/finances'), '/dashboard');
       expect(redirectForSession(staff, '/explore'), isNull);
       // Team management and the payment gate are the owner's alone.
       expect(redirectForSession(staff, '/team'), '/dashboard');
@@ -80,14 +82,31 @@ void main() {
     });
   });
 
-  test('staff share the landlord control visibility for routing', () {
+  test('staff operations require the matching session capability', () {
+    final staff = _staff();
     expect(
       AuthorizationPolicy.allows(
         AppRole.staff,
         AppResource.property,
         CrudOperation.read,
       ),
+      isFalse,
+    );
+    expect(
+      AuthorizationPolicy.allowsSession(
+        staff,
+        AppResource.property,
+        CrudOperation.read,
+      ),
       isTrue,
+    );
+    expect(
+      AuthorizationPolicy.allowsSession(
+        staff,
+        AppResource.payment,
+        CrudOperation.read,
+      ),
+      isFalse,
     );
     expect(
       AuthorizationPolicy.allows(

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
@@ -259,10 +261,12 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         else if (accountsValue.hasError && accounts.isEmpty)
           NyumbaStatusMessage(
             severity: NyumbaMessageSeverity.critical,
-            title: 'Could not load the account directory',
-            message:
-                'The live directory could not be read. There is deliberately '
-                'no offline copy of other people’s accounts on this device.',
+            title: appLocalizationsOf(
+              context,
+            ).adminAccountDirectoryLoadFailedTitle,
+            message: appLocalizationsOf(
+              context,
+            ).adminAccountDirectoryLoadFailedMessage,
             details: '${accountsValue.error}',
             onRetry: () => ref.invalidate(platformAccountsProvider),
           )
@@ -905,7 +909,8 @@ class _ServerAuditPanel extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: NyumbaStatusMessage.fromError(
             error,
-            subject: 'the audit log',
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectAuditLog,
           ),
         ),
         _ => const Padding(

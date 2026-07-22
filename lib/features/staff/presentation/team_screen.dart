@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/localization/command_failure_localizations.dart';
 import '../../../core/offline/command_failure.dart';
 import '../../../core/offline/remote_sync_gateway.dart';
 import '../../../core/presentation/toast.dart';
@@ -91,12 +93,11 @@ Future<void> _openInviteDialog(
       canCustomize: plan.customRoles,
       collectContact: true,
       initialPermissions: standardStaffPermissions,
-      onSubmit: (email, name, permissions) =>
-          ref.read(inviteStaffProvider)(
-            email: email!,
-            displayName: name,
-            permissions: permissions,
-          ),
+      onSubmit: (email, name, permissions) => ref.read(inviteStaffProvider)(
+        email: email!,
+        displayName: name,
+        permissions: permissions,
+      ),
     ),
   );
 }
@@ -300,6 +301,7 @@ class _StaffCard extends ConsumerWidget {
   }
 
   Future<void> _confirmRevoke(BuildContext context, WidgetRef ref) async {
+    final copy = appLocalizationsOf(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -329,7 +331,7 @@ class _StaffCard extends ConsumerWidget {
       );
     } on RemoteSyncException catch (error) {
       showNyumbaToast(
-        describeCommandFailure(error),
+        localizeCommandFailure(copy, describeCommandFailure(error)),
         variant: NyumbaToastVariant.error,
       );
     } on Object {
@@ -513,7 +515,8 @@ class _StaffPermissionsDialogState
   }
 
   Future<void> _submit() async {
-    if (widget.collectContact && !(_formKey.currentState?.validate() ?? false)) {
+    if (widget.collectContact &&
+        !(_formKey.currentState?.validate() ?? false)) {
       return;
     }
     if (_selected.isEmpty) {
@@ -540,14 +543,19 @@ class _StaffPermissionsDialogState
       if (!mounted) return;
       setState(() => _submitting = false);
       showNyumbaToast(
-        describeCommandFailure(error),
+        localizeCommandFailure(
+          appLocalizationsOf(context),
+          describeCommandFailure(error),
+        ),
         variant: NyumbaToastVariant.error,
       );
     } on Object catch (error) {
       if (!mounted) return;
       setState(() => _submitting = false);
       showNyumbaToast(
-        error is StateError ? error.message : 'Something went wrong. Try again.',
+        error is StateError
+            ? error.message
+            : 'Something went wrong. Try again.',
         variant: NyumbaToastVariant.error,
       );
     }

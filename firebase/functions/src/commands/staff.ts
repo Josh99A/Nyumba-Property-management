@@ -59,32 +59,35 @@ export const staffInvite: CommandHandler<z.infer<typeof staffInviteSchema>> = {
     const landlord = await requireActiveLandlord(tx, db, actor);
     const ref = db.collection(COLLECTIONS.staffInvites).doc(cmd.aggregateId!);
 
-    // All reads before the first buffered write. A single-equality query keeps
-    // this index-free; revoked invites are filtered out in memory.
-    const [snapshot, existingInvites] = await Promise.all([
+    // Target duplicate detection to this person in this workspace. Capacity is
+    // enforced by the account counter, which is updated in the same transaction
+    // as invite creation/revocation.
+    const [snapshot, duplicateInvites] = await Promise.all([
       tx.get(ref),
       tx.get(
         db
           .collection(COLLECTIONS.staffInvites)
           .where('landlordId', '==', landlord.landlordId)
-          .limit(500),
+          .where('email', '==', cmd.payload.email),
       ),
     ]);
     requireAbsent(snapshot);
 
-    const active = existingInvites.docs.filter((doc) => {
+    const duplicate = duplicateInvites.docs.some((doc) => {
       const invite = doc.data() as { inviteState?: string; isDeleted?: boolean };
       return invite.isDeleted !== true && invite.inviteState !== 'revoked';
     });
-    if (active.length >= landlord.entitlements.staffSeatLimit) {
+    if (duplicate) {
+      throw new DomainError('ALREADY_EXISTS', { field: 'email' });
+    }
+    const activeStaffSeatCount = landlord.account.activeStaffSeatCount;
+    if (!Number.isSafeInteger(activeStaffSeatCount) || activeStaffSeatCount < 0) {
+      throw new DomainError('ENTITLEMENT_MISSING', { reason: 'staffSeatCounterMissing' });
+    }
+    if (activeStaffSeatCount >= landlord.entitlements.staffSeatLimit) {
       throw new DomainError('SEAT_LIMIT_REACHED', {
         staffSeatLimit: landlord.entitlements.staffSeatLimit,
       });
-    }
-    // One seat per person: a still-open invite to the same address is a reuse,
-    // not a second seat.
-    if (active.some((doc) => (doc.data() as { email?: string }).email === cmd.payload.email)) {
-      throw new DomainError('ALREADY_EXISTS', { field: 'email' });
     }
 
     const permissions = resolvePermissions(
@@ -99,6 +102,10 @@ export const staffInvite: CommandHandler<z.infer<typeof staffInviteSchema>> = {
       permissions,
       inviteState: 'pending',
       memberUid: null,
+    });
+    tx.update(db.collection(COLLECTIONS.landlordAccounts).doc(landlord.landlordId), {
+      activeStaffSeatCount: activeStaffSeatCount + 1,
+      ...bumpVersion(landlord.account, now),
     });
     createJob(tx, db, `${cmd.commandId}_staff_invite_email`, 'sendStaffInviteEmail', { inviteId: cmd.aggregateId! }, now);
     return {
@@ -129,18 +136,36 @@ export const staffClaimInvite: CommandHandler<Record<string, never>> = {
     }
     const email = actor.email.toLowerCase();
 
-    const inviteSnap = await tx.get(
-      db
-        .collection(COLLECTIONS.staffInvites)
-        .where('email', '==', email)
-        .where('inviteState', '==', 'pending')
-        .limit(20),
-    );
+    const [inviteSnap, membershipSnap] = await Promise.all([
+      tx.get(
+        db
+          .collection(COLLECTIONS.staffInvites)
+          .where('email', '==', email)
+          .where('inviteState', '==', 'pending')
+          .limit(20),
+      ),
+      tx.get(
+        db
+          .collection(COLLECTIONS.staffMemberships)
+          .where('memberUid', '==', actor.uid)
+          .where('active', '==', true)
+          .limit(2),
+      ),
+    ]);
     const claimable = inviteSnap.docs.filter((doc) => {
       const invite = doc.data() as { memberUid?: string | null; isDeleted?: boolean; landlordId?: unknown };
       const linkedElsewhere = typeof invite.memberUid === 'string' && invite.memberUid !== actor.uid;
       return invite.isDeleted !== true && !linkedElsewhere && typeof invite.landlordId === 'string';
     });
+    if (membershipSnap.size > 1) {
+      throw new DomainError('PERMISSION_DENIED', { reason: 'multipleWorkspaceMemberships' });
+    }
+    if (membershipSnap.size === 1 && claimable.length > 0) {
+      throw new DomainError('ALREADY_EXISTS', { reason: 'staffMembershipAlreadyActive' });
+    }
+    if (new Set(claimable.map((doc) => doc.data().landlordId)).size > 1) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'multipleWorkspaceInvites' });
+    }
 
     for (const doc of claimable) {
       const invite = doc.data() as Record<string, unknown> & { version: number; landlordId: string };
@@ -184,13 +209,29 @@ export const staffRevoke: CommandHandler<Record<string, never>> = {
     const landlord = await requireActiveLandlord(tx, db, actor);
     const ref = db.collection(COLLECTIONS.staffInvites).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
-    const invite = requireAggregate<Record<string, unknown> & { version: number; memberUid?: string | null }>(
+    const invite = requireAggregate<Record<string, unknown> & {
+      version: number;
+      memberUid?: string | null;
+      inviteState?: string;
+      isDeleted?: boolean;
+    }>(
       snapshot,
       cmd.expectedVersion,
     );
     requireOwnedByLandlord(invite, landlord.landlordId);
+    if (invite.isDeleted === true || invite.inviteState === 'revoked') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'staffInviteAlreadyRevoked' });
+    }
+    const activeStaffSeatCount = landlord.account.activeStaffSeatCount;
+    if (!Number.isSafeInteger(activeStaffSeatCount) || activeStaffSeatCount < 1) {
+      throw new DomainError('ENTITLEMENT_MISSING', { reason: 'staffSeatCounterInvalid' });
+    }
 
     tx.update(ref, { inviteState: 'revoked', memberUid: null, ...bumpVersion(invite, now) });
+    tx.update(db.collection(COLLECTIONS.landlordAccounts).doc(landlord.landlordId), {
+      activeStaffSeatCount: activeStaffSeatCount - 1,
+      ...bumpVersion(landlord.account, now),
+    });
     if (typeof invite.memberUid === 'string') {
       tx.delete(
         db.collection(COLLECTIONS.staffMemberships).doc(staffMembershipId(landlord.landlordId, invite.memberUid)),

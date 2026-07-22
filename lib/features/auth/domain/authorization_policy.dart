@@ -1,4 +1,5 @@
 import 'user_session.dart';
+import '../../staff/domain/staff_permission.dart';
 
 enum CrudOperation { create, read, update, delete }
 
@@ -64,6 +65,23 @@ abstract final class AuthorizationPolicy {
     CrudOperation operation,
   ) => operationsFor(role, resource).contains(operation);
 
+  /// Capability-aware check for a concrete signed-in session. Staff never
+  /// inherit the landlord matrix by role alone: the membership capability for
+  /// the resource must also be present.
+  static bool allowsSession(
+    UserSession session,
+    AppResource resource,
+    CrudOperation operation,
+  ) {
+    if (session.role != AppRole.staff) {
+      return allows(session.role, resource, operation);
+    }
+    final permission = _staffPermissionFor(resource);
+    return permission != null &&
+        session.can(permission) &&
+        operationsFor(AppRole.landlord, resource).contains(operation);
+  }
+
   static Set<CrudOperation> operationsFor(AppRole role, AppResource resource) {
     if (role == AppRole.superAdmin) {
       return switch (resource) {
@@ -82,11 +100,7 @@ abstract final class AuthorizationPolicy {
         AppResource.platformConfiguration => _readUpdate,
         _ => _all,
       },
-      // Staff share the landlord's route/control visibility; the finer,
-      // per-capability gate is `UserSession.can`, and the server is always the
-      // real authority. Owner-only surfaces (subscription, staff management)
-      // are kept from staff by the router, not this map.
-      AppRole.landlord || AppRole.staff => switch (resource) {
+      AppRole.landlord => switch (resource) {
         AppResource.profile || AppResource.subscription => _readUpdate,
         AppResource.landlordAccount => _read,
         AppResource.property ||
@@ -124,9 +138,31 @@ abstract final class AuthorizationPolicy {
         AppResource.publicListing => _read,
         _ => const <CrudOperation>{},
       },
+      // Staff authorization requires a concrete UserSession and is resolved by
+      // allowsSession, never by role alone.
+      AppRole.staff => const <CrudOperation>{},
       AppRole.superAdmin => throw StateError('Handled above.'),
     };
   }
+
+  static StaffPermission? _staffPermissionFor(AppResource resource) =>
+      switch (resource) {
+        AppResource.property || AppResource.unit =>
+          StaffPermission.manageProperties,
+        AppResource.tenantRecord || AppResource.lease =>
+          StaffPermission.manageTenants,
+        AppResource.invoice || AppResource.payment || AppResource.receipt =>
+          StaffPermission.manageBilling,
+        AppResource.maintenanceRequest => StaffPermission.manageMaintenance,
+        AppResource.privateListing ||
+        AppResource.publicListing ||
+        AppResource.application ||
+        AppResource.contactRequest => StaffPermission.manageListings,
+        AppResource.notice => StaffPermission.manageCommunication,
+        AppResource.document => StaffPermission.manageDocuments,
+        AppResource.report => StaffPermission.viewReports,
+        _ => null,
+      };
 
   static bool canManageAccountRole(AppRole actorRole, String targetRole) {
     final normalized = targetRole.trim().toLowerCase().replaceAll(

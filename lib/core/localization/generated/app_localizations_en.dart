@@ -1914,6 +1914,165 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your property manager will prepare this document and share it here.';
 
   @override
+  String get legacy_59138b8999c6 => 'Archive this account before doing that.';
+
+  @override
+  String get legacy_4134f7a8316a => 'Change at least one detail before saving.';
+
+  @override
+  String get legacy_87a2131e6d61 =>
+      'Custom staff permissions are a Premium feature. Upgrade your plan to tailor what each team member can do.';
+
+  @override
+  String get legacy_b292aea5f50e =>
+      'Electronic payments are not available yet. Pay Nyumba directly and an administrator will confirm it.';
+
+  @override
+  String get legacy_b791dbf9cc55 =>
+      'Nyumba cannot reach the server. Check your connection and try again.';
+
+  @override
+  String get legacy_f810bcddd7ed =>
+      'Nyumba could not accept that request. Reload the app and try again.';
+
+  @override
+  String get legacy_3852e291776f =>
+      'Nyumba could not complete that action. Please try again.';
+
+  @override
+  String get legacy_8dd971279a6c =>
+      'Nyumba could not complete that just now. Please try again.';
+
+  @override
+  String get legacy_fc164894a18a =>
+      'Nyumba could not confirm your plan, so this action was not applied. Try again shortly, or contact support if it continues.';
+
+  @override
+  String get legacy_5f40e5d243c5 =>
+      'Nyumba could not find that record. It may have been removed — reload and try again.';
+
+  @override
+  String get legacy_3a6e632ad56d =>
+      'Nyumba could not verify this device. Update the app and try again.';
+
+  @override
+  String get legacy_8032d3a419ad =>
+      'Nyumba did not accept that request. Reload and try again.';
+
+  @override
+  String legacy_553f76c2b4de(String fields) {
+    return 'Nyumba did not accept these details: $fields. Check them and try again — if they look right, reload the app to get the latest version.';
+  }
+
+  @override
+  String get legacy_eacb633c809b =>
+      'Some of those details were not accepted. Check them and try again.';
+
+  @override
+  String get legacy_2dc6de513de7 =>
+      'Someone else changed this while you were working on it. Reload to see the latest version, then try again.';
+
+  @override
+  String get legacy_26124c0ce6a9 =>
+      'That amount is more than the outstanding balance.';
+
+  @override
+  String get legacy_dad068aa555b => 'That is already this account\'s role.';
+
+  @override
+  String get legacy_ab87caef66c3 =>
+      'That is already your current plan. Choose a different one to change plans.';
+
+  @override
+  String get legacy_e3d4879fe8e6 =>
+      'That plan is already active on this account.';
+
+  @override
+  String get legacy_865689190ea5 => 'That record already exists.';
+
+  @override
+  String get legacy_b85cb4bf091b => 'That tenancy is not active.';
+
+  @override
+  String get legacy_06fafad86a95 =>
+      'The server took too long to respond. Try again.';
+
+  @override
+  String get legacy_ad65b6dfeb97 =>
+      'The yearly price cannot cost more than twelve monthly payments.';
+
+  @override
+  String get legacy_0486dbaa769f =>
+      'This account does not have permission to do that.';
+
+  @override
+  String get legacy_98c1804b4d45 =>
+      'This account has no landlord record yet, so it cannot be activated.';
+
+  @override
+  String get legacy_8927961a2446 => 'This account is already archived.';
+
+  @override
+  String get legacy_208b9378be87 =>
+      'This account is no longer in that state. Reload to see its current status.';
+
+  @override
+  String get legacy_0d1dfd3592f9 =>
+      'This account is not in a state that can be activated.';
+
+  @override
+  String get legacy_b7224264cf97 =>
+      'This account is suspended, so payment cannot activate it. It must be reinstated first.';
+
+  @override
+  String get legacy_e2a1b305ffbd =>
+      'This account is suspended. Contact Nyumba support to restore it.';
+
+  @override
+  String get legacy_34a370bb8f26 =>
+      'This action needs an internet connection. Reconnect and try again.';
+
+  @override
+  String get legacy_977b7fe2ba26 =>
+      'This action was already sent with different details. Reload and try again.';
+
+  @override
+  String get legacy_6e7e677ba3d3 =>
+      'This payment is still being confirmed. You will see it here as soon as it clears.';
+
+  @override
+  String get legacy_e9b3d6e695b4 =>
+      'This version of the app is out of date. Reload to get the latest version.';
+
+  @override
+  String get legacy_4610306154c0 =>
+      'Too many attempts. Wait a moment before trying again.';
+
+  @override
+  String get legacy_427eb1e9b92d =>
+      'You have reached the limit your plan allows. Upgrade your plan to add more.';
+
+  @override
+  String get legacy_c34019924764 =>
+      'You have used every staff seat your plan allows. Upgrade your plan to add more team members.';
+
+  @override
+  String get legacy_bdbcbdd54088 =>
+      'Your account is still awaiting review, so this action is not available yet.';
+
+  @override
+  String get legacy_bd9b9bf7438f =>
+      'Your session has expired. Sign in again to continue.';
+
+  @override
+  String get legacy_5856f45a39ca =>
+      'Your subscription is not active yet, so it cannot be upgraded. Complete your first payment first.';
+
+  @override
+  String get legacy_f6bf142ea0c0 =>
+      'Your subscription is not active yet, so this action is unavailable.';
+
+  @override
   String welcomeBackName(Object name) {
     return 'Welcome back, $name.';
   }
@@ -2729,4 +2888,106 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get appLockSwitchSubtitle =>
       'Ask for your fingerprint when Nyumba reopens.';
+
+  @override
+  String get statusMessageSecureStorageTitle =>
+      'We can’t open your secure local storage';
+
+  @override
+  String statusMessageSecureStorageMessage(String subject) {
+    return 'A device feature this app needs (secure storage) isn’t available in the version that’s running, so $subject can’t be loaded. Fully close the app and open it again. If the message keeps coming back, reinstall or update the app.';
+  }
+
+  @override
+  String get statusMessageOfflineTitle => 'You appear to be offline';
+
+  @override
+  String statusMessageOfflineMessage(String subject) {
+    return 'We couldn’t reach the server to refresh $subject. You can keep working with what’s on this device; changes will sync once you’re back online.';
+  }
+
+  @override
+  String statusMessageLoadFailedTitle(String subject) {
+    return 'We couldn’t load $subject';
+  }
+
+  @override
+  String get statusMessageLoadFailedMessage =>
+      'Something went wrong while reading your local data. Try again, and if it keeps failing, share the technical details below with support.';
+
+  @override
+  String get statusMessageSeverityDebug => 'Debug';
+
+  @override
+  String get statusMessageSeverityInfo => 'Info';
+
+  @override
+  String get statusMessageSeverityWarning => 'Warning';
+
+  @override
+  String get statusMessageSeverityCritical => 'Critical';
+
+  @override
+  String get statusMessageTryAgain => 'Try again';
+
+  @override
+  String get statusMessageTechnicalDetails => 'Technical details';
+
+  @override
+  String get statusMessageHideTechnicalDetails => 'Hide technical details';
+
+  @override
+  String get statusSubjectPayments => 'payments';
+
+  @override
+  String get statusSubjectYourPayments => 'your payments';
+
+  @override
+  String get statusSubjectYourRequests => 'your requests';
+
+  @override
+  String get statusSubjectYourHome => 'your home';
+
+  @override
+  String get statusSubjectDocuments => 'documents';
+
+  @override
+  String get statusSubjectTenants => 'tenants';
+
+  @override
+  String get statusSubjectAuditLog => 'the audit log';
+
+  @override
+  String get statusSubjectPlanCatalog => 'the plan catalog';
+
+  @override
+  String get statusSubjectApprovalQueue => 'the approval queue';
+
+  @override
+  String get statusSubjectYourProperties => 'your properties';
+
+  @override
+  String get statusSubjectThisHome => 'this home';
+
+  @override
+  String get statusSubjectYourListings => 'your listings';
+
+  @override
+  String get statusSubjectMaintenanceRequests => 'maintenance requests';
+
+  @override
+  String get adminSubscriptionsLoadFailedTitle =>
+      'Could not load subscriptions';
+
+  @override
+  String get adminSubscriptionsLoadFailedMessage =>
+      'The server directory could not be read.';
+
+  @override
+  String get adminAccountDirectoryLoadFailedTitle =>
+      'Could not load the account directory';
+
+  @override
+  String get adminAccountDirectoryLoadFailedMessage =>
+      'The live directory could not be read. There is deliberately no offline copy of other people’s accounts on this device.';
 }

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
 import '../../auth/application/session_controller.dart';
@@ -114,6 +115,7 @@ class AdminOverviewScreen extends ConsumerWidget {
               live: live,
               accountsValue: accountsValue,
               pending: pendingApprovals,
+              onRetry: () => ref.invalidate(platformAccountsProvider),
             );
             final activity = _AdminActivityPanel(live: live);
             if (constraints.maxWidth < 980) {
@@ -250,11 +252,13 @@ class _ApprovalPanel extends StatelessWidget {
     required this.live,
     required this.accountsValue,
     required this.pending,
+    required this.onRetry,
   });
 
   final bool live;
   final AsyncValue<List<PlatformAccount>> accountsValue;
   final List<PlatformAccount> pending;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -289,7 +293,9 @@ class _ApprovalPanel extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: NyumbaStatusMessage.fromError(
             error,
-            subject: 'the approval queue',
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectApprovalQueue,
+            onRetry: onRetry,
           ),
         ),
         (_, []) => const Padding(
@@ -420,7 +426,9 @@ class _AdminActivityPanel extends ConsumerWidget {
           padding: const EdgeInsets.all(12),
           child: NyumbaStatusMessage.fromError(
             error,
-            subject: 'the audit log',
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectAuditLog,
+            onRetry: () => ref.invalidate(adminAuditEventsProvider),
           ),
         ),
         _ => const Padding(

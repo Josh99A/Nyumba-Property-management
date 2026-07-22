@@ -3,6 +3,9 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/localization/command_failure_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -214,7 +217,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 ),
                 error: (error, stack) => NyumbaStatusMessage.fromError(
                   error,
-                  subject: 'payments',
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context).statusSubjectPayments,
                   onRetry: () => ref.invalidate(rentPaymentsProvider),
                 ),
                 data: (payments) =>
@@ -432,7 +436,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text.localized(
-              'Could not confirm: ${describeAuthFailure(error)}',
+              'Could not confirm: ${describeAuthFailure(
+                error,
+                commandFailureLocalizer: (failure) => localizeCommandFailure(
+                  appLocalizationsOf(context),
+                  failure,
+                ),
+              )}',
             ),
           ),
         );
@@ -525,7 +535,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text.localized(
-                'Could not reject: ${describeAuthFailure(error)}',
+                'Could not reject: ${describeAuthFailure(
+                  error,
+                  commandFailureLocalizer: (failure) => localizeCommandFailure(
+                    appLocalizationsOf(context),
+                    failure,
+                  ),
+                )}',
               ),
             ),
           );

@@ -21,6 +21,7 @@ export interface LandlordAccount {
   approvalReasonCode?: string;
   activeUnitCount: number;
   activeListingCount: number;
+  activeStaffSeatCount: number;
   receiptCounter: number;
   version: number;
 }
@@ -185,8 +186,11 @@ export async function requireWorkspace(
       .collection(COLLECTIONS.staffMemberships)
       .where('memberUid', '==', actor.uid)
       .where('active', '==', true)
-      .limit(1),
+      .limit(2),
   );
+  if (membershipSnap.size > 1) {
+    throw new DomainError('PERMISSION_DENIED', { reason: 'multipleWorkspaceMemberships' });
+  }
   const membershipDoc = membershipSnap.docs[0];
   if (!membershipDoc) throw new DomainError('PERMISSION_DENIED');
   const membership = membershipDoc.data() as {

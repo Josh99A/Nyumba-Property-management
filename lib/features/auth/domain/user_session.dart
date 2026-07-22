@@ -42,8 +42,8 @@ class UserSession {
     this.isAnonymous = false,
     this.workspaceId,
     this.permissions = const {},
-    this.isWorkspaceOwner = false,
-  });
+    bool? isWorkspaceOwner,
+  }) : isWorkspaceOwner = isWorkspaceOwner ?? role == AppRole.landlord;
 
   final String userId;
   final String displayName;

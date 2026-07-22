@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -54,8 +56,8 @@ class _LandlordListingsScreenState
     final session = ref.watch(sessionControllerProvider);
     bool allows(CrudOperation operation) =>
         session != null &&
-        AuthorizationPolicy.allows(
-          session.role,
+        AuthorizationPolicy.allowsSession(
+          session,
           AppResource.privateListing,
           operation,
         );
@@ -168,7 +170,8 @@ class _LandlordListingsScreenState
                 ),
                 error: (error, stack) => NyumbaStatusMessage.fromError(
                   error,
-                  subject: 'your listings',
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context).statusSubjectYourListings,
                   onRetry: () => ref.invalidate(landlordListingsProvider),
                 ),
                 data: (allListings) {

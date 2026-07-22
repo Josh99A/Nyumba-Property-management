@@ -144,7 +144,8 @@ This is implemented end to end:
   (`staff.invite`). Each invite takes one seat; the plan's `staffSeatLimit`
   caps how many (Starter 0, Pro 2, Premium 9, Enterprise custom — the
   "Landlord/staff accounts" row below counts the owner too). A revoked invite
-  frees its seat.
+  frees its seat. Creation and revocation update the server-owned
+  `landlordAccounts.activeStaffSeatCount` in the same transaction.
 - **Standard vs custom roles.** On plans without the custom-role entitlement
   (Pro) every seat is coerced to the fixed standard preset — the full
   operational set. Premium and above (`customStaffRoles`) may grant any subset
@@ -152,6 +153,8 @@ This is implemented end to end:
 - The invitee joins by signing in with that verified email
   (`staff.claimInvite`), which links a deterministic `staffMemberships` doc so
   Firestore Rules can authorize their workspace reads with a single `exists()`.
+  One person may hold only one active landlord membership; claims addressed to
+  multiple workspaces are rejected instead of choosing one implicitly.
 - **Enforcement.** Every operational command resolves the actor to the owner's
   workspace and checks the granted capability through `requireWorkspace`
   (`shared/accounts.ts`); owner-only surfaces (subscription, plan, staff

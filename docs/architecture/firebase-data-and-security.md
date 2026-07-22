@@ -32,7 +32,7 @@ All canonical records include `id`, integer `version`, `createdAt`, `updatedAt`,
 | --- | --- | --- |
 | `users/{uid}` | role, status (`active`, `suspended`, or `archived`), safe profile, `locale` (`en`, `lg`, `sw`, or `ar`), accessGeneration, archive/delete audit fields | self/admin; server writes except command-based profile updates; `archived` and the `isDeleted` tombstone come only from the super-admin `user.archive`, `user.restore`, or `user.delete` commands; absent/invalid legacy locale falls back to English |
 | `notificationInboxes/{uid}/items/{notificationId}` | generic title/body, kind, safe route/entity ID, read state, delivery metadata | UID owner/admin reads; server writes, with owner-only read state through `notification.markRead` |
-| `landlordAccounts/{landlordId}` | ownerUid, approvalStatus, approvalReasonCode, approvedAt, suspendedAt, activeUnitCount | owner/admin; approval and count are server-only |
+| `landlordAccounts/{landlordId}` | ownerUid, approvalStatus, approvalReasonCode, approvedAt, suspendedAt, activeUnitCount, activeStaffSeatCount | owner/admin; approval and counters are server-only |
 | `subscriptions/{landlordId}` | tier, status, provider refs, period dates, entitlementsVersion | owner/admin; billing webhook/server-only |
 | `planCatalog/{tier}` | display name, public price projection, `isPublic` | published plans may be public; server-only writes |
 | `properties/{propertyId}` | landlordId, name, private address, property type, internal notes | owning landlord/admin |

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+// intl exports its own TextDirection class, which shadows the framework enum
+// this file needs for the direction-aware chevron below.
+import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/market_config.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/localization/command_failure_localizations.dart';
 import '../../../core/localization/generated/app_localizations.dart';
 import '../../../core/localization/nyumba_localizations.dart';
 import '../../../core/presentation/motion.dart';
@@ -63,7 +66,7 @@ class _LandlordSubscriptionScreenState
       }
     } on Object catch (error) {
       showNyumbaToast(
-        describeAuthFailure(error),
+        _describeFailure(context, error),
         variant: NyumbaToastVariant.error,
       );
     } finally {
@@ -82,7 +85,7 @@ class _LandlordSubscriptionScreenState
       );
     } on Object catch (error) {
       showNyumbaToast(
-        describeAuthFailure(error),
+        _describeFailure(context, error),
         variant: NyumbaToastVariant.error,
       );
     } finally {
@@ -176,13 +179,13 @@ class _LandlordSubscriptionScreenState
       showNyumbaToast(
         error.message == 'PAYMENT_PROVIDER_UNAVAILABLE'
             ? copy.subscriptionElectronicComingSoon
-            : describeAuthFailure(error),
+            : _describeFailure(context, error),
         variant: NyumbaToastVariant.error,
       );
     } on Object catch (error) {
       if (!mounted) return;
       showNyumbaToast(
-        describeAuthFailure(error),
+        _describeFailure(context, error),
         variant: NyumbaToastVariant.error,
       );
     } finally {
@@ -856,7 +859,13 @@ class _UpgradeMethodTile extends StatelessWidget {
         subtitle,
         style: Theme.of(context).textTheme.bodySmall,
       ),
-      trailing: const Icon(Icons.chevron_right_rounded),
+      // The affordance points the way the reader moves forward, which is
+      // leftwards in Arabic; a fixed right chevron points back out of the flow.
+      trailing: Icon(
+        Directionality.of(context) == TextDirection.rtl
+            ? Icons.chevron_left_rounded
+            : Icons.chevron_right_rounded,
+      ),
       onTap: onTap,
     );
   }
@@ -889,6 +898,15 @@ String _fallbackPlanAudience(AppLocalizations copy, String tier) =>
 /// Presentation order and iconography for the normative tier structure
 /// (docs/architecture/subscription-tiers.md). Capacity numbers never live
 /// here — they render only from the server-owned plan catalog.
+String _describeFailure(BuildContext context, Object error) =>
+    describeAuthFailure(
+      error,
+      commandFailureLocalizer: (failure) => localizeCommandFailure(
+        appLocalizationsOf(context),
+        failure,
+      ),
+    );
+
 const _tiers = [
   _TierPresentation('starter', Icons.home_work_outlined),
   _TierPresentation('pro', Icons.rocket_launch_outlined),

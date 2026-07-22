@@ -315,31 +315,41 @@ String? redirectForSession(UserSession? session, String path) {
   }
 
   final adminPath = path == '/admin' || path.startsWith('/admin/');
-  final portfolioPath =
-      path == '/dashboard' ||
-      path == '/properties' ||
-      path.startsWith('/properties/') ||
-      path == '/tenants' ||
-      path == '/finances' ||
-      path == '/maintenance' ||
-      path == '/listings' ||
-      path == '/documents';
+  final portfolioResource = switch (path) {
+    '/properties' => AppResource.property,
+    _ when path.startsWith('/properties/') => AppResource.property,
+    '/tenants' => AppResource.tenantRecord,
+    '/finances' => AppResource.payment,
+    '/maintenance' => AppResource.maintenanceRequest,
+    '/listings' => AppResource.privateListing,
+    '/documents' => AppResource.document,
+    _ => null,
+  };
+  final portfolioAllowed = path == '/dashboard'
+      ? switch (session.role) {
+          AppRole.landlord ||
+          AppRole.staff ||
+          AppRole.admin ||
+          AppRole.superAdmin => true,
+          _ => false,
+        }
+      : portfolioResource != null &&
+            AuthorizationPolicy.allowsSession(
+              session,
+              portfolioResource,
+              CrudOperation.read,
+            );
   // Managing the team (staff seats) is the owner's alone; staff never see it.
   final teamPath = path == '/team';
   final allowed =
       path == '/settings' ||
       (adminPath &&
-          AuthorizationPolicy.allows(
-            session.role,
+          AuthorizationPolicy.allowsSession(
+            session,
             AppResource.userAccount,
             CrudOperation.read,
           )) ||
-      (portfolioPath &&
-          AuthorizationPolicy.allows(
-            session.role,
-            AppResource.property,
-            CrudOperation.read,
-          )) ||
+      portfolioAllowed ||
       (teamPath && session.role == AppRole.landlord) ||
       (session.role == AppRole.tenant &&
           (path == '/tenant' || path.startsWith('/tenant/')));

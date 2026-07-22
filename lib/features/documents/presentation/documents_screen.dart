@@ -4,6 +4,7 @@ import 'package:nyumba_property_management/core/localization/localized_material.
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/nyumba_colors.dart';
@@ -113,7 +114,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 ),
                 error: (error, stack) => NyumbaStatusMessage.fromError(
                   error,
-                  subject: 'documents',
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context).statusSubjectDocuments,
                   onRetry: () => ref.invalidate(leaseDocumentsProvider),
                 ),
                 data: (documents) => _buildLoaded(

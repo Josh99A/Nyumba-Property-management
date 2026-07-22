@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -62,8 +64,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     final units = unitsValue.value ?? const <Unit>[];
     final canCreate =
         session != null &&
-        AuthorizationPolicy.allows(
-          session.role,
+        AuthorizationPolicy.allowsSession(
+          session,
           AppResource.property,
           CrudOperation.create,
         );
@@ -125,7 +127,9 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                 ),
                 error: (error, stack) => NyumbaStatusMessage.fromError(
                   error,
-                  subject: 'your properties',
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context)
+                      .statusSubjectYourProperties,
                   onRetry: () => ref.invalidate(portfolioPropertiesProvider),
                 ),
                 data: (allProperties) {
