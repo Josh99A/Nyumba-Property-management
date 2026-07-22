@@ -20,7 +20,15 @@ Future<OfflineDatabase> openScopedOfflineDatabase(String scope) async {
   final encrypt = Platform.isAndroid || Platform.isIOS;
   final key = encrypt ? await _keyForScope(scope) : null;
   if (key != null) {
-    await compactLargeDatabaseInBackground(databasePath, key);
+    try {
+      await compactLargeDatabaseInBackground(databasePath, key);
+    } on Object {
+      // Compaction only makes the next open cheaper; it is never the thing
+      // that decides whether the workspace can start. Whatever went wrong
+      // here, openRecovering below is the code that owns reading this mirror
+      // and rebuilding it when it cannot be read — so let it have the say
+      // rather than failing startup on an optimization.
+    }
   }
   return OfflineDatabase.openRecovering(
     factory: databaseFactoryIo,

@@ -136,4 +136,29 @@ void main() {
       isNotNull,
     );
   });
+
+  test(
+    'a database that cannot be compacted is left for recovery, not fatal',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'nyumba_compaction_garbage_',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final databasePath = '${directory.path}${Platform.pathSeparator}junk.db';
+      // Not a Sembast log at all. Compaction cannot do anything with this, and
+      // the point is that it declines quietly: openRecovering owns deciding
+      // whether an unreadable mirror gets rebuilt, so an optimization failing
+      // must never be what stops the workspace from starting.
+      await File(databasePath).writeAsString('not a sembast database\n' * 512);
+
+      await expectLater(
+        compactLargeDatabaseInBackground(
+          databasePath,
+          Uint8List.fromList(List<int>.generate(32, (index) => index)),
+          thresholdBytes: 0,
+        ),
+        completes,
+      );
+    },
+  );
 }

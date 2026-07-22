@@ -246,4 +246,42 @@ void main() {
     expect(properties.single['name'], 'Sunset Apartments');
     expect(await reopened.readOutbox(), hasLength(1));
   });
+
+  test(
+    'a wrong key through the isolate codec still rebuilds the mirror',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'nyumba_isolate_foreign_',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final path = '${directory.path}${Platform.pathSeparator}foreign.db';
+      SembastCodec codecFor(int fill) => SembastCodec(
+        signature: 'nyumba-aes-256-gcm-v1',
+        codec: IsolateAesGcmJsonCodec(
+          Uint8List.fromList(List.filled(32, fill)),
+        ),
+      );
+
+      final first = await OfflineDatabase.open(
+        factory: databaseFactoryIo,
+        path: path,
+        codec: codecFor(7),
+      );
+      await _seedOne(first, 'property-foreign');
+      await first.close();
+
+      // openRecovering decides to delete and rebuild by testing `is
+      // FormatException`. The worker isolate has to carry that type back across
+      // the port, not just an error string, or a workspace whose key was
+      // rotated hard-fails at startup instead of re-syncing.
+      final reopened = await OfflineDatabase.openRecovering(
+        factory: databaseFactoryIo,
+        path: path,
+        codec: codecFor(8),
+      );
+      addTearDown(reopened.close);
+      expect(await reopened.readEntities(OfflineEntityType.property), isEmpty);
+      expect(await reopened.readOutbox(), isEmpty);
+    },
+  );
 }

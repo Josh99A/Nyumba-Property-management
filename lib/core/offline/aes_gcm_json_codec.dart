@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:math';
@@ -29,24 +30,225 @@ final class AesGcmJsonCodec extends Codec<Object?, String> {
 /// Sembast awaits [decodeAsync] and [encodeAsync] between records, so database
 /// ordering and transaction durability are unchanged while Android's platform
 /// thread remains free to acknowledge focus and lifecycle events.
+///
+/// The work goes to one long-lived worker rather than a fresh `Isolate.run`
+/// per call. Sembast invokes the codec once per record, and spawning an
+/// isolate — then rebuilding this key's GHASH table inside it — costs more
+/// than the cryptography itself once a mirror holds thousands of records. One
+/// worker pays both costs once and then answers over a port.
+///
+/// The worker exits on its own after [_idleTimeout] without work, so a
+/// database that is opened and then left alone does not pin an isolate for the
+/// life of the process. The next record spawns a fresh one.
 final class IsolateAesGcmJsonCodec extends AsyncContentCodecBase {
   IsolateAesGcmJsonCodec(Uint8List key)
     : assert(key.length == 32),
       _key = Uint8List.fromList(key);
 
+  static const Duration _idleTimeout = Duration(seconds: 15);
+
   final Uint8List _key;
+  Future<_CodecWorker>? _worker;
+  int _spawns = 0;
+
+  /// How many worker isolates this codec has started, for tests. One spawn
+  /// covering many records is the entire point of the class, so it is worth
+  /// being able to assert on.
+  int get workerSpawnCount => _spawns;
 
   @override
-  Future<Object?> decodeAsync(String encoded) {
-    final key = Uint8List.fromList(_key);
-    return Isolate.run(() => AesGcmJsonCodec(key).decoder.convert(encoded));
+  Future<Object?> decodeAsync(String encoded) async {
+    final worker = await _readyWorker();
+    return worker.convert(encode: false, payload: encoded);
   }
 
   @override
-  Future<String> encodeAsync(Object? input) {
-    final key = Uint8List.fromList(_key);
-    return Isolate.run(() => AesGcmJsonCodec(key).encoder.convert(input));
+  Future<String> encodeAsync(Object? input) async {
+    final worker = await _readyWorker();
+    return await worker.convert(encode: true, payload: input) as String;
   }
+
+  /// Releases the worker now instead of waiting for it to time out. Optional —
+  /// nothing leaks without it — but tests and short-lived tooling can reclaim
+  /// the isolate immediately.
+  Future<void> close() async {
+    final pending = _worker;
+    _worker = null;
+    if (pending == null) return;
+    try {
+      (await pending).shutdown();
+    } on Object {
+      // A worker that never started needs no shutdown.
+    }
+  }
+
+  Future<_CodecWorker> _readyWorker() async {
+    while (true) {
+      final pending = _worker;
+      if (pending != null) {
+        final worker = await pending;
+        if (!worker.isClosed) return worker;
+        // It timed out between the last record and this one; drop it and
+        // spawn again on the next turn of the loop.
+        if (identical(_worker, pending)) _worker = null;
+        continue;
+      }
+      _spawns++;
+      final spawning = _CodecWorker.spawn(_key, idleTimeout: _idleTimeout);
+      _worker = spawning;
+      try {
+        return await spawning;
+      } on Object {
+        if (identical(_worker, spawning)) _worker = null;
+        rethrow;
+      }
+    }
+  }
+}
+
+/// The main-isolate half of the codec worker: one command port out, one
+/// response port back, and a request id so replies can be matched even if
+/// Sembast ever overlaps two records.
+final class _CodecWorker {
+  _CodecWorker._(
+    this._isolate,
+    this._commands,
+    this._responses,
+    this._idleTimeout,
+  );
+
+  static Future<_CodecWorker> spawn(
+    Uint8List key, {
+    required Duration idleTimeout,
+  }) async {
+    final setup = ReceivePort();
+    final responses = ReceivePort();
+    final Isolate isolate;
+    try {
+      isolate = await Isolate.spawn(
+        _codecWorkerMain,
+        (setup.sendPort, responses.sendPort, Uint8List.fromList(key)),
+        // A worker that dies unexpectedly sends null here, which fails every
+        // in-flight record rather than leaving Sembast awaiting forever.
+        onExit: responses.sendPort,
+      );
+    } on Object {
+      setup.close();
+      responses.close();
+      rethrow;
+    }
+    final commands = await setup.first as SendPort;
+    setup.close();
+    final worker = _CodecWorker._(isolate, commands, responses, idleTimeout);
+    responses.listen(worker._onResponse);
+    return worker;
+  }
+
+  final Isolate _isolate;
+  final SendPort _commands;
+  final ReceivePort _responses;
+  final Duration _idleTimeout;
+  final Map<int, Completer<Object?>> _pending = <int, Completer<Object?>>{};
+  Timer? _idle;
+  int _nextId = 0;
+  bool _closed = false;
+
+  bool get isClosed => _closed;
+
+  Future<Object?> convert({required bool encode, required Object? payload}) {
+    if (_closed) {
+      return Future<Object?>.error(StateError('The codec worker is closed.'));
+    }
+    _idle?.cancel();
+    _idle = null;
+    final id = _nextId++;
+    final completer = Completer<Object?>();
+    _pending[id] = completer;
+    _commands.send((id, encode, payload));
+    return completer.future;
+  }
+
+  void shutdown() {
+    if (_closed) return;
+    _closed = true;
+    _idle?.cancel();
+    _idle = null;
+    _commands.send(null);
+    _responses.close();
+    _failPending(StateError('The codec worker shut down.'));
+    _isolate.kill(priority: Isolate.beforeNextEvent);
+  }
+
+  void _onResponse(Object? message) {
+    if (message == null) {
+      // onExit: the worker is gone and nothing in flight can be answered.
+      _closed = true;
+      _idle?.cancel();
+      _idle = null;
+      _responses.close();
+      _failPending(StateError('The codec worker exited unexpectedly.'));
+      return;
+    }
+    final (id, value, failure) = message as (int, Object?, (String, String)?);
+    final completer = _pending.remove(id);
+    if (completer != null) {
+      if (failure == null) {
+        completer.complete(value);
+      } else {
+        final (kind, text) = failure;
+        completer.completeError(
+          kind == _formatFailure ? FormatException(text) : StateError(text),
+        );
+      }
+    }
+    if (_pending.isEmpty && !_closed) {
+      _idle = Timer(_idleTimeout, shutdown);
+    }
+  }
+
+  void _failPending(Object error) {
+    final waiting = _pending.values.toList(growable: false);
+    _pending.clear();
+    for (final completer in waiting) {
+      if (!completer.isCompleted) completer.completeError(error);
+    }
+  }
+}
+
+/// Marks a failure that must arrive back on the main isolate as a
+/// [FormatException] rather than as text.
+const String _formatFailure = 'format';
+
+void _codecWorkerMain((SendPort, SendPort, Uint8List) setup) {
+  final (ready, responses, key) = setup;
+  // Built once for the life of the worker; this is the cost that made a
+  // per-record isolate wasteful.
+  final codec = AesGcmJsonCodec(key);
+  final commands = ReceivePort();
+  ready.send(commands.sendPort);
+  commands.listen((message) {
+    if (message == null) {
+      commands.close();
+      return;
+    }
+    final (id, encode, payload) = message as (int, bool, Object?);
+    try {
+      responses.send((
+        id,
+        encode
+            ? codec.encoder.convert(payload)
+            : codec.decoder.convert(payload as String),
+        null,
+      ));
+    } on FormatException catch (error) {
+      // OfflineDatabase.openRecovering decides to delete and rebuild by
+      // testing `is FormatException`, so the type has to survive the port, not
+      // just the message. A rotated workspace key depends on it.
+      responses.send((id, null, (_formatFailure, error.message)));
+    } on Object catch (error) {
+      responses.send((id, null, ('error', error.toString())));
+    }
+  });
 }
 
 final class _AesGcmEncoder extends Converter<Object?, String> {
