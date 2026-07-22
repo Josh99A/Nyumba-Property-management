@@ -32,6 +32,26 @@ beforeEach(async () => {
       setDoc(doc(db, 'publicListings/malformed_1'), { status: 'published', expiresAt: '2100-01-01' }),
       setDoc(doc(db, 'properties/landlord_one'), { landlordId: 'landlord_1' }),
       setDoc(doc(db, 'properties/landlord_two'), { landlordId: 'landlord_2' }),
+      setDoc(doc(db, 'payments/payment_one'), { landlordId: 'landlord_1' }),
+      setDoc(doc(db, 'staffInvites/invite_1'), {
+        landlordId: 'landlord_1', email: 'agent@nyumba.test', inviteState: 'pending',
+      }),
+      setDoc(doc(db, 'staffMemberships/landlord_1__staff_1'), {
+        landlordId: 'landlord_1', memberUid: 'staff_1', active: true, permissions: ['manageProperties'],
+      }),
+      setDoc(doc(db, 'staffMemberships/landlord_1__staff_2'), {
+        landlordId: 'landlord_1', memberUid: 'staff_2', active: false, permissions: [],
+      }),
+      setDoc(doc(db, 'staffMemberships/landlord_1__staff_billing'), {
+        landlordId: 'landlord_1', memberUid: 'staff_billing', active: true,
+        permissions: ['manageBilling', 'viewReports'],
+      }),
+      // The portal projections are gated on the owner's account/subscription
+      // being live, so both must exist for those reads to be reachable at all.
+      setDoc(doc(db, 'landlordAccounts/landlord_1'), { approvalStatus: 'approved' }),
+      setDoc(doc(db, 'subscriptions/landlord_1'), { status: 'active' }),
+      setDoc(doc(db, 'landlordPortals/landlord_1/tenancies/tenancy_1'), { id: 'tenancy_1' }),
+      setDoc(doc(db, 'landlordPortals/landlord_1/payments/portal_payment_1'), { id: 'portal_payment_1' }),
       setDoc(doc(db, 'tenantPortals/tenant_1/leases/lease_123'), { id: 'lease_123' }),
       setDoc(doc(db, 'notificationInboxes/tenant_1/items/notice_123'), {
         id: 'notice_123', recipientUid: 'tenant_1', isRead: false,
@@ -82,6 +102,71 @@ describe('Firestore rules matrix', () => {
     )));
     await assertSucceeds(getDoc(doc(landlordDb, 'reportSnapshots/report_1')));
     await assertFails(getDoc(doc(env.authenticatedContext('landlord_2').firestore(), 'reportSnapshots/report_1')));
+  });
+
+  it('scopes staff reads to the capabilities they were granted', async () => {
+    const portfolioStaff = env.authenticatedContext('staff_1').firestore();
+    // manageProperties opens the portfolio, including a list query scoped to
+    // the owner and authorized per document...
+    await assertSucceeds(getDoc(doc(portfolioStaff, 'properties/landlord_one')));
+    await assertSucceeds(getDocs(query(
+      collection(portfolioStaff, 'properties'),
+      where('landlordId', '==', 'landlord_1'),
+      limit(20),
+    )));
+    // ...but never the financial ledger.
+    await assertFails(getDoc(doc(portfolioStaff, 'payments/payment_one')));
+
+    // manageBilling is the mirror image.
+    const billingStaff = env.authenticatedContext('staff_billing').firestore();
+    await assertSucceeds(getDoc(doc(billingStaff, 'payments/payment_one')));
+    await assertFails(getDoc(doc(billingStaff, 'properties/landlord_one')));
+
+    // viewReports opens the owner's report snapshots; without it they stay shut.
+    await assertSucceeds(getDoc(doc(billingStaff, 'reportSnapshots/report_1')));
+    await assertFails(getDoc(doc(portfolioStaff, 'reportSnapshots/report_1')));
+
+    // Another landlord's workspace stays closed either way.
+    await assertFails(getDoc(doc(portfolioStaff, 'properties/landlord_two')));
+
+    // An inactive membership grants nothing, and neither does a non-member.
+    await assertFails(getDoc(doc(
+      env.authenticatedContext('staff_2').firestore(), 'properties/landlord_one',
+    )));
+    await assertFails(getDoc(doc(
+      env.authenticatedContext('staff_3').firestore(), 'properties/landlord_one',
+    )));
+    // A member still cannot forge writes to canonical documents.
+    await assertFails(setDoc(doc(portfolioStaff, 'properties/landlord_one'), { landlordId: 'landlord_1' }));
+
+    // The owner keeps unrestricted access to their own workspace.
+    const ownerDb = env.authenticatedContext('landlord_1').firestore();
+    await assertSucceeds(getDoc(doc(ownerDb, 'properties/landlord_one')));
+    await assertSucceeds(getDoc(doc(ownerDb, 'payments/payment_one')));
+    await assertSucceeds(getDoc(doc(ownerDb, 'staffMemberships/landlord_1__staff_1')));
+    await assertSucceeds(getDocs(query(
+      collection(ownerDb, 'staffInvites'),
+      where('landlordId', '==', 'landlord_1'),
+      limit(20),
+    )));
+    // A member reads their own membership to discover the workspace.
+    await assertSucceeds(getDoc(doc(portfolioStaff, 'staffMemberships/landlord_1__staff_1')));
+  });
+
+  it('redacts the portal projections by capability too', async () => {
+    const ownerDb = env.authenticatedContext('landlord_1').firestore();
+    await assertSucceeds(getDoc(doc(ownerDb, 'landlordPortals/landlord_1/tenancies/tenancy_1')));
+    await assertSucceeds(getDoc(doc(ownerDb, 'landlordPortals/landlord_1/payments/portal_payment_1')));
+
+    // Billing sees the payment projection and nothing else.
+    const billingStaff = env.authenticatedContext('staff_billing').firestore();
+    await assertSucceeds(getDoc(doc(billingStaff, 'landlordPortals/landlord_1/payments/portal_payment_1')));
+    await assertFails(getDoc(doc(billingStaff, 'landlordPortals/landlord_1/tenancies/tenancy_1')));
+
+    // A portfolio-only member holds neither capability.
+    const portfolioStaff = env.authenticatedContext('staff_1').firestore();
+    await assertFails(getDoc(doc(portfolioStaff, 'landlordPortals/landlord_1/payments/portal_payment_1')));
+    await assertFails(getDoc(doc(portfolioStaff, 'landlordPortals/landlord_1/tenancies/tenancy_1')));
   });
 
   it('denies canonical client writes and protects receipts/jobs/audits', async () => {

@@ -109,6 +109,44 @@ export async function sendTenantInviteEmail(payload: Record<string, unknown>): P
 }
 
 /**
+ * Invites a person the landlord added as a staff member. As with the tenant
+ * invite, signing in with this exact address is what links the membership
+ * (staff.claimInvite), so the email spells that out and carries no secret.
+ */
+export async function sendStaffInviteEmail(payload: Record<string, unknown>): Promise<void> {
+  const db = getFirestore();
+  const inviteId = String(payload.inviteId);
+  const snapshot = await db.collection(COLLECTIONS.staffInvites).doc(inviteId).get();
+  const invite = snapshot.data();
+  if (!invite || invite.isDeleted === true) return;
+  // A revoked or already-accepted invite must not greet the person with a
+  // fresh "you've been invited" after the fact.
+  if (invite.inviteState !== 'pending') return;
+  if (typeof invite.email !== 'string' || !invite.email) return;
+  const landlordName = await landlordDisplayName(db, String(invite.landlordId ?? ''));
+
+  await sendEmail({
+    to: invite.email,
+    subject: 'You have been invited to join a team on Nyumba',
+    idempotencyKey: `staff_invite_${inviteId}`,
+    html: buildEmailHtml({
+      recipientName: typeof invite.displayName === 'string' ? invite.displayName : null,
+      heading: `${landlordName} added you to their team`,
+      paragraphs: [
+        `${landlordName} uses Nyumba to manage their rental properties and has`
+        + ' invited you to help run the workspace.',
+        'Your access depends on the permissions they granted you — you might'
+        + ' manage properties, tenants, payments, maintenance, or listings.',
+        `To join, open Nyumba and sign in with this email address (${invite.email}) — `
+        + 'use Google sign-in or create a password. Your access links'
+        + ' automatically once your email is verified.',
+      ],
+      cta: { label: 'Open Nyumba', url: APP_ORIGIN },
+    }),
+  });
+}
+
+/**
  * Emails the tenant their rent receipt after the server confirmed a payment.
  * The receipt facts come from the canonical receipt/payment records — the
  * same server-owned values the PDF is rendered from.

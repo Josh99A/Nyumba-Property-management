@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
-import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
+import { requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
 import { COLLECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { createJob, idSchema, longText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
@@ -40,7 +40,7 @@ export const maintenanceCreate: CommandHandler<z.infer<typeof createSchema>> = {
       tenantUserUid = actor.uid;
       authorRole = 'tenant';
     } else {
-      const landlord = await requireActiveLandlord(tx, db, actor);
+      const landlord = await requireWorkspace(tx, db, actor, 'manageMaintenance');
       const unitSnap = await tx.get(db.collection(COLLECTIONS.units).doc(cmd.payload.unitId!));
       const unit = requireAggregate<Record<string, unknown> & { version: number }>(unitSnap, undefined);
       requireOwnedByLandlord(unit, landlord.landlordId);
@@ -93,7 +93,7 @@ export const maintenanceUpdateStatus: CommandHandler<z.infer<typeof statusSchema
     if (isTenant) {
       if (request.status !== 'submitted' || cmd.payload.status !== 'canceled') throw new DomainError('PERMISSION_DENIED');
     } else {
-      const landlord = await requireActiveLandlord(tx, db, actor);
+      const landlord = await requireWorkspace(tx, db, actor, 'manageMaintenance');
       requireOwnedByLandlord(request, landlord.landlordId);
     }
     if (!transitions[request.status]?.has(cmd.payload.status)) {
@@ -126,7 +126,7 @@ export const maintenanceAddComment: CommandHandler<z.infer<typeof commentSchema>
     let authorRole: 'tenant' | 'landlord';
     if (request.tenantUserUid === actor.uid) authorRole = 'tenant';
     else {
-      const landlord = await requireActiveLandlord(tx, db, actor);
+      const landlord = await requireWorkspace(tx, db, actor, 'manageMaintenance');
       requireOwnedByLandlord(request, landlord.landlordId);
       authorRole = 'landlord';
     }

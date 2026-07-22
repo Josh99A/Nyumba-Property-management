@@ -30,6 +30,7 @@ import {
   sendMaintenanceStatusEmail,
   sendPaymentReceiptEmail,
   sendRentReminderEmail,
+  sendStaffInviteEmail,
   sendTenantInviteEmail,
 } from './email';
 import { initiatePayment } from './payment-provider';
@@ -65,6 +66,7 @@ const processors = new Map<string, JobProcessor>([
   ['setAuthUserDisabled', setAuthUserDisabled],
   ['deleteAuthUser', deleteAuthUser],
   ['sendTenantInviteEmail', sendTenantInviteEmail],
+  ['sendStaffInviteEmail', sendStaffInviteEmail],
   ['sendPaymentReceiptEmail', sendPaymentReceiptEmail],
   ['sendLandlordApprovedEmail', sendLandlordApprovedEmail],
   ['sendRentReminderEmail', sendRentReminderEmail],

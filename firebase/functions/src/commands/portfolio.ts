@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
-import { loadActiveLandlordContext, requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
+import { loadActiveLandlordContext, requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
 import { COUNTRY, CURRENCY } from '../shared/config';
 import { DomainError } from '../shared/errors';
@@ -46,7 +46,7 @@ export const propertyCreate: CommandHandler<z.infer<typeof propertyCreateSchema>
     }
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, cmd.payload.targetLandlordId!)
-      : await requireActiveLandlord(tx, db, actor);
+      : await requireWorkspace(tx, db, actor, 'manageProperties');
     const ref = db.collection(COLLECTIONS.properties).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     requireAbsent(snapshot);
@@ -87,7 +87,7 @@ export const propertyUpdate: CommandHandler<z.infer<typeof propertyUpdateSchema>
     const snapshot = await tx.get(ref);
     const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, cmd.expectedVersion);
     if (!actor.platformAdmin && !actor.superAdmin) {
-      const landlord = await requireActiveLandlord(tx, db, actor);
+      const landlord = await requireWorkspace(tx, db, actor, 'manageProperties');
       requireOwnedByLandlord(current, landlord.landlordId);
     }
     const changes = Object.fromEntries(Object.entries(cmd.payload).filter(([, value]) => value !== undefined));
@@ -109,7 +109,7 @@ export const propertyArchive: CommandHandler<Record<string, never>> = {
     const [snapshot, activeUnits] = await Promise.all([tx.get(ref), tx.get(unitsQuery)]);
     const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, cmd.expectedVersion);
     if (!actor.platformAdmin && !actor.superAdmin) {
-      const landlord = await requireActiveLandlord(tx, db, actor);
+      const landlord = await requireWorkspace(tx, db, actor, 'manageProperties');
       requireOwnedByLandlord(current, landlord.landlordId);
     }
     if (!activeUnits.empty) throw new DomainError('VALIDATION_FAILED', { reason: 'propertyHasActiveUnits' });
@@ -146,7 +146,7 @@ export const unitCreate: CommandHandler<z.infer<typeof unitCreateSchema>> = {
     const isStaff = actor.platformAdmin || actor.superAdmin;
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, property.landlordId)
-      : await requireActiveLandlord(tx, db, actor);
+      : await requireWorkspace(tx, db, actor, 'manageProperties');
     if (!isStaff) requireOwnedByLandlord(property, landlord.landlordId);
     requireAbsent(unitSnap);
     if (landlord.account.activeUnitCount >= landlord.entitlements.unitLimit) {
@@ -211,7 +211,7 @@ export const unitUpdate: CommandHandler<z.infer<typeof unitUpdateSchema>> = {
       ? unpublishListingId
         ? await loadActiveLandlordContext(tx, db, current.landlordId)
         : null
-      : await requireActiveLandlord(tx, db, actor);
+      : await requireWorkspace(tx, db, actor, 'manageProperties');
     if (!isStaff) requireOwnedByLandlord(current, landlord!.landlordId);
 
     const retirement = unpublishListingId
@@ -251,7 +251,7 @@ export const unitArchive: CommandHandler<Record<string, never>> = {
     const isStaff = actor.platformAdmin || actor.superAdmin;
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, current.landlordId)
-      : await requireActiveLandlord(tx, db, actor);
+      : await requireWorkspace(tx, db, actor, 'manageProperties');
     if (!isStaff) requireOwnedByLandlord(current, landlord.landlordId);
     if (current.occupancyStatus !== 'vacant' || current.activePublicListingId) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'unitNotArchivable' });
@@ -276,7 +276,7 @@ export const unitRestore: CommandHandler<Record<string, never>> = {
     const isStaff = actor.platformAdmin || actor.superAdmin;
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, current.landlordId)
-      : await requireActiveLandlord(tx, db, actor);
+      : await requireWorkspace(tx, db, actor, 'manageProperties');
     if (!isStaff) requireOwnedByLandlord(current, landlord.landlordId);
     if (!current.isDeleted) throw new DomainError('VALIDATION_FAILED', { reason: 'unitNotArchived' });
     if (landlord.account.activeUnitCount >= landlord.entitlements.unitLimit) {

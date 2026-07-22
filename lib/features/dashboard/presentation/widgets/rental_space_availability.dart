@@ -63,8 +63,8 @@ class _RentalSpaceAvailabilityPanelState
     final canUpdate =
         dataResolved &&
         session != null &&
-        AuthorizationPolicy.allows(
-          session.role,
+        AuthorizationPolicy.allowsSession(
+          session,
           AppResource.unit,
           CrudOperation.update,
         );

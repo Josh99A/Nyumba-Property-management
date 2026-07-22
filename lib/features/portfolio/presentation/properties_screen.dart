@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -13,6 +15,7 @@ import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
@@ -61,8 +64,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     final units = unitsValue.value ?? const <Unit>[];
     final canCreate =
         session != null &&
-        AuthorizationPolicy.allows(
-          session.role,
+        AuthorizationPolicy.allowsSession(
+          session,
           AppResource.property,
           CrudOperation.create,
         );
@@ -122,10 +125,12 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                   padding: EdgeInsets.all(40),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Text.localized(
-                    'Could not load the local portfolio: $error',
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context)
+                      .statusSubjectYourProperties,
+                  onRetry: () => ref.invalidate(portfolioPropertiesProvider),
                 ),
                 data: (allProperties) {
                   final query = _searchController.text.trim().toLowerCase();

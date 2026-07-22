@@ -26,6 +26,7 @@ import '../features/marketplace/presentation/public_listings_screen.dart';
 import '../features/portfolio/presentation/properties_screen.dart';
 import '../features/portfolio/presentation/property_detail_screen.dart';
 import '../features/profile/presentation/profile_settings_screen.dart';
+import '../features/staff/presentation/team_screen.dart';
 import '../features/subscriptions/presentation/landlord_subscription_screen.dart';
 import '../features/tenant_portal/presentation/tenant_documents_screen.dart';
 import '../features/tenant_portal/presentation/tenant_home_screen.dart';
@@ -185,6 +186,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 _transitionPage(state: state, child: const DocumentsScreen()),
           ),
           GoRoute(
+            path: '/team',
+            pageBuilder: (context, state) =>
+                _transitionPage(state: state, child: const TeamScreen()),
+          ),
+          GoRoute(
             path: '/settings',
             pageBuilder: (context, state) => _transitionPage(
               state: state,
@@ -302,31 +308,49 @@ String? redirectForSession(UserSession? session, String path) {
   if (session.role == AppRole.landlord && !session.hasConfirmedSubscription) {
     return '/subscription';
   }
+  // A staff member cannot open the payment gate, so a lapsed owner workspace
+  // sends them home rather than to the subscription screen.
+  if (session.role == AppRole.staff && !session.hasConfirmedSubscription) {
+    return home;
+  }
 
   final adminPath = path == '/admin' || path.startsWith('/admin/');
-  final portfolioPath =
-      path == '/dashboard' ||
-      path == '/properties' ||
-      path.startsWith('/properties/') ||
-      path == '/tenants' ||
-      path == '/finances' ||
-      path == '/maintenance' ||
-      path == '/listings' ||
-      path == '/documents';
+  final portfolioResource = switch (path) {
+    '/properties' => AppResource.property,
+    _ when path.startsWith('/properties/') => AppResource.property,
+    '/tenants' => AppResource.tenantRecord,
+    '/finances' => AppResource.payment,
+    '/maintenance' => AppResource.maintenanceRequest,
+    '/listings' => AppResource.privateListing,
+    '/documents' => AppResource.document,
+    _ => null,
+  };
+  final portfolioAllowed = path == '/dashboard'
+      ? switch (session.role) {
+          AppRole.landlord ||
+          AppRole.staff ||
+          AppRole.admin ||
+          AppRole.superAdmin => true,
+          _ => false,
+        }
+      : portfolioResource != null &&
+            AuthorizationPolicy.allowsSession(
+              session,
+              portfolioResource,
+              CrudOperation.read,
+            );
+  // Managing the team (staff seats) is the owner's alone; staff never see it.
+  final teamPath = path == '/team';
   final allowed =
       path == '/settings' ||
       (adminPath &&
-          AuthorizationPolicy.allows(
-            session.role,
+          AuthorizationPolicy.allowsSession(
+            session,
             AppResource.userAccount,
             CrudOperation.read,
           )) ||
-      (portfolioPath &&
-          AuthorizationPolicy.allows(
-            session.role,
-            AppResource.property,
-            CrudOperation.read,
-          )) ||
+      portfolioAllowed ||
+      (teamPath && session.role == AppRole.landlord) ||
       (session.role == AppRole.tenant &&
           (path == '/tenant' || path.startsWith('/tenant/')));
   return allowed ? null : home;

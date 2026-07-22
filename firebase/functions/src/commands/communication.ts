@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
-import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
+import { requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
 import { requireSuperAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { loadEntitlements, planForTier } from '../shared/config';
@@ -23,7 +23,7 @@ export const noticePublish: CommandHandler<z.infer<typeof noticeSchema>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageCommunication');
     const ref = db.collection(COLLECTIONS.notices).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     requireAbsent(snapshot);

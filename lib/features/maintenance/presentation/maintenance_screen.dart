@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -14,6 +16,7 @@ import '../../../core/presentation/metric_grid.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../portfolio/domain/property.dart';
@@ -69,13 +72,12 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                   padding: EdgeInsets.all(48),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text.localized(
-                      'Could not load maintenance requests: $error',
-                    ),
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context)
+                      .statusSubjectMaintenanceRequests,
+                  onRetry: () => ref.invalidate(maintenanceRequestsProvider),
                 ),
                 data: (requests) => _buildLoaded(context, requests, outbox),
               ),

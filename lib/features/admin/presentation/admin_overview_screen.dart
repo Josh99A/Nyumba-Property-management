@@ -7,7 +7,9 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
 import '../../portfolio/domain/property.dart';
@@ -113,6 +115,7 @@ class AdminOverviewScreen extends ConsumerWidget {
               live: live,
               accountsValue: accountsValue,
               pending: pendingApprovals,
+              onRetry: () => ref.invalidate(platformAccountsProvider),
             );
             final activity = _AdminActivityPanel(live: live);
             if (constraints.maxWidth < 980) {
@@ -249,11 +252,13 @@ class _ApprovalPanel extends StatelessWidget {
     required this.live,
     required this.accountsValue,
     required this.pending,
+    required this.onRetry,
   });
 
   final bool live;
   final AsyncValue<List<PlatformAccount>> accountsValue;
   final List<PlatformAccount> pending;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +291,12 @@ class _ApprovalPanel extends StatelessWidget {
         ),
         (AsyncValue(:final error?), _) when !accountsValue.hasValue => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text.localized('Could not load the approval queue: $error'),
+          child: NyumbaStatusMessage.fromError(
+            error,
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectApprovalQueue,
+            onRetry: onRetry,
+          ),
         ),
         (_, []) => const Padding(
           padding: EdgeInsets.all(12),
@@ -414,7 +424,12 @@ class _AdminActivityPanel extends ConsumerWidget {
         ),
         AsyncValue(:final error?) => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text.localized('Could not read the audit log: $error'),
+          child: NyumbaStatusMessage.fromError(
+            error,
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectAuditLog,
+            onRetry: () => ref.invalidate(adminAuditEventsProvider),
+          ),
         ),
         _ => const Padding(
           padding: EdgeInsets.all(24),

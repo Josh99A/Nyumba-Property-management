@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -11,6 +13,7 @@ import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../auth/application/session_controller.dart';
@@ -115,11 +118,12 @@ class _TenantMaintenanceScreenState
             padding: EdgeInsets.all(48),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (error, stack) => NyumbaSurface(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text.localized('Could not load your requests: $error'),
-            ),
+          error: (error, stack) => NyumbaStatusMessage.fromError(
+            error,
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectYourRequests,
+            onRetry: () =>
+                ref.invalidate(tenantMaintenanceRequestsProvider(_tenantId)),
           ),
           data: (requests) => _buildLoaded(context, requests, outbox),
         ),

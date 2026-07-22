@@ -21,6 +21,7 @@ export interface LandlordAccount {
   approvalReasonCode?: string;
   activeUnitCount: number;
   activeListingCount: number;
+  activeStaffSeatCount: number;
   receiptCounter: number;
   version: number;
 }
@@ -36,6 +37,59 @@ export interface LandlordContext {
   account: LandlordAccount;
   subscription: Subscription;
   entitlements: PlanEntitlements;
+}
+
+/**
+ * Grantable staff capabilities — one per operational command group. The owner
+ * implicitly holds all of them; a staff member holds whatever subset their
+ * invite was granted. Owner-level surfaces (subscription, plan, staff
+ * management, account lifecycle) are deliberately absent: they stay owner-only.
+ */
+export const STAFF_PERMISSIONS = [
+  'manageProperties',
+  'manageTenants',
+  'manageBilling',
+  'manageMaintenance',
+  'manageListings',
+  'manageCommunication',
+  'manageDocuments',
+  'viewReports',
+] as const;
+
+export type StaffPermission = (typeof STAFF_PERMISSIONS)[number];
+
+/** The fixed preset granted on tiers without custom-role entitlement (Pro). */
+export const STANDARD_STAFF_PERMISSIONS: readonly StaffPermission[] = STAFF_PERMISSIONS;
+
+const STAFF_PERMISSION_SET: ReadonlySet<string> = new Set(STAFF_PERMISSIONS);
+
+export function isStaffPermission(value: unknown): value is StaffPermission {
+  return typeof value === 'string' && STAFF_PERMISSION_SET.has(value);
+}
+
+/** Keeps only recognised capabilities; unknown strings are dropped, not trusted. */
+export function sanitizeStaffPermissions(value: unknown): StaffPermission[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<StaffPermission>();
+  for (const entry of value) {
+    if (isStaffPermission(entry)) seen.add(entry);
+  }
+  return [...seen];
+}
+
+/**
+ * Deterministic membership doc id so Firestore Rules can authorize a staff
+ * member's workspace reads with a single O(1) `exists()` on a known path.
+ */
+export function staffMembershipId(landlordId: string, memberUid: string): string {
+  return `${landlordId}__${memberUid}`;
+}
+
+export interface WorkspaceContext extends LandlordContext {
+  /** The signed-in actor performing the command (owner or staff uid). */
+  actingUid: string;
+  isOwner: boolean;
+  permissions: readonly StaffPermission[];
 }
 
 /**
@@ -91,6 +145,64 @@ export async function loadActiveLandlordContext(
     subscription,
     entitlements: planForTier(entitlementsConfig, subscription.tier),
   };
+}
+
+/**
+ * Resolves the actor to the workspace they may act in and authorizes the
+ * requested capability. The workspace is the owner's aggregate in both cases:
+ *
+ *  - Owner path: `landlordAccounts/{actor.uid}` exists — the actor holds every
+ *    capability.
+ *  - Staff path: an active `staffMemberships` doc links this actor to an
+ *    owner's `landlordId`; the granted permission set must include `capability`.
+ *
+ * Either way the returned context carries the OWNER's landlordId, account,
+ * subscription and entitlements, so unit counts, the receipt counter and
+ * ownership checks are unchanged — a staff command mutates the owner's
+ * workspace exactly as the owner's would. Staff inherit the owner's approval
+ * and subscription gating because `loadActiveLandlordContext` runs on the
+ * owner's landlordId.
+ *
+ * v1 assumes a staff member belongs to a single workspace; commands carry no
+ * target workspace, so the first active membership wins.
+ */
+export async function requireWorkspace(
+  tx: Transaction,
+  db: Firestore,
+  actor: Actor,
+  capability: StaffPermission,
+): Promise<WorkspaceContext> {
+  const ownerAccountSnap = await tx.get(
+    db.collection(COLLECTIONS.landlordAccounts).doc(actor.uid),
+  );
+  const ownerAccount = ownerAccountSnap.data() as LandlordAccount | undefined;
+  if (ownerAccountSnap.exists && ownerAccount?.ownerUid === actor.uid) {
+    const context = await loadActiveLandlordContext(tx, db, actor.uid);
+    return { ...context, actingUid: actor.uid, isOwner: true, permissions: STANDARD_STAFF_PERMISSIONS };
+  }
+
+  const membershipSnap = await tx.get(
+    db
+      .collection(COLLECTIONS.staffMemberships)
+      .where('memberUid', '==', actor.uid)
+      .where('active', '==', true)
+      .limit(2),
+  );
+  if (membershipSnap.size > 1) {
+    throw new DomainError('PERMISSION_DENIED', { reason: 'multipleWorkspaceMemberships' });
+  }
+  const membershipDoc = membershipSnap.docs[0];
+  if (!membershipDoc) throw new DomainError('PERMISSION_DENIED');
+  const membership = membershipDoc.data() as {
+    landlordId?: unknown;
+    permissions?: unknown;
+  };
+  if (typeof membership.landlordId !== 'string') throw new DomainError('PERMISSION_DENIED');
+  const permissions = sanitizeStaffPermissions(membership.permissions);
+  if (!permissions.includes(capability)) throw new DomainError('PERMISSION_DENIED');
+
+  const context = await loadActiveLandlordContext(tx, db, membership.landlordId);
+  return { ...context, actingUid: actor.uid, isOwner: false, permissions };
 }
 
 /** Ownership check for canonical landlord documents already loaded in the transaction. */

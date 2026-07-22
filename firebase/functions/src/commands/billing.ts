@@ -1,7 +1,7 @@
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
-import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
+import { requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
 import { COLLECTIONS, LANDLORD_PORTAL_SECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { createJob, idSchema, nonNegativeMoney, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
@@ -79,7 +79,7 @@ export const invoiceGenerate: CommandHandler<z.infer<typeof invoiceSchema>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageBilling');
     const invoiceRef = db.collection(COLLECTIONS.invoices).doc(cmd.aggregateId!);
     const leaseRef = db.collection(COLLECTIONS.leases).doc(cmd.payload.leaseId);
     const [invoiceSnap, leaseSnap] = await Promise.all([tx.get(invoiceRef), tx.get(leaseRef)]);
@@ -114,7 +114,7 @@ export const paymentRecordManual: CommandHandler<z.infer<typeof manualPaymentSch
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageBilling');
     const paymentRef = db.collection(COLLECTIONS.payments).doc(cmd.aggregateId!);
     const invoiceRef = db.collection(COLLECTIONS.invoices).doc(cmd.payload.invoiceId);
     const [paymentSnap, invoiceSnap] = await Promise.all([tx.get(paymentRef), tx.get(invoiceRef)]);
@@ -283,7 +283,7 @@ interface SettlementOutcome {
 async function settleTenancyPayment(
   tx: Transaction,
   db: Firestore,
-  landlord: Awaited<ReturnType<typeof requireActiveLandlord>>,
+  landlord: Awaited<ReturnType<typeof requireWorkspace>>,
   params: SettleTenancyPaymentParams,
   now: FirebaseFirestore.Timestamp,
 ): Promise<SettlementOutcome> {
@@ -490,7 +490,7 @@ export const paymentRecordAgainstTenancy: CommandHandler<z.infer<typeof recordAg
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageBilling');
     const paymentRef = db.collection(COLLECTIONS.payments).doc(cmd.aggregateId!);
     requireAbsent(await tx.get(paymentRef));
     const outcome = await settleTenancyPayment(tx, db, landlord, {
@@ -637,7 +637,7 @@ export const paymentConfirmDeclared: CommandHandler<Record<string, never>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageBilling');
     const paymentRef = db.collection(COLLECTIONS.payments).doc(cmd.aggregateId!);
     const snapshot = await tx.get(paymentRef);
     const declared = requireAggregate<DeclaredPaymentRecord>(snapshot, cmd.expectedVersion);
@@ -696,7 +696,7 @@ export const paymentRejectDeclared: CommandHandler<z.infer<typeof rejectDeclared
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageBilling');
     const paymentRef = db.collection(COLLECTIONS.payments).doc(cmd.aggregateId!);
     const snapshot = await tx.get(paymentRef);
     const declared = requireAggregate<DeclaredPaymentRecord>(snapshot, cmd.expectedVersion);
@@ -780,7 +780,7 @@ export const receiptRegenerate: CommandHandler<Record<string, never>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageBilling');
     const ref = db.collection(COLLECTIONS.receipts).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     const receipt = requireAggregate<{ version: number; landlordId: string }>(snapshot, cmd.expectedVersion);

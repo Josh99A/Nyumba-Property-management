@@ -261,6 +261,7 @@ export const userChangeRole: CommandHandler<z.infer<typeof changeRoleSchema>> = 
           approvalStatus: 'pending',
           activeUnitCount: 0,
           activeListingCount: 0,
+          activeStaffSeatCount: 0,
           receiptCounter: 0,
           businessName: null,
           phone: null,

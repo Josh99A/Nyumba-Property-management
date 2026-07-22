@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -12,6 +14,7 @@ import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../finance/application/billing_providers.dart';
@@ -64,11 +67,11 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
         description:
             'Manage rent, invoices, receipts, and your payment history.',
         children: [
-          NyumbaSurface(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text.localized('Could not load your tenancy: $error'),
-            ),
+          NyumbaStatusMessage.fromError(
+            error,
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectYourPayments,
+            onRetry: () => ref.invalidate(myTenancyProvider(_tenantId)),
           ),
         ],
       ),

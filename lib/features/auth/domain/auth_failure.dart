@@ -35,14 +35,21 @@ bool isAuthCancellation(Object error) =>
 /// `error.toString()` puts raw codes such as `[firebase_auth/invalid-credential]`
 /// in front of a signed-out user: it names the fault without telling them what
 /// to do about it, and leaks internals to someone who is not yet trusted.
-String describeAuthFailure(Object error) {
+String describeAuthFailure(
+  Object error, {
+  CommandFailureLocalizer? commandFailureLocalizer,
+}) {
   if (error is EmailNotVerifiedException) {
     return 'Verify ${error.email} before signing in.';
   }
   if (error is FirebaseAuthException) return _describeAuth(error);
   // Every backend mutation answers with a stable domain code; without this the
   // whole command surface collapsed into "Something went wrong".
-  if (error is RemoteSyncException) return describeCommandFailure(error);
+  if (error is RemoteSyncException) {
+    final failure = describeCommandFailure(error);
+    return commandFailureLocalizer?.call(failure) ??
+        'Something went wrong. Please try again.';
+  }
   if (error is FirebaseException) return _describeBackend(error);
   if (error is StateError) return error.message;
   return 'Something went wrong. Please try again.';

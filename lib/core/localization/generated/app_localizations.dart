@@ -3666,6 +3666,252 @@ abstract class AppLocalizations {
   /// **'Your property manager will prepare this document and share it here.'**
   String get legacy_ef5d3aa3c485;
 
+  /// No description provided for @legacy_59138b8999c6.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive this account before doing that.'**
+  String get legacy_59138b8999c6;
+
+  /// No description provided for @legacy_4134f7a8316a.
+  ///
+  /// In en, this message translates to:
+  /// **'Change at least one detail before saving.'**
+  String get legacy_4134f7a8316a;
+
+  /// No description provided for @legacy_87a2131e6d61.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom staff permissions are a Premium feature. Upgrade your plan to tailor what each team member can do.'**
+  String get legacy_87a2131e6d61;
+
+  /// No description provided for @legacy_b292aea5f50e.
+  ///
+  /// In en, this message translates to:
+  /// **'Electronic payments are not available yet. Pay Nyumba directly and an administrator will confirm it.'**
+  String get legacy_b292aea5f50e;
+
+  /// No description provided for @legacy_b791dbf9cc55.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba cannot reach the server. Check your connection and try again.'**
+  String get legacy_b791dbf9cc55;
+
+  /// No description provided for @legacy_f810bcddd7ed.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not accept that request. Reload the app and try again.'**
+  String get legacy_f810bcddd7ed;
+
+  /// No description provided for @legacy_3852e291776f.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not complete that action. Please try again.'**
+  String get legacy_3852e291776f;
+
+  /// No description provided for @legacy_8dd971279a6c.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not complete that just now. Please try again.'**
+  String get legacy_8dd971279a6c;
+
+  /// No description provided for @legacy_fc164894a18a.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not confirm your plan, so this action was not applied. Try again shortly, or contact support if it continues.'**
+  String get legacy_fc164894a18a;
+
+  /// No description provided for @legacy_5f40e5d243c5.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not find that record. It may have been removed — reload and try again.'**
+  String get legacy_5f40e5d243c5;
+
+  /// No description provided for @legacy_3a6e632ad56d.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not verify this device. Update the app and try again.'**
+  String get legacy_3a6e632ad56d;
+
+  /// No description provided for @legacy_8032d3a419ad.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba did not accept that request. Reload and try again.'**
+  String get legacy_8032d3a419ad;
+
+  /// No description provided for @legacy_553f76c2b4de.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba did not accept these details: {fields}. Check them and try again — if they look right, reload the app to get the latest version.'**
+  String legacy_553f76c2b4de(String fields);
+
+  /// No description provided for @legacy_eacb633c809b.
+  ///
+  /// In en, this message translates to:
+  /// **'Some of those details were not accepted. Check them and try again.'**
+  String get legacy_eacb633c809b;
+
+  /// No description provided for @legacy_2dc6de513de7.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone else changed this while you were working on it. Reload to see the latest version, then try again.'**
+  String get legacy_2dc6de513de7;
+
+  /// No description provided for @legacy_26124c0ce6a9.
+  ///
+  /// In en, this message translates to:
+  /// **'That amount is more than the outstanding balance.'**
+  String get legacy_26124c0ce6a9;
+
+  /// No description provided for @legacy_dad068aa555b.
+  ///
+  /// In en, this message translates to:
+  /// **'That is already this account\'s role.'**
+  String get legacy_dad068aa555b;
+
+  /// No description provided for @legacy_ab87caef66c3.
+  ///
+  /// In en, this message translates to:
+  /// **'That is already your current plan. Choose a different one to change plans.'**
+  String get legacy_ab87caef66c3;
+
+  /// No description provided for @legacy_e3d4879fe8e6.
+  ///
+  /// In en, this message translates to:
+  /// **'That plan is already active on this account.'**
+  String get legacy_e3d4879fe8e6;
+
+  /// No description provided for @legacy_865689190ea5.
+  ///
+  /// In en, this message translates to:
+  /// **'That record already exists.'**
+  String get legacy_865689190ea5;
+
+  /// No description provided for @legacy_b85cb4bf091b.
+  ///
+  /// In en, this message translates to:
+  /// **'That tenancy is not active.'**
+  String get legacy_b85cb4bf091b;
+
+  /// No description provided for @legacy_06fafad86a95.
+  ///
+  /// In en, this message translates to:
+  /// **'The server took too long to respond. Try again.'**
+  String get legacy_06fafad86a95;
+
+  /// No description provided for @legacy_ad65b6dfeb97.
+  ///
+  /// In en, this message translates to:
+  /// **'The yearly price cannot cost more than twelve monthly payments.'**
+  String get legacy_ad65b6dfeb97;
+
+  /// No description provided for @legacy_0486dbaa769f.
+  ///
+  /// In en, this message translates to:
+  /// **'This account does not have permission to do that.'**
+  String get legacy_0486dbaa769f;
+
+  /// No description provided for @legacy_98c1804b4d45.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has no landlord record yet, so it cannot be activated.'**
+  String get legacy_98c1804b4d45;
+
+  /// No description provided for @legacy_8927961a2446.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is already archived.'**
+  String get legacy_8927961a2446;
+
+  /// No description provided for @legacy_208b9378be87.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is no longer in that state. Reload to see its current status.'**
+  String get legacy_208b9378be87;
+
+  /// No description provided for @legacy_0d1dfd3592f9.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is not in a state that can be activated.'**
+  String get legacy_0d1dfd3592f9;
+
+  /// No description provided for @legacy_b7224264cf97.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is suspended, so payment cannot activate it. It must be reinstated first.'**
+  String get legacy_b7224264cf97;
+
+  /// No description provided for @legacy_e2a1b305ffbd.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is suspended. Contact Nyumba support to restore it.'**
+  String get legacy_e2a1b305ffbd;
+
+  /// No description provided for @legacy_34a370bb8f26.
+  ///
+  /// In en, this message translates to:
+  /// **'This action needs an internet connection. Reconnect and try again.'**
+  String get legacy_34a370bb8f26;
+
+  /// No description provided for @legacy_977b7fe2ba26.
+  ///
+  /// In en, this message translates to:
+  /// **'This action was already sent with different details. Reload and try again.'**
+  String get legacy_977b7fe2ba26;
+
+  /// No description provided for @legacy_6e7e677ba3d3.
+  ///
+  /// In en, this message translates to:
+  /// **'This payment is still being confirmed. You will see it here as soon as it clears.'**
+  String get legacy_6e7e677ba3d3;
+
+  /// No description provided for @legacy_e9b3d6e695b4.
+  ///
+  /// In en, this message translates to:
+  /// **'This version of the app is out of date. Reload to get the latest version.'**
+  String get legacy_e9b3d6e695b4;
+
+  /// No description provided for @legacy_4610306154c0.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Wait a moment before trying again.'**
+  String get legacy_4610306154c0;
+
+  /// No description provided for @legacy_427eb1e9b92d.
+  ///
+  /// In en, this message translates to:
+  /// **'You have reached the limit your plan allows. Upgrade your plan to add more.'**
+  String get legacy_427eb1e9b92d;
+
+  /// No description provided for @legacy_c34019924764.
+  ///
+  /// In en, this message translates to:
+  /// **'You have used every staff seat your plan allows. Upgrade your plan to add more team members.'**
+  String get legacy_c34019924764;
+
+  /// No description provided for @legacy_bdbcbdd54088.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is still awaiting review, so this action is not available yet.'**
+  String get legacy_bdbcbdd54088;
+
+  /// No description provided for @legacy_bd9b9bf7438f.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Sign in again to continue.'**
+  String get legacy_bd9b9bf7438f;
+
+  /// No description provided for @legacy_5856f45a39ca.
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription is not active yet, so it cannot be upgraded. Complete your first payment first.'**
+  String get legacy_5856f45a39ca;
+
+  /// No description provided for @legacy_f6bf142ea0c0.
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription is not active yet, so this action is unavailable.'**
+  String get legacy_f6bf142ea0c0;
+
   /// No description provided for @welcomeBackName.
   ///
   /// In en, this message translates to:
@@ -4973,6 +5219,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask for your fingerprint when Nyumba reopens.'**
   String get appLockSwitchSubtitle;
+
+  /// No description provided for @statusMessageSecureStorageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We can’t open your secure local storage'**
+  String get statusMessageSecureStorageTitle;
+
+  /// No description provided for @statusMessageSecureStorageMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A device feature this app needs (secure storage) isn’t available in the version that’s running, so {subject} can’t be loaded. Fully close the app and open it again. If the message keeps coming back, reinstall or update the app.'**
+  String statusMessageSecureStorageMessage(String subject);
+
+  /// No description provided for @statusMessageOfflineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You appear to be offline'**
+  String get statusMessageOfflineTitle;
+
+  /// No description provided for @statusMessageOfflineMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t reach the server to refresh {subject}. You can keep working with what’s on this device; changes will sync once you’re back online.'**
+  String statusMessageOfflineMessage(String subject);
+
+  /// No description provided for @statusMessageLoadFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t load {subject}'**
+  String statusMessageLoadFailedTitle(String subject);
+
+  /// No description provided for @statusMessageLoadFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong while reading your local data. Try again, and if it keeps failing, share the technical details below with support.'**
+  String get statusMessageLoadFailedMessage;
+
+  /// No description provided for @statusMessageSeverityDebug.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug'**
+  String get statusMessageSeverityDebug;
+
+  /// No description provided for @statusMessageSeverityInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get statusMessageSeverityInfo;
+
+  /// No description provided for @statusMessageSeverityWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get statusMessageSeverityWarning;
+
+  /// No description provided for @statusMessageSeverityCritical.
+  ///
+  /// In en, this message translates to:
+  /// **'Critical'**
+  String get statusMessageSeverityCritical;
+
+  /// No description provided for @statusMessageTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get statusMessageTryAgain;
+
+  /// No description provided for @statusMessageTechnicalDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical details'**
+  String get statusMessageTechnicalDetails;
+
+  /// No description provided for @statusMessageHideTechnicalDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide technical details'**
+  String get statusMessageHideTechnicalDetails;
+
+  /// No description provided for @statusSubjectPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'payments'**
+  String get statusSubjectPayments;
+
+  /// No description provided for @statusSubjectYourPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'your payments'**
+  String get statusSubjectYourPayments;
+
+  /// No description provided for @statusSubjectYourRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'your requests'**
+  String get statusSubjectYourRequests;
+
+  /// No description provided for @statusSubjectYourHome.
+  ///
+  /// In en, this message translates to:
+  /// **'your home'**
+  String get statusSubjectYourHome;
+
+  /// No description provided for @statusSubjectDocuments.
+  ///
+  /// In en, this message translates to:
+  /// **'documents'**
+  String get statusSubjectDocuments;
+
+  /// No description provided for @statusSubjectTenants.
+  ///
+  /// In en, this message translates to:
+  /// **'tenants'**
+  String get statusSubjectTenants;
+
+  /// No description provided for @statusSubjectAuditLog.
+  ///
+  /// In en, this message translates to:
+  /// **'the audit log'**
+  String get statusSubjectAuditLog;
+
+  /// No description provided for @statusSubjectPlanCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'the plan catalog'**
+  String get statusSubjectPlanCatalog;
+
+  /// No description provided for @statusSubjectApprovalQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'the approval queue'**
+  String get statusSubjectApprovalQueue;
+
+  /// No description provided for @statusSubjectYourProperties.
+  ///
+  /// In en, this message translates to:
+  /// **'your properties'**
+  String get statusSubjectYourProperties;
+
+  /// No description provided for @statusSubjectThisHome.
+  ///
+  /// In en, this message translates to:
+  /// **'this home'**
+  String get statusSubjectThisHome;
+
+  /// No description provided for @statusSubjectYourListings.
+  ///
+  /// In en, this message translates to:
+  /// **'your listings'**
+  String get statusSubjectYourListings;
+
+  /// No description provided for @statusSubjectMaintenanceRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'maintenance requests'**
+  String get statusSubjectMaintenanceRequests;
+
+  /// No description provided for @adminSubscriptionsLoadFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load subscriptions'**
+  String get adminSubscriptionsLoadFailedTitle;
+
+  /// No description provided for @adminSubscriptionsLoadFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The server directory could not be read.'**
+  String get adminSubscriptionsLoadFailedMessage;
+
+  /// No description provided for @adminAccountDirectoryLoadFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the account directory'**
+  String get adminAccountDirectoryLoadFailedTitle;
+
+  /// No description provided for @adminAccountDirectoryLoadFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The live directory could not be read. There is deliberately no offline copy of other people’s accounts on this device.'**
+  String get adminAccountDirectoryLoadFailedMessage;
 }
 
 class _AppLocalizationsDelegate

@@ -22,10 +22,14 @@ service cloud.firestore {
         && data.landlordId == request.auth.uid;
     }
 
+    // A staff-requested report is owned by the landlord, so `viewReports` has
+    // to open it too — otherwise the capability grants a command whose output
+    // the member could never read.
     function ownsReport(data) {
       return signedIn()
         && data.ownerType == 'landlord'
-        && data.ownerId == request.auth.uid;
+        && (data.ownerId == request.auth.uid
+          || (data.ownerId is string && staffCan(data.ownerId, ['viewReports'])));
     }
 
     function hasActiveLandlordAccount(landlordId) {
@@ -36,6 +40,34 @@ service cloud.firestore {
     function hasActiveSubscription(landlordId) {
       let sub = get(/databases/$(database)/documents/subscriptions/$(landlordId)).data;
       return sub.status == 'active';
+    }
+
+    // A staff member reaches the owner's workspace through a deterministic
+    // membership doc (`{landlordId}__{uid}`), so authorization is one O(1)
+    // existence check rather than a query rules cannot run.
+    function isActiveStaffMember(landlordId) {
+      let ref = /databases/$(database)/documents/staffMemberships/$(landlordId + '__' + request.auth.uid);
+      return signedIn() && exists(ref) && get(ref).data.active == true;
+    }
+
+    // Whether an active member of this workspace holds any of `capabilities`.
+    // Reads follow the same permission set the commands enforce, so a
+    // maintenance-only teammate never sees the financial ledger. Repeated
+    // get()/exists() on one path count as a single document access.
+    function staffCan(landlordId, capabilities) {
+      let ref = /databases/$(database)/documents/staffMemberships/$(landlordId + '__' + request.auth.uid);
+      return signedIn()
+        && exists(ref)
+        && get(ref).data.active == true
+        && get(ref).data.permissions is list
+        && get(ref).data.permissions.hasAny(capabilities);
+    }
+
+    // A landlord-private document is readable by its owner, or by a staff
+    // member granted one of the capabilities that covers it.
+    function ownsOrStaffCan(data, capabilities) {
+      return ownsLandlordDocument(data)
+        || (data.landlordId is string && staffCan(data.landlordId, capabilities));
     }
 
     // Documents are readable only while published and unexpired. `get`
@@ -71,6 +103,24 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Staff seats are server-owned. The owner reads their workspace's invites
+    // for the Team screen; the invitee never needs to (claiming is a callable).
+    match /staffInvites/{inviteId} {
+      allow read: if isPlatformAdmin()
+        || (signedIn() && resource.data.landlordId == request.auth.uid);
+      allow write: if false;
+    }
+
+    // The staff member reads their own membership to discover the workspace;
+    // the owner lists their team. Written only by the staff.* commands.
+    match /staffMemberships/{membershipId} {
+      allow read: if isPlatformAdmin()
+        || (signedIn()
+          && (resource.data.memberUid == request.auth.uid
+            || resource.data.landlordId == request.auth.uid));
+      allow write: if false;
+    }
+
     match /planCatalog/{tier} {
       allow get: if isPlatformAdmin() || resource.data.isPublic == true;
       allow list: if isPlatformAdmin()
@@ -91,67 +141,71 @@ service cloud.firestore {
     // Canonical landlord-private documents. Landlord list queries must include
     // landlordId == request.auth.uid; Rules do not act as a result filter.
     match /properties/{propertyId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageProperties']);
       allow write: if false;
     }
 
     match /units/{unitId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageProperties']);
       allow write: if false;
     }
 
     match /tenantRecords/{tenantRecordId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageTenants']);
       allow write: if false;
     }
 
     match /leases/{leaseId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageTenants']);
       allow write: if false;
     }
 
     match /invoices/{invoiceId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageBilling']);
       allow write: if false;
     }
 
     match /payments/{paymentId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageBilling']);
       allow write: if false;
     }
 
     match /receipts/{receiptId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageBilling']);
       allow write: if false;
     }
 
     match /maintenanceRequests/{requestId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageMaintenance']);
       allow write: if false;
     }
 
     match /notices/{noticeId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageCommunication']);
       allow write: if false;
     }
 
     match /documents/{documentId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageDocuments']);
       allow write: if false;
     }
 
     match /privateListings/{listingId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin() || ownsOrStaffCan(resource.data, ['manageListings']);
       allow write: if false;
     }
 
+    // Inbound leads reach whoever runs the adverts or the tenancies they turn
+    // into, so either capability opens them.
     match /applications/{applicationId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin()
+        || ownsOrStaffCan(resource.data, ['manageListings', 'manageTenants']);
       allow write: if false;
     }
 
     match /contactRequests/{contactRequestId} {
-      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow read: if isPlatformAdmin()
+        || ownsOrStaffCan(resource.data, ['manageListings', 'manageTenants']);
       allow write: if false;
     }
 
@@ -201,7 +255,19 @@ service cloud.firestore {
     // tenantRecords, units, and properties that only the server can perform.
     // Still server-owned and read-only: they are written by the same command
     // transaction as the canonical documents they mirror.
+    // The container document carries no workspace data, so membership alone is
+    // enough; the sections below are gated by capability.
     match /landlordPortals/{landlordId} {
+      allow read: if isPlatformAdmin()
+        || ((isSelf(landlordId) || isActiveStaffMember(landlordId))
+          && hasActiveLandlordAccount(landlordId)
+          && hasActiveSubscription(landlordId));
+      allow write: if false;
+    }
+
+    // Owner-and-admin catch-all. Staff are deliberately absent: a section added
+    // later stays closed to them until it is given an explicit rule below.
+    match /landlordPortals/{landlordId}/{portalDocument=**} {
       allow read: if isPlatformAdmin()
         || (isSelf(landlordId)
           && hasActiveLandlordAccount(landlordId)
@@ -209,11 +275,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    match /landlordPortals/{landlordId}/{portalDocument=**} {
-      allow read: if isPlatformAdmin()
-        || (isSelf(landlordId)
-          && hasActiveLandlordAccount(landlordId)
-          && hasActiveSubscription(landlordId));
+    match /landlordPortals/{landlordId}/tenancies/{tenancyId} {
+      allow read: if staffCan(landlordId, ['manageTenants'])
+        && hasActiveLandlordAccount(landlordId)
+        && hasActiveSubscription(landlordId);
+      allow write: if false;
+    }
+
+    match /landlordPortals/{landlordId}/payments/{portalPaymentId} {
+      allow read: if staffCan(landlordId, ['manageBilling'])
+        && hasActiveLandlordAccount(landlordId)
+        && hasActiveSubscription(landlordId);
       allow write: if false;
     }
 

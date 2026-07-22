@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
-import { requireActiveLandlord, requireOwnedByLandlord } from '../shared/accounts';
+import { requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
 import { COLLECTIONS, LANDLORD_PORTAL_SECTIONS, TENANT_PORTAL_SECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { createJob, idSchema, nonNegativeMoney, optionalShortText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
@@ -27,7 +27,7 @@ export const tenantInvite: CommandHandler<z.infer<typeof tenantCreateSchema>> = 
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageTenants');
     const ref = db.collection(COLLECTIONS.tenantRecords).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     requireAbsent(snapshot);
@@ -52,7 +52,7 @@ export const tenantUpdate: CommandHandler<z.infer<typeof tenantUpdateSchema>> = 
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageTenants');
     const ref = db.collection(COLLECTIONS.tenantRecords).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, cmd.expectedVersion);
@@ -197,7 +197,7 @@ export const tenancyEstablish: CommandHandler<z.infer<typeof tenancyEstablishSch
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageTenants');
     if (Date.parse(cmd.payload.startDate) >= Date.parse(cmd.payload.endDate)) {
       throw new DomainError('VALIDATION_FAILED', { fields: ['startDate', 'endDate'] });
     }
@@ -352,7 +352,7 @@ export const leaseCreate: CommandHandler<z.infer<typeof leaseCreateSchema>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageTenants');
     if (Date.parse(cmd.payload.startDate) >= Date.parse(cmd.payload.endDate)) {
       throw new DomainError('VALIDATION_FAILED', { fields: ['startDate', 'endDate'] });
     }
@@ -380,7 +380,7 @@ export const leaseActivate: CommandHandler<Record<string, never>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageTenants');
     const leaseRef = db.collection(COLLECTIONS.leases).doc(cmd.aggregateId!);
     const leaseSnap = await tx.get(leaseRef);
     const lease = requireAggregate<Record<string, unknown> & { version: number; landlordId: string; unitId: string; status: string; tenantUserUid?: string | null }>(leaseSnap, cmd.expectedVersion);
@@ -427,7 +427,7 @@ export const leaseEnd: CommandHandler<z.infer<typeof leaseEndSchema>> = {
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    const landlord = await requireActiveLandlord(tx, db, actor);
+    const landlord = await requireWorkspace(tx, db, actor, 'manageTenants');
     const leaseRef = db.collection(COLLECTIONS.leases).doc(cmd.aggregateId!);
     const leaseSnap = await tx.get(leaseRef);
     const lease = requireAggregate<Record<string, unknown> & { version: number; landlordId: string; unitId: string; status: string; tenantUserUid?: string | null }>(leaseSnap, cmd.expectedVersion);

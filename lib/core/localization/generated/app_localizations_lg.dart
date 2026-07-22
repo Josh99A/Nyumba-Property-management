@@ -1960,6 +1960,167 @@ class AppLocalizationsLg extends AppLocalizations {
       'Omuddukanya ebintu byo ajja kutegeka ekiwandiiko kino era akigabana wano.';
 
   @override
+  String get legacy_59138b8999c6 =>
+      'Sooka otereke akawunti eno mu tterekero nga tonnakola ekyo.';
+
+  @override
+  String get legacy_4134f7a8316a =>
+      'Kyusa waakiri ekimu ku bikwata ku nsonga nga tonnatereka.';
+
+  @override
+  String get legacy_87a2131e6d61 =>
+      'Obuyinza obw’enjawulo obw’abakozi buli ku pulaani ya Premium. Yongera omutindo gwa pulaani yo osobole okuteekateeka buli mukozi ky’asobola okukola.';
+
+  @override
+  String get legacy_b292aea5f50e =>
+      'Okusasula mu ngeri ey’ebyuma tekunnabaawo. Sasula Nyumba butereevu, omuddukanya ajja kukakasa okusasula okwo.';
+
+  @override
+  String get legacy_b791dbf9cc55 =>
+      'Nyumba tesobola kutuuka ku seva. Kebera ennyunga yo era oddemu ogezeeko.';
+
+  @override
+  String get legacy_f810bcddd7ed =>
+      'Nyumba tesobodde kukkiriza kusaba okwo. Ddamu otikke app era oddemu ogezeeko.';
+
+  @override
+  String get legacy_3852e291776f =>
+      'Nyumba tesobodde kumaliriza kikolwa ekyo. Nsaba oddemu ogezeeko.';
+
+  @override
+  String get legacy_8dd971279a6c =>
+      'Nyumba tesobodde kumaliriza ekyo kaakano. Nsaba oddemu ogezeeko.';
+
+  @override
+  String get legacy_fc164894a18a =>
+      'Nyumba tesobodde kukakasa pulaani yo, n’olwekyo ekikolwa kino tekiteekeddwa mu nkola. Ddamu ogezeeko mu kaseera katono, oba tuukirira abayambi singa ekizibu kyeyongera.';
+
+  @override
+  String get legacy_5f40e5d243c5 =>
+      'Nyumba tesobodde kufuna rekodi eyo. Eyinza okuba nga yaggyibwawo — ddamu otikke era oddemu ogezeeko.';
+
+  @override
+  String get legacy_3a6e632ad56d =>
+      'Nyumba tesobodde kukakasa kyuma kino. Tuusa app ku mulembe era oddemu ogezeeko.';
+
+  @override
+  String get legacy_8032d3a419ad =>
+      'Nyumba tekkirizza kusaba okwo. Ddamu otikke era oddemu ogezeeko.';
+
+  @override
+  String legacy_553f76c2b4de(String fields) {
+    return 'Nyumba tekkirizza bikwata ku nsonga bino: $fields. Bikebere era oddemu ogezeeko — bwe biba nga bituufu, ddamu otikke app ofune enkola esembayo.';
+  }
+
+  @override
+  String get legacy_eacb633c809b =>
+      'Ebimu ku bikwata ku nsonga ebyo tebikkiriziddwa. Bikebere era oddemu ogezeeko.';
+
+  @override
+  String get legacy_2dc6de513de7 =>
+      'Omuntu omulala yakyusa kino ng’okikolerako. Ddamu otikke olabe enkola esembayo, oluvannyuma oddemu ogezeeko.';
+
+  @override
+  String get legacy_26124c0ce6a9 =>
+      'Omuwendo ogwo gusinga bbalansi ekyali ey’okusasula.';
+
+  @override
+  String get legacy_dad068aa555b =>
+      'Obwo bwe buvunaanyizibwa bwa akawunti eno obuliwo dda.';
+
+  @override
+  String get legacy_ab87caef66c3 =>
+      'Eyo ye pulaani yo eriwo dda. Londa endala okusobola okukyusa pulaani.';
+
+  @override
+  String get legacy_e3d4879fe8e6 => 'Pulaani eyo ekola dda ku akawunti eno.';
+
+  @override
+  String get legacy_865689190ea5 => 'Rekodi eyo eriwo dda.';
+
+  @override
+  String get legacy_b85cb4bf091b => 'Obupangisa obwo tebukola.';
+
+  @override
+  String get legacy_06fafad86a95 =>
+      'Seva etutte ekiseera kiwanvu nnyo okuddamu. Ddamu ogezeeko.';
+
+  @override
+  String get legacy_ad65b6dfeb97 =>
+      'Omuwendo ogw’omwaka teguyinza kusinga okusasula okw’emyezi kkumi n’ebiri.';
+
+  @override
+  String get legacy_0486dbaa769f => 'Akawunti eno terina lukusa kukola ekyo.';
+
+  @override
+  String get legacy_98c1804b4d45 =>
+      'Akawunti eno tennaba na kiwandiiko kya nannyini nnyumba, n’olwekyo tesobola kuteekebwa mu nkola.';
+
+  @override
+  String get legacy_8927961a2446 =>
+      'Akawunti eno yaterekebwa dda mu tterekero.';
+
+  @override
+  String get legacy_208b9378be87 =>
+      'Akawunti eno tekyali mu mbeera eyo. Ddamu otikke olabe embeera yaayo eriwo kati.';
+
+  @override
+  String get legacy_0d1dfd3592f9 =>
+      'Akawunti eno teri mu mbeera esobola okugiteeka mu nkola.';
+
+  @override
+  String get legacy_b7224264cf97 =>
+      'Akawunti eno eyimiriziddwa, n’olwekyo okusasula tekusobola kugiteeka mu nkola. Erina okusooka okuzzibwawo.';
+
+  @override
+  String get legacy_e2a1b305ffbd =>
+      'Akawunti eno eyimiriziddwa. Tuukirira abayambi ba Nyumba bagizzeewo.';
+
+  @override
+  String get legacy_34a370bb8f26 =>
+      'Ekikolwa kino kyetaaga ennyunga ya yintaneeti. Ddamu oyungibwe era oddemu ogezeeko.';
+
+  @override
+  String get legacy_977b7fe2ba26 =>
+      'Ekikolwa kino kyasindikiddwa dda n’ebikwata ku nsonga eby’enjawulo. Ddamu otikke era oddemu ogezeeko.';
+
+  @override
+  String get legacy_6e7e677ba3d3 =>
+      'Okusasula kuno kukyakakasibwa. Kujja kulabika wano amangu ddala nga kukakasiddwa.';
+
+  @override
+  String get legacy_e9b3d6e695b4 =>
+      'Enkola eno eya app nkadde. Ddamu otikke ofune enkola esembayo.';
+
+  @override
+  String get legacy_4610306154c0 =>
+      'Ogezezzaako emirundi mingi nnyo. Lindako akaseera nga tonnaddamu kugezaako.';
+
+  @override
+  String get legacy_427eb1e9b92d =>
+      'Otuuse ku kkomo pulaani yo ly’ekkiriza. Yongera omutindo gwa pulaani yo osobole okwongerako.';
+
+  @override
+  String get legacy_c34019924764 =>
+      'Okozesezza ebifo byonna eby’abakozi pulaani yo by’ekkiriza. Yongera omutindo gwa pulaani yo osobole okwongera abakozi ku ttiimu.';
+
+  @override
+  String get legacy_bdbcbdd54088 =>
+      'Akawunti yo ekyalindirira okwekenneenyezebwa, n’olwekyo ekikolwa kino tekinnabaawo.';
+
+  @override
+  String get legacy_bd9b9bf7438f =>
+      'Ekiseera kyo eky’okukozesa kiweddeko. Ddamu oyingire osobole okweyongerayo.';
+
+  @override
+  String get legacy_5856f45a39ca =>
+      'Obwammemba bwo tebunnaba kukola, n’olwekyo tebusobola kwongezebwa. Sooka omalirize okusasula kwo okusooka.';
+
+  @override
+  String get legacy_f6bf142ea0c0 =>
+      'Obwammemba bwo tebunnaba kukola, n’olwekyo ekikolwa kino tekinnabaawo.';
+
+  @override
   String welcomeBackName(Object name) {
     return 'Tukwanirizza nate, $name.';
   }
@@ -2788,4 +2949,107 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get appLockSwitchSubtitle =>
       'Saba ekinkumu Nyumba bw\'eddamu okuggulwa.';
+
+  @override
+  String get statusMessageSecureStorageTitle =>
+      'Tetusobola kuggulawo tterekero lyo ery’obukuumi';
+
+  @override
+  String statusMessageSecureStorageMessage(String subject) {
+    return 'Enkola y’oku kyuma app eno gyetaaga (etterekero ery’obukuumi) teri mu nkola eno, n’olwekyo $subject tebisobola kutikkibwa. Ggalawo app yonna oddemu ogiggule. Obubaka bwe buba bukomawo, ddamu oteeke app oba ogituuse ku mulembe.';
+  }
+
+  @override
+  String get statusMessageOfflineTitle =>
+      'Olabika nga toyungiddwa ku yintaneeti';
+
+  @override
+  String statusMessageOfflineMessage(String subject) {
+    return 'Tetutuuse ku seva okuzza obuggya $subject. Osobola okweyongera okukola n’ebiri ku kyuma kino; enkyukakyuka zijja kukwatagana bw’onaddamu okuyungibwa.';
+  }
+
+  @override
+  String statusMessageLoadFailedTitle(String subject) {
+    return 'Tetwasobodde kutikka $subject';
+  }
+
+  @override
+  String get statusMessageLoadFailedMessage =>
+      'Wabaddewo ekizibu nga tusoma ebikwata ku ggwe ebiri ku kyuma. Ddamu ogezeeko; bwe kyeyongera, gabana n’abayambi ebikwata ku bukugu ebiri wansi.';
+
+  @override
+  String get statusMessageSeverityDebug => 'Okukebera';
+
+  @override
+  String get statusMessageSeverityInfo => 'Amawulire';
+
+  @override
+  String get statusMessageSeverityWarning => 'Okulabula';
+
+  @override
+  String get statusMessageSeverityCritical => 'Kikulu nnyo';
+
+  @override
+  String get statusMessageTryAgain => 'Ddamu ogezeeko';
+
+  @override
+  String get statusMessageTechnicalDetails => 'Ebikwata ku bukugu';
+
+  @override
+  String get statusMessageHideTechnicalDetails => 'Kweka ebikwata ku bukugu';
+
+  @override
+  String get statusSubjectPayments => 'okusasula';
+
+  @override
+  String get statusSubjectYourPayments => 'okusasula kwo';
+
+  @override
+  String get statusSubjectYourRequests => 'okusaba kwo';
+
+  @override
+  String get statusSubjectYourHome => 'awaka wo';
+
+  @override
+  String get statusSubjectDocuments => 'ebiwandiiko';
+
+  @override
+  String get statusSubjectTenants => 'abapangisa';
+
+  @override
+  String get statusSubjectAuditLog => 'olukalala lw’okwekebejja';
+
+  @override
+  String get statusSubjectPlanCatalog => 'katalogo ya pulaani';
+
+  @override
+  String get statusSubjectApprovalQueue => 'olukalala lw’okukkiriza';
+
+  @override
+  String get statusSubjectYourProperties => 'ebizimbe byo';
+
+  @override
+  String get statusSubjectThisHome => 'ennyumba eno';
+
+  @override
+  String get statusSubjectYourListings => 'ebirango byo';
+
+  @override
+  String get statusSubjectMaintenanceRequests => 'okusaba kw’okuddaabiriza';
+
+  @override
+  String get adminSubscriptionsLoadFailedTitle =>
+      'Tetwasobodde kutikka bwammemba';
+
+  @override
+  String get adminSubscriptionsLoadFailedMessage =>
+      'Olukalala lwa seva telusoboddwa kusomebwa.';
+
+  @override
+  String get adminAccountDirectoryLoadFailedTitle =>
+      'Tetwasobodde kutikka lukalala lwa akawunti';
+
+  @override
+  String get adminAccountDirectoryLoadFailedMessage =>
+      'Olukalala olwa butereevu telusoboddwa kusomebwa. Tewali kopi ya akawunti z’abantu abalala eterekebwa ku kyuma kino nga tekiri ku yintaneeti.';
 }

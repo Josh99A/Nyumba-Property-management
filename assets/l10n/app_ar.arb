@@ -594,6 +594,48 @@
     "legacy_dadbc887f26c":  "محفظتك في لمحة",
     "legacy_0b541593e3a7":  "خصائصك",
     "legacy_ef5d3aa3c485":  "سيقوم مدير العقار الخاص بك بإعداد هذه الوثيقة ومشاركتها هنا.",
+    "legacy_59138b8999c6": "قم بأرشفة هذا الحساب قبل القيام بذلك.",
+    "legacy_4134f7a8316a": "غيّر تفصيلاً واحدًا على الأقل قبل الحفظ.",
+    "legacy_87a2131e6d61": "أذونات الموظفين المخصصة ميزة ضمن خطة Premium. رقِّ خطتك لتخصيص ما يمكن لكل عضو في الفريق القيام به.",
+    "legacy_b292aea5f50e": "المدفوعات الإلكترونية غير متاحة بعد. ادفع إلى Nyumba مباشرةً وسيؤكد أحد المسؤولين الدفع.",
+    "legacy_b791dbf9cc55": "يتعذر على Nyumba الوصول إلى الخادم. تحقق من اتصالك وحاول مرة أخرى.",
+    "legacy_f810bcddd7ed": "تعذر على Nyumba قبول هذا الطلب. أعد تحميل التطبيق وحاول مرة أخرى.",
+    "legacy_3852e291776f": "تعذر على Nyumba إكمال هذا الإجراء. يُرجى المحاولة مرة أخرى.",
+    "legacy_8dd971279a6c": "تعذر على Nyumba إكمال ذلك الآن. يُرجى المحاولة مرة أخرى.",
+    "legacy_fc164894a18a": "تعذر على Nyumba تأكيد خطتك، لذلك لم يُطبَّق هذا الإجراء. حاول مرة أخرى بعد قليل، أو تواصل مع الدعم إذا استمرت المشكلة.",
+    "legacy_5f40e5d243c5": "تعذر على Nyumba العثور على هذا السجل. ربما أُزيل — أعد التحميل وحاول مرة أخرى.",
+    "legacy_3a6e632ad56d": "تعذر على Nyumba التحقق من هذا الجهاز. حدّث التطبيق وحاول مرة أخرى.",
+    "legacy_8032d3a419ad": "لم يقبل Nyumba هذا الطلب. أعد التحميل وحاول مرة أخرى.",
+    "legacy_553f76c2b4de": "لم يقبل Nyumba هذه التفاصيل: {fields}. تحقق منها وحاول مرة أخرى — إذا بدت صحيحة، فأعد تحميل التطبيق للحصول على أحدث إصدار.",
+    "@legacy_553f76c2b4de": {"placeholders": {"fields": {"type": "String"}}},
+    "legacy_eacb633c809b": "لم تُقبل بعض هذه التفاصيل. تحقق منها وحاول مرة أخرى.",
+    "legacy_2dc6de513de7": "غيّر شخص آخر هذا أثناء عملك عليه. أعد التحميل للاطلاع على أحدث إصدار، ثم حاول مرة أخرى.",
+    "legacy_26124c0ce6a9": "هذا المبلغ أكبر من الرصيد المستحق.",
+    "legacy_dad068aa555b": "هذا هو دور هذا الحساب بالفعل.",
+    "legacy_ab87caef66c3": "هذه هي خطتك الحالية بالفعل. اختر خطة أخرى لتغيير الخطط.",
+    "legacy_e3d4879fe8e6": "هذه الخطة مفعّلة بالفعل على هذا الحساب.",
+    "legacy_865689190ea5": "هذا السجل موجود بالفعل.",
+    "legacy_b85cb4bf091b": "عقد الإيجار هذا غير نشط.",
+    "legacy_06fafad86a95": "استغرق الخادم وقتًا طويلاً للرد. حاول مرة أخرى.",
+    "legacy_ad65b6dfeb97": "لا يمكن أن يتجاوز السعر السنوي اثنتي عشرة دفعة شهرية.",
+    "legacy_0486dbaa769f": "لا يملك هذا الحساب إذنًا للقيام بذلك.",
+    "legacy_98c1804b4d45": "لا يحتوي هذا الحساب على سجل مالك بعد، لذلك لا يمكن تفعيله.",
+    "legacy_8927961a2446": "هذا الحساب مؤرشف بالفعل.",
+    "legacy_208b9378be87": "لم يعد هذا الحساب في تلك الحالة. أعد التحميل للاطلاع على حالته الحالية.",
+    "legacy_0d1dfd3592f9": "هذا الحساب ليس في حالة تسمح بتفعيله.",
+    "legacy_b7224264cf97": "هذا الحساب موقوف، لذلك لا يمكن للدفع تفعيله. يجب إعادته إلى الخدمة أولاً.",
+    "legacy_e2a1b305ffbd": "هذا الحساب موقوف. تواصل مع دعم Nyumba لاستعادته.",
+    "legacy_34a370bb8f26": "يتطلب هذا الإجراء اتصالاً بالإنترنت. أعد الاتصال وحاول مرة أخرى.",
+    "legacy_977b7fe2ba26": "أُرسل هذا الإجراء بالفعل بتفاصيل مختلفة. أعد التحميل وحاول مرة أخرى.",
+    "legacy_6e7e677ba3d3": "لا تزال هذه الدفعة قيد التأكيد. ستظهر هنا بمجرد تأكيدها.",
+    "legacy_e9b3d6e695b4": "هذا الإصدار من التطبيق قديم. أعد التحميل للحصول على أحدث إصدار.",
+    "legacy_4610306154c0": "محاولات كثيرة جدًا. انتظر قليلاً قبل المحاولة مرة أخرى.",
+    "legacy_427eb1e9b92d": "لقد بلغت الحد الذي تسمح به خطتك. رقِّ خطتك لإضافة المزيد.",
+    "legacy_c34019924764": "لقد استخدمت جميع مقاعد الموظفين التي تسمح بها خطتك. رقِّ خطتك لإضافة مزيد من أعضاء الفريق.",
+    "legacy_bdbcbdd54088": "لا يزال حسابك في انتظار المراجعة، لذلك هذا الإجراء غير متاح بعد.",
+    "legacy_bd9b9bf7438f": "انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.",
+    "legacy_5856f45a39ca": "اشتراكك غير نشط بعد، لذلك لا يمكن ترقيته. أكمل دفعتك الأولى أولاً.",
+    "legacy_f6bf142ea0c0": "اشتراكك غير نشط بعد، لذلك هذا الإجراء غير متاح.",
     "welcomeBackName": "مرحبًا بعودتك، {name}."
     ,"welcomeName": "مرحبًا، {name}"
     ,"editName": "تعديل {name}"
@@ -841,4 +883,37 @@
     ,"securitySubtitle": "تحكم في طريقة فتح هذا الجهاز لمساحة عملك."
     ,"appLockSwitchTitle": "قفل التطبيق ببصمة الإصبع"
     ,"appLockSwitchSubtitle": "طلب بصمة إصبعك عند إعادة فتح Nyumba."
+    ,"statusMessageSecureStorageTitle": "يتعذر فتح التخزين المحلي الآمن"
+    ,"statusMessageSecureStorageMessage": "ميزة يحتاج إليها التطبيق على هذا الجهاز (التخزين الآمن) غير متاحة في الإصدار الحالي، لذلك يتعذر تحميل {subject}. أغلق التطبيق تمامًا ثم افتحه مجددًا. إذا استمرت الرسالة، فأعد تثبيت التطبيق أو حدّثه."
+    ,"@statusMessageSecureStorageMessage": {"placeholders": {"subject": {"type": "String"}}}
+    ,"statusMessageOfflineTitle": "يبدو أنك غير متصل بالإنترنت"
+    ,"statusMessageOfflineMessage": "تعذر الوصول إلى الخادم لتحديث {subject}. يمكنك مواصلة العمل بالبيانات الموجودة على هذا الجهاز؛ وستتم مزامنة التغييرات عند عودة الاتصال."
+    ,"@statusMessageOfflineMessage": {"placeholders": {"subject": {"type": "String"}}}
+    ,"statusMessageLoadFailedTitle": "تعذر تحميل {subject}"
+    ,"@statusMessageLoadFailedTitle": {"placeholders": {"subject": {"type": "String"}}}
+    ,"statusMessageLoadFailedMessage": "حدث خطأ أثناء قراءة بياناتك المحلية. حاول مرة أخرى، وإذا استمرت المشكلة فشارِك التفاصيل التقنية أدناه مع الدعم."
+    ,"statusMessageSeverityDebug": "تصحيح"
+    ,"statusMessageSeverityInfo": "معلومة"
+    ,"statusMessageSeverityWarning": "تحذير"
+    ,"statusMessageSeverityCritical": "حرج"
+    ,"statusMessageTryAgain": "حاول مرة أخرى"
+    ,"statusMessageTechnicalDetails": "التفاصيل التقنية"
+    ,"statusMessageHideTechnicalDetails": "إخفاء التفاصيل التقنية"
+    ,"statusSubjectPayments": "المدفوعات"
+    ,"statusSubjectYourPayments": "مدفوعاتك"
+    ,"statusSubjectYourRequests": "طلباتك"
+    ,"statusSubjectYourHome": "منزلك"
+    ,"statusSubjectDocuments": "المستندات"
+    ,"statusSubjectTenants": "المستأجرين"
+    ,"statusSubjectAuditLog": "سجل التدقيق"
+    ,"statusSubjectPlanCatalog": "دليل الخطط"
+    ,"statusSubjectApprovalQueue": "قائمة الموافقات"
+    ,"statusSubjectYourProperties": "عقاراتك"
+    ,"statusSubjectThisHome": "هذا المنزل"
+    ,"statusSubjectYourListings": "إعلاناتك"
+    ,"statusSubjectMaintenanceRequests": "طلبات الصيانة"
+    ,"adminSubscriptionsLoadFailedTitle": "تعذر تحميل الاشتراكات"
+    ,"adminSubscriptionsLoadFailedMessage": "تعذرت قراءة دليل الخادم."
+    ,"adminAccountDirectoryLoadFailedTitle": "تعذر تحميل دليل الحسابات"
+    ,"adminAccountDirectoryLoadFailedMessage": "تعذرت قراءة الدليل المباشر. لا توجد عمدًا نسخة غير متصلة لحسابات أشخاص آخرين على هذا الجهاز."
 }

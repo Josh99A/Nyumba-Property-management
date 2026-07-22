@@ -594,6 +594,48 @@
     "legacy_dadbc887f26c":  "Ekifo kyo mu kutunula",
     "legacy_0b541593e3a7":  "Ebintu byo",
     "legacy_ef5d3aa3c485":  "Omuddukanya ebintu byo ajja kutegeka ekiwandiiko kino era akigabana wano.",
+    "legacy_59138b8999c6": "Sooka otereke akawunti eno mu tterekero nga tonnakola ekyo.",
+    "legacy_4134f7a8316a": "Kyusa waakiri ekimu ku bikwata ku nsonga nga tonnatereka.",
+    "legacy_87a2131e6d61": "Obuyinza obw’enjawulo obw’abakozi buli ku pulaani ya Premium. Yongera omutindo gwa pulaani yo osobole okuteekateeka buli mukozi ky’asobola okukola.",
+    "legacy_b292aea5f50e": "Okusasula mu ngeri ey’ebyuma tekunnabaawo. Sasula Nyumba butereevu, omuddukanya ajja kukakasa okusasula okwo.",
+    "legacy_b791dbf9cc55": "Nyumba tesobola kutuuka ku seva. Kebera ennyunga yo era oddemu ogezeeko.",
+    "legacy_f810bcddd7ed": "Nyumba tesobodde kukkiriza kusaba okwo. Ddamu otikke app era oddemu ogezeeko.",
+    "legacy_3852e291776f": "Nyumba tesobodde kumaliriza kikolwa ekyo. Nsaba oddemu ogezeeko.",
+    "legacy_8dd971279a6c": "Nyumba tesobodde kumaliriza ekyo kaakano. Nsaba oddemu ogezeeko.",
+    "legacy_fc164894a18a": "Nyumba tesobodde kukakasa pulaani yo, n’olwekyo ekikolwa kino tekiteekeddwa mu nkola. Ddamu ogezeeko mu kaseera katono, oba tuukirira abayambi singa ekizibu kyeyongera.",
+    "legacy_5f40e5d243c5": "Nyumba tesobodde kufuna rekodi eyo. Eyinza okuba nga yaggyibwawo — ddamu otikke era oddemu ogezeeko.",
+    "legacy_3a6e632ad56d": "Nyumba tesobodde kukakasa kyuma kino. Tuusa app ku mulembe era oddemu ogezeeko.",
+    "legacy_8032d3a419ad": "Nyumba tekkirizza kusaba okwo. Ddamu otikke era oddemu ogezeeko.",
+    "legacy_553f76c2b4de": "Nyumba tekkirizza bikwata ku nsonga bino: {fields}. Bikebere era oddemu ogezeeko — bwe biba nga bituufu, ddamu otikke app ofune enkola esembayo.",
+    "@legacy_553f76c2b4de": {"placeholders": {"fields": {"type": "String"}}},
+    "legacy_eacb633c809b": "Ebimu ku bikwata ku nsonga ebyo tebikkiriziddwa. Bikebere era oddemu ogezeeko.",
+    "legacy_2dc6de513de7": "Omuntu omulala yakyusa kino ng’okikolerako. Ddamu otikke olabe enkola esembayo, oluvannyuma oddemu ogezeeko.",
+    "legacy_26124c0ce6a9": "Omuwendo ogwo gusinga bbalansi ekyali ey’okusasula.",
+    "legacy_dad068aa555b": "Obwo bwe buvunaanyizibwa bwa akawunti eno obuliwo dda.",
+    "legacy_ab87caef66c3": "Eyo ye pulaani yo eriwo dda. Londa endala okusobola okukyusa pulaani.",
+    "legacy_e3d4879fe8e6": "Pulaani eyo ekola dda ku akawunti eno.",
+    "legacy_865689190ea5": "Rekodi eyo eriwo dda.",
+    "legacy_b85cb4bf091b": "Obupangisa obwo tebukola.",
+    "legacy_06fafad86a95": "Seva etutte ekiseera kiwanvu nnyo okuddamu. Ddamu ogezeeko.",
+    "legacy_ad65b6dfeb97": "Omuwendo ogw’omwaka teguyinza kusinga okusasula okw’emyezi kkumi n’ebiri.",
+    "legacy_0486dbaa769f": "Akawunti eno terina lukusa kukola ekyo.",
+    "legacy_98c1804b4d45": "Akawunti eno tennaba na kiwandiiko kya nannyini nnyumba, n’olwekyo tesobola kuteekebwa mu nkola.",
+    "legacy_8927961a2446": "Akawunti eno yaterekebwa dda mu tterekero.",
+    "legacy_208b9378be87": "Akawunti eno tekyali mu mbeera eyo. Ddamu otikke olabe embeera yaayo eriwo kati.",
+    "legacy_0d1dfd3592f9": "Akawunti eno teri mu mbeera esobola okugiteeka mu nkola.",
+    "legacy_b7224264cf97": "Akawunti eno eyimiriziddwa, n’olwekyo okusasula tekusobola kugiteeka mu nkola. Erina okusooka okuzzibwawo.",
+    "legacy_e2a1b305ffbd": "Akawunti eno eyimiriziddwa. Tuukirira abayambi ba Nyumba bagizzeewo.",
+    "legacy_34a370bb8f26": "Ekikolwa kino kyetaaga ennyunga ya yintaneeti. Ddamu oyungibwe era oddemu ogezeeko.",
+    "legacy_977b7fe2ba26": "Ekikolwa kino kyasindikiddwa dda n’ebikwata ku nsonga eby’enjawulo. Ddamu otikke era oddemu ogezeeko.",
+    "legacy_6e7e677ba3d3": "Okusasula kuno kukyakakasibwa. Kujja kulabika wano amangu ddala nga kukakasiddwa.",
+    "legacy_e9b3d6e695b4": "Enkola eno eya app nkadde. Ddamu otikke ofune enkola esembayo.",
+    "legacy_4610306154c0": "Ogezezzaako emirundi mingi nnyo. Lindako akaseera nga tonnaddamu kugezaako.",
+    "legacy_427eb1e9b92d": "Otuuse ku kkomo pulaani yo ly’ekkiriza. Yongera omutindo gwa pulaani yo osobole okwongerako.",
+    "legacy_c34019924764": "Okozesezza ebifo byonna eby’abakozi pulaani yo by’ekkiriza. Yongera omutindo gwa pulaani yo osobole okwongera abakozi ku ttiimu.",
+    "legacy_bdbcbdd54088": "Akawunti yo ekyalindirira okwekenneenyezebwa, n’olwekyo ekikolwa kino tekinnabaawo.",
+    "legacy_bd9b9bf7438f": "Ekiseera kyo eky’okukozesa kiweddeko. Ddamu oyingire osobole okweyongerayo.",
+    "legacy_5856f45a39ca": "Obwammemba bwo tebunnaba kukola, n’olwekyo tebusobola kwongezebwa. Sooka omalirize okusasula kwo okusooka.",
+    "legacy_f6bf142ea0c0": "Obwammemba bwo tebunnaba kukola, n’olwekyo ekikolwa kino tekinnabaawo.",
     "welcomeBackName": "Tukwanirizza nate, {name}."
     ,"welcomeName": "Tukwanirizza, {name}"
     ,"editName": "Kyusa {name}"
@@ -841,4 +883,37 @@
     ,"securitySubtitle": "Fuga engeri ekyuma kino gye kisumululamu ofiisi yo."
     ,"appLockSwitchTitle": "Ekisiba kya app eky'ekinkumu"
     ,"appLockSwitchSubtitle": "Saba ekinkumu Nyumba bw'eddamu okuggulwa."
+    ,"statusMessageSecureStorageTitle": "Tetusobola kuggulawo tterekero lyo ery’obukuumi"
+    ,"statusMessageSecureStorageMessage": "Enkola y’oku kyuma app eno gyetaaga (etterekero ery’obukuumi) teri mu nkola eno, n’olwekyo {subject} tebisobola kutikkibwa. Ggalawo app yonna oddemu ogiggule. Obubaka bwe buba bukomawo, ddamu oteeke app oba ogituuse ku mulembe."
+    ,"@statusMessageSecureStorageMessage": {"placeholders": {"subject": {"type": "String"}}}
+    ,"statusMessageOfflineTitle": "Olabika nga toyungiddwa ku yintaneeti"
+    ,"statusMessageOfflineMessage": "Tetutuuse ku seva okuzza obuggya {subject}. Osobola okweyongera okukola n’ebiri ku kyuma kino; enkyukakyuka zijja kukwatagana bw’onaddamu okuyungibwa."
+    ,"@statusMessageOfflineMessage": {"placeholders": {"subject": {"type": "String"}}}
+    ,"statusMessageLoadFailedTitle": "Tetwasobodde kutikka {subject}"
+    ,"@statusMessageLoadFailedTitle": {"placeholders": {"subject": {"type": "String"}}}
+    ,"statusMessageLoadFailedMessage": "Wabaddewo ekizibu nga tusoma ebikwata ku ggwe ebiri ku kyuma. Ddamu ogezeeko; bwe kyeyongera, gabana n’abayambi ebikwata ku bukugu ebiri wansi."
+    ,"statusMessageSeverityDebug": "Okukebera"
+    ,"statusMessageSeverityInfo": "Amawulire"
+    ,"statusMessageSeverityWarning": "Okulabula"
+    ,"statusMessageSeverityCritical": "Kikulu nnyo"
+    ,"statusMessageTryAgain": "Ddamu ogezeeko"
+    ,"statusMessageTechnicalDetails": "Ebikwata ku bukugu"
+    ,"statusMessageHideTechnicalDetails": "Kweka ebikwata ku bukugu"
+    ,"statusSubjectPayments": "okusasula"
+    ,"statusSubjectYourPayments": "okusasula kwo"
+    ,"statusSubjectYourRequests": "okusaba kwo"
+    ,"statusSubjectYourHome": "awaka wo"
+    ,"statusSubjectDocuments": "ebiwandiiko"
+    ,"statusSubjectTenants": "abapangisa"
+    ,"statusSubjectAuditLog": "olukalala lw’okwekebejja"
+    ,"statusSubjectPlanCatalog": "katalogo ya pulaani"
+    ,"statusSubjectApprovalQueue": "olukalala lw’okukkiriza"
+    ,"statusSubjectYourProperties": "ebizimbe byo"
+    ,"statusSubjectThisHome": "ennyumba eno"
+    ,"statusSubjectYourListings": "ebirango byo"
+    ,"statusSubjectMaintenanceRequests": "okusaba kw’okuddaabiriza"
+    ,"adminSubscriptionsLoadFailedTitle": "Tetwasobodde kutikka bwammemba"
+    ,"adminSubscriptionsLoadFailedMessage": "Olukalala lwa seva telusoboddwa kusomebwa."
+    ,"adminAccountDirectoryLoadFailedTitle": "Tetwasobodde kutikka lukalala lwa akawunti"
+    ,"adminAccountDirectoryLoadFailedMessage": "Olukalala olwa butereevu telusoboddwa kusomebwa. Tewali kopi ya akawunti z’abantu abalala eterekebwa ku kyuma kino nga tekiri ku yintaneeti."
 }

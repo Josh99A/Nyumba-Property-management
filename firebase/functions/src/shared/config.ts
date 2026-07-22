@@ -53,6 +53,10 @@ export interface PlanEntitlements {
   unitLimit: number;
   activeListingLimit: number;
   advertising: boolean;
+  /** Staff seats available beyond the owner (owner is always seat zero). */
+  staffSeatLimit: number;
+  /** Whether the owner may grant custom per-permission staff roles. */
+  customStaffRoles: boolean;
 }
 
 export interface EntitlementsConfig {
@@ -88,10 +92,23 @@ export async function loadEntitlements(
     const plan = raw as Record<string, unknown>;
     const unitLimit = asPositiveInt(plan.unitLimit);
     const activeListingLimit = asPositiveInt(plan.activeListingLimit);
-    if (unitLimit === null || activeListingLimit === null || typeof plan.advertising !== 'boolean') {
+    const staffSeatLimit = asPositiveInt(plan.staffSeatLimit);
+    if (
+      unitLimit === null
+      || activeListingLimit === null
+      || staffSeatLimit === null
+      || typeof plan.advertising !== 'boolean'
+      || typeof plan.customStaffRoles !== 'boolean'
+    ) {
       continue;
     }
-    plans[tier] = { unitLimit, activeListingLimit, advertising: plan.advertising };
+    plans[tier] = {
+      unitLimit,
+      activeListingLimit,
+      advertising: plan.advertising,
+      staffSeatLimit,
+      customStaffRoles: plan.customStaffRoles,
+    };
   }
   return { version, plans };
 }

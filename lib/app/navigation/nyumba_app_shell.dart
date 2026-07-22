@@ -17,6 +17,7 @@ import '../../features/auth/application/session_controller.dart';
 import '../../features/auth/domain/user_session.dart';
 import '../../features/notifications/application/push_interactions.dart';
 import '../../features/notifications/presentation/notification_center_sheet.dart';
+import '../../features/staff/domain/staff_permission.dart';
 import '../bootstrap/app_dependencies.dart';
 
 class AppDestination {
@@ -159,6 +160,15 @@ const _adminDestinations = [
 
 const _staffDestinations = [..._adminDestinations, ..._landlordDestinations];
 
+/// Managing staff seats and their permissions. Owner-only: a staff member
+/// cannot manage the team, so this never appears in their navigation.
+const _teamDestination = AppDestination(
+  label: 'Team',
+  icon: Icons.groups_outlined,
+  selectedIcon: Icons.groups_rounded,
+  path: '/team',
+);
+
 /// The landlord's own plan — the payment gate before activation and the
 /// self-service upgrade path afterwards. Landlord-only: platform staff
 /// manage subscriptions from the admin workspace instead.
@@ -218,7 +228,7 @@ class NyumbaAppShell extends ConsumerWidget {
         });
       });
     });
-    final destinations = _destinationsFor(session.role);
+    final destinations = _destinationsFor(session);
     final path = GoRouterState.of(context).uri.path;
 
     if (context.isCompact) {
@@ -254,16 +264,34 @@ class NyumbaAppShell extends ConsumerWidget {
     );
   }
 
-  List<AppDestination> _destinationsFor(AppRole role) => switch (role) {
+  List<AppDestination> _destinationsFor(UserSession session) =>
+      switch (session.role) {
     AppRole.landlord => const [
       ..._landlordDestinations,
+      _teamDestination,
       _subscriptionDestination,
+      _exploreDestination,
+    ],
+    AppRole.staff => [
+      for (final destination in _landlordDestinations)
+        if (_staffCanOpen(session, destination.path)) destination,
       _exploreDestination,
     ],
     AppRole.tenant => const [..._tenantDestinations, _exploreDestination],
     AppRole.superAdmin ||
     AppRole.admin => const [..._staffDestinations, _exploreDestination],
     AppRole.client => const <AppDestination>[],
+  };
+
+  bool _staffCanOpen(UserSession session, String path) => switch (path) {
+    '/dashboard' => session.permissions.isNotEmpty,
+    '/properties' => session.can(StaffPermission.manageProperties),
+    '/tenants' => session.can(StaffPermission.manageTenants),
+    '/finances' => session.can(StaffPermission.manageBilling),
+    '/maintenance' => session.can(StaffPermission.manageMaintenance),
+    '/listings' => session.can(StaffPermission.manageListings),
+    '/documents' => session.can(StaffPermission.manageDocuments),
+    _ => false,
   };
 }
 

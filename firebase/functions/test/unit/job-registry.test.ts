@@ -60,6 +60,7 @@ describe('background job registry', () => {
       'sendLandlordApprovedEmail',
       'sendMaintenanceStatusEmail',
       'sendPaymentReceiptEmail',
+      'sendStaffInviteEmail',
       'sendSubscriptionNoticeEmail',
       'sendTenantInviteEmail',
       'setAuthUserDisabled',

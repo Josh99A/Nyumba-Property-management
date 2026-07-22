@@ -3,11 +3,14 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
@@ -256,15 +259,16 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
             child: Center(child: CircularProgressIndicator()),
           )
         else if (accountsValue.hasError && accounts.isEmpty)
-          NyumbaSurface(
-            child: AdminEmptyState(
-              title: 'Could not load the account directory',
-              message:
-                  'The live directory could not be read: '
-                  '${accountsValue.error}. There is deliberately no offline '
-                  'copy of other people’s accounts on this device.',
-              icon: Icons.error_outline_rounded,
-            ),
+          NyumbaStatusMessage(
+            severity: NyumbaMessageSeverity.critical,
+            title: appLocalizationsOf(
+              context,
+            ).adminAccountDirectoryLoadFailedTitle,
+            message: appLocalizationsOf(
+              context,
+            ).adminAccountDirectoryLoadFailedMessage,
+            details: '${accountsValue.error}',
+            onRetry: () => ref.invalidate(platformAccountsProvider),
           )
         else
           NyumbaSurface(
@@ -903,7 +907,11 @@ class _ServerAuditPanel extends StatelessWidget {
         ),
         AsyncValue(:final error?) => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text.localized('Could not read the audit log: $error'),
+          child: NyumbaStatusMessage.fromError(
+            error,
+            localizations: appLocalizationsOf(context),
+            subject: appLocalizationsOf(context).statusSubjectAuditLog,
+          ),
         ),
         _ => const Padding(
           padding: EdgeInsets.all(24),

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -13,6 +15,7 @@ import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../portfolio/domain/property.dart';
@@ -80,11 +83,11 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                   padding: EdgeInsets.all(48),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text.localized('Could not load tenants: $error'),
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context).statusSubjectTenants,
+                  onRetry: () => ref.invalidate(tenanciesProvider),
                 ),
                 data: (tenancies) => _buildLoaded(context, tenancies, outbox),
               ),

@@ -2,6 +2,7 @@ import { deleteApp, initializeApp } from 'firebase-admin/app';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Actor } from '../../src/shared/actor';
+import { STAFF_PERMISSIONS } from '../../src/shared/accounts';
 import { DomainError } from '../../src/shared/errors';
 import { executeCommandCore } from '../../src/shared/router';
 
@@ -31,18 +32,19 @@ async function clearFirestore(): Promise<void> {
   await fetch(`http://${host}/emulator/v1/projects/demo-nyumba/databases/(default)/documents`, { method: 'DELETE' });
 }
 
-async function seedLandlord(options: { approval?: string; subscription?: string; limit?: number; advertising?: boolean; config?: boolean } = {}): Promise<void> {
+async function seedLandlord(options: { approval?: string; subscription?: string; limit?: number; advertising?: boolean; config?: boolean; tier?: string; staffSeatLimit?: number; customStaffRoles?: boolean } = {}): Promise<void> {
   const approval = options.approval ?? 'approved';
   const subscription = options.subscription ?? 'active';
+  const tier = options.tier ?? 'starter';
   const batch = db.batch();
   batch.set(db.doc(`landlordAccounts/${landlord.uid}`), {
     id: landlord.uid, ownerUid: landlord.uid, approvalStatus: approval,
-    activeUnitCount: 0, activeListingCount: 0, receiptCounter: 0,
+    activeUnitCount: 0, activeListingCount: 0, activeStaffSeatCount: 0, receiptCounter: 0,
     version: 1, createdAt: now, updatedAt: now, isDeleted: false,
   });
   if (subscription !== 'missing') {
     batch.set(db.doc(`subscriptions/${landlord.uid}`), {
-      id: landlord.uid, tier: 'starter', status: subscription,
+      id: landlord.uid, tier, status: subscription,
       version: 1, createdAt: now, updatedAt: now, isDeleted: false,
     });
   }
@@ -50,8 +52,9 @@ async function seedLandlord(options: { approval?: string; subscription?: string;
     batch.set(db.doc('backendConfig/entitlements'), {
       version: 1,
       plans: {
-        starter: { unitLimit: options.limit ?? 2, activeListingLimit: 2, advertising: options.advertising ?? true },
-        pro: { unitLimit: 50, activeListingLimit: 25, advertising: true },
+        starter: { unitLimit: options.limit ?? 2, activeListingLimit: 2, advertising: options.advertising ?? true, staffSeatLimit: options.staffSeatLimit ?? 0, customStaffRoles: options.customStaffRoles ?? false },
+        pro: { unitLimit: 50, activeListingLimit: 25, advertising: true, staffSeatLimit: options.staffSeatLimit ?? 2, customStaffRoles: options.customStaffRoles ?? false },
+        premium: { unitLimit: 200, activeListingLimit: 200, advertising: true, staffSeatLimit: options.staffSeatLimit ?? 9, customStaffRoles: options.customStaffRoles ?? true },
       },
     });
   }
@@ -914,5 +917,159 @@ describe('command router', () => {
     const claim = { commandId: 'command_claim_3', type: 'tenant.claimInvite', schemaVersion: 1 as const, payload: {}, client: { installationId: 'install_1234', appVersion: '1.0.0', platform: 'web' as const } };
     const result = await executeCommandCore(db, unverified, claim, now);
     expect(result).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+  });
+});
+
+describe('staff seats and roles', () => {
+  const staff: Actor = { uid: 'staff_1234567', email: 'agent@nyumba.test', platformAdmin: false, superAdmin: false, emailVerified: true, signInProvider: 'password' };
+  const membershipId = `${landlord.uid}__${staff.uid}`;
+  const claim = { commandId: 'command_staff_claim_1', type: 'staff.claimInvite', schemaVersion: 1 as const, payload: {}, client: { installationId: 'install_1234', appVersion: '1.0.0', platform: 'web' as const } };
+
+  async function invitePremiumAgent(): Promise<void> {
+    await seedLandlord({ tier: 'premium' });
+    const invite = await executeCommandCore(db, landlord, envelope('command_staff_invite_1', 'staff.invite', 'staffinv_1234', 0, {
+      // Mixed-case email must normalize just like tenant invites.
+      email: 'Agent@Nyumba.test', displayName: 'Agent', permissions: ['manageProperties', 'manageMaintenance'],
+    }), now);
+    expect(invite.status).toBe('applied');
+  }
+
+  it('honours a custom permission subset on Premium and links a deterministic membership', async () => {
+    await invitePremiumAgent();
+    expect((await db.doc('staffInvites/staffinv_1234').get()).data()).toMatchObject({
+      email: 'agent@nyumba.test', inviteState: 'pending', permissions: ['manageProperties', 'manageMaintenance'],
+    });
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()).toMatchObject({
+      activeStaffSeatCount: 1,
+    });
+
+    const linked = await executeCommandCore(db, staff, claim, now);
+    expect(linked.status).toBe('applied');
+    expect(linked.result).toMatchObject({ linkedMemberships: 1 });
+    expect((await db.doc(`staffMemberships/${membershipId}`).get()).data()).toMatchObject({
+      landlordId: landlord.uid, memberUid: staff.uid, active: true, permissions: ['manageProperties', 'manageMaintenance'],
+    });
+    expect((await db.doc('staffInvites/staffinv_1234').get()).data()).toMatchObject({ inviteState: 'accepted', memberUid: staff.uid });
+  });
+
+  it('lets a staff member run granted commands against the owner workspace', async () => {
+    await invitePremiumAgent();
+    await executeCommandCore(db, staff, claim, now);
+
+    // manageProperties is granted -> the property is created under the OWNER.
+    const created = await executeCommandCore(db, staff, envelope('command_staff_prop_1', 'property.create', 'propstaff_1234', 0, {
+      name: 'Block B', addressLine: '12 Kira Road', city: 'Kampala',
+    }), now);
+    expect(created.status).toBe('applied');
+    expect((await db.doc('properties/propstaff_1234').get()).data()).toMatchObject({ landlordId: landlord.uid });
+  });
+
+  it('denies commands the staff member was not granted', async () => {
+    await invitePremiumAgent();
+    await executeCommandCore(db, staff, claim, now);
+
+    // manageTenants was not granted.
+    const denied = await executeCommandCore(db, staff, envelope('command_staff_tenant_1', 'tenant.invite', 'tenantrec_staff1', 0, {
+      displayName: 'Someone', email: 'someone@example.com', phone: '+256772000111',
+    }), now);
+    expect(denied).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+  });
+
+  it('keeps owner-only commands out of staff reach', async () => {
+    await invitePremiumAgent();
+    await executeCommandCore(db, staff, claim, now);
+
+    // subscription.* resolves the workspace from the actor uid, never staff.
+    const upgrade = await executeCommandCore(db, staff, envelope('command_staff_upgrade_1', 'subscription.requestUpgrade', landlord.uid, 1, {
+      tier: 'premium', billingChannel: 'mobile_money',
+    }), now);
+    expect(upgrade).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+  });
+
+  it('revokes a seat, cutting the membership and command access', async () => {
+    await invitePremiumAgent();
+    await executeCommandCore(db, staff, claim, now);
+
+    // Claiming bumped the invite to version 2.
+    const revoke = await executeCommandCore(db, landlord, envelope('command_staff_revoke_1', 'staff.revoke', 'staffinv_1234', 2, {}), now);
+    expect(revoke.status).toBe('applied');
+    expect((await db.doc(`staffMemberships/${membershipId}`).get()).exists).toBe(false);
+    expect((await db.doc('staffInvites/staffinv_1234').get()).data()).toMatchObject({ inviteState: 'revoked', memberUid: null });
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()).toMatchObject({
+      activeStaffSeatCount: 0,
+    });
+
+    const afterRevoke = await executeCommandCore(db, staff, envelope('command_staff_prop_2', 'property.create', 'propstaff_5678', 0, {
+      name: 'Block C', addressLine: '9 Ntinda', city: 'Kampala',
+    }), now);
+    expect(afterRevoke).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+  });
+
+  it('coerces a Pro invite to the standard preset', async () => {
+    await seedLandlord({ tier: 'pro' });
+    const invite = await executeCommandCore(db, landlord, envelope('command_staff_invite_pro', 'staff.invite', 'staffinv_pro1', 0, {
+      email: 'pro.agent@nyumba.test', permissions: ['manageMaintenance'],
+    }), now);
+    expect(invite.status).toBe('applied');
+    const stored = (await db.doc('staffInvites/staffinv_pro1').get()).data();
+    expect([...(stored?.permissions as string[])].sort()).toEqual([...STAFF_PERMISSIONS].sort());
+  });
+
+  it('rejects invites past the plan seat limit', async () => {
+    await seedLandlord({ tier: 'pro', staffSeatLimit: 1 });
+    const first = await executeCommandCore(db, landlord, envelope('command_staff_seat_1', 'staff.invite', 'staffinv_seat1', 0, {
+      email: 'one@nyumba.test', permissions: ['manageProperties'],
+    }), now);
+    expect(first.status).toBe('applied');
+    const second = await executeCommandCore(db, landlord, envelope('command_staff_seat_2', 'staff.invite', 'staffinv_seat2', 0, {
+      email: 'two@nyumba.test', permissions: ['manageProperties'],
+    }), now);
+    expect(second).toMatchObject({ status: 'rejected', error: { code: 'SEAT_LIMIT_REACHED' } });
+  });
+
+  it('rejects a claim addressed to more than one landlord workspace', async () => {
+    await invitePremiumAgent();
+    const secondLandlord: Actor = {
+      uid: 'landlord_second_1', email: 'second@nyumba.test', platformAdmin: false,
+      superAdmin: false, emailVerified: true, signInProvider: 'password',
+    };
+    const firstAccount = (await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()!;
+    const firstSubscription = (await db.doc(`subscriptions/${landlord.uid}`).get()).data()!;
+    await db.doc(`landlordAccounts/${secondLandlord.uid}`).set({
+      ...firstAccount,
+      id: secondLandlord.uid,
+      ownerUid: secondLandlord.uid,
+      activeStaffSeatCount: 0,
+    });
+    await db.doc(`subscriptions/${secondLandlord.uid}`).set({
+      ...firstSubscription,
+      id: secondLandlord.uid,
+    });
+    const invited = await executeCommandCore(db, secondLandlord, envelope(
+      'command_staff_invite_2',
+      'staff.invite',
+      'staffinv_second',
+      0,
+      { email: staff.email, permissions: ['manageProperties'] },
+    ), now);
+    expect(invited.status).toBe('applied');
+
+    const result = await executeCommandCore(db, staff, claim, now);
+    expect(result).toMatchObject({
+      status: 'rejected',
+      error: { code: 'VALIDATION_FAILED', details: { reason: 'multipleWorkspaceInvites' } },
+    });
+    expect((await db.collection('staffMemberships').where('memberUid', '==', staff.uid).get()).empty).toBe(true);
+  });
+
+  it('requires the custom-role entitlement to change permissions', async () => {
+    await seedLandlord({ tier: 'pro' });
+    await executeCommandCore(db, landlord, envelope('command_staff_invite_upd', 'staff.invite', 'staffinv_upd1', 0, {
+      email: 'upd.agent@nyumba.test', permissions: ['manageProperties'],
+    }), now);
+    const update = await executeCommandCore(db, landlord, envelope('command_staff_update_1', 'staff.updatePermissions', 'staffinv_upd1', 1, {
+      permissions: ['manageBilling'],
+    }), now);
+    expect(update).toMatchObject({ status: 'rejected', error: { code: 'CUSTOM_ROLES_UNAVAILABLE' } });
   });
 });
