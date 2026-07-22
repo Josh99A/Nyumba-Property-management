@@ -18,7 +18,9 @@ import '../domain/biometric_authenticator.dart';
 /// around (deep links, back navigation, state restoration), while a widget
 /// painted above the whole Navigator cannot.
 class AppLockScreen extends ConsumerStatefulWidget {
-  const AppLockScreen({super.key});
+  const AppLockScreen({required this.unlocking, super.key});
+
+  final bool unlocking;
 
   @override
   ConsumerState<AppLockScreen> createState() => _AppLockScreenState();
@@ -43,7 +45,12 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
         .unlock(copy.text('Unlock Nyumba'));
     if (!mounted) return;
     switch (outcome) {
-      case BiometricOutcome.success || BiometricOutcome.dismissed:
+      case BiometricOutcome.success:
+        // The controller has already lifted the lock, so the parent gate is
+        // removing this widget. Do not dirty a child that is being
+        // deactivated in the same provider notification frame.
+        return;
+      case BiometricOutcome.dismissed:
         setState(() => _message = null);
       case BiometricOutcome.unavailable:
         showNyumbaToast(
@@ -63,9 +70,6 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final unlocking = ref.watch(
-      appLockControllerProvider.select((lock) => lock.unlocking),
-    );
     return Material(
       color: theme.colorScheme.surface,
       child: SafeArea(
@@ -109,9 +113,11 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
                 const SizedBox(height: 28),
                 AsyncActionButton.filled(
                   onPressed: _unlock,
-                  busy: unlocking,
+                  busy: widget.unlocking,
                   icon: const Icon(Icons.fingerprint_rounded),
-                  child: Text.localized(unlocking ? 'Unlocking…' : 'Unlock'),
+                  child: Text.localized(
+                    widget.unlocking ? 'Unlocking…' : 'Unlock',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 // Escape hatch for a permanently failing sensor: back to the

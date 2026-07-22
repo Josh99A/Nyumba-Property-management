@@ -10,6 +10,7 @@ import 'package:nyumba_property_management/features/auth/application/session_con
 import 'package:nyumba_property_management/features/auth/data/app_lock_store.dart';
 import 'package:nyumba_property_management/features/auth/domain/user_session.dart';
 import 'package:nyumba_property_management/features/auth/presentation/app_lock_gate.dart';
+import 'package:nyumba_property_management/features/auth/presentation/app_lock_screen.dart';
 
 class _StubSessionController extends SessionController {
   _StubSessionController(this.session);
@@ -126,6 +127,14 @@ void main() {
     await _pumpFor(tester, const Duration(seconds: 2));
 
     expect(container.read(appLockControllerProvider).locked, isTrue);
+    expect(find.byType(ExcludeFocus), findsNothing);
+    expect(
+      find.ancestor(
+        of: find.byType(AppLockScreen),
+        matching: find.byType(BlockSemantics),
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });

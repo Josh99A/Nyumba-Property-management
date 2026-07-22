@@ -9,6 +9,7 @@ import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
 import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
 import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
+import 'package:pointycastle/export.dart';
 // The in-memory factory keeps live objects and never encodes them, so it
 // cannot reproduce a codec mismatch. These tests use the file factory.
 import 'package:sembast/sembast_io.dart';
@@ -172,5 +173,77 @@ void main() {
           'A wrong workspace key must fail authentication, not return data.',
     );
     expect(encoded, isNot(contains(jsonEncode(<String, Object?>{'a': 1}))));
+  });
+
+  test('optimized AES codec reads records written by the legacy cipher', () {
+    final key = Uint8List.fromList(List<int>.generate(32, (index) => index));
+    final nonce = Uint8List.fromList(
+      List<int>.generate(12, (index) => 200 + index),
+    );
+    final value = <String, Object?>{
+      'name': 'large offline record',
+      'photo': List.filled(4097, 'x').join(),
+    };
+    final plaintext = Uint8List.fromList(utf8.encode(jsonEncode(value)));
+    final legacy = GCMBlockCipher(AESEngine())
+      ..init(true, AEADParameters(KeyParameter(key), 128, nonce, Uint8List(0)));
+    final sealed = legacy.process(plaintext);
+    final encoded = base64UrlEncode(
+      Uint8List(nonce.length + sealed.length)
+        ..setRange(0, nonce.length, nonce)
+        ..setRange(nonce.length, nonce.length + sealed.length, sealed),
+    );
+
+    expect(AesGcmJsonCodec(key).decoder.convert(encoded), value);
+  });
+
+  test('legacy AES cipher reads records written by the optimized codec', () {
+    final key = Uint8List.fromList(
+      List<int>.generate(32, (index) => 255 - index),
+    );
+    final value = <String, Object?>{
+      'items': List<String>.generate(257, (index) => 'item-$index'),
+    };
+    final encoded = AesGcmJsonCodec(key).encoder.convert(value);
+    final bytes = base64Url.decode(encoded);
+    final nonce = Uint8List.sublistView(bytes, 0, 12);
+    final sealed = Uint8List.sublistView(bytes, 12);
+    final legacy = GCMBlockCipher(
+      AESEngine(),
+    )..init(false, AEADParameters(KeyParameter(key), 128, nonce, Uint8List(0)));
+
+    expect(jsonDecode(utf8.decode(legacy.process(sealed))), value);
+  });
+
+  test('isolate AES codec preserves Sembast records across reopen', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'nyumba_isolate_codec_',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final path = '${directory.path}${Platform.pathSeparator}isolate.db';
+    final key = Uint8List.fromList(List<int>.generate(32, (index) => index));
+    SembastCodec codec() => SembastCodec(
+      signature: 'nyumba-aes-256-gcm-v1',
+      codec: IsolateAesGcmJsonCodec(key),
+    );
+    final first = await OfflineDatabase.open(
+      factory: databaseFactoryIo,
+      path: path,
+      codec: codec(),
+    );
+    await _seedOne(first, 'property-isolate');
+    await first.close();
+
+    final reopened = await OfflineDatabase.open(
+      factory: databaseFactoryIo,
+      path: path,
+      codec: codec(),
+    );
+    addTearDown(reopened.close);
+    final properties = await reopened.readEntities(OfflineEntityType.property);
+    expect(properties, hasLength(1));
+    expect(properties.single['id'], 'property-isolate');
+    expect(properties.single['name'], 'Sunset Apartments');
+    expect(await reopened.readOutbox(), hasLength(1));
   });
 }
