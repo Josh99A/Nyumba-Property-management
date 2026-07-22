@@ -1027,6 +1027,42 @@ describe('staff seats and roles', () => {
     expect(second).toMatchObject({ status: 'rejected', error: { code: 'SEAT_LIMIT_REACHED' } });
   });
 
+  it('backfills a legacy landlord seat counter from active invites', async () => {
+    await seedLandlord({ tier: 'premium' });
+    await db.doc(`landlordAccounts/${landlord.uid}`).update({
+      activeStaffSeatCount: FieldValue.delete(),
+    });
+
+    const invited = await executeCommandCore(db, landlord, envelope(
+      'command_staff_legacy_invite',
+      'staff.invite',
+      'staffinv_legacy1',
+      0,
+      { email: 'legacy.agent@nyumba.test', permissions: ['manageProperties'] },
+    ), now);
+    expect(invited.status).toBe('applied');
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()).toMatchObject({
+      activeStaffSeatCount: 1,
+    });
+
+    // Simulate the same legacy shape with an existing seat. Revoke must count
+    // the invite transactionally and repair the counter instead of stranding it.
+    await db.doc(`landlordAccounts/${landlord.uid}`).update({
+      activeStaffSeatCount: FieldValue.delete(),
+    });
+    const revoked = await executeCommandCore(db, landlord, envelope(
+      'command_staff_legacy_revoke',
+      'staff.revoke',
+      'staffinv_legacy1',
+      1,
+      {},
+    ), now);
+    expect(revoked.status).toBe('applied');
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()).toMatchObject({
+      activeStaffSeatCount: 0,
+    });
+  });
+
   it('rejects a claim addressed to more than one landlord workspace', async () => {
     await invitePremiumAgent();
     const secondLandlord: Actor = {

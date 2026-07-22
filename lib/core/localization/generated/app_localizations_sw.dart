@@ -3058,4 +3058,82 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get appLockWaiting => 'Inasubiri alama ya kidole chako…';
+
+  @override
+  String get teamLabel => 'Timu';
+
+  @override
+  String get appRoleSuperAdmin => 'Msimamizi mkuu';
+
+  @override
+  String get appRoleAdmin => 'Msimamizi';
+
+  @override
+  String get appRoleLandlord => 'Mwenye nyumba';
+
+  @override
+  String get appRoleStaff => 'Mwanatimu';
+
+  @override
+  String get appRoleTenant => 'Mpangaji';
+
+  @override
+  String get appRoleClient => 'Mteja mtarajiwa';
+
+  @override
+  String get staffPermissionManagePropertiesLabel =>
+      'Mali na nyumba za kupangisha';
+
+  @override
+  String get staffPermissionManagePropertiesDescription =>
+      'Ongeza na uhariri mali na nafasi za kupangisha.';
+
+  @override
+  String get staffPermissionManageTenantsLabel => 'Wapangaji na mikataba';
+
+  @override
+  String get staffPermissionManageTenantsDescription =>
+      'Alika wapangaji na usimamie mikataba yao.';
+
+  @override
+  String get staffPermissionManageBillingLabel => 'Malipo na ankara';
+
+  @override
+  String get staffPermissionManageBillingDescription =>
+      'Rekodi malipo, tengeneza ankara na utoe risiti.';
+
+  @override
+  String get staffPermissionManageMaintenanceLabel => 'Matengenezo';
+
+  @override
+  String get staffPermissionManageMaintenanceDescription =>
+      'Sajili na usasishe maombi ya matengenezo.';
+
+  @override
+  String get staffPermissionManageListingsLabel => 'Matangazo';
+
+  @override
+  String get staffPermissionManageListingsDescription =>
+      'Chapisha na usimamie matangazo ya umma.';
+
+  @override
+  String get staffPermissionManageCommunicationLabel => 'Taarifa';
+
+  @override
+  String get staffPermissionManageCommunicationDescription =>
+      'Tuma taarifa kwa wapangaji.';
+
+  @override
+  String get staffPermissionManageDocumentsLabel => 'Hati';
+
+  @override
+  String get staffPermissionManageDocumentsDescription =>
+      'Pakia na usimamie hati.';
+
+  @override
+  String get staffPermissionViewReportsLabel => 'Ripoti';
+
+  @override
+  String get staffPermissionViewReportsDescription =>
+      'Tengeneza ripoti za uendeshaji.';
 }

@@ -2977,4 +2977,80 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get appLockWaiting => 'في انتظار بصمة إصبعك…';
+
+  @override
+  String get teamLabel => 'الفريق';
+
+  @override
+  String get appRoleSuperAdmin => 'المشرف الأعلى';
+
+  @override
+  String get appRoleAdmin => 'المشرف';
+
+  @override
+  String get appRoleLandlord => 'المالك';
+
+  @override
+  String get appRoleStaff => 'عضو الفريق';
+
+  @override
+  String get appRoleTenant => 'المستأجر';
+
+  @override
+  String get appRoleClient => 'عميل محتمل';
+
+  @override
+  String get staffPermissionManagePropertiesLabel => 'العقارات والوحدات';
+
+  @override
+  String get staffPermissionManagePropertiesDescription =>
+      'إضافة العقارات والمساحات المؤجرة وتعديلها.';
+
+  @override
+  String get staffPermissionManageTenantsLabel => 'المستأجرون وعقود الإيجار';
+
+  @override
+  String get staffPermissionManageTenantsDescription =>
+      'دعوة المستأجرين وإدارة عقود إيجارهم.';
+
+  @override
+  String get staffPermissionManageBillingLabel => 'المدفوعات والفواتير';
+
+  @override
+  String get staffPermissionManageBillingDescription =>
+      'تسجيل المدفوعات وإنشاء الفواتير وإصدار الإيصالات.';
+
+  @override
+  String get staffPermissionManageMaintenanceLabel => 'الصيانة';
+
+  @override
+  String get staffPermissionManageMaintenanceDescription =>
+      'تسجيل طلبات الصيانة وتحديثها.';
+
+  @override
+  String get staffPermissionManageListingsLabel => 'الإعلانات';
+
+  @override
+  String get staffPermissionManageListingsDescription =>
+      'نشر الإعلانات العامة وإدارتها.';
+
+  @override
+  String get staffPermissionManageCommunicationLabel => 'الإشعارات';
+
+  @override
+  String get staffPermissionManageCommunicationDescription =>
+      'إرسال إشعارات إلى المستأجرين.';
+
+  @override
+  String get staffPermissionManageDocumentsLabel => 'المستندات';
+
+  @override
+  String get staffPermissionManageDocumentsDescription =>
+      'رفع المستندات وإدارتها.';
+
+  @override
+  String get staffPermissionViewReportsLabel => 'التقارير';
+
+  @override
+  String get staffPermissionViewReportsDescription => 'إنشاء تقارير تشغيلية.';
 }

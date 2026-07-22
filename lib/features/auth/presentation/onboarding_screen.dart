@@ -60,6 +60,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         variant: NyumbaToastVariant.success,
       );
     } on Object catch (error) {
+      if (!mounted) return;
       showNyumbaToast(
         _describeFailure(error),
         variant: NyumbaToastVariant.error,
@@ -94,6 +95,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         );
       }
     } on Object catch (error) {
+      if (!mounted) return;
       showNyumbaToast(
         _describeFailure(error),
         variant: NyumbaToastVariant.error,
@@ -105,10 +107,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   String _describeFailure(Object error) => describeAuthFailure(
     error,
-    commandFailureLocalizer: (failure) => localizeCommandFailure(
-      appLocalizationsOf(context),
-      failure,
-    ),
+    commandFailureLocalizer: (failure) =>
+        localizeCommandFailure(appLocalizationsOf(context), failure),
   );
 
   @override

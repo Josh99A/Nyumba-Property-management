@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/features/staff/application/staff_providers.dart';
+import 'package:nyumba_property_management/features/staff/domain/staff_repository.dart';
 import 'package:nyumba_property_management/features/staff/domain/staff_permission.dart';
 import 'package:nyumba_property_management/features/staff/presentation/team_screen.dart';
 

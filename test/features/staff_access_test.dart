@@ -117,4 +117,35 @@ void main() {
       isFalse,
     );
   });
+
+  test('staff can manage their own profile and read public listings', () {
+    final staff = _staff(permissions: const {});
+    for (final operation in const [CrudOperation.read, CrudOperation.update]) {
+      expect(
+        AuthorizationPolicy.allowsSession(
+          staff,
+          AppResource.profile,
+          operation,
+        ),
+        isTrue,
+        reason: 'profile.${operation.name}',
+      );
+    }
+    expect(
+      AuthorizationPolicy.allowsSession(
+        staff,
+        AppResource.profile,
+        CrudOperation.delete,
+      ),
+      isFalse,
+    );
+    expect(
+      AuthorizationPolicy.allowsSession(
+        staff,
+        AppResource.publicListing,
+        CrudOperation.read,
+      ),
+      isTrue,
+    );
+  });
 }

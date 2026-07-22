@@ -3,17 +3,6 @@ import '../../staff/domain/staff_permission.dart';
 
 enum AppRole { superAdmin, admin, landlord, staff, tenant, client }
 
-extension AppRolePresentation on AppRole {
-  String get label => switch (this) {
-    AppRole.superAdmin => 'Super Admin',
-    AppRole.admin => 'Admin',
-    AppRole.landlord => 'Landlord',
-    AppRole.staff => 'Team member',
-    AppRole.tenant => 'Tenant',
-    AppRole.client => 'Prospective Client',
-  };
-}
-
 enum AccountStatus { active, pendingApproval, suspended }
 
 enum LandlordSubscriptionStatus {
@@ -101,7 +90,8 @@ class UserSession {
   /// workspace to return to (anonymous visitors and prospects, whose home is
   /// the public explore page itself).
   String? get workspacePath => switch (role) {
-    AppRole.landlord => hasConfirmedSubscription ? '/dashboard' : '/subscription',
+    AppRole.landlord =>
+      hasConfirmedSubscription ? '/dashboard' : '/subscription',
     // Staff cannot open the payment gate, so a lapsed workspace falls back to
     // the public explore page rather than the subscription screen.
     AppRole.staff => hasConfirmedSubscription ? '/dashboard' : null,

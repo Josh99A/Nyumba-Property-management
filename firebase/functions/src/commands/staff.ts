@@ -1,3 +1,4 @@
+import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import {
@@ -7,6 +8,7 @@ import {
   STAFF_PERMISSIONS,
   STANDARD_STAFF_PERMISSIONS,
   staffMembershipId,
+  type LandlordAccount,
   type StaffPermission,
 } from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
@@ -24,6 +26,32 @@ const inviteEmail = z.string().email().max(320).transform((value) => value.toLow
 
 const permissionSchema = z.enum(STAFF_PERMISSIONS);
 const permissionsSchema = z.array(permissionSchema).min(1).max(STAFF_PERMISSIONS.length);
+
+/**
+ * Reads the server-owned seat counter, lazily repairing landlord accounts that
+ * predate it. Existing non-revoked invites are counted inside the same
+ * transaction, so the migration cannot accidentally grant extra seats or make
+ * an older invite impossible to revoke.
+ */
+async function activeStaffSeats(
+  tx: Transaction,
+  db: Firestore,
+  landlordId: string,
+  account: LandlordAccount,
+): Promise<number> {
+  const raw = (account as Partial<LandlordAccount>).activeStaffSeatCount;
+  if (Number.isSafeInteger(raw) && raw! >= 0) return raw!;
+  if (raw !== undefined && raw !== null) {
+    throw new DomainError('ENTITLEMENT_MISSING', { reason: 'staffSeatCounterInvalid' });
+  }
+  const invites = await tx.get(
+    db.collection(COLLECTIONS.staffInvites).where('landlordId', '==', landlordId),
+  );
+  return invites.docs.filter((doc) => {
+    const invite = doc.data() as { inviteState?: string; isDeleted?: boolean };
+    return invite.isDeleted !== true && invite.inviteState !== 'revoked';
+  }).length;
+}
 
 /**
  * Resolves the permission set to persist. Tiers without the custom-role
@@ -80,10 +108,12 @@ export const staffInvite: CommandHandler<z.infer<typeof staffInviteSchema>> = {
     if (duplicate) {
       throw new DomainError('ALREADY_EXISTS', { field: 'email' });
     }
-    const activeStaffSeatCount = landlord.account.activeStaffSeatCount;
-    if (!Number.isSafeInteger(activeStaffSeatCount) || activeStaffSeatCount < 0) {
-      throw new DomainError('ENTITLEMENT_MISSING', { reason: 'staffSeatCounterMissing' });
-    }
+    const activeStaffSeatCount = await activeStaffSeats(
+      tx,
+      db,
+      landlord.landlordId,
+      landlord.account,
+    );
     if (activeStaffSeatCount >= landlord.entitlements.staffSeatLimit) {
       throw new DomainError('SEAT_LIMIT_REACHED', {
         staffSeatLimit: landlord.entitlements.staffSeatLimit,
@@ -222,8 +252,13 @@ export const staffRevoke: CommandHandler<Record<string, never>> = {
     if (invite.isDeleted === true || invite.inviteState === 'revoked') {
       throw new DomainError('VALIDATION_FAILED', { reason: 'staffInviteAlreadyRevoked' });
     }
-    const activeStaffSeatCount = landlord.account.activeStaffSeatCount;
-    if (!Number.isSafeInteger(activeStaffSeatCount) || activeStaffSeatCount < 1) {
+    const activeStaffSeatCount = await activeStaffSeats(
+      tx,
+      db,
+      landlord.landlordId,
+      landlord.account,
+    );
+    if (activeStaffSeatCount < 1) {
       throw new DomainError('ENTITLEMENT_MISSING', { reason: 'staffSeatCounterInvalid' });
     }
 

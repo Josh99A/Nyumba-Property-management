@@ -76,6 +76,16 @@ abstract final class AuthorizationPolicy {
     if (session.role != AppRole.staff) {
       return allows(session.role, resource, operation);
     }
+    // Personal profile access and the public catalogue belong to every signed-
+    // in person; they are not landlord-workspace capabilities. Requiring a
+    // staff grant for either would lock a teammate out of their own settings
+    // and make public homes less accessible than they are to anonymous users.
+    if (resource == AppResource.profile) {
+      return _readUpdate.contains(operation);
+    }
+    if (resource == AppResource.publicListing) {
+      return operation == CrudOperation.read;
+    }
     final permission = _staffPermissionFor(resource);
     return permission != null &&
         session.can(permission) &&
@@ -147,12 +157,13 @@ abstract final class AuthorizationPolicy {
 
   static StaffPermission? _staffPermissionFor(AppResource resource) =>
       switch (resource) {
-        AppResource.property || AppResource.unit =>
-          StaffPermission.manageProperties,
-        AppResource.tenantRecord || AppResource.lease =>
-          StaffPermission.manageTenants,
-        AppResource.invoice || AppResource.payment || AppResource.receipt =>
-          StaffPermission.manageBilling,
+        AppResource.property ||
+        AppResource.unit => StaffPermission.manageProperties,
+        AppResource.tenantRecord ||
+        AppResource.lease => StaffPermission.manageTenants,
+        AppResource.invoice ||
+        AppResource.payment ||
+        AppResource.receipt => StaffPermission.manageBilling,
         AppResource.maintenanceRequest => StaffPermission.manageMaintenance,
         AppResource.privateListing ||
         AppResource.publicListing ||

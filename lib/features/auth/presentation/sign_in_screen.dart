@@ -55,6 +55,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       if (!mounted) return;
       await _showVerificationSent(error.email);
     } on Object catch (error) {
+      if (!mounted) return;
       showNyumbaToast(
         _describeFailure(error),
         variant: NyumbaToastVariant.error,
@@ -99,6 +100,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         icon: Icons.lock_reset_rounded,
       );
     } on Object catch (error) {
+      if (!mounted) return;
       showNyumbaToast(
         _describeFailure(error),
         variant: NyumbaToastVariant.error,
@@ -113,6 +115,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     } on Object catch (error) {
       // Closing the Google window is a decision, not a fault.
       if (isAuthCancellation(error)) return;
+      if (!mounted) return;
       showNyumbaToast(
         _describeFailure(error),
         variant: NyumbaToastVariant.error,
@@ -124,10 +127,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   String _describeFailure(Object error) => describeAuthFailure(
     error,
-    commandFailureLocalizer: (failure) => localizeCommandFailure(
-      appLocalizationsOf(context),
-      failure,
-    ),
+    commandFailureLocalizer: (failure) =>
+        localizeCommandFailure(appLocalizationsOf(context), failure),
   );
 
   @override

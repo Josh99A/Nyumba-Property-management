@@ -3010,4 +3010,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appLockWaiting => 'Waiting for your fingerprint…';
+
+  @override
+  String get teamLabel => 'Team';
+
+  @override
+  String get appRoleSuperAdmin => 'Super Admin';
+
+  @override
+  String get appRoleAdmin => 'Admin';
+
+  @override
+  String get appRoleLandlord => 'Landlord';
+
+  @override
+  String get appRoleStaff => 'Team member';
+
+  @override
+  String get appRoleTenant => 'Tenant';
+
+  @override
+  String get appRoleClient => 'Prospective client';
+
+  @override
+  String get staffPermissionManagePropertiesLabel => 'Properties and units';
+
+  @override
+  String get staffPermissionManagePropertiesDescription =>
+      'Add and edit properties and rental spaces.';
+
+  @override
+  String get staffPermissionManageTenantsLabel => 'Tenants and leases';
+
+  @override
+  String get staffPermissionManageTenantsDescription =>
+      'Invite tenants and manage their leases.';
+
+  @override
+  String get staffPermissionManageBillingLabel => 'Payments and invoices';
+
+  @override
+  String get staffPermissionManageBillingDescription =>
+      'Record payments, generate invoices, and issue receipts.';
+
+  @override
+  String get staffPermissionManageMaintenanceLabel => 'Maintenance';
+
+  @override
+  String get staffPermissionManageMaintenanceDescription =>
+      'Log and update maintenance requests.';
+
+  @override
+  String get staffPermissionManageListingsLabel => 'Listings';
+
+  @override
+  String get staffPermissionManageListingsDescription =>
+      'Publish and manage public listings.';
+
+  @override
+  String get staffPermissionManageCommunicationLabel => 'Notices';
+
+  @override
+  String get staffPermissionManageCommunicationDescription =>
+      'Send notices to tenants.';
+
+  @override
+  String get staffPermissionManageDocumentsLabel => 'Documents';
+
+  @override
+  String get staffPermissionManageDocumentsDescription =>
+      'Upload and manage documents.';
+
+  @override
+  String get staffPermissionViewReportsLabel => 'Reports';
+
+  @override
+  String get staffPermissionViewReportsDescription =>
+      'Generate operational reports.';
 }

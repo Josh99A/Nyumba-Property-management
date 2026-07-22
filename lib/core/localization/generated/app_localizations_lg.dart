@@ -3072,4 +3072,83 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get appLockWaiting => 'Elindirira ekinkumu kyo…';
+
+  @override
+  String get teamLabel => 'Tiimu';
+
+  @override
+  String get appRoleSuperAdmin => 'Omuddukanya omukulu';
+
+  @override
+  String get appRoleAdmin => 'Omuddukanya';
+
+  @override
+  String get appRoleLandlord => 'Nannyini nnyumba';
+
+  @override
+  String get appRoleStaff => 'Memba wa tiimu';
+
+  @override
+  String get appRoleTenant => 'Omupangisa';
+
+  @override
+  String get appRoleClient => 'Omunoonya ennyumba';
+
+  @override
+  String get staffPermissionManagePropertiesLabel =>
+      'Ebizimbe n’ebifo ebipangisibwa';
+
+  @override
+  String get staffPermissionManagePropertiesDescription =>
+      'Yongera era okyuse ebizimbe n’ebifo ebipangisibwa.';
+
+  @override
+  String get staffPermissionManageTenantsLabel =>
+      'Abapangisa n’endagaano z’obupangisa';
+
+  @override
+  String get staffPermissionManageTenantsDescription =>
+      'Yita abapangisa era oddukanye endagaano zaabwe.';
+
+  @override
+  String get staffPermissionManageBillingLabel => 'Okusasula ne yinivoyisi';
+
+  @override
+  String get staffPermissionManageBillingDescription =>
+      'Wandiika okusasula, kola yinivoyisi era ofulumye lisiiti.';
+
+  @override
+  String get staffPermissionManageMaintenanceLabel => 'Okuddaabiriza';
+
+  @override
+  String get staffPermissionManageMaintenanceDescription =>
+      'Wandiika era okyuse okusaba kw’okuddaabiriza.';
+
+  @override
+  String get staffPermissionManageListingsLabel => 'Ebirango by’ennyumba';
+
+  @override
+  String get staffPermissionManageListingsDescription =>
+      'Fulumya era oddukanye ebirango by’ennyumba eri abantu bonna.';
+
+  @override
+  String get staffPermissionManageCommunicationLabel => 'Ebimanyiso';
+
+  @override
+  String get staffPermissionManageCommunicationDescription =>
+      'Weereza abapangisa ebimanyiso.';
+
+  @override
+  String get staffPermissionManageDocumentsLabel => 'Ebiwandiiko';
+
+  @override
+  String get staffPermissionManageDocumentsDescription =>
+      'Teekayo era oddukanye ebiwandiiko.';
+
+  @override
+  String get staffPermissionViewReportsLabel => 'Alipoota';
+
+  @override
+  String get staffPermissionViewReportsDescription =>
+      'Kola alipoota z’emirimu.';
 }

@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/features/auth/domain/auth_failure.dart';
+import 'package:nyumba_property_management/core/localization/app_language.dart';
+import 'package:nyumba_property_management/core/offline/remote_sync_gateway.dart';
+import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
 
 FirebaseAuthException _authError(String code, {String? message}) =>
     FirebaseAuthException(code: code, message: message);
@@ -87,5 +90,13 @@ void main() {
       expect(isAuthCancellation(_authError('popup-blocked')), isFalse);
       expect(isAuthCancellation(StateError('nope')), isFalse);
     });
+  });
+
+  test('session-owned command failures use the active language', () {
+    const error = RemoteSyncException('SEAT_LIMIT_REACHED', retryable: false);
+    final english = describeLocalizedSessionFailure(error, AppLanguage.english);
+    final arabic = describeLocalizedSessionFailure(error, AppLanguage.arabic);
+    expect(arabic, isNot(english));
+    expect(arabic, isNotEmpty);
   });
 }

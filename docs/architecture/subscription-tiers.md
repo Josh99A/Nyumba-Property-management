@@ -146,6 +146,9 @@ This is implemented end to end:
   "Landlord/staff accounts" row below counts the owner too). A revoked invite
   frees its seat. Creation and revocation update the server-owned
   `landlordAccounts.activeStaffSeatCount` in the same transaction.
+  Accounts created before that counter existed are repaired lazily on the next
+  invite or revoke by counting their non-revoked invites in the same
+  transaction; malformed non-numeric counters still fail closed.
 - **Standard vs custom roles.** On plans without the custom-role entitlement
   (Pro) every seat is coerced to the fixed standard preset — the full
   operational set. Premium and above (`customStaffRoles`) may grant any subset
@@ -168,7 +171,7 @@ This is implemented end to end:
   capability that covers it (`ownsOrStaffCan` / `staffCan`), so a
   maintenance-only teammate never sees the financial ledger. The client
   subscribes only to the pulls its capabilities open
-  ([app_dependencies.dart](lib/app/bootstrap/app_dependencies.dart)), so it
+  ([app_dependencies.dart](../../lib/app/bootstrap/app_dependencies.dart)), so it
   never fires a read the server would deny.
 
 | Read | Capability |

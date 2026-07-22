@@ -15,6 +15,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../core/notifications/push_registration.dart';
 import '../../../core/localization/app_language.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/localization/command_failure_localizations.dart';
+import '../../../core/localization/device_language_store.dart';
 import '../../../core/offline/firebase_remote_sync_gateway.dart';
 import '../../staff/domain/staff_permission.dart';
 import '../domain/auth_failure.dart';
@@ -93,6 +96,18 @@ final authCommandGatewayProvider = FutureProvider<FirebaseRemoteSyncGateway>(
   (ref) => FirebaseRemoteSyncGateway.create(),
 );
 
+/// Resolves listener-owned failures through the best language known while the
+/// session is still opening. Unlike form failures, these have no widget
+/// context or caller that can localize them before publishing the notice.
+@visibleForTesting
+String describeLocalizedSessionFailure(Object error, AppLanguage language) {
+  final copy = appLocalizationsFor(language);
+  return describeAuthFailure(
+    error,
+    commandFailureLocalizer: (failure) => localizeCommandFailure(copy, failure),
+  );
+}
+
 class SessionController extends Notifier<UserSession?> {
   StreamSubscription<User?>? _authSubscription;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
@@ -104,6 +119,7 @@ class SessionController extends Notifier<UserSession?> {
   StreamSubscription<String>? _tokenRotationSubscription;
   var _generation = 0;
   var _noticeSequence = 0;
+  AppLanguage? _lastKnownLanguage;
 
   /// Set by an explicit sign-in so the arriving session can be greeted. A
   /// session restored on page load reaches the same code path, and must not
@@ -330,10 +346,16 @@ class SessionController extends Notifier<UserSession?> {
       // and a silent return here is what leaves a signed-in user staring at the
       // sign-in screen.
       if (generation != _generation) return;
+      final language =
+          state?.language ??
+          _lastKnownLanguage ??
+          await const SecureDeviceLanguageStore().read() ??
+          AppLanguage.english;
+      if (generation != _generation) return;
       state = null;
       _publish(
         SessionResolution(
-          error: describeAuthFailure(error),
+          error: describeLocalizedSessionFailure(error, language),
           sequence: ++_noticeSequence,
         ),
         generation,
@@ -394,6 +416,9 @@ class SessionController extends Notifier<UserSession?> {
       if (userDocument == null) return null;
     }
     final data = userDocument?.data() ?? const <String, dynamic>{};
+    if (data['locale'] is String) {
+      _lastKnownLanguage = AppLanguage.fromCode(data['locale'] as String);
+    }
     final superAdmin = token.claims?['superAdmin'] == true;
     final platformAdmin = token.claims?['platformAdmin'] == true;
     var role = superAdmin

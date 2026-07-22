@@ -15,7 +15,7 @@ import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/app_lock_controller.dart';
 import '../../auth/application/session_controller.dart';
-import '../../auth/domain/user_session.dart';
+import '../../auth/presentation/app_role_localizations.dart';
 import '../application/profile_use_cases.dart';
 import '../domain/user_settings.dart';
 
@@ -227,6 +227,10 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     final horizontal = context.isCompact ? 18.0 : 30.0;
+    final roleLabel = localizedAppRole(
+      appLocalizationsOf(context),
+      session.role,
+    );
     return SafeArea(
       top: false,
       child: Form(
@@ -261,7 +265,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 child: context.isCompact
                     ? Column(
                         children: [
-                          _accountCard(session.role.label),
+                          _accountCard(roleLabel),
                           const SizedBox(height: 16),
                           _preferenceCards(),
                         ],
@@ -269,10 +273,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     : Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            flex: 5,
-                            child: _accountCard(session.role.label),
-                          ),
+                          Expanded(flex: 5, child: _accountCard(roleLabel)),
                           const SizedBox(width: 18),
                           Expanded(flex: 4, child: _preferenceCards()),
                         ],

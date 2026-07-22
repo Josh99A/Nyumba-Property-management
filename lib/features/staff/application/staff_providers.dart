@@ -1,57 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
+import '../../../app/bootstrap/app_dependencies.dart';
 import '../domain/staff_permission.dart';
-
-enum StaffInviteState { pending, accepted, revoked, unknown }
-
-StaffInviteState _stateFrom(Object? raw) => switch (raw) {
-  'pending' => StaffInviteState.pending,
-  'accepted' => StaffInviteState.accepted,
-  'revoked' => StaffInviteState.revoked,
-  _ => StaffInviteState.unknown,
-};
-
-/// A staff seat as the owner sees it on the Team screen.
-class StaffInvite {
-  const StaffInvite({
-    required this.id,
-    required this.email,
-    required this.displayName,
-    required this.permissions,
-    required this.state,
-    required this.version,
-    required this.linked,
-  });
-
-  final String id;
-  final String email;
-  final String? displayName;
-  final Set<StaffPermission> permissions;
-  final StaffInviteState state;
-
-  /// Concurrency token for staff.revoke / staff.updatePermissions.
-  final int version;
-
-  /// Whether someone has signed in and claimed this seat.
-  final bool linked;
-}
-
-/// The owner's staff seat allowance and whether they can tailor permissions.
-class StaffPlan {
-  const StaffPlan({required this.seatLimit, required this.customRoles});
-
-  /// Seats available beyond the owner. 0 means the tier has no staff seats.
-  final int seatLimit;
-
-  /// Whether the owner can grant a custom permission subset (Premium+); when
-  /// false, every seat gets the fixed standard preset.
-  final bool customRoles;
-}
+import '../domain/staff_repository.dart';
 
 /// Live staff invites for the signed-in owner's workspace, newest first.
 /// Revoked seats drop out. Empty for anyone who is not a landlord owner.
@@ -59,47 +14,12 @@ final staffInvitesProvider = StreamProvider<List<StaffInvite>>((ref) async* {
   final session = ref.watch(sessionControllerProvider);
   if (session == null ||
       session.role != AppRole.landlord ||
-      Firebase.apps.isEmpty) {
+      !session.isWorkspaceOwner) {
     yield const [];
     return;
   }
-  try {
-    await for (final snapshot
-        in FirebaseFirestore.instance
-            .collection('staffInvites')
-            .where('landlordId', isEqualTo: session.userId)
-            .orderBy('createdAt', descending: true)
-            .limit(100)
-            .snapshots()) {
-      final invites = <StaffInvite>[];
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        final state = _stateFrom(data['inviteState']);
-        if (state == StaffInviteState.revoked) continue;
-        final email = data['email'];
-        if (email is! String || email.isEmpty) continue;
-        final displayName = data['displayName'];
-        invites.add(
-          StaffInvite(
-            id: doc.id,
-            email: email,
-            displayName: displayName is String && displayName.isNotEmpty
-                ? displayName
-                : null,
-            permissions: StaffPermission.parse(data['permissions']),
-            state: state,
-            version: (data['version'] as num?)?.toInt() ?? 1,
-            linked: data['memberUid'] is String,
-          ),
-        );
-      }
-      yield invites;
-    }
-  } on FirebaseException {
-    // A denied or offline stream fails closed to an empty team rather than an
-    // error state; the counter and upsell still render.
-    yield const [];
-  }
+  final dependencies = await ref.watch(appDependenciesProvider.future);
+  yield* dependencies.staff.watchInvites();
 });
 
 /// The owner's staff seat limit and custom-role entitlement, from the public
@@ -111,30 +31,12 @@ final staffPlanProvider = StreamProvider<StaffPlan?>((ref) async* {
   if (session == null ||
       session.role != AppRole.landlord ||
       tier == null ||
-      Firebase.apps.isEmpty) {
+      !session.isWorkspaceOwner) {
     yield null;
     return;
   }
-  try {
-    await for (final snapshot
-        in FirebaseFirestore.instance
-            .collection('planCatalog')
-            .doc(tier)
-            .snapshots()) {
-      final data = snapshot.data();
-      final seatLimit = data?['staffSeatLimit'];
-      if (seatLimit is! int) {
-        yield null;
-        continue;
-      }
-      yield StaffPlan(
-        seatLimit: seatLimit,
-        customRoles: data?['customStaffRoles'] == true,
-      );
-    }
-  } on FirebaseException {
-    yield null;
-  }
+  final dependencies = await ref.watch(appDependenciesProvider.future);
+  yield* dependencies.staff.watchPlan(tier);
 });
 
 final inviteStaffProvider = Provider<InviteStaff>(InviteStaff.new);
@@ -214,7 +116,10 @@ class UpdateStaffPermissions {
 
   final Ref _ref;
 
-  Future<void> call(StaffInvite invite, Set<StaffPermission> permissions) async {
+  Future<void> call(
+    StaffInvite invite,
+    Set<StaffPermission> permissions,
+  ) async {
     final session = _ref.read(sessionControllerProvider);
     if (session == null || session.role != AppRole.landlord) {
       throw StateError('Sign in as a landlord to manage staff.');

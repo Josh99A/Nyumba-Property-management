@@ -194,6 +194,45 @@ void main() {
     );
   });
 
+  test(
+    'uses the machine code rather than the server localization key',
+    () async {
+      final gateway = FirebaseRemoteSyncGateway(
+        installationId: 'install_1234',
+        appVersion: '1.2.3',
+        platform: 'web',
+        invoke: (_) async => <String, Object?>{
+          'status': 'rejected',
+          'serverUpdatedAt': '2026-07-15T00:00:00.000Z',
+          'error': <String, Object?>{
+            'code': 'SEAT_LIMIT_REACHED',
+            'messageKey': 'subscription.seatLimitReached',
+          },
+        },
+      );
+      final mutation = RemoteMutation(
+        mutationId: 'outbox_staff',
+        entityType: OfflineEntityType.unit,
+        entityId: 'unit_1234',
+        operation: OutboxOperation.create,
+        payload: const <String, Object?>{},
+        idempotencyKey: 'command_staff',
+        clientCreatedAt: createdAt,
+      );
+
+      await expectLater(
+        gateway.push(mutation),
+        throwsA(
+          isA<RemoteSyncException>().having(
+            (error) => error.message,
+            'message',
+            'SEAT_LIMIT_REACHED',
+          ),
+        ),
+      );
+    },
+  );
+
   test('property commands send only five staged image paths in order', () {
     final gateway = FirebaseRemoteSyncGateway(
       installationId: 'install_1234',

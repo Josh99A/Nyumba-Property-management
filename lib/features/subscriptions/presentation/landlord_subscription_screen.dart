@@ -65,6 +65,7 @@ class _LandlordSubscriptionScreenState
         );
       }
     } on Object catch (error) {
+      if (!mounted) return;
       showNyumbaToast(
         _describeFailure(context, error),
         variant: NyumbaToastVariant.error,
@@ -84,6 +85,7 @@ class _LandlordSubscriptionScreenState
         variant: NyumbaToastVariant.success,
       );
     } on Object catch (error) {
+      if (!mounted) return;
       showNyumbaToast(
         _describeFailure(context, error),
         variant: NyumbaToastVariant.error,
@@ -351,20 +353,20 @@ class _LandlordSubscriptionScreenState
                           spacing: gap,
                           runSpacing: gap,
                           children: [
-                            for (final (index, presentation)
-                                in _tiers.indexed)
+                            for (final (index, presentation) in _tiers.indexed)
                               SizedBox(
                                 width: width,
                                 child: _PlanCard(
                                   presentation: presentation,
                                   facts: catalog[presentation.tier],
-                                  includesPlanName: switch (catalog[presentation
-                                      .tier]?.includesTier) {
-                                    null => null,
-                                    final includes =>
-                                      catalog[includes]?.displayName ??
-                                          _fallbackPlanName(copy, includes),
-                                  },
+                                  includesPlanName:
+                                      switch (catalog[presentation.tier]
+                                          ?.includesTier) {
+                                        null => null,
+                                        final includes =>
+                                          catalog[includes]?.displayName ??
+                                              _fallbackPlanName(copy, includes),
+                                      },
                                   selected: tier == presentation.tier,
                                   selectedLabel: active
                                       ? copy.subscriptionCurrentPlan
@@ -699,9 +701,9 @@ class _PlanCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 copy.subscriptionMonthlyPrice(_ugx.format(monthly / 100)),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               if (yearly != null)
                 Padding(
@@ -855,10 +857,7 @@ class _UpgradeMethodTile extends StatelessWidget {
         child: Icon(icon, color: context.nyumba.midnightNavy, size: 22),
       ),
       title: Text(title, style: Theme.of(context).textTheme.titleSmall),
-      subtitle: Text(
-        subtitle,
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
+      subtitle: Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
       // The affordance points the way the reader moves forward, which is
       // leftwards in Arabic; a fixed right chevron points back out of the flow.
       trailing: Icon(
@@ -901,10 +900,8 @@ String _fallbackPlanAudience(AppLocalizations copy, String tier) =>
 String _describeFailure(BuildContext context, Object error) =>
     describeAuthFailure(
       error,
-      commandFailureLocalizer: (failure) => localizeCommandFailure(
-        appLocalizationsOf(context),
-        failure,
-      ),
+      commandFailureLocalizer: (failure) =>
+          localizeCommandFailure(appLocalizationsOf(context), failure),
     );
 
 const _tiers = [

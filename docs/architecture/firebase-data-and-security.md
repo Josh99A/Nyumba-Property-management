@@ -10,6 +10,7 @@ This is the target logical model, not a request to expose every collection direc
 | Authenticated client/applicant | own profile and `clientPortals/{uid}`; public listings | contact/application commands, subject to App Check/rate limits |
 | Tenant | own profile and `tenantPortals/{uid}` | tenant commands such as maintenance submission and payment initiation |
 | Landlord | canonical documents whose `landlordId` equals their UID; own account/subscription | landlord commands if approval/subscription/feature policy permits |
+| Landlord staff | own profile, public listings, and the owner's workspace collections allowed by the active `staffMemberships` capabilities | operational landlord commands allowed by the same capabilities; never owner-only subscription, account-lifecycle, or team-management commands |
 | Platform admin | operational collections required by admin role | broad audited operational commands; cannot manage privileged accounts and billing still follows provider authority |
 | Super admin | all safe operational collections, including admin/audit views | audited platform and privileged-account commands; immutable audit/provider/retention boundaries still apply |
 | Cloud Functions/service accounts | canonical and projection data required by the operation | validated transactions, projections, jobs, provider callbacks |
@@ -21,7 +22,7 @@ Firestore and Storage Rules are not applied to Admin SDK calls. Every function m
 - Firebase Authentication UID is the actor identifier.
 - `platformAdmin: true` and `superAdmin: true` are distinct server-issued custom claims. Either grants scoped administrative reads; only `superAdmin` may manage privileged accounts or protected platform configuration. Never infer either role from an email domain or a writable document.
 - `users/{uid}.role` drives ordinary UI routing but remains server-owned. Supported ordinary values are `client`, `tenant`, and `landlord`; administrator UI roles come only from verified custom claims. A user may gain tenant and landlord capabilities over time, so authorization checks actual relationships/claims as well as the display role.
-- The initial model assumes one owner per landlord account and uses `landlordId == owner UID`. **TBD:** if staff/collaborator accounts are required, add a server-owned membership collection and explicit permissions; do not overload role strings.
+- One owner remains authoritative for each landlord account and uses `landlordId == owner UID`. Staff access is additive: server-owned `staffMemberships` grant an explicit capability subset without changing ownership or overloading the ordinary `users.role` value.
 - `landlordAccounts/{uid}.approvalStatus` and `subscriptions/{uid}.status` are mutable server documents, not long-lived custom claims, so suspension or expiry takes effect without waiting for token refresh.
 
 ## Canonical private collections
@@ -33,6 +34,8 @@ All canonical records include `id`, integer `version`, `createdAt`, `updatedAt`,
 | `users/{uid}` | role, status (`active`, `suspended`, or `archived`), safe profile, `locale` (`en`, `lg`, `sw`, or `ar`), accessGeneration, archive/delete audit fields | self/admin; server writes except command-based profile updates; `archived` and the `isDeleted` tombstone come only from the super-admin `user.archive`, `user.restore`, or `user.delete` commands; absent/invalid legacy locale falls back to English |
 | `notificationInboxes/{uid}/items/{notificationId}` | generic title/body, kind, safe route/entity ID, read state, delivery metadata | UID owner/admin reads; server writes, with owner-only read state through `notification.markRead` |
 | `landlordAccounts/{landlordId}` | ownerUid, approvalStatus, approvalReasonCode, approvedAt, suspendedAt, activeUnitCount, activeStaffSeatCount | owner/admin; approval and counters are server-only |
+| `staffInvites/{inviteId}` | landlordId, email, displayName, permissions, inviteState, memberUid, version | owning landlord/admin reads; server-only writes through owner commands; pending and accepted invites consume the server-owned seat counter |
+| `staffMemberships/{landlordId}__{memberUid}` | landlordId, memberUid, email, permissions, active, version | matching active member, owning landlord, and admin reads; server-only writes; deletion on revoke immediately removes Rules and command access |
 | `subscriptions/{landlordId}` | tier, status, provider refs, period dates, entitlementsVersion | owner/admin; billing webhook/server-only |
 | `planCatalog/{tier}` | display name, public price projection, `isPublic` | published plans may be public; server-only writes |
 | `properties/{propertyId}` | landlordId, name, private address, property type, internal notes | owning landlord/admin |
@@ -54,6 +57,13 @@ All canonical records include `id`, integer `version`, `createdAt`, `updatedAt`,
 | `backendJobs/{jobId}` / `providerEvents/{eventId}` | processing state, retry metadata, provider event hash | server-only; no client reads |
 
 Landlord reads must query using `where('landlordId', isEqualTo: currentUid)`; rules do not filter an unscoped query after the fact. Private documents may contain exact addresses, unit labels, contact details, internal notes, provider references, and reconciliation data, so they are never reused as public results.
+
+Staff reads use the owner's `landlordId` and are admitted only when the
+deterministic active membership carries the collection's capability. The
+membership and invite are server-authoritative: clients cannot grant, expand,
+or reactivate access directly. Revocation marks the invite revoked, decrements
+`activeStaffSeatCount`, and deletes the membership in one transaction, so both
+Firestore Rules and callable-command authorization stop accepting the member.
 
 ## Tenant and client projections
 

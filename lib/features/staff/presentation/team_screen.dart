@@ -13,6 +13,8 @@ import '../../../core/offline/remote_sync_gateway.dart';
 import '../../../core/presentation/toast.dart';
 import '../application/staff_providers.dart';
 import '../domain/staff_permission.dart';
+import '../domain/staff_repository.dart';
+import 'staff_permission_localizations.dart';
 
 /// The owner-only Team screen: invite staff, see who holds which seat, tailor
 /// their permissions (Premium+), and revoke access. Every mutation goes through
@@ -215,6 +217,7 @@ class _StaffCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pending = invite.state == StaffInviteState.pending;
+    final copy = appLocalizationsOf(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -256,7 +259,9 @@ class _StaffCard extends ConsumerWidget {
                 if (invite.permissions.contains(permission))
                   Chip(
                     visualDensity: VisualDensity.compact,
-                    label: Text.localized(permission.label),
+                    label: Text(
+                      localizedStaffPermissionLabel(copy, permission),
+                    ),
                   ),
             ],
           ),
@@ -424,6 +429,7 @@ class _StaffPermissionsDialogState
 
   @override
   Widget build(BuildContext context) {
+    final copy = appLocalizationsOf(context);
     return AlertDialog(
       title: Text.localized(widget.title),
       content: SizedBox(
@@ -487,8 +493,12 @@ class _StaffPermissionsDialogState
                             }
                           })
                         : null,
-                    title: Text.localized(permission.label),
-                    subtitle: Text.localized(permission.description),
+                    title: Text(
+                      localizedStaffPermissionLabel(copy, permission),
+                    ),
+                    subtitle: Text(
+                      localizedStaffPermissionDescription(copy, permission),
+                    ),
                   ),
               ],
             ),

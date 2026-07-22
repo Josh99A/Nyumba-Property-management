@@ -5435,6 +5435,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Waiting for your fingerprint…'**
   String get appLockWaiting;
+
+  /// No description provided for @teamLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Team'**
+  String get teamLabel;
+
+  /// No description provided for @appRoleSuperAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Super Admin'**
+  String get appRoleSuperAdmin;
+
+  /// No description provided for @appRoleAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get appRoleAdmin;
+
+  /// No description provided for @appRoleLandlord.
+  ///
+  /// In en, this message translates to:
+  /// **'Landlord'**
+  String get appRoleLandlord;
+
+  /// No description provided for @appRoleStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'Team member'**
+  String get appRoleStaff;
+
+  /// No description provided for @appRoleTenant.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenant'**
+  String get appRoleTenant;
+
+  /// No description provided for @appRoleClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Prospective client'**
+  String get appRoleClient;
+
+  /// No description provided for @staffPermissionManagePropertiesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Properties and units'**
+  String get staffPermissionManagePropertiesLabel;
+
+  /// No description provided for @staffPermissionManagePropertiesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add and edit properties and rental spaces.'**
+  String get staffPermissionManagePropertiesDescription;
+
+  /// No description provided for @staffPermissionManageTenantsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenants and leases'**
+  String get staffPermissionManageTenantsLabel;
+
+  /// No description provided for @staffPermissionManageTenantsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite tenants and manage their leases.'**
+  String get staffPermissionManageTenantsDescription;
+
+  /// No description provided for @staffPermissionManageBillingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments and invoices'**
+  String get staffPermissionManageBillingLabel;
+
+  /// No description provided for @staffPermissionManageBillingDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Record payments, generate invoices, and issue receipts.'**
+  String get staffPermissionManageBillingDescription;
+
+  /// No description provided for @staffPermissionManageMaintenanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance'**
+  String get staffPermissionManageMaintenanceLabel;
+
+  /// No description provided for @staffPermissionManageMaintenanceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Log and update maintenance requests.'**
+  String get staffPermissionManageMaintenanceDescription;
+
+  /// No description provided for @staffPermissionManageListingsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Listings'**
+  String get staffPermissionManageListingsLabel;
+
+  /// No description provided for @staffPermissionManageListingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish and manage public listings.'**
+  String get staffPermissionManageListingsDescription;
+
+  /// No description provided for @staffPermissionManageCommunicationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notices'**
+  String get staffPermissionManageCommunicationLabel;
+
+  /// No description provided for @staffPermissionManageCommunicationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Send notices to tenants.'**
+  String get staffPermissionManageCommunicationDescription;
+
+  /// No description provided for @staffPermissionManageDocumentsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents'**
+  String get staffPermissionManageDocumentsLabel;
+
+  /// No description provided for @staffPermissionManageDocumentsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload and manage documents.'**
+  String get staffPermissionManageDocumentsDescription;
+
+  /// No description provided for @staffPermissionViewReportsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports'**
+  String get staffPermissionViewReportsLabel;
+
+  /// No description provided for @staffPermissionViewReportsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate operational reports.'**
+  String get staffPermissionViewReportsDescription;
 }
 
 class _AppLocalizationsDelegate
