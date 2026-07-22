@@ -173,6 +173,11 @@ This is implemented end to end:
   subscribes only to the pulls its capabilities open
   ([app_dependencies.dart](../../lib/app/bootstrap/app_dependencies.dart)), so it
   never fires a read the server would deny.
+- **Client projection gate.** A granted server capability is exposed in Flutter
+  only when the account-scoped Sembast store can be populated from an accepted
+  staff-readable shape. Maintenance and uploaded documents remain hidden from
+  staff routing for now: Rules enforce those capabilities, but no client-safe
+  projection exists, so opening either screen would show empty or stale data.
 
 | Read | Capability |
 |---|---|

@@ -80,6 +80,33 @@ void main() {
       // public explore page instead.
       expect(redirectForSession(lapsed, '/dashboard'), '/explore');
     });
+
+    test('hides resources that have no staff-readable local projection', () {
+      final staff = _staff(
+        permissions: const {
+          StaffPermission.manageMaintenance,
+          StaffPermission.manageDocuments,
+        },
+      );
+      expect(redirectForSession(staff, '/maintenance'), '/dashboard');
+      expect(redirectForSession(staff, '/documents'), '/dashboard');
+      expect(
+        AuthorizationPolicy.allowsSession(
+          staff,
+          AppResource.maintenanceRequest,
+          CrudOperation.read,
+        ),
+        isFalse,
+      );
+      expect(
+        AuthorizationPolicy.allowsSession(
+          staff,
+          AppResource.document,
+          CrudOperation.read,
+        ),
+        isFalse,
+      );
+    });
   });
 
   test('staff operations require the matching session capability', () {

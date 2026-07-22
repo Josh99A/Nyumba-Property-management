@@ -54,8 +54,8 @@ final class SembastStaffRepository implements StaffRepository {
 
   static StaffPlan? _mapPlan(Map<String, Object?>? record) {
     final rawLimit = record?['staffSeatLimit'];
-    if (rawLimit is! num) return null;
-    final limit = rawLimit.toInt();
+    if (rawLimit is! int) return null;
+    final limit = rawLimit;
     if (limit < 0) return null;
     return StaffPlan(
       seatLimit: limit,

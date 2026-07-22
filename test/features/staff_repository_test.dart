@@ -70,6 +70,21 @@ void main() {
     expect(plan.customRoles, isTrue);
     expect(await repository.watchPlan('starter').first, isNull);
   });
+
+  test('rejects a fractional server seat limit', () async {
+    await database.mergeRemoteEntity(
+      entityType: OfflineEntityType.planCatalog,
+      entityId: 'malformed',
+      entity: const <String, Object?>{
+        'id': 'malformed',
+        'version': 1,
+        'staffSeatLimit': 9.5,
+        'customStaffRoles': true,
+      },
+    );
+
+    expect(await repository.watchPlan('malformed').first, isNull);
+  });
 }
 
 Future<void> _putInvite(

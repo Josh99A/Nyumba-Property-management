@@ -14,11 +14,11 @@ import '../../core/presentation/nyumba_logo.dart';
 import '../../core/presentation/language_menu_button.dart';
 import '../../core/presentation/responsive.dart';
 import '../../features/auth/application/session_controller.dart';
+import '../../features/auth/domain/authorization_policy.dart';
 import '../../features/auth/domain/user_session.dart';
 import '../../features/auth/presentation/app_role_localizations.dart';
 import '../../features/notifications/application/push_interactions.dart';
 import '../../features/notifications/presentation/notification_center_sheet.dart';
-import '../../features/staff/domain/staff_permission.dart';
 import '../bootstrap/app_dependencies.dart';
 
 class AppDestination {
@@ -286,16 +286,24 @@ class NyumbaAppShell extends ConsumerWidget {
     AppRole.client => const <AppDestination>[],
   };
 
-  bool _staffCanOpen(UserSession session, String path) => switch (path) {
-    '/dashboard' => session.permissions.isNotEmpty,
-    '/properties' => session.can(StaffPermission.manageProperties),
-    '/tenants' => session.can(StaffPermission.manageTenants),
-    '/finances' => session.can(StaffPermission.manageBilling),
-    '/maintenance' => session.can(StaffPermission.manageMaintenance),
-    '/listings' => session.can(StaffPermission.manageListings),
-    '/documents' => session.can(StaffPermission.manageDocuments),
-    _ => false,
-  };
+  bool _staffCanOpen(UserSession session, String path) {
+    if (path == '/dashboard') return session.permissions.isNotEmpty;
+    final resource = switch (path) {
+      '/properties' => AppResource.property,
+      '/tenants' => AppResource.tenantRecord,
+      '/finances' => AppResource.payment,
+      '/maintenance' => AppResource.maintenanceRequest,
+      '/listings' => AppResource.privateListing,
+      '/documents' => AppResource.document,
+      _ => null,
+    };
+    return resource != null &&
+        AuthorizationPolicy.allowsSession(
+          session,
+          resource,
+          CrudOperation.read,
+        );
+  }
 }
 
 class _DesktopSidebar extends ConsumerWidget {

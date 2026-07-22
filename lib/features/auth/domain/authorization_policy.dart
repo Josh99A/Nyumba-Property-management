@@ -86,6 +86,13 @@ abstract final class AuthorizationPolicy {
     if (resource == AppResource.publicListing) {
       return operation == CrudOperation.read;
     }
+    // These capabilities are enforced remotely, but the client has no staff-
+    // readable projection for their existing records yet. Opening either
+    // screen would present an empty or device-stale workspace as complete.
+    if (resource == AppResource.maintenanceRequest ||
+        resource == AppResource.document) {
+      return false;
+    }
     final permission = _staffPermissionFor(resource);
     return permission != null &&
         session.can(permission) &&

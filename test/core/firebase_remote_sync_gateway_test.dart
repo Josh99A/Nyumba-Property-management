@@ -48,10 +48,10 @@ class _FakeSecureStorage extends FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
   }) async {
+    writes.add(value);
     if (throwOnWrite) {
       throw MissingPluginException('secure storage write unavailable');
     }
-    writes.add(value);
     stored = value;
   }
 }
@@ -100,7 +100,8 @@ void main() {
       );
 
       expect(id, isNotEmpty);
-      expect(storage.writes, isEmpty);
+      expect(storage.writes, <String?>[id]);
+      expect(storage.stored, isNull);
     });
   });
 
