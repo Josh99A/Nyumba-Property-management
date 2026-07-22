@@ -13,6 +13,7 @@ import '../../../core/config/market_config.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
@@ -165,10 +166,10 @@ class _LandlordListingsScreenState
                   padding: EdgeInsets.all(40),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Text.localized(
-                    'Could not load local listings: $error',
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  subject: 'your listings',
+                  onRetry: () => ref.invalidate(landlordListingsProvider),
                 ),
                 data: (allListings) {
                   final listings = allListings.where((listing) {

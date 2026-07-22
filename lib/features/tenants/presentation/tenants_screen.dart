@@ -13,6 +13,7 @@ import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../portfolio/domain/property.dart';
@@ -80,11 +81,10 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                   padding: EdgeInsets.all(48),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text.localized('Could not load tenants: $error'),
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  subject: 'tenants',
+                  onRetry: () => ref.invalidate(tenanciesProvider),
                 ),
                 data: (tenancies) => _buildLoaded(context, tenancies, outbox),
               ),

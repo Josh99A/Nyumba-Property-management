@@ -13,6 +13,7 @@ import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
@@ -122,10 +123,10 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                   padding: EdgeInsets.all(40),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Text.localized(
-                    'Could not load the local portfolio: $error',
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  subject: 'your properties',
+                  onRetry: () => ref.invalidate(portfolioPropertiesProvider),
                 ),
                 data: (allProperties) {
                   final query = _searchController.text.trim().toLowerCase();
