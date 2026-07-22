@@ -33,11 +33,15 @@ const projectId =
 initializeApp({ projectId });
 const db = getFirestore();
 
+// staffSeatLimit counts seats beyond the owner (owner is always seat zero), so
+// it is the marketing "accounts" number minus one: 1/3/10/custom accounts ->
+// 0/2/9/199 staff. customStaffRoles unlocks per-permission roles (Premium+);
+// Pro is coerced to the fixed standard preset.
 const plans = {
-  starter: { unitLimit: 10, activeListingLimit: 3, advertising: true },
-  pro: { unitLimit: 50, activeListingLimit: 25, advertising: true },
-  premium: { unitLimit: 200, activeListingLimit: 200, advertising: true },
-  enterprise: { unitLimit: 1000, activeListingLimit: 1000, advertising: true },
+  starter: { unitLimit: 10, activeListingLimit: 3, advertising: true, staffSeatLimit: 0, customStaffRoles: false },
+  pro: { unitLimit: 50, activeListingLimit: 25, advertising: true, staffSeatLimit: 2, customStaffRoles: false },
+  premium: { unitLimit: 200, activeListingLimit: 200, advertising: true, staffSeatLimit: 9, customStaffRoles: true },
+  enterprise: { unitLimit: 1000, activeListingLimit: 1000, advertising: true, staffSeatLimit: 199, customStaffRoles: true },
 };
 
 /** UGX minor units (x100). */
@@ -73,7 +77,7 @@ const features = {
     feature('recurring-invoices', 'Automatic recurring rent invoices', false),
     feature('late-fees', 'Configurable late-fee policies', false),
     feature('document-templates', 'Document templates', false),
-    feature('staff-accounts', 'Staff accounts with standard roles', false),
+    feature('staff-accounts', 'Staff accounts with standard roles', true),
     feature('priority-support', 'Priority support', true),
   ],
   premium: [
@@ -85,7 +89,7 @@ const features = {
     feature('inspections', 'Inspection records', false),
     feature('bulk-operations', 'Bulk space, tenant, and payment operations', false),
     feature('api-webhooks', 'API and webhook access', false),
-    feature('custom-roles', 'Custom staff roles and permissions', false),
+    feature('custom-roles', 'Custom staff roles and permissions', true),
     feature('priority-onboarding', 'Priority onboarding and support', true),
   ],
   enterprise: [
@@ -130,6 +134,8 @@ await db.runTransaction(async (tx) => {
       ...catalog[tier],
       unitLimit: plans[tier].unitLimit,
       activeListingLimit: plans[tier].activeListingLimit,
+      staffSeatLimit: plans[tier].staffSeatLimit,
+      customStaffRoles: plans[tier].customStaffRoles,
       currency: 'UGX',
       monthlyPriceMinor: MONTH[tier],
       yearlyPriceMinor: YEAR[tier],

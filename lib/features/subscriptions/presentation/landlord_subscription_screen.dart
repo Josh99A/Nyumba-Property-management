@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+// intl exports its own TextDirection class, which shadows the framework enum
+// this file needs for the direction-aware chevron below.
+import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/market_config.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/localization/command_failure_localizations.dart';
 import '../../../core/localization/generated/app_localizations.dart';
 import '../../../core/localization/nyumba_localizations.dart';
 import '../../../core/presentation/motion.dart';
@@ -62,8 +65,9 @@ class _LandlordSubscriptionScreenState
         );
       }
     } on Object catch (error) {
+      if (!mounted) return;
       showNyumbaToast(
-        describeAuthFailure(error),
+        _describeFailure(context, error),
         variant: NyumbaToastVariant.error,
       );
     } finally {
@@ -81,8 +85,9 @@ class _LandlordSubscriptionScreenState
         variant: NyumbaToastVariant.success,
       );
     } on Object catch (error) {
+      if (!mounted) return;
       showNyumbaToast(
-        describeAuthFailure(error),
+        _describeFailure(context, error),
         variant: NyumbaToastVariant.error,
       );
     } finally {
@@ -176,13 +181,13 @@ class _LandlordSubscriptionScreenState
       showNyumbaToast(
         error.message == 'PAYMENT_PROVIDER_UNAVAILABLE'
             ? copy.subscriptionElectronicComingSoon
-            : describeAuthFailure(error),
+            : _describeFailure(context, error),
         variant: NyumbaToastVariant.error,
       );
     } on Object catch (error) {
       if (!mounted) return;
       showNyumbaToast(
-        describeAuthFailure(error),
+        _describeFailure(context, error),
         variant: NyumbaToastVariant.error,
       );
     } finally {
@@ -348,20 +353,20 @@ class _LandlordSubscriptionScreenState
                           spacing: gap,
                           runSpacing: gap,
                           children: [
-                            for (final (index, presentation)
-                                in _tiers.indexed)
+                            for (final (index, presentation) in _tiers.indexed)
                               SizedBox(
                                 width: width,
                                 child: _PlanCard(
                                   presentation: presentation,
                                   facts: catalog[presentation.tier],
-                                  includesPlanName: switch (catalog[presentation
-                                      .tier]?.includesTier) {
-                                    null => null,
-                                    final includes =>
-                                      catalog[includes]?.displayName ??
-                                          _fallbackPlanName(copy, includes),
-                                  },
+                                  includesPlanName:
+                                      switch (catalog[presentation.tier]
+                                          ?.includesTier) {
+                                        null => null,
+                                        final includes =>
+                                          catalog[includes]?.displayName ??
+                                              _fallbackPlanName(copy, includes),
+                                      },
                                   selected: tier == presentation.tier,
                                   selectedLabel: active
                                       ? copy.subscriptionCurrentPlan
@@ -696,9 +701,9 @@ class _PlanCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 copy.subscriptionMonthlyPrice(_ugx.format(monthly / 100)),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               if (yearly != null)
                 Padding(
@@ -852,11 +857,14 @@ class _UpgradeMethodTile extends StatelessWidget {
         child: Icon(icon, color: context.nyumba.midnightNavy, size: 22),
       ),
       title: Text(title, style: Theme.of(context).textTheme.titleSmall),
-      subtitle: Text(
-        subtitle,
-        style: Theme.of(context).textTheme.bodySmall,
+      subtitle: Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+      // The affordance points the way the reader moves forward, which is
+      // leftwards in Arabic; a fixed right chevron points back out of the flow.
+      trailing: Icon(
+        Directionality.of(context) == TextDirection.rtl
+            ? Icons.chevron_left_rounded
+            : Icons.chevron_right_rounded,
       ),
-      trailing: const Icon(Icons.chevron_right_rounded),
       onTap: onTap,
     );
   }
@@ -889,6 +897,13 @@ String _fallbackPlanAudience(AppLocalizations copy, String tier) =>
 /// Presentation order and iconography for the normative tier structure
 /// (docs/architecture/subscription-tiers.md). Capacity numbers never live
 /// here — they render only from the server-owned plan catalog.
+String _describeFailure(BuildContext context, Object error) =>
+    describeAuthFailure(
+      error,
+      commandFailureLocalizer: (failure) =>
+          localizeCommandFailure(appLocalizationsOf(context), failure),
+    );
+
 const _tiers = [
   _TierPresentation('starter', Icons.home_work_outlined),
   _TierPresentation('pro', Icons.rocket_launch_outlined),

@@ -11,10 +11,13 @@ import 'package:intl/intl.dart';
 import 'package:nyumba_property_management/app/localization/locale_controller.dart';
 import 'package:nyumba_property_management/core/documents/nyumba_document_service.dart';
 import 'package:nyumba_property_management/core/localization/app_language.dart';
+import 'package:nyumba_property_management/core/localization/command_failure_localizations.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/localization_formats.dart';
 import 'package:nyumba_property_management/core/localization/luganda_localizations.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
+import 'package:nyumba_property_management/core/offline/command_failure.dart';
+import 'package:nyumba_property_management/core/offline/remote_sync_gateway.dart';
 import 'package:nyumba_property_management/core/presentation/language_menu_button.dart';
 
 void main() {
@@ -68,6 +71,82 @@ void main() {
       }
     }
     expect(expected.length, greaterThan(590));
+  });
+
+  test('command failures do not silently fall back to English', () async {
+    final errors = <RemoteSyncException>[
+      for (final code in const [
+        'UNAUTHENTICATED',
+        'APP_CHECK_REQUIRED',
+        'PERMISSION_DENIED',
+        'ACCOUNT_NOT_APPROVED',
+        'ACCOUNT_SUSPENDED',
+        'SUBSCRIPTION_INACTIVE',
+        'ENTITLEMENT_MISSING',
+        'UNIT_LIMIT_REACHED',
+        'SEAT_LIMIT_REACHED',
+        'CUSTOM_ROLES_UNAVAILABLE',
+        'PAYMENT_PROVIDER_UNAVAILABLE',
+        'PAYMENT_PENDING',
+        'NOT_FOUND',
+        'ALREADY_EXISTS',
+        'VERSION_CONFLICT',
+        'IDEMPOTENCY_KEY_REUSED',
+        'RATE_LIMITED',
+        'REQUIRES_ONLINE',
+        'INTERNAL_RETRYABLE',
+        'unavailable',
+        'deadline-exceeded',
+        'unknownFailure',
+      ])
+        RemoteSyncException(code),
+      for (final reason in const [
+        'subscriptionAlreadyActive',
+        'subscriptionNotActive',
+        'tierUnchanged',
+        'accountSuspended',
+        'landlordAccountMissing',
+        'accountApprovalStatusInvalid',
+        'invalidApprovalTransition',
+        'alreadyArchived',
+        'notArchived',
+        'roleUnchanged',
+        'amountExceedsBalance',
+        'leaseNotActive',
+        'noFieldsToUpdate',
+        'yearlyPriceExceedsMonthlyTimesTwelve',
+        'unknownCommandType',
+        'envelopeInvalid',
+        'unknownValidationReason',
+      ])
+        RemoteSyncException('VALIDATION_FAILED', details: {'reason': reason}),
+      const RemoteSyncException('VALIDATION_FAILED'),
+      const RemoteSyncException(
+        'VALIDATION_FAILED',
+        details: {
+          'fields': ['amount', 'tier'],
+        },
+      ),
+    ];
+    final failures = errors.map(describeCommandFailure).toList();
+    final english = await AppLocalizations.delegate.load(
+      const material.Locale('en'),
+    );
+
+    expect(failures.map((failure) => failure.code).toSet(), hasLength(41));
+    for (final language in AppLanguage.values.skip(1)) {
+      final localized = await AppLocalizations.delegate.load(
+        material.Locale(language.code),
+      );
+      for (final failure in failures) {
+        final source = localizeCommandFailure(english, failure);
+        final translation = localizeCommandFailure(localized, failure);
+        expect(translation, isNot(source), reason: '${language.code}: $source');
+        if (source.contains('amount, tier')) {
+          expect(translation, contains('amount, tier'));
+        }
+      }
+    }
   });
 
   test(

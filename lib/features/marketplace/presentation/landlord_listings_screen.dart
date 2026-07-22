@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
@@ -13,6 +15,7 @@ import '../../../core/config/market_config.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
@@ -53,8 +56,8 @@ class _LandlordListingsScreenState
     final session = ref.watch(sessionControllerProvider);
     bool allows(CrudOperation operation) =>
         session != null &&
-        AuthorizationPolicy.allows(
-          session.role,
+        AuthorizationPolicy.allowsSession(
+          session,
           AppResource.privateListing,
           operation,
         );
@@ -165,10 +168,11 @@ class _LandlordListingsScreenState
                   padding: EdgeInsets.all(40),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Text.localized(
-                    'Could not load local listings: $error',
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context).statusSubjectYourListings,
+                  onRetry: () => ref.invalidate(landlordListingsProvider),
                 ),
                 data: (allListings) {
                   final listings = allListings.where((listing) {

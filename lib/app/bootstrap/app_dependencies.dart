@@ -37,6 +37,9 @@ import '../../features/portfolio/domain/property.dart';
 import '../../features/portfolio/domain/property_repository.dart';
 import '../../features/portfolio/domain/unit.dart';
 import '../../features/portfolio/domain/unit_repository.dart';
+import '../../features/staff/domain/staff_permission.dart';
+import '../../features/staff/data/sembast_staff_repository.dart';
+import '../../features/staff/domain/staff_repository.dart';
 import '../../features/subscriptions/data/sembast_subscription_plan_repository.dart';
 import '../../features/subscriptions/domain/subscription_plan_repository.dart';
 import '../../features/profile/data/sembast_user_settings_repository.dart';
@@ -62,6 +65,7 @@ class AppDependencies {
     required this.notices,
     required this.notifications,
     required this.subscriptionPlans,
+    required this.staff,
     this.remotePullCoordinator,
     this.reconnectSyncTrigger,
     this.resumeSyncTrigger,
@@ -82,6 +86,7 @@ class AppDependencies {
   final NoticeRepository notices;
   final AppNotificationRepository notifications;
   final SubscriptionPlanRepository subscriptionPlans;
+  final StaffRepository staff;
   final RemotePullCoordinator? remotePullCoordinator;
   final ReconnectSyncTrigger? reconnectSyncTrigger;
   final ResumeSyncTrigger? resumeSyncTrigger;
@@ -250,6 +255,7 @@ Future<AppDependencies> createAppDependencies({
   final subscriptionPlans = SembastSubscriptionPlanRepository(
     database: database,
   );
+  final staff = SembastStaffRepository(database);
   // Public browsing is unauthenticated but still server-backed: `publicListings`
   // is world-readable, so an anonymous visitor reads the real catalogue.
   final usesFirebase = Firebase.apps.isNotEmpty;
@@ -286,6 +292,10 @@ Future<AppDependencies> createAppDependencies({
       gateway: FirestoreRemotePullGateway(),
     );
     remotePullCoordinator.watch(OfflineEntityType.listing, publicOnly: true);
+    remotePullCoordinator.watch(
+      OfflineEntityType.planCatalog,
+      publicOnly: true,
+    );
     if (session == null) {
       // Anonymous visitor: the public catalogue is the only readable scope.
     } else {
@@ -317,21 +327,41 @@ Future<AppDependencies> createAppDependencies({
       ]) {
         remotePullCoordinator.watch(type, administrativeScope: true);
       }
-    } else if (session.role == AppRole.landlord) {
+    } else if (session.role == AppRole.landlord ||
+        session.role == AppRole.staff) {
       // Only types with a landlord read source; see
       // FirestoreRemotePullGateway.landlordReadSource. Tenancies and payments
       // come from server-owned landlordPortals projections because no canonical
       // collection can rebuild them. Maintenance, notices, and documents still
       // have no landlord read shape and are therefore not pulled — a landlord
       // sees only what this device recorded until those projections exist.
-      for (final type in const [
-        OfflineEntityType.property,
-        OfflineEntityType.unit,
-        OfflineEntityType.listing,
-        OfflineEntityType.tenancy,
-        OfflineEntityType.payment,
-      ]) {
-        remotePullCoordinator.watch(type, landlordId: session.userId);
+      //
+      // A staff member reads the OWNER's workspace, so the pull is keyed to the
+      // owner's uid (effectiveWorkspaceId), and Firestore Rules authorize it
+      // through the membership doc.
+      //
+      // Each pull is keyed to the capability that opens it in Firestore Rules,
+      // so a staff member granted only part of the workspace never fires a read
+      // the server would deny. An owner holds every capability.
+      const workspacePulls = <OfflineEntityType, StaffPermission>{
+        OfflineEntityType.property: StaffPermission.manageProperties,
+        OfflineEntityType.unit: StaffPermission.manageProperties,
+        OfflineEntityType.listing: StaffPermission.manageListings,
+        OfflineEntityType.tenancy: StaffPermission.manageTenants,
+        OfflineEntityType.payment: StaffPermission.manageBilling,
+      };
+      if (session.isWorkspaceOwner) {
+        remotePullCoordinator.watch(
+          OfflineEntityType.staffInvite,
+          landlordId: session.effectiveWorkspaceId,
+        );
+      }
+      for (final pull in workspacePulls.entries) {
+        if (!session.can(pull.value)) continue;
+        remotePullCoordinator.watch(
+          pull.key,
+          landlordId: session.effectiveWorkspaceId,
+        );
       }
     } else if (session.role == AppRole.tenant) {
       // Deliberately empty. The tenantPortals projections are security
@@ -382,6 +412,7 @@ Future<AppDependencies> createAppDependencies({
     notices: notices,
     notifications: notifications,
     subscriptionPlans: subscriptionPlans,
+    staff: staff,
     remotePullCoordinator: remotePullCoordinator,
     reconnectSyncTrigger: reconnectSyncTrigger,
     resumeSyncTrigger: resumeSyncTrigger,

@@ -227,7 +227,7 @@ UserSession _requirePermission(
 ) {
   final session = ref.read(sessionControllerProvider);
   if (session == null ||
-      !AuthorizationPolicy.allows(session.role, resource, operation)) {
+      !AuthorizationPolicy.allowsSession(session, resource, operation)) {
     throw StateError('${operation.name} permission is required.');
   }
   return session;

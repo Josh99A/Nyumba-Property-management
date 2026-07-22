@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -11,6 +13,7 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/market_config.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../domain/application.dart';
@@ -50,8 +53,20 @@ class ListingDetailScreen extends ConsumerWidget {
       ),
       body: listings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) =>
-            Center(child: Text.localized('Could not load this home: $error')),
+        error: (error, stack) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: NyumbaStatusMessage.fromError(
+                error,
+                localizations: appLocalizationsOf(context),
+                subject: appLocalizationsOf(context).statusSubjectThisHome,
+                onRetry: () => ref.invalidate(publicListingsProvider),
+              ),
+            ),
+          ),
+        ),
         data: (items) {
           Listing? listing;
           for (final item in items) {

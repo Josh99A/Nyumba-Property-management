@@ -23,6 +23,7 @@ import 'package:nyumba_property_management/features/portfolio/domain/property.da
 import 'package:nyumba_property_management/features/portfolio/domain/unit.dart';
 import 'package:nyumba_property_management/features/profile/data/sembast_user_settings_repository.dart';
 import 'package:nyumba_property_management/features/subscriptions/data/sembast_subscription_plan_repository.dart';
+import 'package:nyumba_property_management/features/staff/data/sembast_staff_repository.dart';
 import 'package:nyumba_property_management/features/tenants/data/sembast_tenancy_repository.dart';
 import 'package:sembast/sembast_memory.dart';
 
@@ -106,6 +107,7 @@ void main() {
       notices: SembastNoticeRepository(database: database),
       notifications: SembastAppNotificationRepository(database: database),
       subscriptionPlans: SembastSubscriptionPlanRepository(database: database),
+      staff: SembastStaffRepository(database),
     );
 
     final container = ProviderContainer(

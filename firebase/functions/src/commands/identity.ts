@@ -216,6 +216,7 @@ export const landlordOnboard: CommandHandler<z.infer<typeof onboardSchema>> = {
       approvalStatus: 'pending',
       activeUnitCount: 0,
       activeListingCount: 0,
+      activeStaffSeatCount: 0,
       receiptCounter: 0,
       businessName: cmd.payload.businessName ?? null,
       phone: cmd.payload.phone,

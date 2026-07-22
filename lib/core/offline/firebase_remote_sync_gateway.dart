@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:uuid/uuid.dart';
@@ -26,12 +27,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
   final String platform;
 
   static Future<FirebaseRemoteSyncGateway> create() async {
-    const storage = FlutterSecureStorage();
-    var installationId = await storage.read(key: _installationKey);
-    if (installationId == null || installationId.isEmpty) {
-      installationId = const Uuid().v7().replaceAll('-', '_');
-      await storage.write(key: _installationKey, value: installationId);
-    }
+    final installationId = await resolveInstallationId();
     final package = await PackageInfo.fromPlatform();
     final callable = FirebaseFunctions.instanceFor(
       region: 'europe-west1',
@@ -45,6 +41,39 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         return _stringMap(result.data);
       },
     );
+  }
+
+  /// A stable per-install identifier, persisted in secure storage.
+  ///
+  /// Secure storage can be genuinely unavailable — private/incognito web
+  /// contexts, restricted device policies, or a build whose plugin is not yet
+  /// registered — and this identifier is not worth failing the whole workspace
+  /// over. When it can't be read or written, this run falls back to an
+  /// ephemeral id: the backend simply sees a fresh installation until secure
+  /// storage works again, which is a far better degradation than a dead app.
+  ///
+  /// [storage] is injectable so the degradation path can be tested; production
+  /// callers use the default platform-backed store.
+  @visibleForTesting
+  static Future<String> resolveInstallationId({
+    FlutterSecureStorage storage = const FlutterSecureStorage(),
+  }) async {
+    String? stored;
+    try {
+      stored = await storage.read(key: _installationKey);
+    } on Object {
+      stored = null;
+    }
+    if (stored != null && stored.isNotEmpty) return stored;
+
+    final generated = const Uuid().v7().replaceAll('-', '_');
+    try {
+      await storage.write(key: _installationKey, value: generated);
+    } on Object {
+      // The generated id still identifies this run; it just won't persist to
+      // the next launch while secure storage is unavailable.
+    }
+    return generated;
   }
 
   Map<String, Object?> buildEnvelope(RemoteMutation mutation) {

@@ -594,6 +594,48 @@
     "legacy_dadbc887f26c":  "Your portfolio at a glance",
     "legacy_0b541593e3a7":  "Your properties",
     "legacy_ef5d3aa3c485":  "Your property manager will prepare this document and share it here.",
+    "legacy_59138b8999c6": "Archive this account before doing that.",
+    "legacy_4134f7a8316a": "Change at least one detail before saving.",
+    "legacy_87a2131e6d61": "Custom staff permissions are a Premium feature. Upgrade your plan to tailor what each team member can do.",
+    "legacy_b292aea5f50e": "Electronic payments are not available yet. Pay Nyumba directly and an administrator will confirm it.",
+    "legacy_b791dbf9cc55": "Nyumba cannot reach the server. Check your connection and try again.",
+    "legacy_f810bcddd7ed": "Nyumba could not accept that request. Reload the app and try again.",
+    "legacy_3852e291776f": "Nyumba could not complete that action. Please try again.",
+    "legacy_8dd971279a6c": "Nyumba could not complete that just now. Please try again.",
+    "legacy_fc164894a18a": "Nyumba could not confirm your plan, so this action was not applied. Try again shortly, or contact support if it continues.",
+    "legacy_5f40e5d243c5": "Nyumba could not find that record. It may have been removed — reload and try again.",
+    "legacy_3a6e632ad56d": "Nyumba could not verify this device. Update the app and try again.",
+    "legacy_8032d3a419ad": "Nyumba did not accept that request. Reload and try again.",
+    "legacy_553f76c2b4de": "Nyumba did not accept these details: {fields}. Check them and try again — if they look right, reload the app to get the latest version.",
+    "@legacy_553f76c2b4de": {"placeholders": {"fields": {"type": "String"}}},
+    "legacy_eacb633c809b": "Some of those details were not accepted. Check them and try again.",
+    "legacy_2dc6de513de7": "Someone else changed this while you were working on it. Reload to see the latest version, then try again.",
+    "legacy_26124c0ce6a9": "That amount is more than the outstanding balance.",
+    "legacy_dad068aa555b": "That is already this account's role.",
+    "legacy_ab87caef66c3": "That is already your current plan. Choose a different one to change plans.",
+    "legacy_e3d4879fe8e6": "That plan is already active on this account.",
+    "legacy_865689190ea5": "That record already exists.",
+    "legacy_b85cb4bf091b": "That tenancy is not active.",
+    "legacy_06fafad86a95": "The server took too long to respond. Try again.",
+    "legacy_ad65b6dfeb97": "The yearly price cannot cost more than twelve monthly payments.",
+    "legacy_0486dbaa769f": "This account does not have permission to do that.",
+    "legacy_98c1804b4d45": "This account has no landlord record yet, so it cannot be activated.",
+    "legacy_8927961a2446": "This account is already archived.",
+    "legacy_208b9378be87": "This account is no longer in that state. Reload to see its current status.",
+    "legacy_0d1dfd3592f9": "This account is not in a state that can be activated.",
+    "legacy_b7224264cf97": "This account is suspended, so payment cannot activate it. It must be reinstated first.",
+    "legacy_e2a1b305ffbd": "This account is suspended. Contact Nyumba support to restore it.",
+    "legacy_34a370bb8f26": "This action needs an internet connection. Reconnect and try again.",
+    "legacy_977b7fe2ba26": "This action was already sent with different details. Reload and try again.",
+    "legacy_6e7e677ba3d3": "This payment is still being confirmed. You will see it here as soon as it clears.",
+    "legacy_e9b3d6e695b4": "This version of the app is out of date. Reload to get the latest version.",
+    "legacy_4610306154c0": "Too many attempts. Wait a moment before trying again.",
+    "legacy_427eb1e9b92d": "You have reached the limit your plan allows. Upgrade your plan to add more.",
+    "legacy_c34019924764": "You have used every staff seat your plan allows. Upgrade your plan to add more team members.",
+    "legacy_bdbcbdd54088": "Your account is still awaiting review, so this action is not available yet.",
+    "legacy_bd9b9bf7438f": "Your session has expired. Sign in again to continue.",
+    "legacy_5856f45a39ca": "Your subscription is not active yet, so it cannot be upgraded. Complete your first payment first.",
+    "legacy_f6bf142ea0c0": "Your subscription is not active yet, so this action is unavailable.",
     "welcomeBackName": "Welcome back, {name}."
     ,"welcomeName": "Welcome, {name}"
     ,"editName": "Edit {name}"
@@ -848,10 +890,70 @@
     ,"enable": "Enable"
     ,"appLockEnabledToast": "App lock is on. Nyumba will ask for your fingerprint when you return."
     ,"appLockNotEnabledToast": "Fingerprint unlock was not turned on."
+    ,"security": "Security"
+    ,"securitySubtitle": "Control how this device unlocks your workspace."
+    ,"appLockSwitchTitle": "Fingerprint app lock"
+    ,"appLockSwitchSubtitle": "Ask for your fingerprint when Nyumba reopens."
+    ,"statusMessageSecureStorageTitle": "We can’t open your secure local storage"
+    ,"statusMessageSecureStorageMessage": "A device feature this app needs (secure storage) isn’t available in the version that’s running, so {subject} can’t be loaded. Fully close the app and open it again. If the message keeps coming back, reinstall or update the app."
+    ,"@statusMessageSecureStorageMessage": {"placeholders": {"subject": {"type": "String"}}}
+    ,"statusMessageOfflineTitle": "You appear to be offline"
+    ,"statusMessageOfflineMessage": "We couldn’t reach the server to refresh {subject}. You can keep working with what’s on this device; changes will sync once you’re back online."
+    ,"@statusMessageOfflineMessage": {"placeholders": {"subject": {"type": "String"}}}
+    ,"statusMessageLoadFailedTitle": "We couldn’t load {subject}"
+    ,"@statusMessageLoadFailedTitle": {"placeholders": {"subject": {"type": "String"}}}
+    ,"statusMessageLoadFailedMessage": "Something went wrong while reading your local data. Try again, and if it keeps failing, share the technical details below with support."
+    ,"statusMessageSeverityDebug": "Debug"
+    ,"statusMessageSeverityInfo": "Info"
+    ,"statusMessageSeverityWarning": "Warning"
+    ,"statusMessageSeverityCritical": "Critical"
+    ,"statusMessageTryAgain": "Try again"
+    ,"statusMessageTechnicalDetails": "Technical details"
+    ,"statusMessageHideTechnicalDetails": "Hide technical details"
+    ,"statusSubjectPayments": "payments"
+    ,"statusSubjectYourPayments": "your payments"
+    ,"statusSubjectYourRequests": "your requests"
+    ,"statusSubjectYourHome": "your home"
+    ,"statusSubjectDocuments": "documents"
+    ,"statusSubjectTenants": "tenants"
+    ,"statusSubjectAuditLog": "the audit log"
+    ,"statusSubjectPlanCatalog": "the plan catalog"
+    ,"statusSubjectApprovalQueue": "the approval queue"
+    ,"statusSubjectYourProperties": "your properties"
+    ,"statusSubjectThisHome": "this home"
+    ,"statusSubjectYourListings": "your listings"
+    ,"statusSubjectMaintenanceRequests": "maintenance requests"
+    ,"adminSubscriptionsLoadFailedTitle": "Could not load subscriptions"
+    ,"adminSubscriptionsLoadFailedMessage": "The server directory could not be read."
+    ,"adminAccountDirectoryLoadFailedTitle": "Could not load the account directory"
+    ,"adminAccountDirectoryLoadFailedMessage": "The live directory could not be read. There is deliberately no offline copy of other people’s accounts on this device."
     ,"appLockCardTitle": "Fingerprint unlock"
     ,"appLockCardSubtitle": "Nyumba holds tenant and payment records on this device."
     ,"appLockOnStatus": "On. Your fingerprint is required when Nyumba reopens."
     ,"appLockTurnOn": "Turn on fingerprint unlock"
     ,"appLockTurnOff": "Turn off fingerprint unlock"
     ,"appLockWaiting": "Waiting for your fingerprint…"
+    ,"teamLabel": "Team"
+    ,"appRoleSuperAdmin": "Super Admin"
+    ,"appRoleAdmin": "Admin"
+    ,"appRoleLandlord": "Landlord"
+    ,"appRoleStaff": "Team member"
+    ,"appRoleTenant": "Tenant"
+    ,"appRoleClient": "Prospective client"
+    ,"staffPermissionManagePropertiesLabel": "Properties and units"
+    ,"staffPermissionManagePropertiesDescription": "Add and edit properties and rental spaces."
+    ,"staffPermissionManageTenantsLabel": "Tenants and leases"
+    ,"staffPermissionManageTenantsDescription": "Invite tenants and manage their leases."
+    ,"staffPermissionManageBillingLabel": "Payments and invoices"
+    ,"staffPermissionManageBillingDescription": "Record payments, generate invoices, and issue receipts."
+    ,"staffPermissionManageMaintenanceLabel": "Maintenance"
+    ,"staffPermissionManageMaintenanceDescription": "Log and update maintenance requests."
+    ,"staffPermissionManageListingsLabel": "Listings"
+    ,"staffPermissionManageListingsDescription": "Publish and manage public listings."
+    ,"staffPermissionManageCommunicationLabel": "Notices"
+    ,"staffPermissionManageCommunicationDescription": "Send notices to tenants."
+    ,"staffPermissionManageDocumentsLabel": "Documents"
+    ,"staffPermissionManageDocumentsDescription": "Upload and manage documents."
+    ,"staffPermissionViewReportsLabel": "Reports"
+    ,"staffPermissionViewReportsDescription": "Generate operational reports."
 }

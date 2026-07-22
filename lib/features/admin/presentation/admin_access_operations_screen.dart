@@ -6,11 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../auth/domain/user_session.dart';
+import '../../auth/presentation/app_role_localizations.dart';
 import 'widgets/admin_components.dart';
 
 class AdminAccessOperationsScreen extends ConsumerStatefulWidget {
@@ -30,6 +32,7 @@ class _AdminAccessOperationsScreenState
     final session = ref.watch(sessionControllerProvider);
     if (session == null) return const SizedBox.shrink();
     final role = session.role;
+    final roleLabel = localizedAppRole(appLocalizationsOf(context), role);
     final visibleResources = _accessDefinitions
         .where((definition) {
           final operations = AuthorizationPolicy.operationsFor(
@@ -63,9 +66,9 @@ class _AdminAccessOperationsScreenState
     return AdminPage(
       title: 'Access & operations',
       description:
-          'See exactly what ${role.label} can create, read, update, and archive.',
+          'See exactly what $roleLabel can create, read, update, and archive.',
       children: [
-        _RoleAccessHero(role: role),
+        _RoleAccessHero(role: role, roleLabel: roleLabel),
         const SizedBox(height: 18),
         AdminMetricGrid(
           children: [
@@ -168,9 +171,10 @@ class _AdminAccessOperationsScreenState
 }
 
 class _RoleAccessHero extends StatelessWidget {
-  const _RoleAccessHero({required this.role});
+  const _RoleAccessHero({required this.role, required this.roleLabel});
 
   final AppRole role;
+  final String roleLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +215,7 @@ class _RoleAccessHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text.localized(
-                  '${role.label} permissions',
+                  '$roleLabel permissions',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -254,6 +258,7 @@ class _ResourceAccessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final roleLabel = localizedAppRole(appLocalizationsOf(context), role);
     final operations = AuthorizationPolicy.operationsFor(
       role,
       definition.resource,
@@ -329,7 +334,7 @@ class _ResourceAccessCard extends StatelessWidget {
             else
               Text.localized(
                 operations.isEmpty
-                    ? 'This area is protected for ${role.label}.'
+                    ? 'This area is protected for $roleLabel.'
                     : 'Managed through controlled server operations.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),

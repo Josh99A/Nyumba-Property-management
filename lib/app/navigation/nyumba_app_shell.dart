@@ -14,7 +14,9 @@ import '../../core/presentation/nyumba_logo.dart';
 import '../../core/presentation/language_menu_button.dart';
 import '../../core/presentation/responsive.dart';
 import '../../features/auth/application/session_controller.dart';
+import '../../features/auth/domain/authorization_policy.dart';
 import '../../features/auth/domain/user_session.dart';
+import '../../features/auth/presentation/app_role_localizations.dart';
 import '../../features/notifications/application/push_interactions.dart';
 import '../../features/notifications/presentation/notification_center_sheet.dart';
 import '../bootstrap/app_dependencies.dart';
@@ -159,6 +161,15 @@ const _adminDestinations = [
 
 const _staffDestinations = [..._adminDestinations, ..._landlordDestinations];
 
+/// Managing staff seats and their permissions. Owner-only: a staff member
+/// cannot manage the team, so this never appears in their navigation.
+AppDestination _teamDestination(String label) => AppDestination(
+  label: label,
+  icon: Icons.groups_outlined,
+  selectedIcon: Icons.groups_rounded,
+  path: '/team',
+);
+
 /// The landlord's own plan — the payment gate before activation and the
 /// self-service upgrade path afterwards. Landlord-only: platform staff
 /// manage subscriptions from the admin workspace instead.
@@ -218,7 +229,7 @@ class NyumbaAppShell extends ConsumerWidget {
         });
       });
     });
-    final destinations = _destinationsFor(session.role);
+    final destinations = _destinationsFor(session, copy.teamLabel);
     final path = GoRouterState.of(context).uri.path;
 
     if (context.isCompact) {
@@ -254,10 +265,19 @@ class NyumbaAppShell extends ConsumerWidget {
     );
   }
 
-  List<AppDestination> _destinationsFor(AppRole role) => switch (role) {
-    AppRole.landlord => const [
+  List<AppDestination> _destinationsFor(
+    UserSession session,
+    String teamLabel,
+  ) => switch (session.role) {
+    AppRole.landlord => [
       ..._landlordDestinations,
+      _teamDestination(teamLabel),
       _subscriptionDestination,
+      _exploreDestination,
+    ],
+    AppRole.staff => [
+      for (final destination in _landlordDestinations)
+        if (_staffCanOpen(session, destination.path)) destination,
       _exploreDestination,
     ],
     AppRole.tenant => const [..._tenantDestinations, _exploreDestination],
@@ -265,6 +285,25 @@ class NyumbaAppShell extends ConsumerWidget {
     AppRole.admin => const [..._staffDestinations, _exploreDestination],
     AppRole.client => const <AppDestination>[],
   };
+
+  bool _staffCanOpen(UserSession session, String path) {
+    if (path == '/dashboard') return session.permissions.isNotEmpty;
+    final resource = switch (path) {
+      '/properties' => AppResource.property,
+      '/tenants' => AppResource.tenantRecord,
+      '/finances' => AppResource.payment,
+      '/maintenance' => AppResource.maintenanceRequest,
+      '/listings' => AppResource.privateListing,
+      '/documents' => AppResource.document,
+      _ => null,
+    };
+    return resource != null &&
+        AuthorizationPolicy.allowsSession(
+          session,
+          resource,
+          CrudOperation.read,
+        );
+  }
 }
 
 class _DesktopSidebar extends ConsumerWidget {
@@ -599,7 +638,10 @@ class _SidebarProfile extends StatelessWidget {
                       style: Theme.of(context).textTheme.labelMedium,
                     ),
                     Text.localized(
-                      session.role.label,
+                      localizedAppRole(
+                        appLocalizationsOf(context),
+                        session.role,
+                      ),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],

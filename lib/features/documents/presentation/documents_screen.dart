@@ -4,6 +4,7 @@ import 'package:nyumba_property_management/core/localization/localized_material.
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/nyumba_colors.dart';
@@ -14,6 +15,7 @@ import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../auth/application/session_controller.dart';
@@ -110,11 +112,11 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   padding: EdgeInsets.all(48),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text.localized('Could not load documents: $error'),
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context).statusSubjectDocuments,
+                  onRetry: () => ref.invalidate(leaseDocumentsProvider),
                 ),
                 data: (documents) => _buildLoaded(
                   context,

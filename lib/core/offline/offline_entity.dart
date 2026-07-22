@@ -29,7 +29,9 @@ enum OfflineEntityType {
   // admin who saved their own settings wrote a UserSettings record that the
   // admin directory then tried to read back as a ManagedUser.
   managedUser('managed_users', 85),
+  staffInvite('staff_invites', 87),
   subscriptionPlan('subscription_plans', 90),
+  planCatalog('plan_catalog', 92),
   adminAction('admin_actions', 95);
 
   const OfflineEntityType(this.storeName, this.syncPriority);

@@ -1948,6 +1948,168 @@ class AppLocalizationsSw extends AppLocalizations {
       'Msimamizi wako wa mali atatayarisha hati hii na kuishiriki hapa.';
 
   @override
+  String get legacy_59138b8999c6 =>
+      'Weka akaunti hii kwenye kumbukumbu kabla ya kufanya hivyo.';
+
+  @override
+  String get legacy_4134f7a8316a =>
+      'Badilisha angalau jambo moja kabla ya kuhifadhi.';
+
+  @override
+  String get legacy_87a2131e6d61 =>
+      'Ruhusa maalum za wafanyakazi ni kipengele cha Premium. Boresha mpango wako ili ubainishe kile ambacho kila mshiriki wa timu anaweza kufanya.';
+
+  @override
+  String get legacy_b292aea5f50e =>
+      'Malipo ya kielektroniki bado hayapatikani. Lipa Nyumba moja kwa moja, na msimamizi atathibitisha malipo hayo.';
+
+  @override
+  String get legacy_b791dbf9cc55 =>
+      'Nyumba haiwezi kufikia seva. Angalia muunganisho wako na ujaribu tena.';
+
+  @override
+  String get legacy_f810bcddd7ed =>
+      'Nyumba haikuweza kukubali ombi hilo. Pakia upya programu na ujaribu tena.';
+
+  @override
+  String get legacy_3852e291776f =>
+      'Nyumba haikuweza kukamilisha kitendo hicho. Tafadhali jaribu tena.';
+
+  @override
+  String get legacy_8dd971279a6c =>
+      'Nyumba haikuweza kukamilisha hilo sasa hivi. Tafadhali jaribu tena.';
+
+  @override
+  String get legacy_fc164894a18a =>
+      'Nyumba haikuweza kuthibitisha mpango wako, kwa hiyo kitendo hiki hakikutekelezwa. Jaribu tena baada ya muda mfupi, au uwasiliane na huduma ya usaidizi tatizo likiendelea.';
+
+  @override
+  String get legacy_5f40e5d243c5 =>
+      'Nyumba haikuweza kupata rekodi hiyo. Huenda imeondolewa — pakia upya na ujaribu tena.';
+
+  @override
+  String get legacy_3a6e632ad56d =>
+      'Nyumba haikuweza kuthibitisha kifaa hiki. Sasisha programu na ujaribu tena.';
+
+  @override
+  String get legacy_8032d3a419ad =>
+      'Nyumba haikukubali ombi hilo. Pakia upya na ujaribu tena.';
+
+  @override
+  String legacy_553f76c2b4de(String fields) {
+    return 'Nyumba haikukubali maelezo haya: $fields. Yakague na ujaribu tena — ikiwa yanaonekana kuwa sahihi, pakia upya programu ili upate toleo la hivi karibuni.';
+  }
+
+  @override
+  String get legacy_eacb633c809b =>
+      'Baadhi ya maelezo hayo hayakukubaliwa. Yakague na ujaribu tena.';
+
+  @override
+  String get legacy_2dc6de513de7 =>
+      'Mtu mwingine alibadilisha hii ulipokuwa ukiifanyia kazi. Pakia upya ili uone toleo la hivi karibuni, kisha ujaribu tena.';
+
+  @override
+  String get legacy_26124c0ce6a9 =>
+      'Kiasi hicho ni kikubwa kuliko salio linalodaiwa.';
+
+  @override
+  String get legacy_dad068aa555b => 'Hilo tayari ndilo jukumu la akaunti hii.';
+
+  @override
+  String get legacy_ab87caef66c3 =>
+      'Huo tayari ni mpango wako wa sasa. Chagua mpango mwingine ili kubadilisha mipango.';
+
+  @override
+  String get legacy_e3d4879fe8e6 =>
+      'Mpango huo tayari unatumika kwenye akaunti hii.';
+
+  @override
+  String get legacy_865689190ea5 => 'Rekodi hiyo tayari ipo.';
+
+  @override
+  String get legacy_b85cb4bf091b => 'Upangaji huo hautumiki.';
+
+  @override
+  String get legacy_06fafad86a95 =>
+      'Seva ilichukua muda mrefu sana kujibu. Jaribu tena.';
+
+  @override
+  String get legacy_ad65b6dfeb97 =>
+      'Bei ya mwaka haiwezi kuwa zaidi ya malipo kumi na mawili ya kila mwezi.';
+
+  @override
+  String get legacy_0486dbaa769f =>
+      'Akaunti hii haina ruhusa ya kufanya hivyo.';
+
+  @override
+  String get legacy_98c1804b4d45 =>
+      'Akaunti hii bado haina rekodi ya mwenye nyumba, kwa hiyo haiwezi kuwezeshwa.';
+
+  @override
+  String get legacy_8927961a2446 =>
+      'Akaunti hii tayari imewekwa kwenye kumbukumbu.';
+
+  @override
+  String get legacy_208b9378be87 =>
+      'Akaunti hii haiko tena katika hali hiyo. Pakia upya ili uone hali yake ya sasa.';
+
+  @override
+  String get legacy_0d1dfd3592f9 =>
+      'Akaunti hii haiko katika hali inayoruhusu kuwezeshwa.';
+
+  @override
+  String get legacy_b7224264cf97 =>
+      'Akaunti hii imesimamishwa, kwa hiyo malipo hayawezi kuiwezesha. Lazima irejeshwe kwanza.';
+
+  @override
+  String get legacy_e2a1b305ffbd =>
+      'Akaunti hii imesimamishwa. Wasiliana na huduma ya usaidizi ya Nyumba ili irejeshwe.';
+
+  @override
+  String get legacy_34a370bb8f26 =>
+      'Kitendo hiki kinahitaji muunganisho wa intaneti. Unganisha tena na ujaribu tena.';
+
+  @override
+  String get legacy_977b7fe2ba26 =>
+      'Kitendo hiki tayari kilitumwa kikiwa na maelezo tofauti. Pakia upya na ujaribu tena.';
+
+  @override
+  String get legacy_6e7e677ba3d3 =>
+      'Malipo haya bado yanathibitishwa. Utayaona hapa mara tu yatakapothibitishwa.';
+
+  @override
+  String get legacy_e9b3d6e695b4 =>
+      'Toleo hili la programu limepitwa na wakati. Pakia upya ili upate toleo la hivi karibuni.';
+
+  @override
+  String get legacy_4610306154c0 =>
+      'Umejaribu mara nyingi sana. Subiri kidogo kabla ya kujaribu tena.';
+
+  @override
+  String get legacy_427eb1e9b92d =>
+      'Umefikia kikomo kinachoruhusiwa na mpango wako. Boresha mpango wako ili uongeze zaidi.';
+
+  @override
+  String get legacy_c34019924764 =>
+      'Umetumia nafasi zote za wafanyakazi zinazoruhusiwa na mpango wako. Boresha mpango wako ili uongeze washiriki zaidi wa timu.';
+
+  @override
+  String get legacy_bdbcbdd54088 =>
+      'Akaunti yako bado inasubiri kukaguliwa, kwa hiyo kitendo hiki bado hakipatikani.';
+
+  @override
+  String get legacy_bd9b9bf7438f =>
+      'Kipindi chako kimeisha. Ingia tena ili kuendelea.';
+
+  @override
+  String get legacy_5856f45a39ca =>
+      'Usajili wako bado hautumiki, kwa hiyo hauwezi kuboreshwa. Kamilisha malipo yako ya kwanza kwanza.';
+
+  @override
+  String get legacy_f6bf142ea0c0 =>
+      'Usajili wako bado hautumiki, kwa hiyo kitendo hiki hakipatikani.';
+
+  @override
   String welcomeBackName(Object name) {
     return 'Karibu tena, $name.';
   }
@@ -2761,6 +2923,123 @@ class AppLocalizationsSw extends AppLocalizations {
       'Kufungua kwa alama ya kidole hakukuwashwa.';
 
   @override
+  String get security => 'Usalama';
+
+  @override
+  String get securitySubtitle =>
+      'Dhibiti jinsi kifaa hiki kinavyofungua eneo lako la kazi.';
+
+  @override
+  String get appLockSwitchTitle => 'Kufuli la programu la alama ya kidole';
+
+  @override
+  String get appLockSwitchSubtitle =>
+      'Omba alama ya kidole Nyumba inapofunguliwa tena.';
+
+  @override
+  String get statusMessageSecureStorageTitle =>
+      'Hatuwezi kufungua hifadhi salama ya kifaa chako';
+
+  @override
+  String statusMessageSecureStorageMessage(String subject) {
+    return 'Kipengele cha kifaa ambacho programu hii inahitaji (hifadhi salama) hakipatikani katika toleo linalotumika, kwa hiyo $subject haviwezi kupakiwa. Funga programu kabisa kisha uifungue tena. Ujumbe ukiendelea kuonekana, sakinisha upya au sasisha programu.';
+  }
+
+  @override
+  String get statusMessageOfflineTitle =>
+      'Inaonekana huna muunganisho wa intaneti';
+
+  @override
+  String statusMessageOfflineMessage(String subject) {
+    return 'Hatukuweza kufikia seva ili kuonyesha upya $subject. Unaweza kuendelea kutumia yaliyomo kwenye kifaa hiki; mabadiliko yatasawazishwa utakaporejea mtandaoni.';
+  }
+
+  @override
+  String statusMessageLoadFailedTitle(String subject) {
+    return 'Hatukuweza kupakia $subject';
+  }
+
+  @override
+  String get statusMessageLoadFailedMessage =>
+      'Hitilafu ilitokea wakati wa kusoma data yako ya ndani. Jaribu tena, na ikiendelea, shiriki maelezo ya kiufundi yaliyo hapa chini na huduma ya usaidizi.';
+
+  @override
+  String get statusMessageSeverityDebug => 'Utatuzi';
+
+  @override
+  String get statusMessageSeverityInfo => 'Taarifa';
+
+  @override
+  String get statusMessageSeverityWarning => 'Onyo';
+
+  @override
+  String get statusMessageSeverityCritical => 'Muhimu';
+
+  @override
+  String get statusMessageTryAgain => 'Jaribu tena';
+
+  @override
+  String get statusMessageTechnicalDetails => 'Maelezo ya kiufundi';
+
+  @override
+  String get statusMessageHideTechnicalDetails => 'Ficha maelezo ya kiufundi';
+
+  @override
+  String get statusSubjectPayments => 'malipo';
+
+  @override
+  String get statusSubjectYourPayments => 'malipo yako';
+
+  @override
+  String get statusSubjectYourRequests => 'maombi yako';
+
+  @override
+  String get statusSubjectYourHome => 'nyumba yako';
+
+  @override
+  String get statusSubjectDocuments => 'hati';
+
+  @override
+  String get statusSubjectTenants => 'wapangaji';
+
+  @override
+  String get statusSubjectAuditLog => 'kumbukumbu ya ukaguzi';
+
+  @override
+  String get statusSubjectPlanCatalog => 'orodha ya mipango';
+
+  @override
+  String get statusSubjectApprovalQueue => 'foleni ya idhini';
+
+  @override
+  String get statusSubjectYourProperties => 'mali zako';
+
+  @override
+  String get statusSubjectThisHome => 'nyumba hii';
+
+  @override
+  String get statusSubjectYourListings => 'matangazo yako';
+
+  @override
+  String get statusSubjectMaintenanceRequests => 'maombi ya matengenezo';
+
+  @override
+  String get adminSubscriptionsLoadFailedTitle =>
+      'Imeshindikana kupakia usajili';
+
+  @override
+  String get adminSubscriptionsLoadFailedMessage =>
+      'Orodha ya seva haikuweza kusomwa.';
+
+  @override
+  String get adminAccountDirectoryLoadFailedTitle =>
+      'Imeshindikana kupakia orodha ya akaunti';
+
+  @override
+  String get adminAccountDirectoryLoadFailedMessage =>
+      'Orodha ya moja kwa moja haikuweza kusomwa. Kwa makusudi hakuna nakala ya nje ya mtandao ya akaunti za watu wengine kwenye kifaa hiki.';
+
+  @override
   String get appLockCardTitle => 'Kufungua kwa alama ya kidole';
 
   @override
@@ -2779,4 +3058,82 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get appLockWaiting => 'Inasubiri alama ya kidole chako…';
+
+  @override
+  String get teamLabel => 'Timu';
+
+  @override
+  String get appRoleSuperAdmin => 'Msimamizi mkuu';
+
+  @override
+  String get appRoleAdmin => 'Msimamizi';
+
+  @override
+  String get appRoleLandlord => 'Mwenye nyumba';
+
+  @override
+  String get appRoleStaff => 'Mwanatimu';
+
+  @override
+  String get appRoleTenant => 'Mpangaji';
+
+  @override
+  String get appRoleClient => 'Mteja mtarajiwa';
+
+  @override
+  String get staffPermissionManagePropertiesLabel =>
+      'Mali na nyumba za kupangisha';
+
+  @override
+  String get staffPermissionManagePropertiesDescription =>
+      'Ongeza na uhariri mali na nafasi za kupangisha.';
+
+  @override
+  String get staffPermissionManageTenantsLabel => 'Wapangaji na mikataba';
+
+  @override
+  String get staffPermissionManageTenantsDescription =>
+      'Alika wapangaji na usimamie mikataba yao.';
+
+  @override
+  String get staffPermissionManageBillingLabel => 'Malipo na ankara';
+
+  @override
+  String get staffPermissionManageBillingDescription =>
+      'Rekodi malipo, tengeneza ankara na utoe risiti.';
+
+  @override
+  String get staffPermissionManageMaintenanceLabel => 'Matengenezo';
+
+  @override
+  String get staffPermissionManageMaintenanceDescription =>
+      'Sajili na usasishe maombi ya matengenezo.';
+
+  @override
+  String get staffPermissionManageListingsLabel => 'Matangazo';
+
+  @override
+  String get staffPermissionManageListingsDescription =>
+      'Chapisha na usimamie matangazo ya umma.';
+
+  @override
+  String get staffPermissionManageCommunicationLabel => 'Taarifa';
+
+  @override
+  String get staffPermissionManageCommunicationDescription =>
+      'Tuma taarifa kwa wapangaji.';
+
+  @override
+  String get staffPermissionManageDocumentsLabel => 'Hati';
+
+  @override
+  String get staffPermissionManageDocumentsDescription =>
+      'Pakia na usimamie hati.';
+
+  @override
+  String get staffPermissionViewReportsLabel => 'Ripoti';
+
+  @override
+  String get staffPermissionViewReportsDescription =>
+      'Tengeneza ripoti za uendeshaji.';
 }

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/localization/command_failure_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -15,6 +18,7 @@ import '../../../core/presentation/metric_grid.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../auth/domain/auth_failure.dart';
@@ -211,11 +215,11 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   padding: EdgeInsets.all(48),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text.localized('Could not load payments: $error'),
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  localizations: appLocalizationsOf(context),
+                  subject: appLocalizationsOf(context).statusSubjectPayments,
+                  onRetry: () => ref.invalidate(rentPaymentsProvider),
                 ),
                 data: (payments) =>
                     _buildLoaded(context, payments, tenancies, outbox),
@@ -432,7 +436,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text.localized(
-              'Could not confirm: ${describeAuthFailure(error)}',
+              'Could not confirm: ${describeAuthFailure(
+                error,
+                commandFailureLocalizer: (failure) => localizeCommandFailure(
+                  appLocalizationsOf(context),
+                  failure,
+                ),
+              )}',
             ),
           ),
         );
@@ -525,7 +535,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text.localized(
-                'Could not reject: ${describeAuthFailure(error)}',
+                'Could not reject: ${describeAuthFailure(
+                  error,
+                  commandFailureLocalizer: (failure) => localizeCommandFailure(
+                    appLocalizationsOf(context),
+                    failure,
+                  ),
+                )}',
               ),
             ),
           );

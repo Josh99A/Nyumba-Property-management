@@ -1898,6 +1898,161 @@ class AppLocalizationsAr extends AppLocalizations {
       'سيقوم مدير العقار الخاص بك بإعداد هذه الوثيقة ومشاركتها هنا.';
 
   @override
+  String get legacy_59138b8999c6 => 'قم بأرشفة هذا الحساب قبل القيام بذلك.';
+
+  @override
+  String get legacy_4134f7a8316a => 'غيّر تفصيلاً واحدًا على الأقل قبل الحفظ.';
+
+  @override
+  String get legacy_87a2131e6d61 =>
+      'أذونات الموظفين المخصصة ميزة ضمن خطة Premium. رقِّ خطتك لتخصيص ما يمكن لكل عضو في الفريق القيام به.';
+
+  @override
+  String get legacy_b292aea5f50e =>
+      'المدفوعات الإلكترونية غير متاحة بعد. ادفع إلى Nyumba مباشرةً وسيؤكد أحد المسؤولين الدفع.';
+
+  @override
+  String get legacy_b791dbf9cc55 =>
+      'يتعذر على Nyumba الوصول إلى الخادم. تحقق من اتصالك وحاول مرة أخرى.';
+
+  @override
+  String get legacy_f810bcddd7ed =>
+      'تعذر على Nyumba قبول هذا الطلب. أعد تحميل التطبيق وحاول مرة أخرى.';
+
+  @override
+  String get legacy_3852e291776f =>
+      'تعذر على Nyumba إكمال هذا الإجراء. يُرجى المحاولة مرة أخرى.';
+
+  @override
+  String get legacy_8dd971279a6c =>
+      'تعذر على Nyumba إكمال ذلك الآن. يُرجى المحاولة مرة أخرى.';
+
+  @override
+  String get legacy_fc164894a18a =>
+      'تعذر على Nyumba تأكيد خطتك، لذلك لم يُطبَّق هذا الإجراء. حاول مرة أخرى بعد قليل، أو تواصل مع الدعم إذا استمرت المشكلة.';
+
+  @override
+  String get legacy_5f40e5d243c5 =>
+      'تعذر على Nyumba العثور على هذا السجل. ربما أُزيل — أعد التحميل وحاول مرة أخرى.';
+
+  @override
+  String get legacy_3a6e632ad56d =>
+      'تعذر على Nyumba التحقق من هذا الجهاز. حدّث التطبيق وحاول مرة أخرى.';
+
+  @override
+  String get legacy_8032d3a419ad =>
+      'لم يقبل Nyumba هذا الطلب. أعد التحميل وحاول مرة أخرى.';
+
+  @override
+  String legacy_553f76c2b4de(String fields) {
+    return 'لم يقبل Nyumba هذه التفاصيل: $fields. تحقق منها وحاول مرة أخرى — إذا بدت صحيحة، فأعد تحميل التطبيق للحصول على أحدث إصدار.';
+  }
+
+  @override
+  String get legacy_eacb633c809b =>
+      'لم تُقبل بعض هذه التفاصيل. تحقق منها وحاول مرة أخرى.';
+
+  @override
+  String get legacy_2dc6de513de7 =>
+      'غيّر شخص آخر هذا أثناء عملك عليه. أعد التحميل للاطلاع على أحدث إصدار، ثم حاول مرة أخرى.';
+
+  @override
+  String get legacy_26124c0ce6a9 => 'هذا المبلغ أكبر من الرصيد المستحق.';
+
+  @override
+  String get legacy_dad068aa555b => 'هذا هو دور هذا الحساب بالفعل.';
+
+  @override
+  String get legacy_ab87caef66c3 =>
+      'هذه هي خطتك الحالية بالفعل. اختر خطة أخرى لتغيير الخطط.';
+
+  @override
+  String get legacy_e3d4879fe8e6 => 'هذه الخطة مفعّلة بالفعل على هذا الحساب.';
+
+  @override
+  String get legacy_865689190ea5 => 'هذا السجل موجود بالفعل.';
+
+  @override
+  String get legacy_b85cb4bf091b => 'عقد الإيجار هذا غير نشط.';
+
+  @override
+  String get legacy_06fafad86a95 =>
+      'استغرق الخادم وقتًا طويلاً للرد. حاول مرة أخرى.';
+
+  @override
+  String get legacy_ad65b6dfeb97 =>
+      'لا يمكن أن يتجاوز السعر السنوي اثنتي عشرة دفعة شهرية.';
+
+  @override
+  String get legacy_0486dbaa769f => 'لا يملك هذا الحساب إذنًا للقيام بذلك.';
+
+  @override
+  String get legacy_98c1804b4d45 =>
+      'لا يحتوي هذا الحساب على سجل مالك بعد، لذلك لا يمكن تفعيله.';
+
+  @override
+  String get legacy_8927961a2446 => 'هذا الحساب مؤرشف بالفعل.';
+
+  @override
+  String get legacy_208b9378be87 =>
+      'لم يعد هذا الحساب في تلك الحالة. أعد التحميل للاطلاع على حالته الحالية.';
+
+  @override
+  String get legacy_0d1dfd3592f9 => 'هذا الحساب ليس في حالة تسمح بتفعيله.';
+
+  @override
+  String get legacy_b7224264cf97 =>
+      'هذا الحساب موقوف، لذلك لا يمكن للدفع تفعيله. يجب إعادته إلى الخدمة أولاً.';
+
+  @override
+  String get legacy_e2a1b305ffbd =>
+      'هذا الحساب موقوف. تواصل مع دعم Nyumba لاستعادته.';
+
+  @override
+  String get legacy_34a370bb8f26 =>
+      'يتطلب هذا الإجراء اتصالاً بالإنترنت. أعد الاتصال وحاول مرة أخرى.';
+
+  @override
+  String get legacy_977b7fe2ba26 =>
+      'أُرسل هذا الإجراء بالفعل بتفاصيل مختلفة. أعد التحميل وحاول مرة أخرى.';
+
+  @override
+  String get legacy_6e7e677ba3d3 =>
+      'لا تزال هذه الدفعة قيد التأكيد. ستظهر هنا بمجرد تأكيدها.';
+
+  @override
+  String get legacy_e9b3d6e695b4 =>
+      'هذا الإصدار من التطبيق قديم. أعد التحميل للحصول على أحدث إصدار.';
+
+  @override
+  String get legacy_4610306154c0 =>
+      'محاولات كثيرة جدًا. انتظر قليلاً قبل المحاولة مرة أخرى.';
+
+  @override
+  String get legacy_427eb1e9b92d =>
+      'لقد بلغت الحد الذي تسمح به خطتك. رقِّ خطتك لإضافة المزيد.';
+
+  @override
+  String get legacy_c34019924764 =>
+      'لقد استخدمت جميع مقاعد الموظفين التي تسمح بها خطتك. رقِّ خطتك لإضافة مزيد من أعضاء الفريق.';
+
+  @override
+  String get legacy_bdbcbdd54088 =>
+      'لا يزال حسابك في انتظار المراجعة، لذلك هذا الإجراء غير متاح بعد.';
+
+  @override
+  String get legacy_bd9b9bf7438f =>
+      'انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.';
+
+  @override
+  String get legacy_5856f45a39ca =>
+      'اشتراكك غير نشط بعد، لذلك لا يمكن ترقيته. أكمل دفعتك الأولى أولاً.';
+
+  @override
+  String get legacy_f6bf142ea0c0 =>
+      'اشتراكك غير نشط بعد، لذلك هذا الإجراء غير متاح.';
+
+  @override
   String welcomeBackName(Object name) {
     return 'مرحبًا بعودتك، $name.';
   }
@@ -2693,6 +2848,117 @@ class AppLocalizationsAr extends AppLocalizations {
   String get appLockNotEnabledToast => 'لم يتم تفعيل الفتح ببصمة الإصبع.';
 
   @override
+  String get security => 'الأمان';
+
+  @override
+  String get securitySubtitle => 'تحكم في طريقة فتح هذا الجهاز لمساحة عملك.';
+
+  @override
+  String get appLockSwitchTitle => 'قفل التطبيق ببصمة الإصبع';
+
+  @override
+  String get appLockSwitchSubtitle => 'طلب بصمة إصبعك عند إعادة فتح Nyumba.';
+
+  @override
+  String get statusMessageSecureStorageTitle =>
+      'يتعذر فتح التخزين المحلي الآمن';
+
+  @override
+  String statusMessageSecureStorageMessage(String subject) {
+    return 'ميزة يحتاج إليها التطبيق على هذا الجهاز (التخزين الآمن) غير متاحة في الإصدار الحالي، لذلك يتعذر تحميل $subject. أغلق التطبيق تمامًا ثم افتحه مجددًا. إذا استمرت الرسالة، فأعد تثبيت التطبيق أو حدّثه.';
+  }
+
+  @override
+  String get statusMessageOfflineTitle => 'يبدو أنك غير متصل بالإنترنت';
+
+  @override
+  String statusMessageOfflineMessage(String subject) {
+    return 'تعذر الوصول إلى الخادم لتحديث $subject. يمكنك مواصلة العمل بالبيانات الموجودة على هذا الجهاز؛ وستتم مزامنة التغييرات عند عودة الاتصال.';
+  }
+
+  @override
+  String statusMessageLoadFailedTitle(String subject) {
+    return 'تعذر تحميل $subject';
+  }
+
+  @override
+  String get statusMessageLoadFailedMessage =>
+      'حدث خطأ أثناء قراءة بياناتك المحلية. حاول مرة أخرى، وإذا استمرت المشكلة فشارِك التفاصيل التقنية أدناه مع الدعم.';
+
+  @override
+  String get statusMessageSeverityDebug => 'تصحيح';
+
+  @override
+  String get statusMessageSeverityInfo => 'معلومة';
+
+  @override
+  String get statusMessageSeverityWarning => 'تحذير';
+
+  @override
+  String get statusMessageSeverityCritical => 'حرج';
+
+  @override
+  String get statusMessageTryAgain => 'حاول مرة أخرى';
+
+  @override
+  String get statusMessageTechnicalDetails => 'التفاصيل التقنية';
+
+  @override
+  String get statusMessageHideTechnicalDetails => 'إخفاء التفاصيل التقنية';
+
+  @override
+  String get statusSubjectPayments => 'المدفوعات';
+
+  @override
+  String get statusSubjectYourPayments => 'مدفوعاتك';
+
+  @override
+  String get statusSubjectYourRequests => 'طلباتك';
+
+  @override
+  String get statusSubjectYourHome => 'منزلك';
+
+  @override
+  String get statusSubjectDocuments => 'المستندات';
+
+  @override
+  String get statusSubjectTenants => 'المستأجرين';
+
+  @override
+  String get statusSubjectAuditLog => 'سجل التدقيق';
+
+  @override
+  String get statusSubjectPlanCatalog => 'دليل الخطط';
+
+  @override
+  String get statusSubjectApprovalQueue => 'قائمة الموافقات';
+
+  @override
+  String get statusSubjectYourProperties => 'عقاراتك';
+
+  @override
+  String get statusSubjectThisHome => 'هذا المنزل';
+
+  @override
+  String get statusSubjectYourListings => 'إعلاناتك';
+
+  @override
+  String get statusSubjectMaintenanceRequests => 'طلبات الصيانة';
+
+  @override
+  String get adminSubscriptionsLoadFailedTitle => 'تعذر تحميل الاشتراكات';
+
+  @override
+  String get adminSubscriptionsLoadFailedMessage => 'تعذرت قراءة دليل الخادم.';
+
+  @override
+  String get adminAccountDirectoryLoadFailedTitle => 'تعذر تحميل دليل الحسابات';
+
+  @override
+  String get adminAccountDirectoryLoadFailedMessage =>
+      'تعذرت قراءة الدليل المباشر. لا توجد عمدًا نسخة غير متصلة لحسابات أشخاص آخرين على هذا الجهاز.';
+
+  @override
   String get appLockCardTitle => 'الفتح ببصمة الإصبع';
 
   @override
@@ -2711,4 +2977,80 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get appLockWaiting => 'في انتظار بصمة إصبعك…';
+
+  @override
+  String get teamLabel => 'الفريق';
+
+  @override
+  String get appRoleSuperAdmin => 'المشرف الأعلى';
+
+  @override
+  String get appRoleAdmin => 'المشرف';
+
+  @override
+  String get appRoleLandlord => 'المالك';
+
+  @override
+  String get appRoleStaff => 'عضو الفريق';
+
+  @override
+  String get appRoleTenant => 'المستأجر';
+
+  @override
+  String get appRoleClient => 'عميل محتمل';
+
+  @override
+  String get staffPermissionManagePropertiesLabel => 'العقارات والوحدات';
+
+  @override
+  String get staffPermissionManagePropertiesDescription =>
+      'إضافة العقارات والمساحات المؤجرة وتعديلها.';
+
+  @override
+  String get staffPermissionManageTenantsLabel => 'المستأجرون وعقود الإيجار';
+
+  @override
+  String get staffPermissionManageTenantsDescription =>
+      'دعوة المستأجرين وإدارة عقود إيجارهم.';
+
+  @override
+  String get staffPermissionManageBillingLabel => 'المدفوعات والفواتير';
+
+  @override
+  String get staffPermissionManageBillingDescription =>
+      'تسجيل المدفوعات وإنشاء الفواتير وإصدار الإيصالات.';
+
+  @override
+  String get staffPermissionManageMaintenanceLabel => 'الصيانة';
+
+  @override
+  String get staffPermissionManageMaintenanceDescription =>
+      'تسجيل طلبات الصيانة وتحديثها.';
+
+  @override
+  String get staffPermissionManageListingsLabel => 'الإعلانات';
+
+  @override
+  String get staffPermissionManageListingsDescription =>
+      'نشر الإعلانات العامة وإدارتها.';
+
+  @override
+  String get staffPermissionManageCommunicationLabel => 'الإشعارات';
+
+  @override
+  String get staffPermissionManageCommunicationDescription =>
+      'إرسال إشعارات إلى المستأجرين.';
+
+  @override
+  String get staffPermissionManageDocumentsLabel => 'المستندات';
+
+  @override
+  String get staffPermissionManageDocumentsDescription =>
+      'رفع المستندات وإدارتها.';
+
+  @override
+  String get staffPermissionViewReportsLabel => 'التقارير';
+
+  @override
+  String get staffPermissionViewReportsDescription => 'إنشاء تقارير تشغيلية.';
 }

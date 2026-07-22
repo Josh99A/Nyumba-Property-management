@@ -72,14 +72,22 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
           .orderBy('createdAt', descending: true)
           .limit(100);
     } else if (publicOnly) {
-      if (entityType != OfflineEntityType.listing) {
-        throw ArgumentError('Only listings have a public read model.');
-      }
-      query = _firestore
-          .collection('publicListings')
-          .where('status', isEqualTo: 'published')
-          .where('expiresAt', isGreaterThan: Timestamp.now())
-          .limit(50);
+      query = switch (entityType) {
+        OfflineEntityType.listing =>
+          _firestore
+              .collection('publicListings')
+              .where('status', isEqualTo: 'published')
+              .where('expiresAt', isGreaterThan: Timestamp.now())
+              .limit(50),
+        OfflineEntityType.planCatalog =>
+          _firestore
+              .collection('planCatalog')
+              .where('isPublic', isEqualTo: true)
+              .limit(20),
+        _ => throw ArgumentError(
+          'Only listings and the plan catalog have public read models.',
+        ),
+      };
     } else if (administrativeScope) {
       query = _firestore.collection(_landlordCollection(entityType)).limit(200);
     } else if (landlordId != null) {
@@ -140,7 +148,8 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
         // Canonical shapes the client's mappers already accept.
         OfflineEntityType.property ||
         OfflineEntityType.unit ||
-        OfflineEntityType.listing => LandlordReadSource.canonicalCollection,
+        OfflineEntityType.listing ||
+        OfflineEntityType.staffInvite => LandlordReadSource.canonicalCollection,
         // Joined read models: no single collection can rebuild these.
         OfflineEntityType.tenancy ||
         OfflineEntityType.payment => LandlordReadSource.portalProjection,
@@ -170,6 +179,7 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     OfflineEntityType.maintenanceRequest => 'maintenanceRequests',
     OfflineEntityType.document => 'documents',
     OfflineEntityType.notice => 'notices',
+    OfflineEntityType.staffInvite => 'staffInvites',
     _ => throw ArgumentError('No landlord collection for ${type.name}.'),
   };
 

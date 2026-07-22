@@ -1,11 +1,109 @@
+import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/offline/firebase_remote_sync_gateway.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
 import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
 import 'package:nyumba_property_management/core/offline/remote_sync_gateway.dart';
 
+/// A configurable [FlutterSecureStorage] stand-in for the installation-id
+/// degradation paths. Optionally throws to mimic secure storage being
+/// unavailable (private browsing, restricted device, unregistered plugin).
+class _FakeSecureStorage extends FlutterSecureStorage {
+  _FakeSecureStorage({
+    this.stored,
+    this.throwOnRead = false,
+    this.throwOnWrite = false,
+  }) : super();
+
+  String? stored;
+  final bool throwOnRead;
+  final bool throwOnWrite;
+  final List<String?> writes = <String?>[];
+
+  @override
+  Future<String?> read({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (throwOnRead) {
+      throw MissingPluginException('secure storage read unavailable');
+    }
+    return stored;
+  }
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    writes.add(value);
+    if (throwOnWrite) {
+      throw MissingPluginException('secure storage write unavailable');
+    }
+    stored = value;
+  }
+}
+
 void main() {
   final createdAt = DateTime.utc(2026, 7, 15);
+
+  group('resolveInstallationId', () {
+    test('returns the persisted id without rewriting it', () async {
+      final storage = _FakeSecureStorage(stored: 'install_persisted');
+
+      final id = await FirebaseRemoteSyncGateway.resolveInstallationId(
+        storage: storage,
+      );
+
+      expect(id, 'install_persisted');
+      expect(storage.writes, isEmpty);
+    });
+
+    test('generates and persists an id when none is stored', () async {
+      final storage = _FakeSecureStorage();
+
+      final id = await FirebaseRemoteSyncGateway.resolveInstallationId(
+        storage: storage,
+      );
+
+      expect(id, isNotEmpty);
+      expect(storage.writes, <String?>[id]);
+    });
+
+    test('falls back to an ephemeral id when the read throws', () async {
+      final storage = _FakeSecureStorage(throwOnRead: true);
+
+      final id = await FirebaseRemoteSyncGateway.resolveInstallationId(
+        storage: storage,
+      );
+
+      expect(id, isNotEmpty);
+    });
+
+    test('returns a usable id even when persistence throws', () async {
+      final storage = _FakeSecureStorage(throwOnWrite: true);
+
+      final id = await FirebaseRemoteSyncGateway.resolveInstallationId(
+        storage: storage,
+      );
+
+      expect(id, isNotEmpty);
+      expect(storage.writes, <String?>[id]);
+      expect(storage.stored, isNull);
+    });
+  });
 
   test('maps stable outbox identity and allowlisted unit fields', () async {
     Map<String, Object?>? captured;
@@ -96,6 +194,45 @@ void main() {
       ),
     );
   });
+
+  test(
+    'uses the machine code rather than the server localization key',
+    () async {
+      final gateway = FirebaseRemoteSyncGateway(
+        installationId: 'install_1234',
+        appVersion: '1.2.3',
+        platform: 'web',
+        invoke: (_) async => <String, Object?>{
+          'status': 'rejected',
+          'serverUpdatedAt': '2026-07-15T00:00:00.000Z',
+          'error': <String, Object?>{
+            'code': 'SEAT_LIMIT_REACHED',
+            'messageKey': 'subscription.seatLimitReached',
+          },
+        },
+      );
+      final mutation = RemoteMutation(
+        mutationId: 'outbox_staff',
+        entityType: OfflineEntityType.unit,
+        entityId: 'unit_1234',
+        operation: OutboxOperation.create,
+        payload: const <String, Object?>{},
+        idempotencyKey: 'command_staff',
+        clientCreatedAt: createdAt,
+      );
+
+      await expectLater(
+        gateway.push(mutation),
+        throwsA(
+          isA<RemoteSyncException>().having(
+            (error) => error.message,
+            'message',
+            'SEAT_LIMIT_REACHED',
+          ),
+        ),
+      );
+    },
+  );
 
   test('property commands send only five staged image paths in order', () {
     final gateway = FirebaseRemoteSyncGateway(
