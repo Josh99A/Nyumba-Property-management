@@ -5,6 +5,7 @@ import 'package:nyumba_property_management/core/localization/nyumba_localization
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/toast.dart';
 import '../application/app_lock_controller.dart';
@@ -106,20 +107,16 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
                   ),
                 ],
                 const SizedBox(height: 28),
-                FilledButton.icon(
-                  onPressed: unlocking ? null : _unlock,
-                  icon: unlocking
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.fingerprint_rounded),
-                  label: Text.localized(unlocking ? 'Unlocking…' : 'Unlock'),
+                AsyncActionButton.filled(
+                  onPressed: _unlock,
+                  busy: unlocking,
+                  icon: const Icon(Icons.fingerprint_rounded),
+                  child: Text.localized(unlocking ? 'Unlocking…' : 'Unlock'),
                 ),
                 const SizedBox(height: 10),
                 // Escape hatch for a permanently failing sensor: back to the
                 // sign-in screen, where the password still works.
-                TextButton(
+                AsyncActionButton.text(
                   onPressed: _signOut,
                   child: const Text.localized('Sign out instead'),
                 ),

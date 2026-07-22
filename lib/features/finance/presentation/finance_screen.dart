@@ -14,6 +14,7 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/metric_grid.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/page_header.dart';
@@ -59,8 +60,8 @@ class _DeclaredPaymentsPanel extends StatelessWidget {
   });
 
   final AsyncValue<List<DeclaredPayment>> payments;
-  final ValueChanged<DeclaredPayment> onConfirm;
-  final ValueChanged<DeclaredPayment> onReject;
+  final Future<void> Function(DeclaredPayment) onConfirm;
+  final Future<void> Function(DeclaredPayment) onReject;
 
   @override
   Widget build(BuildContext context) {
@@ -127,15 +128,16 @@ class _DeclaredPaymentsPanel extends StatelessWidget {
                     runSpacing: 8,
                     alignment: WrapAlignment.end,
                     children: [
-                      OutlinedButton.icon(
+                      AsyncActionButton.outlined(
                         onPressed: () => onReject(payment),
+                        showBusyIndicator: false,
                         icon: const Icon(Icons.block_outlined, size: 18),
-                        label: const Text.localized('Reject'),
+                        child: const Text.localized('Reject'),
                       ),
-                      FilledButton.icon(
+                      AsyncActionButton.filled(
                         onPressed: () => onConfirm(payment),
                         icon: const Icon(Icons.price_check_rounded, size: 18),
-                        label: const Text.localized('Confirm'),
+                        child: const Text.localized('Confirm'),
                       ),
                     ],
                   );
@@ -198,10 +200,11 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 title: 'Finances',
                 description:
                     'Track rent, record receipts, and keep every balance honest.',
-                primaryAction: FilledButton.icon(
+                primaryAction: AsyncActionButton.filled(
                   onPressed: () => _showRecordPayment(context, tenancies),
+                  showBusyIndicator: false,
                   icon: const Icon(Icons.add_card_outlined),
-                  label: const Text.localized('Record payment'),
+                  child: const Text.localized('Record payment'),
                 ),
                 secondaryAction: OutlinedButton.icon(
                   onPressed: () => context.go('/documents'),
@@ -403,10 +406,10 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 padding: const EdgeInsets.all(12),
                 child: Align(
                   alignment: AlignmentDirectional.centerEnd,
-                  child: TextButton.icon(
+                  child: AsyncActionButton.text(
                     onPressed: () => _exportPayments(payments),
                     icon: const Icon(Icons.download_outlined, size: 18),
-                    label: const Text.localized('Export report'),
+                    child: const Text.localized('Export report'),
                   ),
                 ),
               ),

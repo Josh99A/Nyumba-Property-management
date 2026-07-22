@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/market_config.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_message.dart';
@@ -380,18 +381,20 @@ class _ListingActions extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 20),
-          FilledButton.icon(
+          AsyncActionButton.filled(
             onPressed: () => _showApplication(context, listing),
+            showBusyIndicator: false,
             icon: const Icon(Icons.description_outlined),
-            label: Text.localized(
+            child: Text.localized(
               'Apply for this ${listing.unitType == null ? 'rental space' : _displayEnum(listing.unitType!).toLowerCase()}',
             ),
           ),
           const SizedBox(height: 10),
-          OutlinedButton.icon(
+          AsyncActionButton.outlined(
             onPressed: () => _showContact(context, listing),
+            showBusyIndicator: false,
             icon: const Icon(Icons.phone_outlined),
-            label: const Text.localized('Contact landlord'),
+            child: const Text.localized('Contact landlord'),
           ),
           const SizedBox(height: 18),
           const Divider(),
@@ -716,7 +719,8 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                       : null,
                 ),
                 const SizedBox(height: 13),
-                OutlinedButton.icon(
+                AsyncActionButton.outlined(
+                  showBusyIndicator: false,
                   onPressed: () async {
                     final date = await showDatePicker(
                       context: context,
@@ -726,7 +730,7 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
                     if (date != null) setState(() => _moveIn = date);
                   },
                   icon: const Icon(Icons.event_outlined),
-                  label: Text.localized(
+                  child: Text.localized(
                     _moveIn == null
                         ? 'Choose desired move-in date'
                         : 'Move in ${DateFormat('d MMMM y').format(_moveIn!)}',
@@ -758,17 +762,10 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
           onPressed: _submitting ? null : () => Navigator.pop(context),
           child: const Text.localized('Cancel'),
         ),
-        FilledButton(
-          onPressed: _submitting ? null : _submit,
-          child: _submitting
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text.localized('Submit application'),
+        AsyncActionButton.filled(
+          onPressed: _submit,
+          busy: _submitting,
+          child: const Text.localized('Submit application'),
         ),
       ],
     );

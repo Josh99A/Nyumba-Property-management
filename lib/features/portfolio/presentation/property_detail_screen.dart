@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/domain/sync_metadata.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
@@ -176,10 +177,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     ),
                   ),
                   if (canCreateUnit)
-                    FilledButton.icon(
+                    AsyncActionButton.filled(
                       onPressed: _showAddUnit,
+                      showBusyIndicator: false,
                       icon: const Icon(Icons.add_rounded),
-                      label: const Text.localized('Add rental space'),
+                      child: const Text.localized('Add rental space'),
                     ),
                 ],
               ),
@@ -338,7 +340,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               onPressed: () => Navigator.pop(context, false),
               child: const Text.localized('Cancel'),
             ),
-            FilledButton(
+            AsyncActionButton.filled(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 try {
@@ -534,7 +536,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               onPressed: () => Navigator.pop(context, false),
               child: const Text.localized('Cancel'),
             ),
-            FilledButton(
+            AsyncActionButton.filled(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 try {
@@ -777,7 +779,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               onPressed: () => Navigator.pop(context, false),
               child: const Text.localized('Cancel'),
             ),
-            FilledButton(
+            AsyncActionButton.filled(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 try {
@@ -1249,7 +1251,7 @@ class _UnitCard extends StatelessWidget {
   final bool canAdvertise;
   final bool canUpdate;
   final bool canArchive;
-  final VoidCallback onAdvertise;
+  final Future<void> Function() onAdvertise;
   final VoidCallback onEdit;
   final VoidCallback onArchive;
 
@@ -1368,10 +1370,10 @@ class _UnitCard extends StatelessWidget {
                 const StatusBadge(label: 'Synced', tone: BadgeTone.success),
               const Spacer(),
               if (canAdvertise && unit.canBeAdvertised && !hasListing)
-                TextButton.icon(
+                AsyncActionButton.text(
                   onPressed: onAdvertise,
                   icon: const Icon(Icons.campaign_outlined, size: 18),
-                  label: const Text.localized('Advertise'),
+                  child: const Text.localized('Advertise'),
                 )
               else if (hasListing)
                 const StatusBadge(

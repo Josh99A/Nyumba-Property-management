@@ -148,7 +148,7 @@ class _TenantHomeLoaded extends ConsumerWidget {
               '${DateFormat('MMMM y').format(DateTime.now())} rent • '
               'due on the 5th',
           paid: paid,
-          onPay: () => context.go('/tenant/payments'),
+          onPay: () async => context.go('/tenant/payments'),
         ),
         const SizedBox(height: 18),
         LayoutBuilder(

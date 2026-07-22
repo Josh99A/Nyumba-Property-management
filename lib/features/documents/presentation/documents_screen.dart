@@ -12,6 +12,7 @@ import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -100,10 +101,11 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 title: 'Documents',
                 description:
                     'Print and share invoices, receipts, leases, and notices.',
-                primaryAction: FilledButton.icon(
+                primaryAction: AsyncActionButton.filled(
                   onPressed: () => _createDocument(context, tenancies),
+                  showBusyIndicator: false,
                   icon: const Icon(Icons.note_add_outlined),
-                  label: const Text.localized('Create document'),
+                  child: const Text.localized('Create document'),
                 ),
               ),
               const SizedBox(height: 24),
@@ -296,8 +298,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     }
   }
 
-  void _createDocument(BuildContext context, List<Tenancy> tenancies) {
-    showModalBottomSheet<void>(
+  Future<void> _createDocument(BuildContext context, List<Tenancy> tenancies) {
+    return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(
@@ -687,8 +689,8 @@ class _DocumentRow extends StatelessWidget {
 
   final _DocumentListEntry entry;
   final bool busy;
-  final VoidCallback onPrint;
-  final VoidCallback onShare;
+  final Future<void> Function() onPrint;
+  final Future<void> Function() onShare;
 
   @override
   Widget build(BuildContext context) {
@@ -753,27 +755,21 @@ class _DocumentRow extends StatelessWidget {
               child: SyncStateBadge(status: entry.syncStatus),
             ),
           ],
-          if (busy)
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: SizedBox.square(
-                dimension: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            )
-          else ...[
-            IconButton(
-              tooltip: context.tr('Print ${entry.number}'),
-              onPressed: onPrint,
-              icon: const Icon(Icons.print_outlined),
+          AsyncActionIconButton(
+            busy: busy,
+            tooltip: context.tr('Print ${entry.number}'),
+            onPressed: onPrint,
+            icon: const Icon(Icons.print_outlined),
+          ),
+          if (!context.isCompact)
+            AsyncActionIconButton(
+              // Print and share run through the same document service, so
+              // whichever one is working locks the other out too.
+              enabled: !busy,
+              tooltip: context.tr('Share ${entry.number}'),
+              onPressed: onShare,
+              icon: const Icon(Icons.ios_share_outlined),
             ),
-            if (!context.isCompact)
-              IconButton(
-                tooltip: context.tr('Share ${entry.number}'),
-                onPressed: onShare,
-                icon: const Icon(Icons.ios_share_outlined),
-              ),
-          ],
         ],
       ),
     );

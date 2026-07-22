@@ -9,6 +9,7 @@ import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/theme_mode_controller.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/responsive.dart';
@@ -247,15 +248,11 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               title: 'Profile settings',
               description:
                   'Manage your personal details, appearance, language, and notifications.',
-              primaryAction: FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: Text.localized(_saving ? 'Saving…' : 'Save changes'),
+              primaryAction: AsyncActionButton.filled(
+                onPressed: _save,
+                busy: _saving,
+                icon: const Icon(Icons.save_outlined),
+                child: Text.localized(_saving ? 'Saving…' : 'Save changes'),
               ),
             ),
             const SizedBox(height: 24),
@@ -594,28 +591,21 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _togglingAppLock
-                      ? null
-                      : () => _toggleAppLock(false),
+                child: AsyncActionButton.outlined(
+                  onPressed: () => _toggleAppLock(false),
+                  busy: _togglingAppLock,
                   icon: const Icon(Icons.lock_open_outlined),
-                  label: const Text.localized('Turn off fingerprint unlock'),
+                  child: const Text.localized('Turn off fingerprint unlock'),
                 ),
               ),
             ] else
               SizedBox(
                 width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _togglingAppLock
-                      ? null
-                      : () => _toggleAppLock(true),
-                  icon: _togglingAppLock
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.fingerprint_rounded),
-                  label: Text.localized(
+                child: AsyncActionButton.filled(
+                  onPressed: () => _toggleAppLock(true),
+                  busy: _togglingAppLock,
+                  icon: const Icon(Icons.fingerprint_rounded),
+                  child: Text.localized(
                     _togglingAppLock
                         ? 'Waiting for your fingerprint…'
                         : 'Turn on fingerprint unlock',

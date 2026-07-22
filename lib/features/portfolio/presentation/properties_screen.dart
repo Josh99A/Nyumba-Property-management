@@ -10,6 +10,8 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/action_failure.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/page_header.dart';
@@ -87,10 +89,11 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                 description:
                     'Every rentable space has its own rent, occupancy, lease, and maintenance history.',
                 primaryAction: canCreate
-                    ? FilledButton.icon(
+                    ? AsyncActionButton.filled(
                         onPressed: _createProperty,
+                        showBusyIndicator: false,
                         icon: const Icon(Icons.add_rounded),
-                        label: const Text.localized('Add property'),
+                        child: const Text.localized('Add property'),
                       )
                     : null,
               ),
@@ -128,8 +131,9 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                 error: (error, stack) => NyumbaStatusMessage.fromError(
                   error,
                   localizations: appLocalizationsOf(context),
-                  subject: appLocalizationsOf(context)
-                      .statusSubjectYourProperties,
+                  subject: appLocalizationsOf(
+                    context,
+                  ).statusSubjectYourProperties,
                   onRetry: () => ref.invalidate(portfolioPropertiesProvider),
                 ),
                 data: (allProperties) {
@@ -225,7 +229,11 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     final city = TextEditingController(text: 'Kampala');
     final description = TextEditingController();
     final selectedPhotos = <PickedPropertyPhoto>[];
-    String? error;
+    // Kept apart on purpose: photos that were rejected are a warning about the
+    // selection, while a failure is the save itself refusing. Both used to be
+    // one string at the bottom of a scrolling column, where neither was seen.
+    var photoProblems = const <String>[];
+    ActionFailure? failure;
     final property = await showDialog<Property>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -233,146 +241,184 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
           title: const Text.localized('Add property'),
           content: SizedBox(
             width: 500,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (session.role == AppRole.admin ||
-                        session.role == AppRole.superAdmin) ...[
-                      TextFormField(
-                        controller: landlordId,
-                        decoration: InputDecoration(
-                          labelText: context.tr('Target landlord account ID'),
-                          helperText: context.tr(
-                            'Staff actions are server-validated and audited.',
-                          ),
-                        ),
-                        validator: (value) => (value?.trim().isEmpty ?? true)
-                            ? context.tr('Enter the landlord account ID')
-                            : null,
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-                    TextFormField(
-                      controller: name,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Property name'),
-                      ),
-                      validator: (value) => (value?.trim().length ?? 0) < 2
-                          ? context.tr('Enter a property name')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: address,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Street address'),
-                      ),
-                      validator: (value) => (value?.trim().length ?? 0) < 3
-                          ? context.tr('Enter the street address')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: city,
-                      decoration: InputDecoration(
-                        labelText: context.tr('City or town'),
-                      ),
-                      validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? context.tr('Enter a city or town')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: description,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Description (optional)'),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text.localized(
-                                'Property photos',
-                                style: Theme.of(context).textTheme.titleSmall,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Form(
+                    key: formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (session.role == AppRole.admin ||
+                              session.role == AppRole.superAdmin) ...[
+                            TextFormField(
+                              controller: landlordId,
+                              decoration: InputDecoration(
+                                labelText: context.tr(
+                                  'Target landlord account ID',
+                                ),
+                                helperText: context.tr(
+                                  'Staff actions are server-validated and audited.',
+                                ),
                               ),
-                              Text.localized(
-                                'Add 1–5 photos. The primary photo appears first.',
-                                style: Theme.of(context).textTheme.bodySmall,
+                              validator: (value) =>
+                                  (value?.trim().isEmpty ?? true)
+                                  ? context.tr('Enter the landlord account ID')
+                                  : null,
+                            ),
+                            const SizedBox(height: 14),
+                          ],
+                          TextFormField(
+                            controller: name,
+                            autofocus: true,
+                            decoration: InputDecoration(
+                              labelText: context.tr('Property name'),
+                            ),
+                            validator: (value) =>
+                                (value?.trim().length ?? 0) < 2
+                                ? context.tr('Enter a property name')
+                                : null,
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: address,
+                            decoration: InputDecoration(
+                              labelText: context.tr('Street address'),
+                            ),
+                            validator: (value) =>
+                                (value?.trim().length ?? 0) < 3
+                                ? context.tr('Enter the street address')
+                                : null,
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: city,
+                            decoration: InputDecoration(
+                              labelText: context.tr('City or town'),
+                            ),
+                            validator: (value) =>
+                                (value?.trim().isEmpty ?? true)
+                                ? context.tr('Enter a city or town')
+                                : null,
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: description,
+                            minLines: 2,
+                            maxLines: 4,
+                            decoration: InputDecoration(
+                              labelText: context.tr('Description (optional)'),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text.localized(
+                                      'Property photos',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleSmall,
+                                    ),
+                                    Text.localized(
+                                      selectedPhotos.isEmpty
+                                          ? 'Add 1–5 photos. The primary photo appears first.'
+                                          : '${selectedPhotos.length} of $propertyPhotoLimit photos added. The primary photo appears first.',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              AsyncActionButton.outlined(
+                                onPressed:
+                                    selectedPhotos.length >= propertyPhotoLimit
+                                    ? null
+                                    : () async {
+                                        final result = await pickPropertyPhotos(
+                                          remainingSlots:
+                                              propertyPhotoLimit -
+                                              selectedPhotos.length,
+                                        );
+                                        if (!context.mounted) return;
+                                        // Backing out of the chooser is not an
+                                        // event: leave whatever is on screen
+                                        // exactly as it was.
+                                        if (result.cancelled) return;
+                                        setDialogState(() {
+                                          selectedPhotos.addAll(result.images);
+                                          photoProblems = result.problems;
+                                          if (result.hasImages) failure = null;
+                                        });
+                                      },
+                                showBusyIndicator: false,
+                                icon: const Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                ),
+                                child: Text.localized(
+                                  selectedPhotos.isEmpty
+                                      ? 'Add photos'
+                                      : 'Add more photos',
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: selectedPhotos.length >= propertyPhotoLimit
-                              ? null
-                              : () async {
-                                  final result = await pickPropertyPhotos(
-                                    remainingSlots:
-                                        propertyPhotoLimit -
-                                        selectedPhotos.length,
-                                  );
-                                  if (!context.mounted) return;
-                                  setDialogState(() {
-                                    selectedPhotos.addAll(result.photos);
-                                    error = result.rejectedMessages.isEmpty
+                          if (selectedPhotos.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                for (
+                                  var index = 0;
+                                  index < selectedPhotos.length;
+                                  index++
+                                )
+                                  _SelectedPropertyPhoto(
+                                    photo: selectedPhotos[index],
+                                    isPrimary: index == 0,
+                                    onSetPrimary: index == 0
                                         ? null
-                                        : result.rejectedMessages.join(' ');
-                                  });
-                                },
-                          icon: const Icon(Icons.add_photo_alternate_outlined),
-                          label: const Text.localized('Add photos'),
-                        ),
-                      ],
-                    ),
-                    if (selectedPhotos.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          for (
-                            var index = 0;
-                            index < selectedPhotos.length;
-                            index++
-                          )
-                            _SelectedPropertyPhoto(
-                              photo: selectedPhotos[index],
-                              isPrimary: index == 0,
-                              onSetPrimary: index == 0
-                                  ? null
-                                  : () => setDialogState(() {
-                                      final photo = selectedPhotos.removeAt(
-                                        index,
-                                      );
-                                      selectedPhotos.insert(0, photo);
-                                    }),
-                              onRemove: () => setDialogState(
-                                () => selectedPhotos.removeAt(index),
+                                        : () => setDialogState(() {
+                                            final photo = selectedPhotos
+                                                .removeAt(index);
+                                            selectedPhotos.insert(0, photo);
+                                          }),
+                                    onRemove: () => setDialogState(
+                                      () => selectedPhotos.removeAt(index),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: Text.localized(
+                                '$supportedPhotoFormats, up to 5 MB each. '
+                                'Photos stay on this device until they sync.',
+                                style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ),
+                          ),
                         ],
                       ),
-                    ],
-                    if (error != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        error!,
-                        style: TextStyle(color: context.nyumba.danger),
-                      ),
-                    ],
-                  ],
+                    ),
+                  ),
                 ),
-              ),
+                // Pinned below the scroll view so a rejection or a refused
+                // save is on screen the moment it happens, whatever the form
+                // is scrolled to.
+                PickProblemsNotice(problems: photoProblems),
+                if (failure != null) ActionFailureNotice(failure: failure!),
+              ],
             ),
           ),
           actions: [
@@ -380,13 +426,17 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text.localized('Cancel'),
             ),
-            FilledButton(
+            AsyncActionButton.filled(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 if (selectedPhotos.isEmpty) {
                   setDialogState(
-                    () =>
-                        error = context.tr('Add at least one property photo.'),
+                    () => failure = const ActionFailure(
+                      message:
+                          'Add at least one photo of the property before '
+                          'saving. Use "Add photos" above — the photo appears '
+                          'as a thumbnail once it has been added.',
+                    ),
                   );
                   return;
                 }
@@ -405,7 +455,13 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                   );
                   if (context.mounted) Navigator.pop(context, created);
                 } on Object catch (caught) {
-                  setDialogState(() => error = caught.toString());
+                  if (!context.mounted) return;
+                  setDialogState(
+                    () => failure = describeActionFailure(
+                      caught,
+                      action: 'save this property',
+                    ),
+                  );
                 }
               },
               child: const Text.localized('Save property'),

@@ -86,6 +86,9 @@ class AppLocalizationsSw extends AppLocalizations {
   String get saving => 'Inahifadhi…';
 
   @override
+  String get workingOnIt => 'Inashughulikia…';
+
+  @override
   String get saveDraft => 'Hifadhi rasimu';
 
   @override

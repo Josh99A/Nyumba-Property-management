@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
@@ -550,10 +551,10 @@ class _PendingPaymentsPanel extends StatelessWidget {
     required this.onReject,
   });
 
-  final ValueChanged<PlatformAccount> onReject;
+  final Future<void> Function(PlatformAccount) onReject;
 
   final List<PlatformAccount> accounts;
-  final ValueChanged<PlatformAccount> onConfirm;
+  final Future<void> Function(PlatformAccount) onConfirm;
 
   @override
   Widget build(BuildContext context) {
@@ -611,18 +612,20 @@ class _PendingPaymentsPanel extends StatelessWidget {
                         runSpacing: 8,
                         alignment: WrapAlignment.end,
                         children: [
-                          OutlinedButton.icon(
+                          AsyncActionButton.outlined(
                             onPressed: () => onReject(account),
+                            showBusyIndicator: false,
                             icon: const Icon(Icons.block_outlined, size: 18),
-                            label: const Text.localized('Reject'),
+                            child: const Text.localized('Reject'),
                           ),
-                          FilledButton.icon(
+                          AsyncActionButton.filled(
                             onPressed: () => onConfirm(account),
+                            showBusyIndicator: false,
                             icon: const Icon(
                               Icons.price_check_rounded,
                               size: 18,
                             ),
-                            label: const Text.localized('Confirm payment'),
+                            child: const Text.localized('Confirm payment'),
                           ),
                         ],
                       );
@@ -663,8 +666,8 @@ class _ActiveSubscriptionsPanel extends StatelessWidget {
   });
 
   final List<PlatformAccount> accounts;
-  final ValueChanged<PlatformAccount> onDowngrade;
-  final ValueChanged<PlatformAccount> onDeactivate;
+  final Future<void> Function(PlatformAccount) onDowngrade;
+  final Future<void> Function(PlatformAccount) onDeactivate;
 
   String _statusLine(PlatformAccount account) {
     final parts = <String>[account.subscriptionTier ?? 'No tier'];
@@ -739,21 +742,23 @@ class _ActiveSubscriptionsPanel extends StatelessWidget {
                         runSpacing: 8,
                         alignment: WrapAlignment.end,
                         children: [
-                          OutlinedButton.icon(
+                          AsyncActionButton.outlined(
                             onPressed: () => onDowngrade(account),
+                            showBusyIndicator: false,
                             icon: const Icon(
                               Icons.trending_down_rounded,
                               size: 18,
                             ),
-                            label: const Text.localized('Change plan'),
+                            child: const Text.localized('Change plan'),
                           ),
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
+                          AsyncActionButton.outlined(
+                            buttonStyle: OutlinedButton.styleFrom(
                               foregroundColor: context.nyumba.danger,
                             ),
                             onPressed: () => onDeactivate(account),
+                            showBusyIndicator: false,
                             icon: const Icon(Icons.lock_outline, size: 18),
-                            label: const Text.localized('End subscription'),
+                            child: const Text.localized('End subscription'),
                           ),
                         ],
                       );

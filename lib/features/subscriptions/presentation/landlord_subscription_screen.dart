@@ -12,6 +12,7 @@ import '../../../core/localization/command_failure_localizations.dart';
 import '../../../core/localization/generated/app_localizations.dart';
 import '../../../core/localization/nyumba_localizations.dart';
 import '../../../core/presentation/motion.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/offline/remote_sync_gateway.dart';
 import '../../../core/presentation/surface.dart';
@@ -238,12 +239,12 @@ class _LandlordSubscriptionScreenState
                               ),
                             ),
                           ),
-                          TextButton.icon(
+                          AsyncActionButton.text(
                             onPressed: () => ref
                                 .read(sessionControllerProvider.notifier)
                                 .signOut(),
                             icon: const Icon(Icons.logout_rounded, size: 18),
-                            label: Text(copy.signOut),
+                            child: Text(copy.signOut),
                           ),
                         ],
                       ),
@@ -323,7 +324,7 @@ class _LandlordSubscriptionScreenState
                         // tiers become self-service upgrade requests; the
                         // current and lower tiers stay read-only (downgrades
                         // go through support, per the downgrade-safety rules).
-                        VoidCallback? actionFor(
+                        Future<void> Function()? actionFor(
                           int index,
                           _TierPresentation presentation,
                         ) {
@@ -437,7 +438,7 @@ class _PaymentStatusCard extends StatelessWidget {
 
   final String accountEmail;
   final bool isRefreshing;
-  final VoidCallback onRefresh;
+  final Future<void> Function() onRefresh;
   final VoidCallback? onContinue;
 
   @override
@@ -560,15 +561,11 @@ class _PaymentStatusCard extends StatelessWidget {
                         onPressed: onContinue,
                         child: Text(copy.subscriptionEnterWorkspace),
                       ),
-                    OutlinedButton.icon(
-                      onPressed: isRefreshing ? null : onRefresh,
-                      icon: isRefreshing
-                          ? const SizedBox.square(
-                              dimension: 17,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.refresh_rounded, size: 18),
-                      label: Text(copy.subscriptionCheckPaymentStatus),
+                    AsyncActionButton.outlined(
+                      onPressed: onRefresh,
+                      busy: isRefreshing,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      child: Text(copy.subscriptionCheckPaymentStatus),
                     ),
                   ],
                 ),
@@ -653,7 +650,7 @@ class _PlanCard extends StatelessWidget {
   final String actionLabel;
 
   final bool busy;
-  final VoidCallback? onChoose;
+  final Future<void> Function()? onChoose;
 
   @override
   Widget build(BuildContext context) {
@@ -674,7 +671,7 @@ class _PlanCard extends StatelessWidget {
     final savings = facts?.yearlySavingsPercent;
     final features = facts?.features ?? const <PublicPlanFeature>[];
     return NyumbaSurface(
-      onTap: onChoose,
+      onTap: onChoose == null ? null : () => onChoose!(),
       borderColor: selected
           ? context.nyumba.midnightNavy
           : context.nyumba.outline,
@@ -776,14 +773,13 @@ class _PlanCard extends StatelessWidget {
                 ],
               )
             else
-              OutlinedButton(
+              AsyncActionButton.outlined(
                 onPressed: onChoose,
-                child: busy
-                    ? const SizedBox.square(
-                        dimension: 17,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(actionLabel),
+                // The screen raises `busy` once the real request starts; the
+                // billing-channel sheet in between is not work to report on.
+                busy: busy,
+                showBusyIndicator: false,
+                child: Text(actionLabel),
               ),
           ],
         ),

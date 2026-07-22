@@ -252,6 +252,12 @@ abstract class AppLocalizations {
   /// **'Saving…'**
   String get saving;
 
+  /// No description provided for @workingOnIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Working…'**
+  String get workingOnIt;
+
   /// No description provided for @saveDraft.
   ///
   /// In en, this message translates to:

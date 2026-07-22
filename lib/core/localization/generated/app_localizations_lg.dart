@@ -86,6 +86,9 @@ class AppLocalizationsLg extends AppLocalizations {
   String get saving => 'Biterekebwa…';
 
   @override
+  String get workingOnIt => 'Kikolebwa…';
+
+  @override
   String get saveDraft => 'Tereka ekiwandiiko';
 
   @override

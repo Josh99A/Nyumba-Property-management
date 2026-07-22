@@ -12,6 +12,7 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
@@ -76,15 +77,17 @@ class _TenantMaintenanceScreenState
       title: 'Maintenance',
       description:
           'Report an issue and follow every update through resolution.',
-      secondaryAction: OutlinedButton.icon(
+      secondaryAction: AsyncActionButton.outlined(
         onPressed: _showEmergencyHelp,
+        showBusyIndicator: false,
         icon: const Icon(Icons.emergency_outlined),
-        label: const Text.localized('Emergency help'),
+        child: const Text.localized('Emergency help'),
       ),
-      primaryAction: FilledButton.icon(
+      primaryAction: AsyncActionButton.filled(
         onPressed: _createRequest,
+        showBusyIndicator: false,
         icon: const Icon(Icons.add_rounded),
-        label: const Text.localized('New request'),
+        child: const Text.localized('New request'),
       ),
       children: [
         Container(

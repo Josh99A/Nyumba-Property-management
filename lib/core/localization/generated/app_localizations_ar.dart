@@ -85,6 +85,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get saving => 'جارٍ الحفظ…';
 
   @override
+  String get workingOnIt => 'جارٍ التنفيذ…';
+
+  @override
   String get saveDraft => 'حفظ المسودة';
 
   @override
