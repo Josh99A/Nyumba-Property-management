@@ -74,18 +74,21 @@ void main() {
     expect(coordinator.linkState, CloudLinkState.live);
   });
 
-  test('a later failure on one collection does not drop a live workspace', () async {
-    coordinator.watch(OfflineEntityType.property, landlordId: 'landlord-1');
-    coordinator.watch(OfflineEntityType.payment, landlordId: 'landlord-1');
+  test(
+    'a later failure on one collection does not drop a live workspace',
+    () async {
+      coordinator.watch(OfflineEntityType.property, landlordId: 'landlord-1');
+      coordinator.watch(OfflineEntityType.payment, landlordId: 'landlord-1');
 
-    gateway.controllers[OfflineEntityType.property]!.add(const []);
-    await pumpEventQueue();
-    expect(coordinator.linkState, CloudLinkState.live);
+      gateway.controllers[OfflineEntityType.property]!.add(const []);
+      await pumpEventQueue();
+      expect(coordinator.linkState, CloudLinkState.live);
 
-    gateway.controllers[OfflineEntityType.payment]!.addError('permission');
-    await pumpEventQueue();
-    expect(coordinator.linkState, CloudLinkState.live);
-  });
+      gateway.controllers[OfflineEntityType.payment]!.addError('permission');
+      await pumpEventQueue();
+      expect(coordinator.linkState, CloudLinkState.live);
+    },
+  );
 
   test('offline shows only when every collection has failed', () async {
     coordinator.watch(OfflineEntityType.property, landlordId: 'landlord-1');

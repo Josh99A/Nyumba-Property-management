@@ -28,36 +28,39 @@ void main() {
 
   tearDown(() => database.close());
 
-  test('offline run skips without claiming, reconnect flushes outbox', () async {
-    await _enqueueProperty(database, now);
-    final gateway = _RecordingGateway(now);
-    final networkStatus = _ScriptedNetworkStatus();
-    final engine = SyncEngine(
-      database: database,
-      gateway: gateway,
-      clock: FixedClock(now.add(const Duration(minutes: 1))),
-      networkStatus: networkStatus,
-    );
-    final trigger = ReconnectSyncTrigger(
-      syncEngine: engine,
-      networkStatus: networkStatus,
-    );
-    addTearDown(trigger.close);
+  test(
+    'offline run skips without claiming, reconnect flushes outbox',
+    () async {
+      await _enqueueProperty(database, now);
+      final gateway = _RecordingGateway(now);
+      final networkStatus = _ScriptedNetworkStatus();
+      final engine = SyncEngine(
+        database: database,
+        gateway: gateway,
+        clock: FixedClock(now.add(const Duration(minutes: 1))),
+        networkStatus: networkStatus,
+      );
+      final trigger = ReconnectSyncTrigger(
+        syncEngine: engine,
+        networkStatus: networkStatus,
+      );
+      addTearDown(trigger.close);
 
-    final offlineReport = await engine.syncPending();
-    expect(offlineReport.skippedOffline, isTrue);
-    expect(offlineReport.claimed, 0);
-    expect(gateway.mutations, isEmpty);
-    expect(await database.outboxCount(), 1);
+      final offlineReport = await engine.syncPending();
+      expect(offlineReport.skippedOffline, isTrue);
+      expect(offlineReport.claimed, 0);
+      expect(gateway.mutations, isEmpty);
+      expect(await database.outboxCount(), 1);
 
-    networkStatus.goOnline();
-    await pumpEventQueue();
+      networkStatus.goOnline();
+      await pumpEventQueue();
 
-    expect(gateway.mutations.map((item) => item.idempotencyKey), <String>[
-      'property-create',
-    ]);
-    expect(await database.outboxCount(), 0);
-  });
+      expect(gateway.mutations.map((item) => item.idempotencyKey), <String>[
+        'property-create',
+      ]);
+      expect(await database.outboxCount(), 0);
+    },
+  );
 
   test('close waits for an in-flight sync pass before completing', () async {
     await _enqueueProperty(database, now);

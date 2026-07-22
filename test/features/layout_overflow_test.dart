@@ -137,7 +137,7 @@ void main() {
     'TenantBalanceHero': (_) => TenantBalanceHero(
       amount: 120000000,
       dueLabel: 'Invoice NYB-INV-2608 • due 5 Aug 2026',
-      onPay: () {},
+      onPay: () async {},
     ),
     'TenantQuickAction': (context) => TenantQuickAction(
       label: 'Report a problem',

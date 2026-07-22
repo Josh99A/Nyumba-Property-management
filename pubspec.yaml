@@ -60,6 +60,9 @@ dependencies:
   package_info_plus: ^9.0.1
   pointycastle: ^4.0.0
   google_sign_in: ^7.2.0
+  # Used only by the web photo picker, which drives its own <input type="file">
+  # rather than file_picker's web backend. See core/presentation/image_picking.
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:
