@@ -459,7 +459,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                   setDialogState(
                     () => failure = describeActionFailure(
                       caught,
-                      action: 'save this property',
+                      action: context.tr('save this property'),
                     ),
                   );
                 }

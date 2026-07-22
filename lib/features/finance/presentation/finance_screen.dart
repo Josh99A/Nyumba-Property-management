@@ -52,7 +52,7 @@ String _rejectReasonLabel(String code) {
 /// Hidden entirely when the queue is empty: an always-present empty panel on
 /// the main finance screen would be noise for landlords who record every
 /// payment themselves.
-class _DeclaredPaymentsPanel extends StatelessWidget {
+class _DeclaredPaymentsPanel extends StatefulWidget {
   const _DeclaredPaymentsPanel({
     required this.payments,
     required this.onConfirm,
@@ -64,7 +64,34 @@ class _DeclaredPaymentsPanel extends StatelessWidget {
   final Future<void> Function(DeclaredPayment) onReject;
 
   @override
+  State<_DeclaredPaymentsPanel> createState() => _DeclaredPaymentsPanelState();
+}
+
+class _DeclaredPaymentsPanelState extends State<_DeclaredPaymentsPanel> {
+  // Confirm and Reject are independent AsyncActionButtons, each with its own
+  // duplicate-tap guard, but they act on the same aggregate: confirming and
+  // rejecting the same payment at once would race two commands against one
+  // `expectedVersion`, and the loser comes back as a confusing version
+  // conflict instead of "you already decided this". Tracking the busy
+  // payment here disables both buttons for that row without touching any
+  // other payment's.
+  String? _busyPaymentId;
+
+  Future<void> _run(
+    DeclaredPayment payment,
+    Future<void> Function(DeclaredPayment) action,
+  ) async {
+    setState(() => _busyPaymentId = payment.id);
+    try {
+      await action(payment);
+    } finally {
+      if (mounted) setState(() => _busyPaymentId = null);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final payments = widget.payments;
     final items = payments.value ?? const <DeclaredPayment>[];
     if (items.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -93,9 +120,9 @@ class _DeclaredPaymentsPanel extends StatelessWidget {
             Text.localized(
               'Check each reference against your records. Confirming settles '
               'the payment and issues a receipt; nothing changes until you do.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: context.nyumba.mutedInk,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: context.nyumba.mutedInk),
             ),
             const SizedBox(height: 14),
             for (final (index, payment) in items.indexed) ...[
@@ -123,19 +150,25 @@ class _DeclaredPaymentsPanel extends StatelessWidget {
                         ),
                     ],
                   );
+                  final rowBusy =
+                      _busyPaymentId != null && _busyPaymentId == payment.id;
                   final actions = Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     alignment: WrapAlignment.end,
                     children: [
                       AsyncActionButton.outlined(
-                        onPressed: () => onReject(payment),
+                        onPressed: rowBusy
+                            ? null
+                            : () => _run(payment, widget.onReject),
                         showBusyIndicator: false,
                         icon: const Icon(Icons.block_outlined, size: 18),
                         child: const Text.localized('Reject'),
                       ),
                       AsyncActionButton.filled(
-                        onPressed: () => onConfirm(payment),
+                        onPressed: rowBusy
+                            ? null
+                            : () => _run(payment, widget.onConfirm),
                         icon: const Icon(Icons.price_check_rounded, size: 18),
                         child: const Text.localized('Confirm'),
                       ),
@@ -439,13 +472,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text.localized(
-              'Could not confirm: ${describeAuthFailure(
-                error,
-                commandFailureLocalizer: (failure) => localizeCommandFailure(
-                  appLocalizationsOf(context),
-                  failure,
-                ),
-              )}',
+              'Could not confirm: ${describeAuthFailure(error, commandFailureLocalizer: (failure) => localizeCommandFailure(appLocalizationsOf(context), failure))}',
             ),
           ),
         );
@@ -488,7 +515,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       ),
                   ],
                   onChanged: (value) => setDialogState(
-                    () => reasonCode = value ?? declaredPaymentRejectReasons.first,
+                    () => reasonCode =
+                        value ?? declaredPaymentRejectReasons.first,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -519,11 +547,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
       try {
         await ref
             .read(reviewDeclaredPaymentProvider)
-            .reject(
-              payment,
-              reasonCode: reasonCode,
-              note: noteController.text,
-            );
+            .reject(payment, reasonCode: reasonCode, note: noteController.text);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -538,13 +562,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text.localized(
-                'Could not reject: ${describeAuthFailure(
-                  error,
-                  commandFailureLocalizer: (failure) => localizeCommandFailure(
-                    appLocalizationsOf(context),
-                    failure,
-                  ),
-                )}',
+                'Could not reject: ${describeAuthFailure(error, commandFailureLocalizer: (failure) => localizeCommandFailure(appLocalizationsOf(context), failure))}',
               ),
             ),
           );

@@ -1090,7 +1090,7 @@ class _LandlordListingsScreenState
                   setDialogState(
                     () => failure = describeActionFailure(
                       caught,
-                      action: 'save this listing draft',
+                      action: context.tr('save this listing draft'),
                     ),
                   );
                 }

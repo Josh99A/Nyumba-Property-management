@@ -3154,4 +3154,51 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get staffPermissionViewReportsDescription =>
       'Kola alipoota z’emirimu.';
+
+  @override
+  String get addMorePhotos => 'Okwongerako ebifaananyi ebirala';
+
+  @override
+  String actionFailureEntityNotFound(String action, String entity) {
+    return 'Nyumba teyasobodde $action kubanga $entity gy\'ekwatagana nayo tekyaliwo nate. Oboolyawo kyali kiterekeddwa ku kyuma ekirala. Ddamu okebera oluvannyuma ogezeeko nate.';
+  }
+
+  @override
+  String actionFailureEntityAlreadyExists(String entity, String action) {
+    return '$entity eyo emaze okubaawo, noolwekyo Nyumba teyasobodde $action nate.';
+  }
+
+  @override
+  String actionFailurePermissionDenied(String action) {
+    return 'Akawunti yo tekiryankibwa $action. Saba nannyini akawunti akuwe olukusa, oluvannyuma fuluma oyingire nate.';
+  }
+
+  @override
+  String actionFailureStorageFull(String action) {
+    return 'Ekyuma kino kimazeeko ekifo ky\'okuterekamu data nga tolina yintaneeti, noolwekyo Nyumba teyasobodde $action. Ebifaananyi bye bitwala ekifo ekisinga — gezaako okwongera ebitono oba ebitonotono, oba ggyawo ekifo n\'ogezaako nate.';
+  }
+
+  @override
+  String get actionFailureOffline =>
+      'Nyumba teyasobodde okutuuka ku sabbo. Omulimu gwo gukuumiddwa ku kyuma kino era gujja kwesigamiza bw\'oliba oyingidde ku yintaneeti nate.';
+
+  @override
+  String actionFailureGeneric(String action) {
+    return 'Nyumba teyasobodde $action. Tewali kikyusiddwa. Ddamu ogezeeko, era singa kiba kigenda mu maaso nga bwe kityo, weereza ebikwata ku bukugu wammanga eri obuyambi.';
+  }
+
+  @override
+  String get actionFailureActionSaveProperty =>
+      'okutereka ekintu kino eky\'obupangisa';
+
+  @override
+  String get actionFailureActionSaveListingDraft =>
+      'okutereka ekiwandiiko kino eky\'obulangirira';
+
+  @override
+  String get actionFailureActionCreateDocument => 'okutonda ekiwandiiko kino';
+
+  @override
+  String get actionFailureActionQueueNotice =>
+      'okuteeka obubaka buno mu lunyiriri';
 }

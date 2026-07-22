@@ -12,6 +12,7 @@ import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
@@ -394,6 +395,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           ? (selected.monthlyRentMinor ~/ 100).toString()
           : '',
     );
+    // Saved inside the dialog rather than after it closes: it used to pop on
+    // "Save draft" and write afterwards, so a refused write closed the dialog,
+    // discarded every field the landlord had filled in, and reported the
+    // failure through a SnackBar the dismissed dialog was no longer around to
+    // be seen next to.
+    ActionFailure? failure;
     final created = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -455,6 +462,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                     'This creates a local draft and queues it for server '
                     'confirmation. It is not yet issued or signed.',
                   ),
+                  if (failure != null) ActionFailureNotice(failure: failure!),
                 ],
               ),
             ),
@@ -464,10 +472,36 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text.localized('Cancel'),
             ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  Navigator.pop(dialogContext, true);
+            AsyncActionButton.filled(
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                try {
+                  final amountMajor = type == LeaseDocumentType.invoice
+                      ? int.parse(amount.text.replaceAll(',', '').trim())
+                      : 0;
+                  await ref.read(createLeaseDocumentProvider)(
+                    CreateLeaseDocumentInput(
+                      landlordId: _landlordId,
+                      tenantId: selected.tenantUserId,
+                      type: type,
+                      recipient: selected.tenantName,
+                      propertyName: selected.propertyName,
+                      unitLabel: selected.unitLabel,
+                      amountMinor: amountMajor * 100,
+                      statusLabel: 'Draft · awaiting confirmation',
+                    ),
+                  );
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext, true);
+                  }
+                } on Object catch (caught) {
+                  if (!dialogContext.mounted) return;
+                  setDialogState(
+                    () => failure = describeActionFailure(
+                      caught,
+                      action: dialogContext.tr('create this document'),
+                    ),
+                  );
                 }
               },
               child: const Text.localized('Save draft'),
@@ -476,43 +510,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         ),
       ),
     );
-    if (created == true) {
-      try {
-        final amountMajor = type == LeaseDocumentType.invoice
-            ? int.parse(amount.text.replaceAll(',', '').trim())
-            : 0;
-        await ref.read(createLeaseDocumentProvider)(
-          CreateLeaseDocumentInput(
-            landlordId: _landlordId,
-            tenantId: selected.tenantUserId,
-            type: type,
-            recipient: selected.tenantName,
-            propertyName: selected.propertyName,
-            unitLabel: selected.unitLabel,
-            amountMinor: amountMajor * 100,
-            statusLabel: 'Draft · awaiting confirmation',
+    if (created == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text.localized(
+            '${type.label} draft saved locally and queued to sync.',
           ),
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text.localized(
-                '${type.label} draft saved locally and queued to sync.',
-              ),
-            ),
-          );
-        }
-      } on Object catch (error) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                context.tr('Could not create the document: $error'),
-              ),
-            ),
-          );
-        }
-      }
+        ),
+      );
     }
     amount.dispose();
   }
@@ -524,6 +529,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     var audienceId = '';
     Property? selectedProperty;
     final allTenantsLabel = context.tr('All tenants');
+    ActionFailure? failure;
     final created = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => Consumer(
@@ -616,6 +622,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                                 }
                               },
                       ),
+                      if (failure != null)
+                        ActionFailureNotice(failure: failure!),
                     ],
                   ),
                 ),
@@ -625,12 +633,36 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   onPressed: () => Navigator.pop(context, false),
                   child: const Text.localized('Cancel'),
                 ),
-                FilledButton(
+                AsyncActionButton.filled(
                   onPressed: !portfolioResolved
                       ? null
-                      : () {
-                          if (formKey.currentState!.validate()) {
-                            Navigator.pop(context, true);
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+                          try {
+                            await ref.read(createNoticeProvider)(
+                              CreateNoticeInput(
+                                landlordId: _landlordId,
+                                title: title.text.trim(),
+                                body: body.text.trim(),
+                                audience:
+                                    selectedProperty?.name ?? allTenantsLabel,
+                                audienceType: selectedProperty == null
+                                    ? NoticeAudienceType.allActiveTenants
+                                    : NoticeAudienceType.property,
+                                audienceId: selectedProperty?.id,
+                              ),
+                            );
+                            if (context.mounted) {
+                              Navigator.pop(context, true);
+                            }
+                          } on Object catch (caught) {
+                            if (!context.mounted) return;
+                            setDialogState(
+                              () => failure = describeActionFailure(
+                                caught,
+                                action: context.tr('queue this notice'),
+                              ),
+                            );
                           }
                         },
                   child: const Text.localized('Queue notice'),
@@ -641,38 +673,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         },
       ),
     );
-    if (created == true) {
-      try {
-        await ref.read(createNoticeProvider)(
-          CreateNoticeInput(
-            landlordId: _landlordId,
-            title: title.text.trim(),
-            body: body.text.trim(),
-            audience: selectedProperty?.name ?? allTenantsLabel,
-            audienceType: selectedProperty == null
-                ? NoticeAudienceType.allActiveTenants
-                : NoticeAudienceType.property,
-            audienceId: selectedProperty?.id,
+    if (created == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text.localized(
+            'Notice queued locally. It sends after the next sync.',
           ),
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text.localized(
-                'Notice queued locally. It sends after the next sync.',
-              ),
-            ),
-          );
-        }
-      } on Object catch (error) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.tr('Could not queue the notice: $error')),
-            ),
-          );
-        }
-      }
+        ),
+      );
     }
     title.dispose();
     body.dispose();

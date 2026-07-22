@@ -28,10 +28,29 @@ final class ActionFailure {
 /// `'save this property'`. Screens used to render `caught.toString()`, which
 /// produced lines like `DomainValidationException: imageUrls: must contain at
 /// most 5 images`: accurate, and useless to the person who has to fix it.
+///
+/// This function stays free of a `BuildContext` — like `describeAuthFailure`
+/// elsewhere in the app, it is a pure mapping callers can unit test directly.
+/// The English sentences it returns still reach non-English readers: every
+/// [ActionFailureNotice] renders `failure.message` through `Text.localized`,
+/// which matches the exact wording against the `{action}`/`{entity}` ARB
+/// templates cataloged under the `actionFailure*` keys and swaps in the
+/// translated sentence, filling those slots with whatever was passed in. So
+/// [action] should itself already be localized — callers pass
+/// `context.tr('save this property')`, not the bare literal — or the
+/// translated sentence will carry an English phrase in the middle of it.
 ActionFailure describeActionFailure(Object error, {required String action}) {
   final raw = error.toString();
 
   if (error is DomainValidationException) {
+    // Not localized like the branches below: `problem` comes verbatim from
+    // whichever domain entity raised it (DomainValidation.requiredText and
+    // friends, scattered across every feature's domain layer), none of which
+    // are cataloged today. Templating just the field-name half would produce
+    // a sentence mixing a translated label with an English clause, which
+    // reads worse than an honest, fully-English one. Fixing this properly
+    // means localizing those domain validators first — a separate, larger
+    // change, not something to fold in here.
     return ActionFailure(
       message: error.errors.entries
           .map((entry) => _fieldSentence(entry.key, entry.value))
@@ -152,6 +171,10 @@ String _humanizeField(String field) {
   return 'The ${words.isEmpty ? field : words}';
 }
 
+// Left in English rather than threaded through a BuildContext: it is one word
+// inside a sentence that is itself translated below (see the class doc), and
+// the tradeoff of a context-free, easily unit-testable describe function
+// matches how describeAuthFailure already handles this codebase-wide.
 String _entityNoun(String entityType) => switch (entityType) {
   'unit' => 'rental space',
   _ => entityType,

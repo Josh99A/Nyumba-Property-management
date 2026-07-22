@@ -1,8 +1,12 @@
+import 'package:flutter/material.dart' as material;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/domain/domain_exception.dart';
+import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:nyumba_property_management/core/presentation/action_failure.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('validation failures name the field the way the form does', () {
     final failure = describeActionFailure(
       DomainValidationException(<String, String>{
@@ -93,4 +97,40 @@ void main() {
     expect(failure.message, contains('rental space'));
     expect(failure.message, isNot(contains('unit-1')));
   });
+
+  test(
+    'the ARB templates actually translate what describeActionFailure builds',
+    () async {
+      final swahili = await NyumbaLocalizations.delegate.load(
+        const material.Locale('sw'),
+      );
+
+      final permission = describeActionFailure(
+        StateError('create permission is required.'),
+        action: swahili.text('save this property'),
+      );
+      expect(swahili.text(permission.message), contains('Akaunti yako'));
+      expect(swahili.text(permission.message), contains('hifadhi mali hii'));
+
+      final offline = describeActionFailure(
+        Exception('SocketException: Failed host lookup'),
+        action: swahili.text('save this listing draft'),
+      );
+      expect(
+        swahili.text(offline.message),
+        'Nyumba haikuweza kufikia seva. Kazi yako imehifadhiwa kwenye kifaa '
+        'hiki na itasawazishwa mara tu utakapounganishwa tena mtandaoni.',
+      );
+
+      final notFound = describeActionFailure(
+        const EntityNotFoundException('unit', 'unit-1'),
+        action: swahili.text('save this listing draft'),
+      );
+      final translated = swahili.text(notFound.message);
+      expect(translated, contains('Nyumba haikuweza'));
+      // The entity noun itself is a known, documented exception: it stays in
+      // English even once the surrounding sentence translates.
+      expect(translated, contains('rental space'));
+    },
+  );
 }
