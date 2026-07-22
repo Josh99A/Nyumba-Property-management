@@ -4,6 +4,7 @@ import 'package:nyumba_property_management/core/localization/localized_material.
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/nyumba_colors.dart';
+import '../../../../core/presentation/async_action_button.dart';
 import '../../../../core/presentation/page_header.dart';
 import '../../../../core/presentation/responsive.dart';
 import '../../../../core/presentation/status_badge.dart';
@@ -219,7 +220,7 @@ class TenantBalanceHero extends StatelessWidget {
 
   final int amount;
   final String dueLabel;
-  final VoidCallback onPay;
+  final Future<void> Function() onPay;
   final bool paid;
 
   @override
@@ -304,14 +305,15 @@ class TenantBalanceHero extends StatelessWidget {
                     ),
                   ],
                 );
-                final action = FilledButton.icon(
-                  style: FilledButton.styleFrom(
+                final action = AsyncActionButton.filled(
+                  buttonStyle: FilledButton.styleFrom(
                     backgroundColor: paid
                         ? NyumbaColors.sageGreen
                         : NyumbaColors.terracottaGold,
                     foregroundColor: Colors.white,
                   ),
                   onPressed: onPay,
+                  showBusyIndicator: false,
                   icon: Icon(
                     paid
                         ? Icons.receipt_long_outlined
@@ -320,7 +322,7 @@ class TenantBalanceHero extends StatelessWidget {
                   // No payment provider is integrated yet, so this must never
                   // promise an in-app checkout: it records a payment made
                   // outside the app for server confirmation.
-                  label: Text.localized(
+                  child: Text.localized(
                     paid ? 'View receipt' : 'Record a payment',
                   ),
                 );

@@ -14,6 +14,7 @@ import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
@@ -131,19 +132,20 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
     return TenantPage(
       title: 'Payments',
       description: 'Manage rent, invoices, receipts, and your payment history.',
-      secondaryAction: OutlinedButton.icon(
+      secondaryAction: AsyncActionButton.outlined(
         onPressed: () => _printStatement(tenancy, payments),
         icon: const Icon(Icons.print_outlined),
-        label: const Text.localized('Print statement'),
+        child: const Text.localized('Print statement'),
       ),
-      primaryAction: FilledButton.icon(
+      primaryAction: AsyncActionButton.filled(
         onPressed: paid
             ? () => _showCurrentReceipt(payments, statusOf)
             : () => _payRent(tenancy),
+        showBusyIndicator: false,
         icon: Icon(
           paid ? Icons.receipt_long_outlined : Icons.payments_outlined,
         ),
-        label: Text.localized(paid ? 'Latest receipt' : 'Record payment'),
+        child: Text.localized(paid ? 'Latest receipt' : 'Record payment'),
       ),
       children: [
         TenantBalanceHero(
@@ -611,10 +613,10 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
             child: const Text.localized('Close'),
           ),
           if (issued)
-            FilledButton.icon(
+            AsyncActionButton.filled(
               onPressed: () => _printReceipt(payment),
               icon: const Icon(Icons.print_outlined),
-              label: const Text.localized('Print receipt'),
+              child: const Text.localized('Print receipt'),
             ),
         ],
       ),
@@ -677,7 +679,7 @@ class _InvoicePanel extends StatelessWidget {
   const _InvoicePanel({required this.tenancy, required this.onPay});
 
   final Tenancy tenancy;
-  final VoidCallback onPay;
+  final Future<void> Function() onPay;
 
   @override
   Widget build(BuildContext context) {
@@ -705,12 +707,13 @@ class _InvoicePanel extends StatelessWidget {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
+            child: AsyncActionButton.filled(
               onPressed: onPay,
+              showBusyIndicator: false,
               icon: Icon(
                 paid ? Icons.receipt_long_outlined : Icons.edit_note_rounded,
               ),
-              label: Text.localized(paid ? 'View receipt' : 'Record a payment'),
+              child: Text.localized(paid ? 'View receipt' : 'Record a payment'),
             ),
           ),
         ],

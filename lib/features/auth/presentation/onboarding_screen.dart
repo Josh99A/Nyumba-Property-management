@@ -9,6 +9,7 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/market_config.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/localization/command_failure_localizations.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/nyumba_logo.dart';
@@ -137,12 +138,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ),
                         const LanguageMenuButton(compact: true),
                         const SizedBox(width: 8),
-                        TextButton.icon(
+                        AsyncActionButton.text(
                           onPressed: () => ref
                               .read(sessionControllerProvider.notifier)
                               .signOut(),
                           icon: const Icon(Icons.logout_rounded, size: 18),
-                          label: const Text.localized('Sign out'),
+                          child: const Text.localized('Sign out'),
                         ),
                       ],
                     ),
@@ -220,21 +221,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               ),
                             ),
                             const SizedBox(height: 18),
-                            FilledButton(
-                              onPressed: _isSubmitting
-                                  ? null
-                                  : _completeLandlordSetup,
-                              child: _isSubmitting
-                                  ? const SizedBox.square(
-                                      dimension: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text.localized(
-                                      'Continue to subscriptions',
-                                    ),
+                            AsyncActionButton.filled(
+                              onPressed: _completeLandlordSetup,
+                              busy: _isSubmitting,
+                              child: const Text.localized(
+                                'Continue to subscriptions',
+                              ),
                             ),
                           ],
                         ),
@@ -272,19 +264,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                           const SizedBox(height: 14),
-                          OutlinedButton.icon(
-                            onPressed: _isCheckingInvites
-                                ? null
-                                : _checkInvitations,
-                            icon: _isCheckingInvites
-                                ? const SizedBox.square(
-                                    dimension: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.refresh_rounded, size: 19),
-                            label: const Text.localized(
+                          AsyncActionButton.outlined(
+                            onPressed: _checkInvitations,
+                            busy: _isCheckingInvites,
+                            icon: const Icon(Icons.refresh_rounded, size: 19),
+                            child: const Text.localized(
                               'Check for my invitation',
                             ),
                           ),

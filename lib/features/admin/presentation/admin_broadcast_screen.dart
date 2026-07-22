@@ -6,6 +6,7 @@ import 'package:nyumba_property_management/core/localization/nyumba_localization
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
@@ -336,15 +337,11 @@ class _AdminBroadcastScreenState extends ConsumerState<AdminBroadcastScreen> {
           const SizedBox(height: 16),
           Align(
             alignment: AlignmentDirectional.centerEnd,
-            child: FilledButton.icon(
-              onPressed: _sending ? null : _send,
-              icon: _sending
-                  ? const SizedBox.square(
-                      dimension: 17,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.campaign_outlined, size: 19),
-              label: const Text.localized('Send broadcast'),
+            child: AsyncActionButton.filled(
+              onPressed: _send,
+              busy: _sending,
+              icon: const Icon(Icons.campaign_outlined, size: 19),
+              child: const Text.localized('Send broadcast'),
             ),
           ),
         ],

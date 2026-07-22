@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/async_action_button.dart';
 
 class PropertyArchiveButton extends StatelessWidget {
   const PropertyArchiveButton({
@@ -18,15 +19,18 @@ class PropertyArchiveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
+    return AsyncActionButton.outlined(
       key: const ValueKey('archive-property'),
       onPressed: () => _handlePressed(context),
-      style: OutlinedButton.styleFrom(
+      // The flow opens a dialog first, so a spinner here would only tick
+      // away behind the scrim; the duplicate guard is what matters.
+      showBusyIndicator: false,
+      buttonStyle: OutlinedButton.styleFrom(
         foregroundColor: context.nyumba.danger,
         side: BorderSide(color: context.nyumba.danger),
       ),
       icon: const Icon(Icons.archive_outlined, size: 18),
-      label: const Text.localized('Archive property'),
+      child: const Text.localized('Archive property'),
     );
   }
 

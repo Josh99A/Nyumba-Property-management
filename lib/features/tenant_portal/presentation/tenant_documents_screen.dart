@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../app/localization/locale_controller.dart';
 import '../../../core/documents/nyumba_document_service.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
@@ -192,10 +193,11 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
         icon: const Icon(Icons.offline_pin_outlined),
         label: const Text.localized('Offline files'),
       ),
-      primaryAction: FilledButton.icon(
+      primaryAction: AsyncActionButton.filled(
         onPressed: _requestDocument,
+        showBusyIndicator: false,
         icon: const Icon(Icons.note_add_outlined),
-        label: const Text.localized('Request document'),
+        child: const Text.localized('Request document'),
       ),
       children: [
         TenantMetricGrid(
@@ -559,20 +561,20 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    OutlinedButton.icon(
+                    AsyncActionButton.outlined(
                       onPressed: document.printable == null
                           ? null
                           : () => _shareDocument(document),
                       icon: const Icon(Icons.download_outlined),
-                      label: const Text.localized('Download / share'),
+                      child: const Text.localized('Download / share'),
                     ),
                     const SizedBox(width: 9),
-                    FilledButton.icon(
+                    AsyncActionButton.filled(
                       onPressed: document.printable == null
                           ? null
                           : () => _printDocument(document),
                       icon: const Icon(Icons.print_outlined),
-                      label: const Text.localized('Print'),
+                      child: const Text.localized('Print'),
                     ),
                   ],
                 ),
@@ -609,7 +611,7 @@ class _PinnedLeaseCard extends StatelessWidget {
   const _PinnedLeaseCard({required this.document, required this.onOpen});
 
   final _TenantDocument document;
-  final VoidCallback onOpen;
+  final Future<void> Function() onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -672,14 +674,15 @@ class _PinnedLeaseCard extends StatelessWidget {
               ),
             ],
           );
-          final action = FilledButton.icon(
-            style: FilledButton.styleFrom(
+          final action = AsyncActionButton.filled(
+            buttonStyle: FilledButton.styleFrom(
               backgroundColor: NyumbaColors.terracottaGold,
               foregroundColor: Colors.white,
             ),
             onPressed: onOpen,
+            showBusyIndicator: false,
             icon: const Icon(Icons.visibility_outlined),
-            label: const Text.localized('Open lease'),
+            child: const Text.localized('Open lease'),
           );
           if (constraints.maxWidth < 650) {
             return Column(

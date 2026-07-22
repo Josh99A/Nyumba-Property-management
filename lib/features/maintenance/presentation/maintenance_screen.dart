@@ -13,6 +13,7 @@ import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/metric_grid.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -60,10 +61,11 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                 title: 'Maintenance',
                 description:
                     'Triage tenant requests and keep every repair moving.',
-                primaryAction: FilledButton.icon(
+                primaryAction: AsyncActionButton.filled(
                   onPressed: () => _showNewRequest(context, units, properties),
+                  showBusyIndicator: false,
                   icon: const Icon(Icons.add_rounded),
-                  label: const Text.localized('New request'),
+                  child: const Text.localized('New request'),
                 ),
               ),
               const SizedBox(height: 24),

@@ -25,6 +25,7 @@
     "viewAll":  "Tazama zote",
     "saveChanges":  "Hifadhi mabadiliko",
     "saving":  "Inahifadhi…",
+    "workingOnIt":  "Inashughulikia…",
     "saveDraft":  "Hifadhi rasimu",
     "publish":  "Chapisha",
     "unpublishListing":  "Ondoa tangazo",
@@ -945,4 +946,20 @@
     ,"staffPermissionManageDocumentsDescription": "Pakia na usimamie hati."
     ,"staffPermissionViewReportsLabel": "Ripoti"
     ,"staffPermissionViewReportsDescription": "Tengeneza ripoti za uendeshaji."
+    ,"addMorePhotos": "Ongeza picha zaidi"
+    ,"actionFailureEntityNotFound": "Nyumba haikuweza {action} kwa sababu {entity} inayohusika haipo tena. Huenda ilihifadhiwa kwenye kifaa kingine. Onyesha upya kisha ujaribu tena."
+    ,"@actionFailureEntityNotFound": {"placeholders": {"action": {"type": "String"}, "entity": {"type": "String"}}}
+    ,"actionFailureEntityAlreadyExists": "{entity} hiyo tayari ipo, kwa hivyo Nyumba haikuweza {action} tena."
+    ,"@actionFailureEntityAlreadyExists": {"placeholders": {"entity": {"type": "String"}, "action": {"type": "String"}}}
+    ,"actionFailurePermissionDenied": "Akaunti yako haijaruhusiwa {action}. Muombe mmiliki wa akaunti akupe ufikiaji, kisha utoke na uingie tena."
+    ,"@actionFailurePermissionDenied": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureStorageFull": "Kifaa hiki kimeishiwa nafasi ya data ya nje ya mtandao, kwa hivyo Nyumba haikuweza {action}. Picha ndizo zinazochukua nafasi zaidi — jaribu kuongeza chache au ndogo zaidi, au ondoa nafasi kisha ujaribu tena."
+    ,"@actionFailureStorageFull": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureOffline": "Nyumba haikuweza kufikia seva. Kazi yako imehifadhiwa kwenye kifaa hiki na itasawazishwa mara tu utakapounganishwa tena mtandaoni."
+    ,"actionFailureGeneric": "Nyumba haikuweza {action}. Hakuna kilichobadilika. Jaribu tena, na kama tatizo litaendelea tuma maelezo ya kiufundi hapa chini kwa usaidizi."
+    ,"@actionFailureGeneric": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureActionSaveProperty": "hifadhi mali hii"
+    ,"actionFailureActionSaveListingDraft": "hifadhi rasimu hii ya tangazo"
+    ,"actionFailureActionCreateDocument": "unda hati hii"
+    ,"actionFailureActionQueueNotice": "panga arifa hii kwenye foleni"
 }

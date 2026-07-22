@@ -105,37 +105,44 @@ class NyumbaStatusMessage extends StatefulWidget {
 class _NyumbaStatusMessageState extends State<NyumbaStatusMessage> {
   bool _showDetails = false;
 
-  ({Color foreground, Color background, Color border, IconData icon, String label})
-  _tokens(BuildContext context, AppLocalizations copy) => switch (widget.severity) {
-    NyumbaMessageSeverity.debug => (
-      foreground: context.nyumba.mutedInk,
-      background: context.nyumba.neutralTint,
-      border: context.nyumba.outline,
-      icon: Icons.bug_report_outlined,
-      label: copy.statusMessageSeverityDebug,
-    ),
-    NyumbaMessageSeverity.info => (
-      foreground: context.nyumba.midnightNavy,
-      background: context.nyumba.navyTint,
-      border: context.nyumba.navyBorder,
-      icon: Icons.info_outline_rounded,
-      label: copy.statusMessageSeverityInfo,
-    ),
-    NyumbaMessageSeverity.warning => (
-      foreground: context.nyumba.terracottaDark,
-      background: context.nyumba.goldTint,
-      border: context.nyumba.goldBorder,
-      icon: Icons.warning_amber_rounded,
-      label: copy.statusMessageSeverityWarning,
-    ),
-    NyumbaMessageSeverity.critical => (
-      foreground: context.nyumba.danger,
-      background: context.nyumba.dangerTint,
-      border: context.nyumba.dangerBorder,
-      icon: Icons.error_outline_rounded,
-      label: copy.statusMessageSeverityCritical,
-    ),
-  };
+  ({
+    Color foreground,
+    Color background,
+    Color border,
+    IconData icon,
+    String label,
+  })
+  _tokens(BuildContext context, AppLocalizations copy) =>
+      switch (widget.severity) {
+        NyumbaMessageSeverity.debug => (
+          foreground: context.nyumba.mutedInk,
+          background: context.nyumba.neutralTint,
+          border: context.nyumba.outline,
+          icon: Icons.bug_report_outlined,
+          label: copy.statusMessageSeverityDebug,
+        ),
+        NyumbaMessageSeverity.info => (
+          foreground: context.nyumba.midnightNavy,
+          background: context.nyumba.navyTint,
+          border: context.nyumba.navyBorder,
+          icon: Icons.info_outline_rounded,
+          label: copy.statusMessageSeverityInfo,
+        ),
+        NyumbaMessageSeverity.warning => (
+          foreground: context.nyumba.terracottaDark,
+          background: context.nyumba.goldTint,
+          border: context.nyumba.goldBorder,
+          icon: Icons.warning_amber_rounded,
+          label: copy.statusMessageSeverityWarning,
+        ),
+        NyumbaMessageSeverity.critical => (
+          foreground: context.nyumba.danger,
+          background: context.nyumba.dangerTint,
+          border: context.nyumba.dangerBorder,
+          icon: Icons.error_outline_rounded,
+          label: copy.statusMessageSeverityCritical,
+        ),
+      };
 
   @override
   Widget build(BuildContext context) {

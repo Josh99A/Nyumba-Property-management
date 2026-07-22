@@ -10,6 +10,7 @@ import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/localization/command_failure_localizations.dart';
 import '../../../core/offline/command_failure.dart';
 import '../../../core/offline/remote_sync_gateway.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/toast.dart';
 import '../application/staff_providers.dart';
 import '../domain/staff_permission.dart';
@@ -270,18 +271,20 @@ class _StaffCard extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               if (canCustomize)
-                TextButton.icon(
+                AsyncActionButton.text(
                   onPressed: () => _editPermissions(context, ref),
+                  showBusyIndicator: false,
                   icon: const Icon(Icons.tune_rounded, size: 18),
-                  label: const Text.localized('Change access'),
+                  child: const Text.localized('Change access'),
                 ),
-              TextButton.icon(
+              AsyncActionButton.text(
                 onPressed: () => _confirmRevoke(context, ref),
+                showBusyIndicator: false,
                 icon: const Icon(Icons.person_remove_alt_1_outlined, size: 18),
-                label: const Text.localized('Remove'),
-                style: TextButton.styleFrom(
+                buttonStyle: TextButton.styleFrom(
                   foregroundColor: context.nyumba.danger,
                 ),
+                child: const Text.localized('Remove'),
               ),
             ],
           ),
@@ -510,15 +513,10 @@ class _StaffPermissionsDialogState
           onPressed: _submitting ? null : () => Navigator.pop(context),
           child: const Text.localized('Cancel'),
         ),
-        FilledButton(
-          onPressed: _submitting ? null : _submit,
-          child: _submitting
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text.localized(widget.submitLabel),
+        AsyncActionButton.filled(
+          onPressed: _submit,
+          busy: _submitting,
+          child: Text.localized(widget.submitLabel),
         ),
       ],
     );

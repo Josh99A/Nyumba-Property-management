@@ -86,6 +86,9 @@ class AppLocalizationsSw extends AppLocalizations {
   String get saving => 'Inahifadhi…';
 
   @override
+  String get workingOnIt => 'Inashughulikia…';
+
+  @override
   String get saveDraft => 'Hifadhi rasimu';
 
   @override
@@ -3136,4 +3139,49 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get staffPermissionViewReportsDescription =>
       'Tengeneza ripoti za uendeshaji.';
+
+  @override
+  String get addMorePhotos => 'Ongeza picha zaidi';
+
+  @override
+  String actionFailureEntityNotFound(String action, String entity) {
+    return 'Nyumba haikuweza $action kwa sababu $entity inayohusika haipo tena. Huenda ilihifadhiwa kwenye kifaa kingine. Onyesha upya kisha ujaribu tena.';
+  }
+
+  @override
+  String actionFailureEntityAlreadyExists(String entity, String action) {
+    return '$entity hiyo tayari ipo, kwa hivyo Nyumba haikuweza $action tena.';
+  }
+
+  @override
+  String actionFailurePermissionDenied(String action) {
+    return 'Akaunti yako haijaruhusiwa $action. Muombe mmiliki wa akaunti akupe ufikiaji, kisha utoke na uingie tena.';
+  }
+
+  @override
+  String actionFailureStorageFull(String action) {
+    return 'Kifaa hiki kimeishiwa nafasi ya data ya nje ya mtandao, kwa hivyo Nyumba haikuweza $action. Picha ndizo zinazochukua nafasi zaidi — jaribu kuongeza chache au ndogo zaidi, au ondoa nafasi kisha ujaribu tena.';
+  }
+
+  @override
+  String get actionFailureOffline =>
+      'Nyumba haikuweza kufikia seva. Kazi yako imehifadhiwa kwenye kifaa hiki na itasawazishwa mara tu utakapounganishwa tena mtandaoni.';
+
+  @override
+  String actionFailureGeneric(String action) {
+    return 'Nyumba haikuweza $action. Hakuna kilichobadilika. Jaribu tena, na kama tatizo litaendelea tuma maelezo ya kiufundi hapa chini kwa usaidizi.';
+  }
+
+  @override
+  String get actionFailureActionSaveProperty => 'hifadhi mali hii';
+
+  @override
+  String get actionFailureActionSaveListingDraft =>
+      'hifadhi rasimu hii ya tangazo';
+
+  @override
+  String get actionFailureActionCreateDocument => 'unda hati hii';
+
+  @override
+  String get actionFailureActionQueueNotice => 'panga arifa hii kwenye foleni';
 }

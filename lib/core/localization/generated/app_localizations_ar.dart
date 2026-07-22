@@ -85,6 +85,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get saving => 'جارٍ الحفظ…';
 
   @override
+  String get workingOnIt => 'جارٍ التنفيذ…';
+
+  @override
   String get saveDraft => 'حفظ المسودة';
 
   @override
@@ -3053,4 +3056,49 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get staffPermissionViewReportsDescription => 'إنشاء تقارير تشغيلية.';
+
+  @override
+  String get addMorePhotos => 'إضافة المزيد من الصور';
+
+  @override
+  String actionFailureEntityNotFound(String action, String entity) {
+    return 'تعذر على Nyumba $action لأن $entity المشار إليه لم يعد موجودًا. ربما تمت أرشفته على جهاز آخر. أعد التحميل وحاول مرة أخرى.';
+  }
+
+  @override
+  String actionFailureEntityAlreadyExists(String entity, String action) {
+    return '$entity موجود بالفعل، لذلك لم يقم Nyumba بـ $action مرة أخرى.';
+  }
+
+  @override
+  String actionFailurePermissionDenied(String action) {
+    return 'حسابك غير مصرح له بـ $action. اطلب من مالك الحساب منحك صلاحية الوصول، ثم سجّل الخروج وأعد الدخول.';
+  }
+
+  @override
+  String actionFailureStorageFull(String action) {
+    return 'نفدت مساحة تخزين البيانات على هذا الجهاز، لذا تعذر على Nyumba $action. الصور هي أكثر ما يشغل المساحة — جرّب إضافة صور أقل أو أصغر، أو حرّر مساحة وحاول مرة أخرى.';
+  }
+
+  @override
+  String get actionFailureOffline =>
+      'تعذر على Nyumba الوصول إلى الخادم. عملك محفوظ على هذا الجهاز وستتم مزامنته بمجرد عودتك للاتصال بالإنترنت.';
+
+  @override
+  String actionFailureGeneric(String action) {
+    return 'تعذر على Nyumba $action. لم يتغيّر شيء. حاول مرة أخرى، وإذا استمرت المشكلة أرسل التفاصيل التقنية أدناه إلى الدعم.';
+  }
+
+  @override
+  String get actionFailureActionSaveProperty => 'حفظ هذا العقار';
+
+  @override
+  String get actionFailureActionSaveListingDraft => 'حفظ مسودة هذا الإعلان';
+
+  @override
+  String get actionFailureActionCreateDocument => 'إنشاء هذا المستند';
+
+  @override
+  String get actionFailureActionQueueNotice =>
+      'وضع هذا الإشعار في قائمة الانتظار';
 }

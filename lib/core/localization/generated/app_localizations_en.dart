@@ -85,6 +85,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saving => 'Saving…';
 
   @override
+  String get workingOnIt => 'Working…';
+
+  @override
   String get saveDraft => 'Save draft';
 
   @override
@@ -3087,4 +3090,48 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get staffPermissionViewReportsDescription =>
       'Generate operational reports.';
+
+  @override
+  String get addMorePhotos => 'Add more photos';
+
+  @override
+  String actionFailureEntityNotFound(String action, String entity) {
+    return 'Nyumba could not $action because the $entity it refers to no longer exists. It may have been archived on another device. Refresh and try again.';
+  }
+
+  @override
+  String actionFailureEntityAlreadyExists(String entity, String action) {
+    return 'That $entity already exists, so Nyumba did not $action again.';
+  }
+
+  @override
+  String actionFailurePermissionDenied(String action) {
+    return 'Your account is not allowed to $action. Ask the account owner to give you access, then sign out and back in.';
+  }
+
+  @override
+  String actionFailureStorageFull(String action) {
+    return 'This device has run out of space for offline data, so Nyumba could not $action. Photos take up the most room — try adding fewer or smaller ones, or free up space and try again.';
+  }
+
+  @override
+  String get actionFailureOffline =>
+      'Nyumba could not reach the server. Your work is kept on this device and will sync once you are back online.';
+
+  @override
+  String actionFailureGeneric(String action) {
+    return 'Nyumba could not $action. Nothing was changed. Try again, and if it keeps happening send the technical details below to support.';
+  }
+
+  @override
+  String get actionFailureActionSaveProperty => 'save this property';
+
+  @override
+  String get actionFailureActionSaveListingDraft => 'save this listing draft';
+
+  @override
+  String get actionFailureActionCreateDocument => 'create this document';
+
+  @override
+  String get actionFailureActionQueueNotice => 'queue this notice';
 }

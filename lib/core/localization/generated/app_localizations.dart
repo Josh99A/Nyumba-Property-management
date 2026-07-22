@@ -252,6 +252,12 @@ abstract class AppLocalizations {
   /// **'Saving…'**
   String get saving;
 
+  /// No description provided for @workingOnIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Working…'**
+  String get workingOnIt;
+
   /// No description provided for @saveDraft.
   ///
   /// In en, this message translates to:
@@ -5573,6 +5579,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Generate operational reports.'**
   String get staffPermissionViewReportsDescription;
+
+  /// No description provided for @addMorePhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Add more photos'**
+  String get addMorePhotos;
+
+  /// No description provided for @actionFailureEntityNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not {action} because the {entity} it refers to no longer exists. It may have been archived on another device. Refresh and try again.'**
+  String actionFailureEntityNotFound(String action, String entity);
+
+  /// No description provided for @actionFailureEntityAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'That {entity} already exists, so Nyumba did not {action} again.'**
+  String actionFailureEntityAlreadyExists(String entity, String action);
+
+  /// No description provided for @actionFailurePermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is not allowed to {action}. Ask the account owner to give you access, then sign out and back in.'**
+  String actionFailurePermissionDenied(String action);
+
+  /// No description provided for @actionFailureStorageFull.
+  ///
+  /// In en, this message translates to:
+  /// **'This device has run out of space for offline data, so Nyumba could not {action}. Photos take up the most room — try adding fewer or smaller ones, or free up space and try again.'**
+  String actionFailureStorageFull(String action);
+
+  /// No description provided for @actionFailureOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not reach the server. Your work is kept on this device and will sync once you are back online.'**
+  String get actionFailureOffline;
+
+  /// No description provided for @actionFailureGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not {action}. Nothing was changed. Try again, and if it keeps happening send the technical details below to support.'**
+  String actionFailureGeneric(String action);
+
+  /// No description provided for @actionFailureActionSaveProperty.
+  ///
+  /// In en, this message translates to:
+  /// **'save this property'**
+  String get actionFailureActionSaveProperty;
+
+  /// No description provided for @actionFailureActionSaveListingDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'save this listing draft'**
+  String get actionFailureActionSaveListingDraft;
+
+  /// No description provided for @actionFailureActionCreateDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'create this document'**
+  String get actionFailureActionCreateDocument;
+
+  /// No description provided for @actionFailureActionQueueNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'queue this notice'**
+  String get actionFailureActionQueueNotice;
 }
 
 class _AppLocalizationsDelegate

@@ -12,6 +12,8 @@ import '../../../app/theme/nyumba_colors.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/config/market_config.dart';
+import '../../../core/presentation/action_failure.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -83,7 +85,7 @@ class _LandlordListingsScreenState
                 description:
                     'Advertise vacant rental spaces and review incoming applications.',
                 primaryAction: canCreate
-                    ? FilledButton.icon(
+                    ? AsyncActionButton.filled(
                         onPressed:
                             unitsValue.value == null ||
                                 propertiesValue.value == null
@@ -93,8 +95,9 @@ class _LandlordListingsScreenState
                                 unitsValue.value!,
                                 propertiesValue.value!,
                               ),
+                        showBusyIndicator: false,
                         icon: const Icon(Icons.add_rounded),
-                        label: const Text.localized('Create listing'),
+                        child: const Text.localized('Create listing'),
                       )
                     : null,
                 secondaryAction: OutlinedButton.icon(
@@ -171,7 +174,9 @@ class _LandlordListingsScreenState
                 error: (error, stack) => NyumbaStatusMessage.fromError(
                   error,
                   localizations: appLocalizationsOf(context),
-                  subject: appLocalizationsOf(context).statusSubjectYourListings,
+                  subject: appLocalizationsOf(
+                    context,
+                  ).statusSubjectYourListings,
                   onRetry: () => ref.invalidate(landlordListingsProvider),
                 ),
                 data: (allListings) {
@@ -249,8 +254,9 @@ class _LandlordListingsScreenState
     // At the plan's active-listing limit, prompt for an upgrade instead of
     // queueing a publication the server would reject. Only a confirmed
     // entitlement blocks locally; an unknown plan leaves the server to judge.
-    if (ref.read(landlordEntitlementProvider).value
-        case EntitlementKnown(entitlement: final plan)) {
+    if (ref.read(landlordEntitlementProvider).value case EntitlementKnown(
+      entitlement: final plan,
+    )) {
       final listings =
           ref.read(landlordListingsProvider).value ?? const <Listing>[];
       final activeCount = listings
@@ -395,7 +401,7 @@ class _LandlordListingsScreenState
               onPressed: () => Navigator.pop(context, false),
               child: const Text.localized('Cancel'),
             ),
-            FilledButton(
+            AsyncActionButton.filled(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 try {
@@ -549,6 +555,12 @@ class _LandlordListingsScreenState
     final videoUrl = TextEditingController();
     DateTime? availableFrom;
     bool furnished = false;
+    // Photo rejections and a refused save are different things and are shown
+    // differently. Both are pinned below the scroll view, because a snack bar
+    // raised from inside a dialog surfaces behind the modal barrier where it
+    // is easy to miss entirely.
+    var photoProblems = const <String>[];
+    ActionFailure? failure;
     final created = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -556,169 +568,256 @@ class _LandlordListingsScreenState
           title: const Text.localized('Create listing'),
           content: SizedBox(
             width: 520,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<Unit>(
-                      initialValue: selectedUnit,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Vacant rental space'),
-                      ),
-                      items: [
-                        for (final unit in vacant)
-                          DropdownMenuItem(
-                            value: unit,
-                            child: Text.localized(
-                              '${unit.displayName} · ${propertyById[unit.propertyId]?.name ?? ''}',
-                            ),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setDialogState(() {
-                          selectedUnit = value;
-                          title.text =
-                              '${value.label} at ${propertyById[value.propertyId]?.name ?? 'My property'}';
-                          district.text =
-                              propertyById[value.propertyId]?.city ?? 'Kampala';
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: title,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Listing title'),
-                      ),
-                      validator: (value) => (value?.trim().length ?? 0) < 5
-                          ? context.tr('Enter a clear title')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: description,
-                      minLines: 3,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Description'),
-                      ),
-                      validator: (value) => (value?.trim().length ?? 0) < 15
-                          ? context.tr('Add a little more detail')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: neighborhood,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Form(
+                    key: formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DropdownButtonFormField<Unit>(
+                            initialValue: selectedUnit,
                             decoration: InputDecoration(
-                              labelText: context.tr('Neighborhood'),
-                              helperText: context.tr(
-                                'Public; do not enter an exact address',
-                              ),
+                              labelText: context.tr('Vacant rental space'),
                             ),
-                            validator: (value) => value?.trim().isEmpty ?? true
-                                ? context.tr('Enter a public neighborhood')
+                            items: [
+                              for (final unit in vacant)
+                                DropdownMenuItem(
+                                  value: unit,
+                                  child: Text.localized(
+                                    '${unit.displayName} · ${propertyById[unit.propertyId]?.name ?? ''}',
+                                  ),
+                                ),
+                            ],
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setDialogState(() {
+                                selectedUnit = value;
+                                title.text =
+                                    '${value.label} at ${propertyById[value.propertyId]?.name ?? 'My property'}';
+                                district.text =
+                                    propertyById[value.propertyId]?.city ??
+                                    'Kampala';
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: title,
+                            decoration: InputDecoration(
+                              labelText: context.tr('Listing title'),
+                            ),
+                            validator: (value) =>
+                                (value?.trim().length ?? 0) < 5
+                                ? context.tr('Enter a clear title')
                                 : null,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: district,
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: description,
+                            minLines: 3,
+                            maxLines: 5,
                             decoration: InputDecoration(
-                              labelText: context.tr('District or city area'),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: latitude,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                              signed: true,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: context.tr(
-                                'Approx. latitude (optional)',
-                              ),
+                              labelText: context.tr('Description'),
                             ),
                             validator: (value) =>
-                                _optionalLatitudeValidator(context, value),
+                                (value?.trim().length ?? 0) < 15
+                                ? context.tr('Add a little more detail')
+                                : null,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: longitude,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                              signed: true,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: context.tr(
-                                'Approx. longitude (optional)',
-                              ),
-                            ),
-                            validator: (value) =>
-                                _optionalLongitudeValidator(context, value),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final now = DateTime.now();
-                        final date = await showDatePicker(
-                          context: context,
-                          firstDate: DateTime(now.year, now.month, now.day),
-                          lastDate: now.add(const Duration(days: 730)),
-                        );
-                        if (date != null) {
-                          setDialogState(() => availableFrom = date);
-                        }
-                      },
-                      icon: const Icon(Icons.event_available_outlined),
-                      label: Text.localized(
-                        availableFrom == null
-                            ? 'Choose availability date'
-                            : 'Available ${DateFormat('d MMM y').format(availableFrom!)}',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: floorArea,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Floor area (m²)'),
-                            ),
-                            validator: (value) =>
-                                _optionalPositiveIntegerValidator(
-                                  context,
-                                  value,
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: neighborhood,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('Neighborhood'),
+                                    helperText: context.tr(
+                                      'Public; do not enter an exact address',
+                                    ),
+                                  ),
+                                  validator: (value) =>
+                                      value?.trim().isEmpty ?? true
+                                      ? context.tr(
+                                          'Enter a public neighborhood',
+                                        )
+                                      : null,
                                 ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: district,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr(
+                                      'District or city area',
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: parkingSpaces,
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: latitude,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                        signed: true,
+                                      ),
+                                  decoration: InputDecoration(
+                                    labelText: context.tr(
+                                      'Approx. latitude (optional)',
+                                    ),
+                                  ),
+                                  validator: (value) =>
+                                      _optionalLatitudeValidator(
+                                        context,
+                                        value,
+                                      ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: longitude,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                        signed: true,
+                                      ),
+                                  decoration: InputDecoration(
+                                    labelText: context.tr(
+                                      'Approx. longitude (optional)',
+                                    ),
+                                  ),
+                                  validator: (value) =>
+                                      _optionalLongitudeValidator(
+                                        context,
+                                        value,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          AsyncActionButton.outlined(
+                            showBusyIndicator: false,
+                            onPressed: () async {
+                              final now = DateTime.now();
+                              final date = await showDatePicker(
+                                context: context,
+                                firstDate: DateTime(
+                                  now.year,
+                                  now.month,
+                                  now.day,
+                                ),
+                                lastDate: now.add(const Duration(days: 730)),
+                              );
+                              if (date != null) {
+                                setDialogState(() => availableFrom = date);
+                              }
+                            },
+                            icon: const Icon(Icons.event_available_outlined),
+                            child: Text.localized(
+                              availableFrom == null
+                                  ? 'Choose availability date'
+                                  : 'Available ${DateFormat('d MMM y').format(availableFrom!)}',
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: floorArea,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('Floor area (m²)'),
+                                  ),
+                                  validator: (value) =>
+                                      _optionalPositiveIntegerValidator(
+                                        context,
+                                        value,
+                                      ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: parkingSpaces,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('Parking spaces'),
+                                  ),
+                                  validator: (value) =>
+                                      _optionalNonNegativeIntegerValidator(
+                                        context,
+                                        value,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text.localized('Furnished'),
+                            value: furnished,
+                            onChanged: (value) =>
+                                setDialogState(() => furnished = value),
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: minimumLeaseMonths,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr(
+                                      'Minimum lease (months)',
+                                    ),
+                                  ),
+                                  validator: (value) =>
+                                      _optionalPositiveIntegerValidator(
+                                        context,
+                                        value,
+                                      ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: securityDeposit,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr(
+                                      'Security deposit (UGX)',
+                                    ),
+                                  ),
+                                  validator: (value) =>
+                                      _optionalNonNegativeIntegerValidator(
+                                        context,
+                                        value,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: serviceCharge,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: context.tr('Parking spaces'),
+                              labelText: context.tr(
+                                'Monthly service charge (UGX)',
+                              ),
                             ),
                             validator: (value) =>
                                 _optionalNonNegativeIntegerValidator(
@@ -726,254 +825,208 @@ class _LandlordListingsScreenState
                                   value,
                                 ),
                           ),
-                        ),
-                      ],
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text.localized('Furnished'),
-                      value: furnished,
-                      onChanged: (value) =>
-                          setDialogState(() => furnished = value),
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: minimumLeaseMonths,
-                            keyboardType: TextInputType.number,
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: utilities,
                             decoration: InputDecoration(
-                              labelText: context.tr('Minimum lease (months)'),
+                              labelText: context.tr('Utilities included'),
+                              helperText: context.tr(
+                                'Comma-separated, for example water, internet',
+                              ),
                             ),
-                            validator: (value) =>
-                                _optionalPositiveIntegerValidator(
-                                  context,
-                                  value,
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: accessibility,
+                            decoration: InputDecoration(
+                              labelText: context.tr('Accessibility features'),
+                              helperText: context.tr('Comma-separated'),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: petsPolicy,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('Pets policy'),
+                                  ),
                                 ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: securityDeposit,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Security deposit (UGX)'),
-                            ),
-                            validator: (value) =>
-                                _optionalNonNegativeIntegerValidator(
-                                  context,
-                                  value,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: smokingPolicy,
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('Smoking policy'),
+                                  ),
                                 ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: serviceCharge,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Monthly service charge (UGX)'),
-                      ),
-                      validator: (value) =>
-                          _optionalNonNegativeIntegerValidator(context, value),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: utilities,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Utilities included'),
-                        helperText: context.tr(
-                          'Comma-separated, for example water, internet',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: accessibility,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Accessibility features'),
-                        helperText: context.tr('Comma-separated'),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: petsPolicy,
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: viewingInstructions,
+                            minLines: 2,
+                            maxLines: 3,
                             decoration: InputDecoration(
-                              labelText: context.tr('Pets policy'),
+                              labelText: context.tr('Viewing instructions'),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: smokingPolicy,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Smoking policy'),
+                          const SizedBox(height: 14),
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Text.localized(
+                              'Listing photos',
+                              style: Theme.of(context).textTheme.labelLarge,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: viewingInstructions,
-                      minLines: 2,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Viewing instructions'),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Text.localized(
-                        'Listing photos',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: OutlinedButton.icon(
-                        onPressed: selectedPhotos.length >= listingPhotoLimit
-                            ? null
-                            : () async {
-                                final result = await pickListingPhotos(
-                                  remainingSlots:
-                                      listingPhotoLimit - selectedPhotos.length,
-                                );
-                                if (!context.mounted) return;
-                                setDialogState(
-                                  () => selectedPhotos.addAll(result.photos),
-                                );
-                                if (result.rejectedMessages.isNotEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text.localized(
-                                        result.rejectedMessages.join('\n'),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: AsyncActionButton.outlined(
+                              showBusyIndicator: false,
+                              onPressed:
+                                  selectedPhotos.length >= listingPhotoLimit
+                                  ? null
+                                  : () async {
+                                      final result = await pickListingPhotos(
+                                        remainingSlots:
+                                            listingPhotoLimit -
+                                            selectedPhotos.length,
+                                      );
+                                      if (!context.mounted) return;
+                                      // Backing out of the chooser changes nothing.
+                                      if (result.cancelled) return;
+                                      setDialogState(() {
+                                        selectedPhotos.addAll(result.images);
+                                        photoProblems = result.problems;
+                                      });
+                                    },
+                              icon: const Icon(
+                                Icons.add_photo_alternate_outlined,
+                              ),
+                              child: Text.localized(
+                                selectedPhotos.isEmpty
+                                    ? 'Choose photos'
+                                    : 'Add more (${selectedPhotos.length}/$listingPhotoLimit)',
+                              ),
+                            ),
+                          ),
+                          if (selectedPhotos.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final photo in selectedPhotos)
+                                  InputChip(
+                                    avatar: CircleAvatar(
+                                      backgroundImage: MemoryImage(photo.bytes),
+                                    ),
+                                    label: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 150,
+                                      ),
+                                      child: Text(
+                                        photo.name,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                  );
-                                }
-                              },
-                        icon: const Icon(Icons.add_photo_alternate_outlined),
-                        label: Text.localized(
-                          selectedPhotos.isEmpty
-                              ? 'Choose photos'
-                              : 'Add more (${selectedPhotos.length}/$listingPhotoLimit)',
-                        ),
-                      ),
-                    ),
-                    if (selectedPhotos.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final photo in selectedPhotos)
-                            InputChip(
-                              avatar: CircleAvatar(
-                                backgroundImage: MemoryImage(photo.bytes),
-                              ),
-                              label: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 150,
-                                ),
-                                child: Text(
-                                  photo.name,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              onDeleted: () => setDialogState(
-                                () => selectedPhotos.remove(photo),
+                                    onDeleted: () => setDialogState(
+                                      () => selectedPhotos.remove(photo),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 6),
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Text.localized(
+                              '$supportedPhotoFormats; up to 5 MB each and '
+                              '$listingPhotoLimit photos. Selections stay in this '
+                              'local draft. Publishing stays blocked until the '
+                              'production upload service replaces them with '
+                              'server-owned media references.',
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: videoUrl,
+                            keyboardType: TextInputType.url,
+                            decoration: InputDecoration(
+                              labelText: context.tr(
+                                'Video or virtual-tour URL (optional)',
                               ),
                             ),
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: phone,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              labelText: context.tr('Contact phone'),
+                            ),
+                            validator: (value) =>
+                                (value?.trim().length ?? 0) < 7
+                                ? email.text.trim().isEmpty
+                                      ? context.tr(
+                                          'Enter a phone or email for routed enquiries',
+                                        )
+                                      : null
+                                : !NyumbaMarket.isValidPhone(value!.trim())
+                                ? context.tr('Use the Ugandan +256 format')
+                                : null,
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: email,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              labelText: context.tr(
+                                'Private contact email (optional)',
+                              ),
+                              helperText: context.tr(
+                                'Used for routed enquiries; not shown publicly',
+                              ),
+                            ),
+                            validator: (value) {
+                              final text = value?.trim() ?? '';
+                              if (text.isEmpty && phone.text.trim().isEmpty) {
+                                return context.tr(
+                                  'Enter a phone or email for routed enquiries',
+                                );
+                              }
+                              return text.isNotEmpty && !text.contains('@')
+                                  ? context.tr('Enter a valid email')
+                                  : null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: StatusBadge(
+                              label: switch (ref
+                                  .read(landlordEntitlementProvider)
+                                  .value) {
+                                EntitlementKnown(entitlement: final plan) =>
+                                  'Advertising enabled · ${plan.displayName} plan',
+                                _ =>
+                                  'Advertising follows your subscription plan',
+                              },
+                              tone: BadgeTone.success,
+                            ),
+                          ),
                         ],
                       ),
-                    ],
-                    const SizedBox(height: 6),
-                    const Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Text.localized(
-                        'JPEG, PNG, or WebP; up to 5 MB each and 10 photos. '
-                        'Selections stay in this local draft. Publishing stays '
-                        'blocked until the production upload service replaces '
-                        'them with server-owned media references.',
-                      ),
                     ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: videoUrl,
-                      keyboardType: TextInputType.url,
-                      decoration: InputDecoration(
-                        labelText: context.tr(
-                          'Video or virtual-tour URL (optional)',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: phone,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Contact phone'),
-                      ),
-                      validator: (value) => (value?.trim().length ?? 0) < 7
-                          ? email.text.trim().isEmpty
-                                ? context.tr(
-                                    'Enter a phone or email for routed enquiries',
-                                  )
-                                : null
-                          : !NyumbaMarket.isValidPhone(value!.trim())
-                          ? context.tr('Use the Ugandan +256 format')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: email,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: context.tr(
-                          'Private contact email (optional)',
-                        ),
-                        helperText: context.tr(
-                          'Used for routed enquiries; not shown publicly',
-                        ),
-                      ),
-                      validator: (value) {
-                        final text = value?.trim() ?? '';
-                        if (text.isEmpty && phone.text.trim().isEmpty) {
-                          return context.tr(
-                            'Enter a phone or email for routed enquiries',
-                          );
-                        }
-                        return text.isNotEmpty && !text.contains('@')
-                            ? context.tr('Enter a valid email')
-                            : null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: StatusBadge(
-                        label: switch (ref
-                            .read(landlordEntitlementProvider)
-                            .value) {
-                          EntitlementKnown(entitlement: final plan) =>
-                            'Advertising enabled · ${plan.displayName} plan',
-                          _ => 'Advertising follows your subscription plan',
-                        },
-                        tone: BadgeTone.success,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                PickProblemsNotice(problems: photoProblems),
+                if (failure != null) ActionFailureNotice(failure: failure!),
+              ],
             ),
           ),
           actions: [
@@ -981,10 +1034,65 @@ class _LandlordListingsScreenState
               onPressed: () => Navigator.pop(context, false),
               child: const Text.localized('Cancel'),
             ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  Navigator.pop(context, true);
+            AsyncActionButton.filled(
+              // The draft is written here rather than after the dialog closes.
+              // It used to be saved on the way out with nothing catching a
+              // throw, so a rejected draft closed the dialog, discarded every
+              // field the landlord had typed, and said nothing at all.
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                try {
+                  await ref.read(createListingDraftProvider)(
+                    CreateListingInput(
+                      unitId: selectedUnit.id,
+                      propertyId: selectedUnit.propertyId,
+                      landlordId: selectedUnit.landlordId,
+                      title: title.text.trim(),
+                      description: description.text.trim(),
+                      monthlyRentMinor: selectedUnit.monthlyRentMinor,
+                      currency: selectedUnit.currency,
+                      city:
+                          propertyById[selectedUnit.propertyId]?.city ??
+                          'Kampala',
+                      district: district.text.trim(),
+                      neighborhood: neighborhood.text.trim(),
+                      approximateLatitude: _optionalDouble(latitude.text),
+                      approximateLongitude: _optionalDouble(longitude.text),
+                      availableFrom: availableFrom,
+                      floorAreaSquareMetres: _optionalInt(floorArea.text),
+                      furnished: furnished,
+                      parkingSpaces: _optionalInt(parkingSpaces.text),
+                      minimumLeaseMonths: _optionalInt(minimumLeaseMonths.text),
+                      securityDepositMinor: _optionalMoneyMinor(
+                        securityDeposit.text,
+                      ),
+                      serviceChargeMinor: _optionalMoneyMinor(
+                        serviceCharge.text,
+                      ),
+                      utilitiesIncluded: _splitCommaSeparated(utilities.text),
+                      accessibilityFeatures: _splitCommaSeparated(
+                        accessibility.text,
+                      ),
+                      petsPolicy: petsPolicy.text.trim(),
+                      smokingPolicy: smokingPolicy.text.trim(),
+                      viewingInstructions: viewingInstructions.text.trim(),
+                      imageUrls: selectedPhotos
+                          .map((photo) => photo.dataUri)
+                          .toList(),
+                      videoUrl: videoUrl.text.trim(),
+                      contactPhone: phone.text.trim(),
+                      contactEmail: email.text.trim(),
+                    ),
+                  );
+                  if (context.mounted) Navigator.pop(context, true);
+                } on Object catch (caught) {
+                  if (!context.mounted) return;
+                  setDialogState(
+                    () => failure = describeActionFailure(
+                      caught,
+                      action: context.tr('save this listing draft'),
+                    ),
+                  );
                 }
               },
               child: const Text.localized('Save draft'),
@@ -994,38 +1102,6 @@ class _LandlordListingsScreenState
       ),
     );
     if (created == true) {
-      await ref.read(createListingDraftProvider)(
-        CreateListingInput(
-          unitId: selectedUnit.id,
-          propertyId: selectedUnit.propertyId,
-          landlordId: selectedUnit.landlordId,
-          title: title.text.trim(),
-          description: description.text.trim(),
-          monthlyRentMinor: selectedUnit.monthlyRentMinor,
-          currency: selectedUnit.currency,
-          city: propertyById[selectedUnit.propertyId]?.city ?? 'Kampala',
-          district: district.text.trim(),
-          neighborhood: neighborhood.text.trim(),
-          approximateLatitude: _optionalDouble(latitude.text),
-          approximateLongitude: _optionalDouble(longitude.text),
-          availableFrom: availableFrom,
-          floorAreaSquareMetres: _optionalInt(floorArea.text),
-          furnished: furnished,
-          parkingSpaces: _optionalInt(parkingSpaces.text),
-          minimumLeaseMonths: _optionalInt(minimumLeaseMonths.text),
-          securityDepositMinor: _optionalMoneyMinor(securityDeposit.text),
-          serviceChargeMinor: _optionalMoneyMinor(serviceCharge.text),
-          utilitiesIncluded: _splitCommaSeparated(utilities.text),
-          accessibilityFeatures: _splitCommaSeparated(accessibility.text),
-          petsPolicy: petsPolicy.text.trim(),
-          smokingPolicy: smokingPolicy.text.trim(),
-          viewingInstructions: viewingInstructions.text.trim(),
-          imageUrls: selectedPhotos.map((photo) => photo.dataUri).toList(),
-          videoUrl: videoUrl.text.trim(),
-          contactPhone: phone.text.trim(),
-          contactEmail: email.text.trim(),
-        ),
-      );
       if (mounted) {
         ScaffoldMessenger.of(this.context).showSnackBar(
           const SnackBar(

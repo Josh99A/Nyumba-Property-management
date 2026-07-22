@@ -8,6 +8,7 @@ import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
@@ -127,15 +128,16 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       description: source == AdminDirectorySource.live
           ? 'Live server directory of every account, with audited actions.'
           : 'Review accounts, roles, verification, and platform access.',
-      secondaryAction: OutlinedButton.icon(
+      secondaryAction: AsyncActionButton.outlined(
         onPressed: () => _exportUsers(filtered),
         icon: const Icon(Icons.download_outlined),
-        label: const Text.localized('Export'),
+        child: const Text.localized('Export'),
       ),
-      primaryAction: OutlinedButton.icon(
+      primaryAction: AsyncActionButton.outlined(
         onPressed: _explainProvisioning,
+        showBusyIndicator: false,
         icon: const Icon(Icons.info_outline_rounded),
-        label: const Text.localized('How accounts are created'),
+        child: const Text.localized('How accounts are created'),
       ),
       children: [
         AdminMetricGrid(
@@ -461,8 +463,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     });
   }
 
-  void _explainProvisioning() {
-    showNyumbaInfoDialog(
+  Future<void> _explainProvisioning() {
+    return showNyumbaInfoDialog(
       context,
       title: 'How accounts are created',
       message:

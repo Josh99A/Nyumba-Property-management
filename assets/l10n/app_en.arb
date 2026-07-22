@@ -25,6 +25,7 @@
     "viewAll":  "View all",
     "saveChanges":  "Save changes",
     "saving":  "Saving…",
+    "workingOnIt":  "Working…",
     "saveDraft":  "Save draft",
     "publish":  "Publish",
     "unpublishListing":  "Unpublish listing",
@@ -956,4 +957,20 @@
     ,"staffPermissionManageDocumentsDescription": "Upload and manage documents."
     ,"staffPermissionViewReportsLabel": "Reports"
     ,"staffPermissionViewReportsDescription": "Generate operational reports."
+    ,"addMorePhotos": "Add more photos"
+    ,"actionFailureEntityNotFound": "Nyumba could not {action} because the {entity} it refers to no longer exists. It may have been archived on another device. Refresh and try again."
+    ,"@actionFailureEntityNotFound": {"placeholders": {"action": {"type": "String"}, "entity": {"type": "String"}}}
+    ,"actionFailureEntityAlreadyExists": "That {entity} already exists, so Nyumba did not {action} again."
+    ,"@actionFailureEntityAlreadyExists": {"placeholders": {"entity": {"type": "String"}, "action": {"type": "String"}}}
+    ,"actionFailurePermissionDenied": "Your account is not allowed to {action}. Ask the account owner to give you access, then sign out and back in."
+    ,"@actionFailurePermissionDenied": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureStorageFull": "This device has run out of space for offline data, so Nyumba could not {action}. Photos take up the most room — try adding fewer or smaller ones, or free up space and try again."
+    ,"@actionFailureStorageFull": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureOffline": "Nyumba could not reach the server. Your work is kept on this device and will sync once you are back online."
+    ,"actionFailureGeneric": "Nyumba could not {action}. Nothing was changed. Try again, and if it keeps happening send the technical details below to support."
+    ,"@actionFailureGeneric": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureActionSaveProperty": "save this property"
+    ,"actionFailureActionSaveListingDraft": "save this listing draft"
+    ,"actionFailureActionCreateDocument": "create this document"
+    ,"actionFailureActionQueueNotice": "queue this notice"
 }

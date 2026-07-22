@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/localization/command_failure_localizations.dart';
+import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/google_g_logo.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/language_menu_button.dart';
@@ -242,7 +243,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                             ).textTheme.labelLarge,
                                           ),
                                         ),
-                                        TextButton(
+                                        AsyncActionButton.text(
                                           onPressed: _resetPassword,
                                           child: const Text.localized(
                                             'Forgot password?',
@@ -289,32 +290,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                           : null,
                                     ),
                                     const SizedBox(height: 24),
-                                    FilledButton(
-                                      onPressed: busy ? null : _submit,
-                                      child: busy
-                                          ? const SizedBox.square(
-                                              dimension: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.white,
-                                              ),
-                                            )
-                                          : const Text.localized('Sign in'),
+                                    AsyncActionButton.filled(
+                                      onPressed: _submit,
+                                      busy: busy,
+                                      child: const Text.localized('Sign in'),
                                     ),
                                     const SizedBox(height: 12),
-                                    OutlinedButton.icon(
-                                      onPressed: googleBusy
-                                          ? null
-                                          : _signInWithGoogle,
-                                      icon: googleBusy
-                                          ? const SizedBox.square(
-                                              dimension: 18,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                              ),
-                                            )
-                                          : const GoogleGLogo(),
-                                      label: Text.localized(
+                                    AsyncActionButton.outlined(
+                                      onPressed: _signInWithGoogle,
+                                      busy: googleBusy,
+                                      icon: const GoogleGLogo(),
+                                      child: Text.localized(
                                         isResolving
                                             ? 'Opening your workspace…'
                                             : 'Continue with Google',
