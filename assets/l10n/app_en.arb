@@ -927,4 +927,10 @@
     ,"adminSubscriptionsLoadFailedMessage": "The server directory could not be read."
     ,"adminAccountDirectoryLoadFailedTitle": "Could not load the account directory"
     ,"adminAccountDirectoryLoadFailedMessage": "The live directory could not be read. There is deliberately no offline copy of other people’s accounts on this device."
+    ,"appLockCardTitle": "Fingerprint unlock"
+    ,"appLockCardSubtitle": "Nyumba holds tenant and payment records on this device."
+    ,"appLockOnStatus": "On. Your fingerprint is required when Nyumba reopens."
+    ,"appLockTurnOn": "Turn on fingerprint unlock"
+    ,"appLockTurnOff": "Turn off fingerprint unlock"
+    ,"appLockWaiting": "Waiting for your fingerprint…"
 }

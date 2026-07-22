@@ -2957,4 +2957,24 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get adminAccountDirectoryLoadFailedMessage =>
       'تعذرت قراءة الدليل المباشر. لا توجد عمدًا نسخة غير متصلة لحسابات أشخاص آخرين على هذا الجهاز.';
+
+  @override
+  String get appLockCardTitle => 'الفتح ببصمة الإصبع';
+
+  @override
+  String get appLockCardSubtitle =>
+      'يحتفظ Nyumba بسجلات المستأجرين والمدفوعات على هذا الجهاز.';
+
+  @override
+  String get appLockOnStatus =>
+      'مفعّل. ستكون بصمة إصبعك مطلوبة عند إعادة فتح Nyumba.';
+
+  @override
+  String get appLockTurnOn => 'تفعيل الفتح ببصمة الإصبع';
+
+  @override
+  String get appLockTurnOff => 'إيقاف الفتح ببصمة الإصبع';
+
+  @override
+  String get appLockWaiting => 'في انتظار بصمة إصبعك…';
 }

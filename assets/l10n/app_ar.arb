@@ -916,4 +916,10 @@
     ,"adminSubscriptionsLoadFailedMessage": "تعذرت قراءة دليل الخادم."
     ,"adminAccountDirectoryLoadFailedTitle": "تعذر تحميل دليل الحسابات"
     ,"adminAccountDirectoryLoadFailedMessage": "تعذرت قراءة الدليل المباشر. لا توجد عمدًا نسخة غير متصلة لحسابات أشخاص آخرين على هذا الجهاز."
+    ,"appLockCardTitle": "الفتح ببصمة الإصبع"
+    ,"appLockCardSubtitle": "يحتفظ Nyumba بسجلات المستأجرين والمدفوعات على هذا الجهاز."
+    ,"appLockOnStatus": "مفعّل. ستكون بصمة إصبعك مطلوبة عند إعادة فتح Nyumba."
+    ,"appLockTurnOn": "تفعيل الفتح ببصمة الإصبع"
+    ,"appLockTurnOff": "إيقاف الفتح ببصمة الإصبع"
+    ,"appLockWaiting": "في انتظار بصمة إصبعك…"
 }

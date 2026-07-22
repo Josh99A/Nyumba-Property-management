@@ -53,7 +53,15 @@ class _NyumbaSurfaceState extends State<NyumbaSurface> {
     if (widget.onTap == null) {
       return DecoratedBox(
         decoration: _decoration(lifted: false),
-        child: Padding(padding: widget.padding, child: widget.child),
+        // Interactive children (ListTile, InkWell) paint their ink on the
+        // nearest Material ancestor. Without one here that ancestor is
+        // whatever sits above this decoration, so the box hides every splash
+        // and the switches inside look unresponsive. The tappable branch
+        // below already carries its own Material for the same reason.
+        child: Material(
+          type: MaterialType.transparency,
+          child: Padding(padding: widget.padding, child: widget.child),
+        ),
       );
     }
 

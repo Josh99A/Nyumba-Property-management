@@ -916,4 +916,10 @@
     ,"adminSubscriptionsLoadFailedMessage": "Olukalala lwa seva telusoboddwa kusomebwa."
     ,"adminAccountDirectoryLoadFailedTitle": "Tetwasobodde kutikka lukalala lwa akawunti"
     ,"adminAccountDirectoryLoadFailedMessage": "Olukalala olwa butereevu telusoboddwa kusomebwa. Tewali kopi ya akawunti z’abantu abalala eterekebwa ku kyuma kino nga tekiri ku yintaneeti."
+    ,"appLockCardTitle": "Okusumulula n'ekinkumu"
+    ,"appLockCardSubtitle": "Nyumba etereka ebiwandiiko by'abapangisa n'ebisasulwa ku kyuma kino."
+    ,"appLockOnStatus": "Kissiddwako. Ekinkumu kyo kyetaagisa Nyumba bw'eddamu okuggulwa."
+    ,"appLockTurnOn": "Ssaako okusumulula n'ekinkumu"
+    ,"appLockTurnOff": "Ggyako okusumulula n'ekinkumu"
+    ,"appLockWaiting": "Elindirira ekinkumu kyo…"
 }

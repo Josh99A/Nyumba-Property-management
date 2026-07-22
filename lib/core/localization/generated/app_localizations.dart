@@ -5399,6 +5399,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The live directory could not be read. There is deliberately no offline copy of other people’s accounts on this device.'**
   String get adminAccountDirectoryLoadFailedMessage;
+
+  /// No description provided for @appLockCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint unlock'**
+  String get appLockCardTitle;
+
+  /// No description provided for @appLockCardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba holds tenant and payment records on this device.'**
+  String get appLockCardSubtitle;
+
+  /// No description provided for @appLockOnStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'On. Your fingerprint is required when Nyumba reopens.'**
+  String get appLockOnStatus;
+
+  /// No description provided for @appLockTurnOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on fingerprint unlock'**
+  String get appLockTurnOn;
+
+  /// No description provided for @appLockTurnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off fingerprint unlock'**
+  String get appLockTurnOff;
+
+  /// No description provided for @appLockWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for your fingerprint…'**
+  String get appLockWaiting;
 }
 
 class _AppLocalizationsDelegate

@@ -916,4 +916,10 @@
     ,"adminSubscriptionsLoadFailedMessage": "Orodha ya seva haikuweza kusomwa."
     ,"adminAccountDirectoryLoadFailedTitle": "Imeshindikana kupakia orodha ya akaunti"
     ,"adminAccountDirectoryLoadFailedMessage": "Orodha ya moja kwa moja haikuweza kusomwa. Kwa makusudi hakuna nakala ya nje ya mtandao ya akaunti za watu wengine kwenye kifaa hiki."
+    ,"appLockCardTitle": "Kufungua kwa alama ya kidole"
+    ,"appLockCardSubtitle": "Nyumba huhifadhi kumbukumbu za wapangaji na malipo kwenye kifaa hiki."
+    ,"appLockOnStatus": "Imewashwa. Alama ya kidole chako inahitajika Nyumba inapofunguliwa tena."
+    ,"appLockTurnOn": "Washa kufungua kwa alama ya kidole"
+    ,"appLockTurnOff": "Zima kufungua kwa alama ya kidole"
+    ,"appLockWaiting": "Inasubiri alama ya kidole chako…"
 }

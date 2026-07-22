@@ -3038,4 +3038,24 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get adminAccountDirectoryLoadFailedMessage =>
       'Orodha ya moja kwa moja haikuweza kusomwa. Kwa makusudi hakuna nakala ya nje ya mtandao ya akaunti za watu wengine kwenye kifaa hiki.';
+
+  @override
+  String get appLockCardTitle => 'Kufungua kwa alama ya kidole';
+
+  @override
+  String get appLockCardSubtitle =>
+      'Nyumba huhifadhi kumbukumbu za wapangaji na malipo kwenye kifaa hiki.';
+
+  @override
+  String get appLockOnStatus =>
+      'Imewashwa. Alama ya kidole chako inahitajika Nyumba inapofunguliwa tena.';
+
+  @override
+  String get appLockTurnOn => 'Washa kufungua kwa alama ya kidole';
+
+  @override
+  String get appLockTurnOff => 'Zima kufungua kwa alama ya kidole';
+
+  @override
+  String get appLockWaiting => 'Inasubiri alama ya kidole chako…';
 }

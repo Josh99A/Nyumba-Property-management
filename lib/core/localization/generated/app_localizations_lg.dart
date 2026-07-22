@@ -3052,4 +3052,24 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get adminAccountDirectoryLoadFailedMessage =>
       'Olukalala olwa butereevu telusoboddwa kusomebwa. Tewali kopi ya akawunti z’abantu abalala eterekebwa ku kyuma kino nga tekiri ku yintaneeti.';
+
+  @override
+  String get appLockCardTitle => 'Okusumulula n\'ekinkumu';
+
+  @override
+  String get appLockCardSubtitle =>
+      'Nyumba etereka ebiwandiiko by\'abapangisa n\'ebisasulwa ku kyuma kino.';
+
+  @override
+  String get appLockOnStatus =>
+      'Kissiddwako. Ekinkumu kyo kyetaagisa Nyumba bw\'eddamu okuggulwa.';
+
+  @override
+  String get appLockTurnOn => 'Ssaako okusumulula n\'ekinkumu';
+
+  @override
+  String get appLockTurnOff => 'Ggyako okusumulula n\'ekinkumu';
+
+  @override
+  String get appLockWaiting => 'Elindirira ekinkumu kyo…';
 }

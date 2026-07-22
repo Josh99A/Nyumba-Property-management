@@ -2990,4 +2990,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get adminAccountDirectoryLoadFailedMessage =>
       'The live directory could not be read. There is deliberately no offline copy of other people’s accounts on this device.';
+
+  @override
+  String get appLockCardTitle => 'Fingerprint unlock';
+
+  @override
+  String get appLockCardSubtitle =>
+      'Nyumba holds tenant and payment records on this device.';
+
+  @override
+  String get appLockOnStatus =>
+      'On. Your fingerprint is required when Nyumba reopens.';
+
+  @override
+  String get appLockTurnOn => 'Turn on fingerprint unlock';
+
+  @override
+  String get appLockTurnOff => 'Turn off fingerprint unlock';
+
+  @override
+  String get appLockWaiting => 'Waiting for your fingerprint…';
 }
