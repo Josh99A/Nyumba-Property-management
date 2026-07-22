@@ -11,6 +11,7 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/market_config.dart';
 import '../../../core/presentation/nyumba_logo.dart';
 import '../../../core/presentation/responsive.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../domain/application.dart';
@@ -50,8 +51,19 @@ class ListingDetailScreen extends ConsumerWidget {
       ),
       body: listings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) =>
-            Center(child: Text.localized('Could not load this home: $error')),
+        error: (error, stack) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: NyumbaStatusMessage.fromError(
+                error,
+                subject: 'this home',
+                onRetry: () => ref.invalidate(publicListingsProvider),
+              ),
+            ),
+          ),
+        ),
         data: (items) {
           Listing? listing;
           for (final item in items) {

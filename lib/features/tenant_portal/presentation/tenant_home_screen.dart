@@ -11,6 +11,7 @@ import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../finance/application/billing_providers.dart';
@@ -56,7 +57,13 @@ class TenantHomeScreen extends ConsumerWidget {
       error: (error, stack) => TenantPage(
         title: 'Hello, $firstName',
         description: 'Here is what is happening with your home.',
-        children: [NyumbaSurfaceMessage('Could not load your home: $error')],
+        children: [
+          NyumbaStatusMessage.fromError(
+            error,
+            subject: 'your home',
+            onRetry: () => ref.invalidate(myTenancyProvider(tenantId)),
+          ),
+        ],
       ),
       data: (tenancy) => tenancy == null
           ? _NoTenancyHome(firstName: firstName)

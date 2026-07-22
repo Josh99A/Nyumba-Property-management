@@ -15,6 +15,7 @@ import '../../../core/presentation/metric_grid.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../auth/domain/auth_failure.dart';
@@ -211,11 +212,10 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   padding: EdgeInsets.all(48),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text.localized('Could not load payments: $error'),
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  subject: 'payments',
+                  onRetry: () => ref.invalidate(rentPaymentsProvider),
                 ),
                 data: (payments) =>
                     _buildLoaded(context, payments, tenancies, outbox),

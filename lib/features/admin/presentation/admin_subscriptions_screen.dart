@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
@@ -119,14 +120,12 @@ class _AdminSubscriptionsScreenState
             child: Center(child: CircularProgressIndicator()),
           )
         else if (accountsValue.hasError && accounts.isEmpty)
-          NyumbaSurface(
-            child: AdminEmptyState(
-              title: 'Could not load subscriptions',
-              message:
-                  'The server directory could not be read: '
-                  '${accountsValue.error}.',
-              icon: Icons.error_outline_rounded,
-            ),
+          NyumbaStatusMessage(
+            severity: NyumbaMessageSeverity.critical,
+            title: 'Could not load subscriptions',
+            message: 'The server directory could not be read.',
+            details: '${accountsValue.error}',
+            onRetry: () => ref.invalidate(platformAccountsProvider),
           )
         else ...[
           AdminMetricGrid(
@@ -925,7 +924,10 @@ class _ServerCatalogPanel extends ConsumerWidget {
         ),
         AsyncValue(:final error?) => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text.localized('Could not read the plan catalog: $error'),
+          child: NyumbaStatusMessage.fromError(
+            error,
+            subject: 'the plan catalog',
+          ),
         ),
         _ => const Padding(
           padding: EdgeInsets.all(24),

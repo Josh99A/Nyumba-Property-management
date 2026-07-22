@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
 import '../../portfolio/domain/property.dart';
@@ -286,7 +287,10 @@ class _ApprovalPanel extends StatelessWidget {
         ),
         (AsyncValue(:final error?), _) when !accountsValue.hasValue => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text.localized('Could not load the approval queue: $error'),
+          child: NyumbaStatusMessage.fromError(
+            error,
+            subject: 'the approval queue',
+          ),
         ),
         (_, []) => const Padding(
           padding: EdgeInsets.all(12),
@@ -414,7 +418,10 @@ class _AdminActivityPanel extends ConsumerWidget {
         ),
         AsyncValue(:final error?) => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text.localized('Could not read the audit log: $error'),
+          child: NyumbaStatusMessage.fromError(
+            error,
+            subject: 'the audit log',
+          ),
         ),
         _ => const Padding(
           padding: EdgeInsets.all(24),

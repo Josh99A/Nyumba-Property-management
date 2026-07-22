@@ -12,6 +12,7 @@ import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../finance/application/billing_providers.dart';
@@ -64,11 +65,10 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
         description:
             'Manage rent, invoices, receipts, and your payment history.',
         children: [
-          NyumbaSurface(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text.localized('Could not load your tenancy: $error'),
-            ),
+          NyumbaStatusMessage.fromError(
+            error,
+            subject: 'your payments',
+            onRetry: () => ref.invalidate(myTenancyProvider(_tenantId)),
           ),
         ],
       ),

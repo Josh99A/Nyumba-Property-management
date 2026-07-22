@@ -14,6 +14,7 @@ import '../../../core/presentation/metric_grid.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
 import '../../portfolio/domain/property.dart';
@@ -69,13 +70,10 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                   padding: EdgeInsets.all(48),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stack) => NyumbaSurface(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text.localized(
-                      'Could not load maintenance requests: $error',
-                    ),
-                  ),
+                error: (error, stack) => NyumbaStatusMessage.fromError(
+                  error,
+                  subject: 'maintenance requests',
+                  onRetry: () => ref.invalidate(maintenanceRequestsProvider),
                 ),
                 data: (requests) => _buildLoaded(context, requests, outbox),
               ),

@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
@@ -256,15 +257,14 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
             child: Center(child: CircularProgressIndicator()),
           )
         else if (accountsValue.hasError && accounts.isEmpty)
-          NyumbaSurface(
-            child: AdminEmptyState(
-              title: 'Could not load the account directory',
-              message:
-                  'The live directory could not be read: '
-                  '${accountsValue.error}. There is deliberately no offline '
-                  'copy of other people’s accounts on this device.',
-              icon: Icons.error_outline_rounded,
-            ),
+          NyumbaStatusMessage(
+            severity: NyumbaMessageSeverity.critical,
+            title: 'Could not load the account directory',
+            message:
+                'The live directory could not be read. There is deliberately '
+                'no offline copy of other people’s accounts on this device.',
+            details: '${accountsValue.error}',
+            onRetry: () => ref.invalidate(platformAccountsProvider),
           )
         else
           NyumbaSurface(
@@ -903,7 +903,10 @@ class _ServerAuditPanel extends StatelessWidget {
         ),
         AsyncValue(:final error?) => Padding(
           padding: const EdgeInsets.all(12),
-          child: Text.localized('Could not read the audit log: $error'),
+          child: NyumbaStatusMessage.fromError(
+            error,
+            subject: 'the audit log',
+          ),
         ),
         _ => const Padding(
           padding: EdgeInsets.all(24),
