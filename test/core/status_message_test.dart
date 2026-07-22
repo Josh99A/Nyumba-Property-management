@@ -8,7 +8,7 @@ void main() {
 
   test('classifies only the secure-storage plugin as a storage failure', () {
     final message = NyumbaStatusMessage.fromError(
-      const MissingPluginException(
+      MissingPluginException(
         'No implementation found for method read on channel '
         'plugins.it_nomads.com/flutter_secure_storage',
       ),
@@ -22,7 +22,7 @@ void main() {
 
   test('keeps unrelated missing plugins on the generic failure path', () {
     final message = NyumbaStatusMessage.fromError(
-      const MissingPluginException(
+      MissingPluginException(
         'No implementation found for method scan on channel camera_plugin',
       ),
       localizations: copy,
