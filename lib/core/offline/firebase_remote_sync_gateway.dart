@@ -117,6 +117,9 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         throw RemoteSyncException(
           error?['code']?.toString() ?? 'VALIDATION_FAILED',
           retryable: false,
+          // The server's safe remediation data is what lets the UI name the
+          // actual problem instead of showing a generic failure.
+          details: _optionalStringMap(error?['details']),
         );
       }
       if (status != 'applied' && status != 'accepted') {
@@ -136,6 +139,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         domainCode ?? error.code,
         retryable: !idempotencyReuse,
         cause: error,
+        details: _optionalStringMap(details?['details']),
       );
     } on Object catch (error) {
       throw RemoteSyncException('Callable command failed.', cause: error);
@@ -361,6 +365,20 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
           'monthlyRentMinor': payload['monthlyRentMinor'],
           if (payload['balanceMinor'] != null)
             'openingBalanceMinor': payload['balanceMinor'],
+        }),
+      // A tenant reporting rent they paid and a landlord recording rent they
+      // received are different acts with different authority: the tenant's is
+      // a claim the landlord must confirm, so it routes to `payment.declare`.
+      // Sending it to the landlord-only command would fail PERMISSION_DENIED
+      // on every attempt.
+      (OfflineEntityType.payment, OutboxOperation.create)
+          when payload['declaredByTenant'] == true =>
+        _RemoteCommand('payment.declare', <String, Object?>{
+          'tenancyId': payload['tenancyId'],
+          'amountMinor': payload['amountMinor'],
+          'method': _snakeCase(payload['method']?.toString() ?? ''),
+          'period': payload['period'],
+          'reference': payload['reference'],
         }),
       (OfflineEntityType.payment, OutboxOperation.create) =>
         _RemoteCommand('payment.recordAgainstTenancy', <String, Object?>{

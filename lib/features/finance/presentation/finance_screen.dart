@@ -17,6 +17,7 @@ import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/sync_state_badge.dart';
+import '../../auth/domain/auth_failure.dart';
 import '../../tenants/application/tenancy_providers.dart';
 import '../../tenants/domain/tenancy.dart';
 import '../application/billing_providers.dart';
@@ -29,6 +30,134 @@ final _ugx = NumberFormat.currency(
 );
 
 String _formatMinor(int amountMinor) => _ugx.format(amountMinor / 100);
+
+/// Turns a rejection code into readable text, e.g. `PAYMENT_NOT_RECEIVED`
+/// into "Payment not received".
+String _rejectReasonLabel(String code) {
+  final words = code.toLowerCase().split('_');
+  if (words.isEmpty) return code;
+  return [
+    words.first[0].toUpperCase() + words.first.substring(1),
+    ...words.skip(1),
+  ].join(' ');
+}
+
+/// Payments tenants reported that are waiting on this landlord's decision.
+///
+/// Hidden entirely when the queue is empty: an always-present empty panel on
+/// the main finance screen would be noise for landlords who record every
+/// payment themselves.
+class _DeclaredPaymentsPanel extends StatelessWidget {
+  const _DeclaredPaymentsPanel({
+    required this.payments,
+    required this.onConfirm,
+    required this.onReject,
+  });
+
+  final AsyncValue<List<DeclaredPayment>> payments;
+  final ValueChanged<DeclaredPayment> onConfirm;
+  final ValueChanged<DeclaredPayment> onReject;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = payments.value ?? const <DeclaredPayment>[];
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 22),
+      child: NyumbaSurface(
+        borderColor: context.nyumba.goldBorder,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.fact_check_outlined,
+                  color: context.nyumba.terracottaDark,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text.localized(
+                    'Payments reported by tenants',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text.localized(
+              'Check each reference against your records. Confirming settles '
+              'the payment and issues a receipt; nothing changes until you do.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: context.nyumba.mutedInk,
+              ),
+            ),
+            const SizedBox(height: 14),
+            for (final (index, payment) in items.indexed) ...[
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final details = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.localized(
+                        '${_formatMinor(payment.amountMinor)} · '
+                        '${payment.period}',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 2),
+                      Text.localized(
+                        'Reference: ${payment.reference}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (payment.note case final note?
+                          when note.trim().isNotEmpty)
+                        Text.localized(
+                          note,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: context.nyumba.mutedInk),
+                        ),
+                    ],
+                  );
+                  final actions = Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => onReject(payment),
+                        icon: const Icon(Icons.block_outlined, size: 18),
+                        label: const Text.localized('Reject'),
+                      ),
+                      FilledButton.icon(
+                        onPressed: () => onConfirm(payment),
+                        icon: const Icon(Icons.price_check_rounded, size: 18),
+                        label: const Text.localized('Confirm'),
+                      ),
+                    ],
+                  );
+                  if (constraints.maxWidth < 560) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [details, const SizedBox(height: 10), actions],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: details),
+                      const SizedBox(width: 16),
+                      actions,
+                    ],
+                  );
+                },
+              ),
+              if (index < items.length - 1) const Divider(height: 24),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class FinanceScreen extends ConsumerStatefulWidget {
   const FinanceScreen({super.key});
@@ -132,6 +261,11 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
       children: [
         FinanceSummary(payments: payments, tenancies: tenancies),
         const SizedBox(height: 22),
+        _DeclaredPaymentsPanel(
+          payments: ref.watch(declaredPaymentsProvider),
+          onConfirm: _confirmDeclared,
+          onReject: _rejectDeclared,
+        ),
         NyumbaSurface(
           padding: EdgeInsets.zero,
           child: Column(
@@ -277,6 +411,128 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         ),
       ],
     );
+  }
+
+  /// Accepts a payment the tenant reported: the server settles it against
+  /// their invoices and issues the receipt.
+  Future<void> _confirmDeclared(DeclaredPayment payment) async {
+    try {
+      await ref.read(reviewDeclaredPaymentProvider).confirm(payment);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text.localized(
+              'Payment confirmed. A receipt has been issued to your tenant.',
+            ),
+          ),
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text.localized(
+              'Could not confirm: ${describeAuthFailure(error)}',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Refuses a reported payment with a reason the tenant will see. Nothing
+  /// financial unwinds, because a declaration never settled anything.
+  Future<void> _rejectDeclared(DeclaredPayment payment) async {
+    var reasonCode = declaredPaymentRejectReasons.first;
+    final noteController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text.localized('Reject this reported payment?'),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text.localized(
+                  'Your tenant is told why, and their balance stays exactly '
+                  'as it is — nothing was settled by the report.',
+                  style: Theme.of(dialogContext).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: reasonCode,
+                  decoration: InputDecoration(
+                    labelText: dialogContext.tr('Reason'),
+                  ),
+                  items: [
+                    for (final code in declaredPaymentRejectReasons)
+                      DropdownMenuItem(
+                        value: code,
+                        child: Text.localized(_rejectReasonLabel(code)),
+                      ),
+                  ],
+                  onChanged: (value) => setDialogState(
+                    () => reasonCode = value ?? declaredPaymentRejectReasons.first,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteController,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: dialogContext.tr('Note to tenant (optional)'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text.localized('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text.localized('Reject payment'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed == true && mounted) {
+      try {
+        await ref
+            .read(reviewDeclaredPaymentProvider)
+            .reject(
+              payment,
+              reasonCode: reasonCode,
+              note: noteController.text,
+            );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text.localized(
+                'Payment rejected. Your tenant has been told why.',
+              ),
+            ),
+          );
+        }
+      } on Object catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text.localized(
+                'Could not reject: ${describeAuthFailure(error)}',
+              ),
+            ),
+          );
+        }
+      }
+    }
+    noteController.dispose();
   }
 
   Future<void> _exportPayments(List<RentPayment> payments) async {

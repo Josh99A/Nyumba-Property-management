@@ -29,6 +29,21 @@ export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
  */
 export const RECEIPT_RETENTION_DAYS = 90;
 
+/**
+ * Subscription billing lifecycle (docs/architecture/subscription-tiers.md).
+ *
+ * A paid period runs for one interval from confirmation. When it lapses the
+ * subscription deliberately stays `active` for GRACE_DAYS so the landlord —
+ * and every tenant depending on their workspace — keeps working while the
+ * renewal is settled; only then does it expire and lock the workspace.
+ * Warnings go out RENEWAL_WARNING_DAYS before the deadline and again inside
+ * the grace period, so nobody is locked out unannounced.
+ */
+export const SUBSCRIPTION_GRACE_DAYS = 7;
+export const SUBSCRIPTION_RENEWAL_WARNING_DAYS = 7;
+/** Days of grace remaining when the second warning goes out. */
+export const SUBSCRIPTION_GRACE_WARNING_DAYS_LEFT = 3;
+
 /** Background job retry policy. Product-final values are TBD; fail toward dead-letter. */
 export const JOB_MAX_ATTEMPTS = 8;
 export const JOB_BASE_BACKOFF_SECONDS = 30;

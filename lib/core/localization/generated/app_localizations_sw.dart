@@ -2478,6 +2478,60 @@ class AppLocalizationsSw extends AppLocalizations {
   }
 
   @override
+  String subscriptionChoosePaymentMethodTitle(String plan) {
+    return 'Boresha hadi $plan';
+  }
+
+  @override
+  String get subscriptionChoosePaymentMethodSubtitle =>
+      'Chagua jinsi utakavyolipia uboreshaji huu.';
+
+  @override
+  String get subscriptionPayMobileMoney => 'Pesa za simu';
+
+  @override
+  String get subscriptionPayMobileMoneySub => 'MTN MoMo au Airtel Money';
+
+  @override
+  String get subscriptionPayCard => 'Kadi';
+
+  @override
+  String get subscriptionPayCardSub => 'Kadi ya benki au mkopo';
+
+  @override
+  String get subscriptionPayCash => 'Fedha taslimu';
+
+  @override
+  String get subscriptionPayCashSub =>
+      'Lipa Nyumba moja kwa moja; msimamizi anaiwezesha';
+
+  @override
+  String subscriptionUpgradeCashRequested(String plan) {
+    return 'Ombi la kuboresha hadi $plan limetumwa. Lipa Nyumba kwa fedha taslimu — msimamizi anaiwezesha malipo yatakapothibitishwa. Mpango wako wa sasa unaendelea kutumika.';
+  }
+
+  @override
+  String get subscriptionElectronicComingSoon =>
+      'Malipo ya pesa za simu na kadi yanakuja hivi karibuni. Kwa sasa, chagua Fedha taslimu kuboresha — msimamizi anaiwezesha malipo yako yatakapothibitishwa.';
+
+  @override
+  String subscriptionRenewsOn(String date) {
+    return 'Inahuishwa tarehe $date';
+  }
+
+  @override
+  String get subscriptionOverdueTitle => 'Malipo yako yamechelewa';
+
+  @override
+  String subscriptionOverdueLocksIn(int days, String date) {
+    return 'Nafasi yako ya kazi inabaki wazi kwa siku $days zaidi, kisha inafungwa tarehe $date isipokuwa malipo yathibitishwe. Hakuna kinachofutwa, na wapangaji wako hawaathiriki.';
+  }
+
+  @override
+  String get subscriptionOverdueLocksToday =>
+      'Nafasi yako ya kazi inafungwa leo isipokuwa malipo yathibitishwe. Hakuna kinachofutwa, na wapangaji wako hawaathiriki.';
+
+  @override
   String get subscriptionStarterPlan => 'Mwanzo';
 
   @override

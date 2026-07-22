@@ -7,6 +7,7 @@ import { REGION } from './shared/config';
 import { expirePublicListings } from './workers/listing-expiry';
 import { processBackendJob, sweepBackendJobs } from './workers/jobs';
 import { sweepEmailReminders } from './workers/email-reminders';
+import { sweepSubscriptionRenewals } from './workers/subscription-renewal';
 
 initializeApp();
 
@@ -16,6 +17,7 @@ export {
   sweepBackendJobs,
   expirePublicListings,
   sweepEmailReminders,
+  sweepSubscriptionRenewals,
 };
 
 /**

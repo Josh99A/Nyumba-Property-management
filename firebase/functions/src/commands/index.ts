@@ -1,7 +1,16 @@
 import type { CommandHandler } from '../shared/handlers';
 import { landlordApprove, landlordReinstate, landlordSuspend, userArchive, userChangeRole, userDelete, userRestore } from './admin';
 import { applicationSubmit, applicationWithdraw, contactSubmit } from './applications';
-import { invoiceGenerate, paymentInitiate, paymentRecordAgainstTenancy, paymentRecordManual, receiptRegenerate } from './billing';
+import {
+  invoiceGenerate,
+  paymentConfirmDeclared,
+  paymentDeclare,
+  paymentInitiate,
+  paymentRecordAgainstTenancy,
+  paymentRecordManual,
+  paymentRejectDeclared,
+  receiptRegenerate,
+} from './billing';
 import { noticePublish, platformBroadcast } from './communication';
 import { documentDelete, documentFinalizeUpload } from './documents';
 import {
@@ -15,7 +24,15 @@ import { listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from
 import { propertyArchive, propertyCreate, propertyUpdate, unitArchive, unitCreate, unitRestore, unitUpdate } from './portfolio';
 import { notificationMarkRead } from './notifications';
 import { reportRequest } from './reports';
-import { planUpdate, subscriptionConfirmPayment, subscriptionRequestUpgrade, subscriptionSelectPlan } from './subscription';
+import {
+  planUpdate,
+  subscriptionConfirmPayment,
+  subscriptionDeactivate,
+  subscriptionDowngrade,
+  subscriptionRejectPayment,
+  subscriptionRequestUpgrade,
+  subscriptionSelectPlan,
+} from './subscription';
 import { leaseActivate, leaseCreate, leaseEnd, tenancyEstablish, tenantClaimInvite, tenantInvite, tenantUpdate } from './tenancy';
 
 // Payload types are enforced by each handler's strict runtime schema before
@@ -36,6 +53,9 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['subscription.selectPlan', subscriptionSelectPlan],
   ['subscription.requestUpgrade', subscriptionRequestUpgrade],
   ['subscription.confirmPayment', subscriptionConfirmPayment],
+  ['subscription.rejectPayment', subscriptionRejectPayment],
+  ['subscription.downgrade', subscriptionDowngrade],
+  ['subscription.deactivate', subscriptionDeactivate],
   ['plan.update', planUpdate],
   ['platform.broadcast', platformBroadcast],
   ['property.create', propertyCreate],
@@ -58,6 +78,9 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['payment.recordManual', paymentRecordManual],
   ['payment.recordAgainstTenancy', paymentRecordAgainstTenancy],
   ['payment.initiate', paymentInitiate],
+  ['payment.declare', paymentDeclare],
+  ['payment.confirmDeclared', paymentConfirmDeclared],
+  ['payment.rejectDeclared', paymentRejectDeclared],
   ['receipt.regenerate', receiptRegenerate],
   ['maintenance.create', maintenanceCreate],
   ['maintenance.updateStatus', maintenanceUpdateStatus],

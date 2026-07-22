@@ -20,6 +20,8 @@ final class RentPayment {
     required this.syncMetadata,
     this.tenancyId,
     this.receiptNumber,
+    this.reference,
+    this.declaredByTenant = false,
   }) {
     validate();
   }
@@ -49,6 +51,17 @@ final class RentPayment {
 
   /// Billing period the payment covers, such as `July 2026`.
   final String period;
+
+  /// Proof of payment — the transaction ID or reference the payer holds.
+  /// Mandatory when a tenant declares a payment, since it is the only
+  /// evidence the landlord has to judge the claim on.
+  final String? reference;
+
+  /// True when the tenant reported this payment rather than the landlord
+  /// recording money they already held. A declaration settles nothing until
+  /// the landlord confirms it.
+  final bool declaredByTenant;
+
   final DateTime paidOn;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -71,6 +84,13 @@ final class RentPayment {
       'amountMinor': DomainValidation.positiveMinorUnits(amountMinor),
       'method': DomainValidation.requiredText(method, maxLength: 60),
       'period': DomainValidation.requiredText(period, maxLength: 40),
+      // The server rejects a declaration without proof, so refuse to persist
+      // one locally that could never sync.
+      'reference': declaredByTenant
+          ? DomainValidation.requiredText(reference ?? '', maxLength: 200)
+          : (reference != null && reference!.length > 200
+                ? 'must be 200 characters or fewer'
+                : null),
     });
   }
 }
@@ -81,6 +101,8 @@ final class RecordRentPaymentInput {
     required this.amountMinor,
     required this.method,
     this.period,
+    this.reference,
+    this.declaredByTenant = false,
   });
 
   final String tenancyId;
@@ -89,4 +111,12 @@ final class RecordRentPaymentInput {
 
   /// Defaults to the month of the recording date when omitted.
   final String? period;
+
+  /// Proof of payment; required when [declaredByTenant] is true.
+  final String? reference;
+
+  /// Set by the tenant portal. Routes the mutation to `payment.declare`,
+  /// which records a claim for the landlord to confirm or reject rather than
+  /// settling anything.
+  final bool declaredByTenant;
 }

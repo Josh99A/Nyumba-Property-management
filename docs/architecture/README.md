@@ -120,7 +120,14 @@ The following values must not be hard-coded in Flutter or security rules:
 
 - **TBD:** staging/production Firebase project IDs, application IDs, hosting domains, and sender IDs;
 - Tier structure, capability matrix, suggested limits, free tenant/prospect access, non-paywall rules, and downgrade policy are defined in [subscription-tiers.md](subscription-tiers.md). **TBD:** monetary prices, billing intervals, trials, and exact grace-period lengths;
-- **TBD:** payment provider integration (MoMo/Airtel aggregator choice), fees, reconciliation policy, and webhook contract;
+- Money routing is **decided**: Nyumba's own merchant account collects
+  subscription payments only. Rent is the landlord's money and must settle to
+  the landlord, never through a Nyumba-held balance — so a rent adapter has to
+  collect into a landlord-owned destination (provider subaccount or equivalent),
+  and any integration that pools rent into Nyumba's account is wrong regardless
+  of how it settles afterwards. **TBD:** aggregator choice, how landlords are
+  onboarded to their collection destination, fees, reconciliation policy, and
+  the webhook contract;
 - **TBD:** listing moderation policy, application retention, and contact-channel policy;
 - **TBD:** local offline retention horizon on device.
 

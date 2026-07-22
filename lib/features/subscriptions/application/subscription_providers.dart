@@ -116,6 +116,58 @@ Future<EntitlementState> _readPlan(
   }
 }
 
+/// When the current paid period ends, and — once it has lapsed — when the
+/// grace window closes and the workspace locks.
+///
+/// An overdue subscription deliberately stays `active` through the grace
+/// window, so this rides alongside the entitlement rather than replacing it:
+/// the landlord keeps working while the deadline is shown.
+final class SubscriptionRenewalState {
+  const SubscriptionRenewalState({this.renewalDueAt, this.graceEndsAt});
+
+  final DateTime? renewalDueAt;
+
+  /// Non-null only while a payment is overdue.
+  final DateTime? graceEndsAt;
+
+  bool get isOverdue => graceEndsAt != null;
+
+  /// Whole days until the workspace locks; negative once the deadline passes.
+  int? get daysUntilLock => graceEndsAt == null
+      ? null
+      : graceEndsAt!.difference(DateTime.now()).inHours ~/ 24;
+}
+
+/// The signed-in landlord's renewal deadline, read live from the server-owned
+/// subscription document. Empty for everyone else.
+final subscriptionRenewalProvider = StreamProvider<SubscriptionRenewalState>((
+  ref,
+) async* {
+  final session = ref.watch(sessionControllerProvider);
+  if (session == null ||
+      session.role != AppRole.landlord ||
+      Firebase.apps.isEmpty) {
+    yield const SubscriptionRenewalState();
+    return;
+  }
+  try {
+    await for (final snapshot
+        in FirebaseFirestore.instance
+            .collection('subscriptions')
+            .doc(session.userId)
+            .snapshots()) {
+      final data = snapshot.data();
+      yield SubscriptionRenewalState(
+        renewalDueAt: (data?['renewalDueAt'] as Timestamp?)?.toDate(),
+        graceEndsAt: (data?['graceEndsAt'] as Timestamp?)?.toDate(),
+      );
+    }
+  } on FirebaseException {
+    // A deadline we cannot read is one we must not assert.
+    yield const SubscriptionRenewalState();
+  }
+});
+
 /// One benefit line on a plan card. `implemented: false` marks a benefit the
 /// plan is sold with but that has not shipped yet — the UI greys it out
 /// instead of hiding it, so nobody pays for a promise they did not see.
@@ -322,19 +374,38 @@ final requestPlanUpgradeProvider = Provider<RequestPlanUpgrade>(
   RequestPlanUpgrade.new,
 );
 
-/// Records which tier an active landlord wants to move to, through the
-/// server-authoritative `subscription.requestUpgrade` command.
+/// How a landlord chooses to pay for a plan change. Cash is verified by an
+/// administrator; mobile money and card are electronic and auto-confirm the
+/// moment a payment aggregator is connected (they fail closed until then).
+enum UpgradeBillingChannel {
+  mobileMoney('mobile_money'),
+  card('card'),
+  cash('cash');
+
+  const UpgradeBillingChannel(this.wire);
+
+  /// The value the `subscription.requestUpgrade` command expects.
+  final String wire;
+
+  bool get isElectronic => this != UpgradeBillingChannel.cash;
+}
+
+/// Records which tier an active landlord wants to move to and how they intend
+/// to pay, through the server-authoritative `subscription.requestUpgrade`
+/// command.
 ///
-/// The paid-side mirror of [SelectSubscriptionPlan]: it writes only
-/// `requestedTier` — the current plan, its entitlements, and the subscription
-/// status stay exactly as paid for until platform staff (or the future
-/// billing webhook) confirm the upgrade payment.
+/// The paid-side mirror of [SelectSubscriptionPlan]: it never grants
+/// entitlements. Cash parks the request for an administrator to activate after
+/// verifying the money; mobile money and card are electronic and auto-confirm
+/// through the aggregator's webhook — and fail closed with
+/// `PAYMENT_PROVIDER_UNAVAILABLE` until one is connected, so a plan is never
+/// upgraded against money that never moved.
 class RequestPlanUpgrade {
   const RequestPlanUpgrade(this._ref);
 
   final Ref _ref;
 
-  Future<void> call(String tier) async {
+  Future<void> call(String tier, UpgradeBillingChannel channel) async {
     final session = _ref.read(sessionControllerProvider);
     if (session == null || session.role != AppRole.landlord) {
       throw StateError('Sign in as a landlord to request an upgrade.');
@@ -355,7 +426,7 @@ class RequestPlanUpgrade {
       type: 'subscription.requestUpgrade',
       aggregateId: session.userId,
       expectedVersion: version,
-      payload: <String, Object?>{'tier': tier},
+      payload: <String, Object?>{'tier': tier, 'billingChannel': channel.wire},
     );
   }
 }

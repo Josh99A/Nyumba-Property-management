@@ -382,6 +382,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
   /// only a server-issued receipt later marks it confirmed.
   Future<void> _payRent(Tenancy tenancy) async {
     var method = 'MTN MoMo';
+    final referenceController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -413,10 +414,11 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text.localized(
-                  'Paying inside Nyumba is not available yet. Record a '
-                  'payment you have already made to your landlord — it is '
-                  'saved on this device, sent for confirmation, and a '
-                  'receipt is issued once the server accepts it.',
+                  'Paying inside Nyumba is not available yet. Report a '
+                  'payment you have already made to your landlord. Your '
+                  'landlord reviews it against the reference you give, and '
+                  'your balance updates — with a receipt — once they confirm '
+                  'it.',
                 ),
                 const SizedBox(height: 17),
                 Text.localized(
@@ -467,6 +469,23 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                       ),
                     ),
                   ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: referenceController,
+                  decoration: InputDecoration(
+                    labelText: context.tr('Payment reference'),
+                    hintText: context.tr(
+                      'e.g. the MoMo or bank transaction ID',
+                    ),
+                    prefixIcon: const Icon(Icons.receipt_long_outlined),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text.localized(
+                  'This is the proof your landlord checks before confirming, '
+                  'so it must match the transaction you made.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ],
             ),
           ),
@@ -476,33 +495,53 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
               child: const Text.localized('Cancel'),
             ),
             FilledButton.icon(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () {
+                // Proof is mandatory: without it the landlord has nothing to
+                // check, and the server rejects the declaration anyway.
+                if (referenceController.text.trim().isEmpty) {
+                  showTenantMessage(
+                    dialogContext,
+                    'Enter the payment reference so your landlord can verify '
+                    'it.',
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, true);
+              },
               icon: const Icon(Icons.edit_note_rounded),
-              label: Text.localized('Record $method payment'),
+              label: Text.localized('Report $method payment'),
             ),
           ],
         ),
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted) {
+      referenceController.dispose();
+      return;
+    }
     try {
       await ref.read(recordRentPaymentProvider)(
         RecordRentPaymentInput(
           tenancyId: tenancy.id,
           amountMinor: tenancy.balanceMinor,
           method: method,
+          reference: referenceController.text,
+          declaredByTenant: true,
         ),
       );
       if (mounted) {
         showTenantMessage(
           context,
-          'Payment recorded locally and queued to sync.',
+          'Payment reported. Your landlord will confirm it, and your balance '
+          'updates once they do.',
         );
       }
     } on Object catch (error) {
       if (mounted) {
-        showTenantMessage(context, 'Could not record the payment: $error');
+        showTenantMessage(context, 'Could not report the payment: $error');
       }
+    } finally {
+      referenceController.dispose();
     }
   }
 

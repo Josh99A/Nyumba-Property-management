@@ -4494,6 +4494,90 @@ abstract class AppLocalizations {
   /// **'Your upgrade to {plan} is awaiting payment confirmation. Your current plan and its limits stay active until Nyumba confirms the payment.'**
   String subscriptionUpgradeRequestedMessage(String plan);
 
+  /// No description provided for @subscriptionChoosePaymentMethodTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to {plan}'**
+  String subscriptionChoosePaymentMethodTitle(String plan);
+
+  /// No description provided for @subscriptionChoosePaymentMethodSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how you\'ll pay for this upgrade.'**
+  String get subscriptionChoosePaymentMethodSubtitle;
+
+  /// No description provided for @subscriptionPayMobileMoney.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile money'**
+  String get subscriptionPayMobileMoney;
+
+  /// No description provided for @subscriptionPayMobileMoneySub.
+  ///
+  /// In en, this message translates to:
+  /// **'MTN MoMo or Airtel Money'**
+  String get subscriptionPayMobileMoneySub;
+
+  /// No description provided for @subscriptionPayCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Card'**
+  String get subscriptionPayCard;
+
+  /// No description provided for @subscriptionPayCardSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Debit or credit card'**
+  String get subscriptionPayCardSub;
+
+  /// No description provided for @subscriptionPayCash.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get subscriptionPayCash;
+
+  /// No description provided for @subscriptionPayCashSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay Nyumba directly; an admin activates it'**
+  String get subscriptionPayCashSub;
+
+  /// No description provided for @subscriptionUpgradeCashRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to {plan} requested. Pay Nyumba in cash — an admin activates it once the payment is verified. Your current plan stays active meanwhile.'**
+  String subscriptionUpgradeCashRequested(String plan);
+
+  /// No description provided for @subscriptionElectronicComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile money and card payments are coming soon. For now, choose Cash to upgrade — an admin activates it once your payment is verified.'**
+  String get subscriptionElectronicComingSoon;
+
+  /// No description provided for @subscriptionRenewsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Renews on {date}'**
+  String subscriptionRenewsOn(String date);
+
+  /// No description provided for @subscriptionOverdueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment is overdue'**
+  String get subscriptionOverdueTitle;
+
+  /// No description provided for @subscriptionOverdueLocksIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Your workspace stays open for {days} more day(s), then locks on {date} unless payment is confirmed. Nothing is deleted, and your tenants are not affected.'**
+  String subscriptionOverdueLocksIn(int days, String date);
+
+  /// No description provided for @subscriptionOverdueLocksToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Your workspace locks today unless payment is confirmed. Nothing is deleted, and your tenants are not affected.'**
+  String get subscriptionOverdueLocksToday;
+
   /// No description provided for @subscriptionStarterPlan.
   ///
   /// In en, this message translates to:

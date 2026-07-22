@@ -148,6 +148,11 @@ final class FirestoreAdminDirectory implements AdminDirectoryRepository {
           subscriptionRequestedTier: subscription == null
               ? null
               : _text(subscription['requestedTier']),
+          subscriptionUpgradeChannel: subscription == null
+              ? null
+              : _text(subscription['upgradeBillingChannel']),
+          subscriptionRenewalDueAt: _date(subscription?['renewalDueAt']),
+          subscriptionGraceEndsAt: _date(subscription?['graceEndsAt']),
           subscriptionStatus: subscription == null
               ? PlatformSubscriptionStatus.none
               : PlatformSubscriptionStatus.fromServer(

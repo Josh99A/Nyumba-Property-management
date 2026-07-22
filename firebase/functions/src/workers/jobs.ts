@@ -16,7 +16,12 @@ import {
 } from './media-publication';
 import { fanoutBroadcast } from './broadcast-fanout';
 import { fanoutNotice } from './notice-fanout';
-import { deliverContactRequest, notifyLandlordApplication } from './notifications';
+import {
+  deliverContactRequest,
+  notifyLandlordApplication,
+  notifyLandlordPaymentDeclared,
+  notifyTenantPaymentRejected,
+} from './notifications';
 import { EMAIL_SECRETS } from '../shared/email';
 import {
   sendLandlordApprovedEmail,
@@ -28,6 +33,7 @@ import {
   sendTenantInviteEmail,
 } from './email';
 import { initiatePayment } from './payment-provider';
+import { sendSubscriptionNoticeEmail } from './subscription-notices';
 import { renderReceipt } from './receipt-render';
 import { generateReport } from './report-generation';
 import { unpublishLandlordListings } from './unpublish-landlord';
@@ -53,6 +59,8 @@ const processors = new Map<string, JobProcessor>([
   ['renderReceipt', renderReceipt],
   ['notifyLandlordApplication', notifyLandlordApplication],
   ['deliverContactRequest', deliverContactRequest],
+  ['notifyLandlordPaymentDeclared', notifyLandlordPaymentDeclared],
+  ['notifyTenantPaymentRejected', notifyTenantPaymentRejected],
   ['generateReport', generateReport],
   ['setAuthUserDisabled', setAuthUserDisabled],
   ['deleteAuthUser', deleteAuthUser],
@@ -63,6 +71,7 @@ const processors = new Map<string, JobProcessor>([
   ['sendMaintenanceStatusEmail', sendMaintenanceStatusEmail],
   ['sendLeaseExpiryEmail', sendLeaseExpiryEmail],
   ['sendListingExpiryWarningEmail', sendListingExpiryWarningEmail],
+  ['sendSubscriptionNoticeEmail', sendSubscriptionNoticeEmail],
 ]);
 
 /** Visible for tests, which assert no command enqueues an unregistered type. */

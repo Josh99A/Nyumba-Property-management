@@ -243,6 +243,248 @@ interface OpenInvoice {
  * The receipt number comes from the landlord's server-side counter. A client
  * cannot author one: two offline devices would mint the same number.
  */
+/**
+ * Facts a settlement needs, whichever command is settling.
+ *
+ * `existing` marks the confirmation of a payment the tenant already declared:
+ * that document is updated in place rather than created, and the declaration
+ * is preserved on it.
+ */
+interface SettleTenancyPaymentParams {
+  paymentId: string;
+  tenancyId: string;
+  amountMinor: number;
+  method: string;
+  period: string;
+  reference: string | null;
+  commandId: string;
+  existing?: { version: number; declaredByUid: string | null };
+}
+
+interface SettlementOutcome {
+  receiptId: string;
+  receiptNumber: string;
+  creditMinor: number;
+  serverVersion: number;
+}
+
+/**
+ * Allocates money across a tenancy's open invoices, issues the receipt, and
+ * refreshes both portals.
+ *
+ * Shared by the landlord recording a payment directly and by the landlord
+ * confirming one their tenant declared, so the two can never settle the same
+ * money differently — a drift between them would show up as a wrong balance
+ * or a missing receipt, which is the worst class of bug this product can have.
+ *
+ * Callers must have read (and validated) the payment document already; every
+ * remaining read happens here before the first buffered write.
+ */
+async function settleTenancyPayment(
+  tx: Transaction,
+  db: Firestore,
+  landlord: Awaited<ReturnType<typeof requireActiveLandlord>>,
+  params: SettleTenancyPaymentParams,
+  now: FirebaseFirestore.Timestamp,
+): Promise<SettlementOutcome> {
+  const paymentRef = db.collection(COLLECTIONS.payments).doc(params.paymentId);
+  const leaseRef = db.collection(COLLECTIONS.leases).doc(params.tenancyId);
+  const tenancyViewRef = db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId)
+    .collection(LANDLORD_PORTAL_SECTIONS.tenancies).doc(params.tenancyId);
+
+  // Every read must precede the first buffered write in a transaction.
+  const [leaseSnap, invoiceSnap, tenancyViewSnap] = await Promise.all([
+    tx.get(leaseRef),
+    tx.get(db.collection(COLLECTIONS.invoices).where('leaseId', '==', params.tenancyId).limit(50)),
+    tx.get(tenancyViewRef),
+  ]);
+  const lease = requireAggregate<{ version: number; landlordId: string; status: string; tenantUserUid?: string | null; tenantRecordId?: string; unitId?: string; startDate?: string; endDate?: string; monthlyRentMinor?: number }>(leaseSnap, undefined);
+  requireOwnedByLandlord(lease, landlord.landlordId);
+  if (lease.status !== 'active') throw new DomainError('VALIDATION_FAILED', { reason: 'leaseNotActive' });
+  // limit(50) bounds the transaction, and nothing in the product accrues
+  // invoices per tenancy, so a saturated window means data this command does
+  // not understand. Allocating oldest-first over a truncated set could settle
+  // the wrong invoices; reject deterministically instead of guessing.
+  if (invoiceSnap.size >= 50) {
+    throw new DomainError('VALIDATION_FAILED', { reason: 'openInvoiceWindowExceeded' });
+  }
+  const tenancyView = tenancyViewSnap.data();
+  // Also a read, so it too must precede the allocation writes below. A lease
+  // whose view was never written (lease.create) is rebuilt rather than
+  // skipped: the projection written further down is the only record of this
+  // payment a second device can pull.
+  const rebuilt = tenancyView ? null : await reconstructTenancyLabels(tx, db, lease);
+  const labels: TenancyLabels = tenancyView
+    ? {
+      tenantName: String(tenancyView.tenantName ?? ''),
+      unitLabel: String(tenancyView.unitLabel ?? ''),
+      propertyName: String(tenancyView.propertyName ?? ''),
+    }
+    : rebuilt!;
+
+  const openInvoices = invoiceSnap.docs
+    .map((doc) => doc.data() as OpenInvoice)
+    .filter((invoice) => invoice.isDeleted !== true && invoice.balanceMinor > 0)
+    .sort((left, right) => left.dueDate.localeCompare(right.dueDate));
+  const outstandingBeforeMinor = openInvoices.reduce(
+    (total, invoice) => total + invoice.balanceMinor,
+    0,
+  );
+
+  // Allocate oldest-first. Money that is genuinely in hand must never be
+  // rejected for exceeding the outstanding balance, so any surplus is retained
+  // as an explicit credit rather than refused. This mirrors the client, which
+  // already floors a tenancy balance at zero.
+  const allocations: { invoiceId: string; amountMinor: number }[] = [];
+  let unallocatedMinor = params.amountMinor;
+  for (const invoice of openInvoices) {
+    if (unallocatedMinor <= 0) break;
+    const applied = Math.min(unallocatedMinor, invoice.balanceMinor);
+    const nextBalance = invoice.balanceMinor - applied;
+    allocations.push({ invoiceId: invoice.id, amountMinor: applied });
+    unallocatedMinor -= applied;
+    tx.update(db.collection(COLLECTIONS.invoices).doc(invoice.id), {
+      balanceMinor: nextBalance,
+      status: nextBalance === 0 ? 'paid' : 'part_paid',
+      ...bumpVersion(invoice, now),
+    });
+    if (lease.tenantUserUid) {
+      tx.set(
+        db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid)
+          .collection(TENANT_PORTAL_SECTIONS.invoices).doc(invoice.id),
+        tenantInvoiceProjection({ ...invoice, balanceMinor: nextBalance, status: nextBalance === 0 ? 'paid' : 'part_paid', ...bumpVersion(invoice, now) }),
+      );
+    }
+  }
+
+  const receiptNumber = landlord.account.receiptCounter + 1;
+  const receiptId = `${params.paymentId}_receipt`;
+  const serverVersion = params.existing ? params.existing.version + 1 : 1;
+  const settled = {
+    landlordId: landlord.landlordId,
+    leaseId: params.tenancyId,
+    invoiceId: allocations[0]?.invoiceId ?? null,
+    tenantUserUid: lease.tenantUserUid ?? null,
+    amountMinor: params.amountMinor,
+    currency: 'UGX',
+    method: params.method,
+    period: params.period,
+    reference: params.reference,
+    status: 'confirmed',
+    confirmedAt: now,
+    allocations,
+    creditMinor: unallocatedMinor,
+    receiptId,
+  };
+  const payment = params.existing
+    ? {
+      ...settled,
+      id: params.paymentId,
+      declaredByUid: params.existing.declaredByUid,
+      version: serverVersion,
+      updatedAt: now,
+      isDeleted: false,
+    }
+    : { ...newAggregate(params.paymentId, now), ...settled };
+  const receipt = {
+    ...newAggregate(receiptId, now),
+    landlordId: landlord.landlordId,
+    paymentId: params.paymentId,
+    tenantUserUid: lease.tenantUserUid ?? null,
+    receiptNumber: formatReceiptNumber(receiptNumber),
+    amountMinor: params.amountMinor,
+    currency: 'UGX',
+    issuedAt: now,
+    renderState: 'pending',
+  };
+  if (params.existing) {
+    tx.update(paymentRef, {
+      ...settled,
+      version: serverVersion,
+      updatedAt: now,
+    });
+  } else {
+    tx.create(paymentRef, payment);
+  }
+  tx.create(db.collection(COLLECTIONS.receipts).doc(receiptId), receipt);
+  tx.update(db.collection(COLLECTIONS.landlordAccounts).doc(landlord.landlordId), {
+    receiptCounter: receiptNumber,
+    ...bumpVersion(landlord.account, now),
+  });
+  createJob(tx, db, `${params.commandId}_render`, 'renderReceipt', { receiptId }, now);
+  createJob(tx, db, `${params.commandId}_receipt_email`, 'sendPaymentReceiptEmail', { receiptId }, now);
+  if (lease.tenantUserUid) {
+    const portal = db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid);
+    tx.set(portal.collection(TENANT_PORTAL_SECTIONS.payments).doc(params.paymentId), tenantPaymentProjection(payment));
+    tx.set(portal.collection(TENANT_PORTAL_SECTIONS.receipts).doc(receiptId), tenantReceiptProjection(receipt));
+  }
+
+  // Landlord read models. The tenancy view carries the names this payment
+  // needs, and is also where the landlord's balance is corrected: the device
+  // decremented its own copy optimistically, and this is the value that
+  // overwrites it. An accepted payment always commits with its projection.
+  const landlordPortal = db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId);
+  // Surplus beyond what was owed is a credit, not a negative balance, so
+  // only the allocated part reduces the outstanding total.
+  const allocatedMinor = params.amountMinor - unallocatedMinor;
+  const remainingBalanceMinor = outstandingBeforeMinor - allocatedMinor;
+  tx.set(
+    landlordPortal.collection(LANDLORD_PORTAL_SECTIONS.payments).doc(params.paymentId),
+    landlordPaymentProjection({
+      paymentId: params.paymentId,
+      version: serverVersion,
+      landlordId: landlord.landlordId,
+      tenancyId: params.tenancyId,
+      receiptNumber: formatReceiptNumber(receiptNumber),
+      tenantName: labels.tenantName,
+      unitLabel: labels.unitLabel,
+      propertyName: labels.propertyName,
+      amountMinor: params.amountMinor,
+      method: params.method,
+      period: params.period,
+      paidOn: now,
+      createdAt: now,
+      updatedAt: now,
+    }),
+  );
+  if (tenancyView) {
+    tx.update(tenancyViewRef, {
+      balanceMinor: remainingBalanceMinor,
+      version: Number(tenancyView.version ?? 1) + 1,
+      updatedAt: now,
+    });
+  } else {
+    // Repair the missing view while the joined records are at hand, so the
+    // next payment (and the landlord's next pull) finds it in place.
+    tx.set(tenancyViewRef, landlordTenancyProjection({
+      leaseId: params.tenancyId,
+      version: 1,
+      landlordId: landlord.landlordId,
+      tenantUserUid: lease.tenantUserUid ?? null,
+      propertyId: rebuilt!.propertyId,
+      unitId: String(lease.unitId ?? ''),
+      tenantName: rebuilt!.tenantName,
+      email: rebuilt!.email,
+      phone: rebuilt!.phone,
+      unitLabel: rebuilt!.unitLabel,
+      propertyName: rebuilt!.propertyName,
+      monthlyRentMinor: Number(lease.monthlyRentMinor ?? 0),
+      balanceMinor: remainingBalanceMinor,
+      leaseStart: String(lease.startDate ?? ''),
+      leaseEnd: String(lease.endDate ?? ''),
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    }));
+  }
+  return {
+    receiptId,
+    receiptNumber: formatReceiptNumber(receiptNumber),
+    creditMinor: unallocatedMinor,
+    serverVersion,
+  };
+}
+
 export const paymentRecordAgainstTenancy: CommandHandler<z.infer<typeof recordAgainstTenancySchema>> = {
   payloadSchema: recordAgainstTenancySchema,
   aggregateIdMode: 'required',
@@ -250,194 +492,246 @@ export const paymentRecordAgainstTenancy: CommandHandler<z.infer<typeof recordAg
   async apply({ tx, db, actor, cmd, now }) {
     const landlord = await requireActiveLandlord(tx, db, actor);
     const paymentRef = db.collection(COLLECTIONS.payments).doc(cmd.aggregateId!);
-    const leaseRef = db.collection(COLLECTIONS.leases).doc(cmd.payload.tenancyId);
-    const tenancyViewRef = db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId)
-      .collection(LANDLORD_PORTAL_SECTIONS.tenancies).doc(cmd.payload.tenancyId);
-
-    // Every read must precede the first buffered write in a transaction.
-    const [paymentSnap, leaseSnap, invoiceSnap, tenancyViewSnap] = await Promise.all([
-      tx.get(paymentRef),
-      tx.get(leaseRef),
-      tx.get(db.collection(COLLECTIONS.invoices).where('leaseId', '==', cmd.payload.tenancyId).limit(50)),
-      tx.get(tenancyViewRef),
-    ]);
-    requireAbsent(paymentSnap);
-    const lease = requireAggregate<{ version: number; landlordId: string; status: string; tenantUserUid?: string | null; tenantRecordId?: string; unitId?: string; startDate?: string; endDate?: string; monthlyRentMinor?: number }>(leaseSnap, undefined);
-    requireOwnedByLandlord(lease, landlord.landlordId);
-    if (lease.status !== 'active') throw new DomainError('VALIDATION_FAILED', { reason: 'leaseNotActive' });
-    // limit(50) bounds the transaction, and nothing in the product accrues
-    // invoices per tenancy (see the command doc above), so a saturated window
-    // means data this command does not understand. Allocating oldest-first
-    // over a truncated set could settle the wrong invoices; reject
-    // deterministically instead of guessing.
-    if (invoiceSnap.size >= 50) {
-      throw new DomainError('VALIDATION_FAILED', { reason: 'openInvoiceWindowExceeded' });
-    }
-    const tenancyView = tenancyViewSnap.data();
-    // Also a read, so it too must precede the allocation writes below. A lease
-    // whose view was never written (lease.create) is rebuilt rather than
-    // skipped: the projection written further down is the only record of this
-    // payment a second device can pull.
-    const rebuilt = tenancyView ? null : await reconstructTenancyLabels(tx, db, lease);
-    const labels: TenancyLabels = tenancyView
-      ? {
-        tenantName: String(tenancyView.tenantName ?? ''),
-        unitLabel: String(tenancyView.unitLabel ?? ''),
-        propertyName: String(tenancyView.propertyName ?? ''),
-      }
-      : rebuilt!;
-
-    const openInvoices = invoiceSnap.docs
-      .map((doc) => doc.data() as OpenInvoice)
-      .filter((invoice) => invoice.isDeleted !== true && invoice.balanceMinor > 0)
-      .sort((left, right) => left.dueDate.localeCompare(right.dueDate));
-    const outstandingBeforeMinor = openInvoices.reduce(
-      (total, invoice) => total + invoice.balanceMinor,
-      0,
-    );
-
-    // Allocate oldest-first. A landlord recording cash they physically hold
-    // must never be rejected for exceeding the outstanding balance, so any
-    // surplus is retained as an explicit credit rather than refused. This
-    // mirrors the client, which already floors a tenancy balance at zero.
-    const allocations: { invoiceId: string; amountMinor: number }[] = [];
-    let unallocatedMinor = cmd.payload.amountMinor;
-    for (const invoice of openInvoices) {
-      if (unallocatedMinor <= 0) break;
-      const applied = Math.min(unallocatedMinor, invoice.balanceMinor);
-      const nextBalance = invoice.balanceMinor - applied;
-      allocations.push({ invoiceId: invoice.id, amountMinor: applied });
-      unallocatedMinor -= applied;
-      tx.update(db.collection(COLLECTIONS.invoices).doc(invoice.id), {
-        balanceMinor: nextBalance,
-        status: nextBalance === 0 ? 'paid' : 'part_paid',
-        ...bumpVersion(invoice, now),
-      });
-      if (lease.tenantUserUid) {
-        tx.set(
-          db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid)
-            .collection(TENANT_PORTAL_SECTIONS.invoices).doc(invoice.id),
-          tenantInvoiceProjection({ ...invoice, balanceMinor: nextBalance, status: nextBalance === 0 ? 'paid' : 'part_paid', ...bumpVersion(invoice, now) }),
-        );
-      }
-    }
-
-    const receiptNumber = landlord.account.receiptCounter + 1;
-    const receiptId = `${cmd.aggregateId!}_receipt`;
-    const payment = {
-      ...newAggregate(cmd.aggregateId!, now),
-      landlordId: landlord.landlordId,
-      leaseId: cmd.payload.tenancyId,
-      invoiceId: allocations[0]?.invoiceId ?? null,
-      tenantUserUid: lease.tenantUserUid ?? null,
+    requireAbsent(await tx.get(paymentRef));
+    const outcome = await settleTenancyPayment(tx, db, landlord, {
+      paymentId: cmd.aggregateId!,
+      tenancyId: cmd.payload.tenancyId,
       amountMinor: cmd.payload.amountMinor,
-      currency: 'UGX',
       method: cmd.payload.method,
       period: cmd.payload.period,
       reference: cmd.payload.reference ?? null,
-      status: 'confirmed',
-      confirmedAt: now,
-      allocations,
-      creditMinor: unallocatedMinor,
-      receiptId,
-    };
-    const receipt = {
-      ...newAggregate(receiptId, now),
-      landlordId: landlord.landlordId,
-      paymentId: cmd.aggregateId!,
-      tenantUserUid: lease.tenantUserUid ?? null,
-      receiptNumber: formatReceiptNumber(receiptNumber),
-      amountMinor: cmd.payload.amountMinor,
-      currency: 'UGX',
-      issuedAt: now,
-      renderState: 'pending',
-    };
-    tx.create(paymentRef, payment);
-    tx.create(db.collection(COLLECTIONS.receipts).doc(receiptId), receipt);
-    tx.update(db.collection(COLLECTIONS.landlordAccounts).doc(landlord.landlordId), {
-      receiptCounter: receiptNumber,
-      ...bumpVersion(landlord.account, now),
-    });
-    createJob(tx, db, `${cmd.commandId}_render`, 'renderReceipt', { receiptId }, now);
-    createJob(tx, db, `${cmd.commandId}_receipt_email`, 'sendPaymentReceiptEmail', { receiptId }, now);
-    if (lease.tenantUserUid) {
-      const portal = db.collection(COLLECTIONS.tenantPortals).doc(lease.tenantUserUid);
-      tx.set(portal.collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!), tenantPaymentProjection(payment));
-      tx.set(portal.collection(TENANT_PORTAL_SECTIONS.receipts).doc(receiptId), tenantReceiptProjection(receipt));
-    }
-
-    // Landlord read models. The tenancy view carries the names this payment
-    // needs, and is also where the landlord's balance is corrected: the device
-    // decremented its own copy optimistically, and this is the value that
-    // overwrites it. An accepted payment always commits with its projection.
-    const landlordPortal = db.collection(COLLECTIONS.landlordPortals).doc(landlord.landlordId);
-    // Surplus beyond what was owed is a credit, not a negative balance, so
-    // only the allocated part reduces the outstanding total.
-    const allocatedMinor = cmd.payload.amountMinor - unallocatedMinor;
-    const remainingBalanceMinor = outstandingBeforeMinor - allocatedMinor;
-    tx.set(
-      landlordPortal.collection(LANDLORD_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!),
-      landlordPaymentProjection({
-        paymentId: cmd.aggregateId!,
-        version: 1,
-        landlordId: landlord.landlordId,
-        tenancyId: cmd.payload.tenancyId,
-        receiptNumber: formatReceiptNumber(receiptNumber),
-        tenantName: labels.tenantName,
-        unitLabel: labels.unitLabel,
-        propertyName: labels.propertyName,
-        amountMinor: cmd.payload.amountMinor,
-        method: cmd.payload.method,
-        period: cmd.payload.period,
-        paidOn: now,
-        createdAt: now,
-        updatedAt: now,
-      }),
-    );
-    if (tenancyView) {
-      tx.update(tenancyViewRef, {
-        balanceMinor: remainingBalanceMinor,
-        version: Number(tenancyView.version ?? 1) + 1,
-        updatedAt: now,
-      });
-    } else {
-      // Repair the missing view while the joined records are at hand, so the
-      // next payment (and the landlord's next pull) finds it in place.
-      tx.set(tenancyViewRef, landlordTenancyProjection({
-        leaseId: cmd.payload.tenancyId,
-        version: 1,
-        landlordId: landlord.landlordId,
-        tenantUserUid: lease.tenantUserUid ?? null,
-        propertyId: rebuilt!.propertyId,
-        unitId: String(lease.unitId ?? ''),
-        tenantName: rebuilt!.tenantName,
-        email: rebuilt!.email,
-        phone: rebuilt!.phone,
-        unitLabel: rebuilt!.unitLabel,
-        propertyName: rebuilt!.propertyName,
-        monthlyRentMinor: Number(lease.monthlyRentMinor ?? 0),
-        balanceMinor: remainingBalanceMinor,
-        leaseStart: String(lease.startDate ?? ''),
-        leaseEnd: String(lease.endDate ?? ''),
-        status: 'active',
-        createdAt: now,
-        updatedAt: now,
-      }));
-    }
+      commandId: cmd.commandId,
+    }, now);
     return {
       status: 'applied',
       aggregateId: cmd.aggregateId!,
-      serverVersion: 1,
-      safeResult: { receiptId, receiptNumber: formatReceiptNumber(receiptNumber), creditMinor: unallocatedMinor },
+      serverVersion: outcome.serverVersion,
+      safeResult: {
+        receiptId: outcome.receiptId,
+        receiptNumber: outcome.receiptNumber,
+        creditMinor: outcome.creditMinor,
+      },
       changedFields: ['status', 'confirmedAt', 'allocations', 'receiptId'],
     };
   },
 };
 
+
 /** Stable, landlord-scoped receipt reference, e.g. `NYB-RCP-00842`. */
 export function formatReceiptNumber(counter: number): string {
   return `NYB-RCP-${String(counter).padStart(5, '0')}`;
 }
+
+const declarePaymentSchema = strictPayload({
+  tenancyId: idSchema,
+  amountMinor: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  method: z.enum(['cash', 'bank_transfer', 'mtn_momo', 'airtel_money']),
+  period: shortText,
+  /**
+   * Proof of payment. Required — the landlord is being asked to accept money
+   * on this evidence alone, so a declaration with nothing to check would just
+   * move the guesswork onto them.
+   */
+  reference: shortText,
+  note: z.string().trim().max(500).optional(),
+});
+
+interface DeclaredPaymentRecord {
+  version: number;
+  landlordId: string;
+  leaseId: string;
+  status: string;
+  amountMinor: number;
+  method: string;
+  period: string;
+  reference?: string | null;
+  declaredByUid?: string | null;
+}
+
+/**
+ * A tenant reports rent they have already paid, with proof.
+ *
+ * Nyumba cannot collect money yet, so rent is settled outside the app and
+ * somebody has to tell it what happened. Until now only the landlord could,
+ * which left a tenant who paid on the 1st invisible until the landlord got
+ * around to recording it — and the tenant portal's own "Record payment" button
+ * enqueued a landlord-only command that the server always rejected.
+ *
+ * A declaration is a claim, not a payment: it deliberately allocates nothing,
+ * settles no invoice, moves no balance and issues no receipt. Otherwise a
+ * tenant could clear their own arrears by asserting them away. The landlord
+ * confirms it (which settles it through the same path as money they recorded
+ * themselves) or rejects it with a reason.
+ */
+export const paymentDeclare: CommandHandler<z.infer<typeof declarePaymentSchema>> = {
+  payloadSchema: declarePaymentSchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'create',
+  async apply({ tx, db, actor, cmd, now }) {
+    const paymentRef = db.collection(COLLECTIONS.payments).doc(cmd.aggregateId!);
+    const leaseRef = db.collection(COLLECTIONS.leases).doc(cmd.payload.tenancyId);
+    const [paymentSnap, leaseSnap] = await Promise.all([tx.get(paymentRef), tx.get(leaseRef)]);
+    requireAbsent(paymentSnap);
+    const lease = requireAggregate<{
+      version: number;
+      landlordId: string;
+      status: string;
+      tenantUserUid?: string | null;
+    }>(leaseSnap, undefined);
+    // Only the tenant on the tenancy may declare against it, and only while
+    // it is live: the lease is the authority, never a payload field.
+    if (lease.tenantUserUid !== actor.uid) throw new DomainError('PERMISSION_DENIED');
+    if (lease.status !== 'active') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'leaseNotActive' });
+    }
+    const payment = {
+      ...newAggregate(cmd.aggregateId!, now),
+      landlordId: lease.landlordId,
+      leaseId: cmd.payload.tenancyId,
+      invoiceId: null,
+      tenantUserUid: actor.uid,
+      declaredByUid: actor.uid,
+      amountMinor: cmd.payload.amountMinor,
+      currency: 'UGX',
+      method: cmd.payload.method,
+      period: cmd.payload.period,
+      reference: cmd.payload.reference,
+      note: cmd.payload.note ?? null,
+      // Never 'confirmed': nothing is settled until the landlord accepts it.
+      status: 'declared',
+      declaredAt: now,
+      confirmedAt: null,
+      allocations: [],
+      receiptId: null,
+    };
+    tx.create(paymentRef, payment);
+    tx.set(
+      db.collection(COLLECTIONS.tenantPortals).doc(actor.uid)
+        .collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!),
+      tenantPaymentProjection(payment),
+    );
+    createJob(tx, db, `${cmd.commandId}_notify`, 'notifyLandlordPaymentDeclared', {
+      paymentId: cmd.aggregateId!,
+      landlordId: lease.landlordId,
+    }, now);
+    return {
+      status: 'applied',
+      aggregateId: cmd.aggregateId!,
+      serverVersion: 1,
+      changedFields: ['status', 'declaredAt', 'reference'],
+    };
+  },
+};
+
+const confirmDeclaredSchema = strictPayload({});
+
+/**
+ * The landlord accepts a payment their tenant declared.
+ *
+ * Settles through the same helper as money the landlord recorded directly, so
+ * a confirmed declaration produces exactly the same allocations, receipt and
+ * balances — the tenant's proof is preserved on the payment as its reference.
+ */
+export const paymentConfirmDeclared: CommandHandler<Record<string, never>> = {
+  payloadSchema: confirmDeclaredSchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'edit',
+  async apply({ tx, db, actor, cmd, now }) {
+    const landlord = await requireActiveLandlord(tx, db, actor);
+    const paymentRef = db.collection(COLLECTIONS.payments).doc(cmd.aggregateId!);
+    const snapshot = await tx.get(paymentRef);
+    const declared = requireAggregate<DeclaredPaymentRecord>(snapshot, cmd.expectedVersion);
+    requireOwnedByLandlord(declared, landlord.landlordId);
+    if (declared.status !== 'declared') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'paymentNotAwaitingReview' });
+    }
+    const outcome = await settleTenancyPayment(tx, db, landlord, {
+      paymentId: cmd.aggregateId!,
+      tenancyId: declared.leaseId,
+      amountMinor: declared.amountMinor,
+      method: declared.method,
+      period: declared.period,
+      reference: declared.reference ?? null,
+      commandId: cmd.commandId,
+      existing: {
+        version: declared.version,
+        declaredByUid: declared.declaredByUid ?? null,
+      },
+    }, now);
+    return {
+      status: 'applied',
+      aggregateId: cmd.aggregateId!,
+      serverVersion: outcome.serverVersion,
+      safeResult: {
+        receiptId: outcome.receiptId,
+        receiptNumber: outcome.receiptNumber,
+        creditMinor: outcome.creditMinor,
+      },
+      changedFields: ['status', 'confirmedAt', 'allocations', 'receiptId'],
+    };
+  },
+};
+
+const rejectDeclaredSchema = strictPayload({
+  reasonCode: z.enum([
+    'PAYMENT_NOT_RECEIVED',
+    'AMOUNT_INCORRECT',
+    'REFERENCE_INVALID',
+    'DUPLICATE_DECLARATION',
+    'LANDLORD_CORRECTION',
+  ]),
+  note: z.string().trim().max(500).optional(),
+});
+
+/**
+ * The landlord rejects a payment their tenant declared.
+ *
+ * Nothing financial unwinds, because a declaration never settled anything —
+ * only the claim is closed, with a reason the tenant can see and act on. The
+ * record is kept rather than deleted: a disputed payment is exactly the thing
+ * both sides need a history of.
+ */
+export const paymentRejectDeclared: CommandHandler<z.infer<typeof rejectDeclaredSchema>> = {
+  payloadSchema: rejectDeclaredSchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'edit',
+  async apply({ tx, db, actor, cmd, now }) {
+    const landlord = await requireActiveLandlord(tx, db, actor);
+    const paymentRef = db.collection(COLLECTIONS.payments).doc(cmd.aggregateId!);
+    const snapshot = await tx.get(paymentRef);
+    const declared = requireAggregate<DeclaredPaymentRecord>(snapshot, cmd.expectedVersion);
+    requireOwnedByLandlord(declared, landlord.landlordId);
+    if (declared.status !== 'declared') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'paymentNotAwaitingReview' });
+    }
+    const rejected = {
+      status: 'rejected',
+      rejectedAt: now,
+      rejectionReasonCode: cmd.payload.reasonCode,
+      rejectionNote: cmd.payload.note ?? null,
+      ...bumpVersion(declared, now),
+    };
+    tx.update(paymentRef, rejected);
+    if (declared.declaredByUid) {
+      tx.set(
+        db.collection(COLLECTIONS.tenantPortals).doc(declared.declaredByUid)
+          .collection(TENANT_PORTAL_SECTIONS.payments).doc(cmd.aggregateId!),
+        tenantPaymentProjection({ ...declared, ...rejected, id: cmd.aggregateId! }),
+      );
+    }
+    createJob(tx, db, `${cmd.commandId}_notify`, 'notifyTenantPaymentRejected', {
+      paymentId: cmd.aggregateId!,
+      tenantUserUid: declared.declaredByUid ?? null,
+    }, now);
+    return {
+      status: 'applied',
+      aggregateId: cmd.aggregateId!,
+      serverVersion: declared.version + 1,
+      changedFields: ['status', 'rejectedAt', 'rejectionReasonCode'],
+      reasonCode: cmd.payload.reasonCode,
+    };
+  },
+};
 
 const initiateSchema = strictPayload({
   leaseId: idSchema,

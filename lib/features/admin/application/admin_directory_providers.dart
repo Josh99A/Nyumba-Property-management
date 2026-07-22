@@ -89,6 +89,33 @@ const changeRoleReasonCodes = [
   'IDENTITY_VERIFIED',
 ];
 
+/// Why staff could not confirm a payment a landlord reported
+/// (`subscription.rejectPayment`).
+const rejectPaymentReasonCodes = [
+  'PAYMENT_NOT_RECEIVED',
+  'AMOUNT_INCORRECT',
+  'REFERENCE_INVALID',
+  'DUPLICATE_REQUEST',
+  'ADMIN_CORRECTION',
+];
+
+/// Why an active subscription was moved to a smaller plan
+/// (`subscription.downgrade`).
+const downgradeReasonCodes = [
+  'LANDLORD_REQUESTED',
+  'PAYMENT_SHORTFALL',
+  'ADMIN_CORRECTION',
+];
+
+/// Why a subscription was ended, locking the workspace
+/// (`subscription.deactivate`).
+const deactivateSubscriptionReasonCodes = [
+  'NON_PAYMENT',
+  'LANDLORD_REQUESTED',
+  'DUPLICATE_ACCOUNT',
+  'ADMIN_CORRECTION',
+];
+
 /// Server-owned ordinary roles `user.changeRole` accepts. Administrator
 /// privileges are Auth custom claims granted only by the audited ops script,
 /// never from inside the app.
@@ -263,6 +290,73 @@ class AdminAccountCommands {
         'reference': reference.trim(),
         if (tier != null && tier.trim().isNotEmpty) 'tier': tier.trim(),
       },
+    );
+  }
+
+  /// Records that staff checked and could not confirm a payment the landlord
+  /// reported. Clears the pending request and tells the landlord why; the
+  /// plan and its entitlements are left exactly as they were.
+  Future<void> rejectSubscriptionPayment({
+    required PlatformAccount account,
+    required String reasonCode,
+    String? note,
+  }) async {
+    _requireManageable(account);
+    final version = account.subscriptionVersion;
+    if (version == null) {
+      throw StateError('This account has no subscription record yet.');
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: 'subscription.rejectPayment',
+      aggregateId: account.uid,
+      expectedVersion: version,
+      payload: <String, Object?>{
+        'reasonCode': reasonCode,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
+  }
+
+  /// Moves an active subscription to a smaller plan without a payment. The
+  /// server rejects anything that is not actually a downgrade, so this can
+  /// never hand out paid capacity for free.
+  Future<void> downgradeSubscription({
+    required PlatformAccount account,
+    required String tier,
+    required String reasonCode,
+  }) async {
+    _requireManageable(account);
+    final version = account.subscriptionVersion;
+    if (version == null) {
+      throw StateError('This account has no subscription record yet.');
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: 'subscription.downgrade',
+      aggregateId: account.uid,
+      expectedVersion: version,
+      payload: <String, Object?>{'tier': tier, 'reasonCode': reasonCode},
+    );
+  }
+
+  /// Ends a subscription, locking the landlord's workspace. Nothing is
+  /// deleted and tenants keep their portal; confirming a payment reopens it.
+  Future<void> deactivateSubscription({
+    required PlatformAccount account,
+    required String reasonCode,
+  }) async {
+    _requireManageable(account);
+    final version = account.subscriptionVersion;
+    if (version == null) {
+      throw StateError('This account has no subscription record yet.');
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: 'subscription.deactivate',
+      aggregateId: account.uid,
+      expectedVersion: version,
+      payload: <String, Object?>{'reasonCode': reasonCode},
     );
   }
 

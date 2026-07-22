@@ -10,6 +10,7 @@ import '../../../core/localization/generated/app_localizations.dart';
 import '../../../core/localization/nyumba_localizations.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/nyumba_logo.dart';
+import '../../../core/offline/remote_sync_gateway.dart';
 import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/toast.dart';
 import '../../auth/application/session_controller.dart';
@@ -22,6 +23,8 @@ final _ugx = NumberFormat.currency(
   symbol: 'UGX ',
   decimalDigits: 0,
 );
+
+final _renewalDate = DateFormat('d MMMM yyyy');
 
 /// Pre-payment gate for landlord accounts. Lets the landlord pick the plan
 /// they intend to pay for and shows live payment status; the workspace itself
@@ -87,18 +90,97 @@ class _LandlordSubscriptionScreenState
     }
   }
 
-  /// Requests a paid plan change on an active subscription. Nothing changes
-  /// until Nyumba confirms the payment — the toast says exactly that.
-  Future<void> _requestUpgrade(String tier, String planName) async {
+  /// Asks how the landlord will pay, then requests the upgrade on that
+  /// channel. Cash goes to admin verification; mobile money and card are the
+  /// electronic auto-upgrade path (fail-closed until an aggregator is live).
+  Future<void> _chooseUpgradeMethod(String tier, String planName) async {
+    final copy = appLocalizationsOf(context);
+    final channel = await showModalBottomSheet<UpgradeBillingChannel>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 2, 20, 2),
+              child: Text(
+                copy.subscriptionChoosePaymentMethodTitle(planName),
+                style: Theme.of(sheetContext).textTheme.titleMedium,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              child: Text(
+                copy.subscriptionChoosePaymentMethodSubtitle,
+                style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
+                  color: sheetContext.nyumba.mutedInk,
+                ),
+              ),
+            ),
+            _UpgradeMethodTile(
+              icon: Icons.smartphone_rounded,
+              title: copy.subscriptionPayMobileMoney,
+              subtitle: copy.subscriptionPayMobileMoneySub,
+              onTap: () => Navigator.pop(
+                sheetContext,
+                UpgradeBillingChannel.mobileMoney,
+              ),
+            ),
+            _UpgradeMethodTile(
+              icon: Icons.credit_card_rounded,
+              title: copy.subscriptionPayCard,
+              subtitle: copy.subscriptionPayCardSub,
+              onTap: () =>
+                  Navigator.pop(sheetContext, UpgradeBillingChannel.card),
+            ),
+            _UpgradeMethodTile(
+              icon: Icons.payments_outlined,
+              title: copy.subscriptionPayCash,
+              subtitle: copy.subscriptionPayCashSub,
+              onTap: () =>
+                  Navigator.pop(sheetContext, UpgradeBillingChannel.cash),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (channel == null || !mounted) return;
+    await _requestUpgrade(tier, planName, channel);
+  }
+
+  /// Requests a paid plan change on the chosen billing channel. Entitlements
+  /// never change here — the toast says exactly what happens next.
+  Future<void> _requestUpgrade(
+    String tier,
+    String planName,
+    UpgradeBillingChannel channel,
+  ) async {
     setState(() => _selectingTier = tier);
+    final copy = appLocalizationsOf(context);
     try {
-      await ref.read(requestPlanUpgradeProvider)(tier);
+      await ref.read(requestPlanUpgradeProvider)(tier, channel);
       if (!mounted) return;
       showNyumbaToast(
-        appLocalizationsOf(context).subscriptionUpgradeRequestedToast(planName),
+        channel == UpgradeBillingChannel.cash
+            ? copy.subscriptionUpgradeCashRequested(planName)
+            : copy.subscriptionUpgradeRequestedToast(planName),
         variant: NyumbaToastVariant.success,
       );
+    } on RemoteSyncException catch (error) {
+      if (!mounted) return;
+      // Electronic checkout has no aggregator wired yet, so the server fails
+      // it closed. Say so plainly and point at the cash path that works today.
+      showNyumbaToast(
+        error.message == 'PAYMENT_PROVIDER_UNAVAILABLE'
+            ? copy.subscriptionElectronicComingSoon
+            : describeAuthFailure(error),
+        variant: NyumbaToastVariant.error,
+      );
     } on Object catch (error) {
+      if (!mounted) return;
       showNyumbaToast(
         describeAuthFailure(error),
         variant: NyumbaToastVariant.error,
@@ -180,6 +262,12 @@ class _LandlordSubscriptionScreenState
                     const SizedBox(height: 24),
                     _PaymentStatusCard(
                       status: status,
+                      renewal: ref
+                          .watch(subscriptionRenewalProvider)
+                          .maybeWhen(
+                            data: (state) => state,
+                            orElse: () => const SubscriptionRenewalState(),
+                          ),
                       planName: _planName(copy, tier, catalog),
                       requestedPlanName: active && requestedTier != null
                           ? _planName(copy, requestedTier, catalog)
@@ -248,8 +336,10 @@ class _LandlordSubscriptionScreenState
                           if (index > currentTierIndex &&
                               currentTierIndex != -1 &&
                               requestedTier != presentation.tier) {
-                            return () =>
-                                _requestUpgrade(presentation.tier, planName);
+                            return () => _chooseUpgradeMethod(
+                              presentation.tier,
+                              planName,
+                            );
                           }
                           return null;
                         }
@@ -320,6 +410,7 @@ String? _planName(
 class _PaymentStatusCard extends StatelessWidget {
   const _PaymentStatusCard({
     required this.status,
+    required this.renewal,
     required this.planName,
     required this.requestedPlanName,
     required this.accountEmail,
@@ -329,6 +420,10 @@ class _PaymentStatusCard extends StatelessWidget {
   });
 
   final LandlordSubscriptionStatus status;
+
+  /// Renewal deadline and, once overdue, the grace window.
+  final SubscriptionRenewalState renewal;
+
   final String? planName;
 
   /// Plan an active landlord asked to upgrade to; non-null only while an
@@ -381,6 +476,49 @@ class _PaymentStatusCard extends StatelessWidget {
                   _statusMessage(copy, status, planName),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+                // An overdue-but-active subscription is the grace window: the
+                // workspace still works, so the deadline is a warning rather
+                // than a lockout notice.
+                if (active && renewal.isOverdue) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    copy.subscriptionOverdueTitle,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: context.nyumba.danger,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    switch (renewal.daysUntilLock) {
+                      final days? when days > 0 =>
+                        copy.subscriptionOverdueLocksIn(
+                          days,
+                          _renewalDate.format(renewal.graceEndsAt!.toLocal()),
+                        ),
+                      _ => copy.subscriptionOverdueLocksToday,
+                    },
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.terracottaDark,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _howToPay(copy, accountEmail),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.mutedInk,
+                    ),
+                  ),
+                ] else if (active && renewal.renewalDueAt != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    copy.subscriptionRenewsOn(
+                      _renewalDate.format(renewal.renewalDueAt!.toLocal()),
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.nyumba.mutedInk,
+                    ),
+                  ),
+                ],
                 if (!active) ...[
                   const SizedBox(height: 10),
                   Text(
@@ -688,6 +826,38 @@ class _PlanFeatureLine extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// One selectable payment method in the upgrade chooser sheet.
+class _UpgradeMethodTile extends StatelessWidget {
+  const _UpgradeMethodTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: context.nyumba.navyTint,
+        child: Icon(icon, color: context.nyumba.midnightNavy, size: 22),
+      ),
+      title: Text(title, style: Theme.of(context).textTheme.titleSmall),
+      subtitle: Text(
+        subtitle,
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: onTap,
     );
   }
 }

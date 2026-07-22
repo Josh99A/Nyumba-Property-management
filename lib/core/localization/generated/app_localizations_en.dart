@@ -2439,6 +2439,60 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String subscriptionChoosePaymentMethodTitle(String plan) {
+    return 'Upgrade to $plan';
+  }
+
+  @override
+  String get subscriptionChoosePaymentMethodSubtitle =>
+      'Choose how you\'ll pay for this upgrade.';
+
+  @override
+  String get subscriptionPayMobileMoney => 'Mobile money';
+
+  @override
+  String get subscriptionPayMobileMoneySub => 'MTN MoMo or Airtel Money';
+
+  @override
+  String get subscriptionPayCard => 'Card';
+
+  @override
+  String get subscriptionPayCardSub => 'Debit or credit card';
+
+  @override
+  String get subscriptionPayCash => 'Cash';
+
+  @override
+  String get subscriptionPayCashSub =>
+      'Pay Nyumba directly; an admin activates it';
+
+  @override
+  String subscriptionUpgradeCashRequested(String plan) {
+    return 'Upgrade to $plan requested. Pay Nyumba in cash — an admin activates it once the payment is verified. Your current plan stays active meanwhile.';
+  }
+
+  @override
+  String get subscriptionElectronicComingSoon =>
+      'Mobile money and card payments are coming soon. For now, choose Cash to upgrade — an admin activates it once your payment is verified.';
+
+  @override
+  String subscriptionRenewsOn(String date) {
+    return 'Renews on $date';
+  }
+
+  @override
+  String get subscriptionOverdueTitle => 'Your payment is overdue';
+
+  @override
+  String subscriptionOverdueLocksIn(int days, String date) {
+    return 'Your workspace stays open for $days more day(s), then locks on $date unless payment is confirmed. Nothing is deleted, and your tenants are not affected.';
+  }
+
+  @override
+  String get subscriptionOverdueLocksToday =>
+      'Your workspace locks today unless payment is confirmed. Nothing is deleted, and your tenants are not affected.';
+
+  @override
   String get subscriptionStarterPlan => 'Starter';
 
   @override

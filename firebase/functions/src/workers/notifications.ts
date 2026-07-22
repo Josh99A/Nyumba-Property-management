@@ -30,6 +30,80 @@ export async function notifyLandlordApplication(payload: Record<string, unknown>
   });
 }
 
+/** Rent amount as a readable UGX string for a notification body. */
+function ugx(amountMinor: unknown): string {
+  const minor = typeof amountMinor === 'number' ? amountMinor : 0;
+  return `UGX ${(minor / 100).toLocaleString('en-UG', { maximumFractionDigits: 0 })}`;
+}
+
+/**
+ * Tells a landlord their tenant reported a payment that needs reviewing.
+ *
+ * A declaration settles nothing until the landlord acts on it, so this nudge
+ * is the difference between money being confirmed today and sitting unnoticed
+ * for a month.
+ */
+export async function notifyLandlordPaymentDeclared(
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const db = getFirestore();
+  const paymentId = String(payload.paymentId);
+  const snapshot = await db.collection(COLLECTIONS.payments).doc(paymentId).get();
+  const payment = snapshot.data();
+  // Re-read rather than trust the payload: a landlord who already reviewed it
+  // must not be pinged about a decision they have made.
+  if (!payment || payment.status !== 'declared') return;
+  const landlordId = typeof payment.landlordId === 'string' ? payment.landlordId : null;
+  if (!landlordId) return;
+
+  await deliverUserNotification(landlordId, {
+    id: `payment_declared_${paymentId}`,
+    kind: 'system',
+    custom: {
+      title: 'A tenant reported a payment',
+      body: `${ugx(payment.amountMinor)} for ${String(payment.period ?? 'rent')} `
+        + `is waiting for you to confirm or reject.`,
+    },
+    relatedEntityId: paymentId,
+    data: { route: '/finances', paymentId },
+  });
+}
+
+/**
+ * Tells a tenant their reported payment was not accepted, and why, so a
+ * rejection is never silent.
+ */
+export async function notifyTenantPaymentRejected(
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const db = getFirestore();
+  const paymentId = String(payload.paymentId);
+  const snapshot = await db.collection(COLLECTIONS.payments).doc(paymentId).get();
+  const payment = snapshot.data();
+  if (!payment || payment.status !== 'rejected') return;
+  const tenantUid = typeof payment.declaredByUid === 'string'
+    ? payment.declaredByUid
+    : typeof payment.tenantUserUid === 'string'
+      ? payment.tenantUserUid
+      : null;
+  if (!tenantUid) return;
+
+  const note = typeof payment.rejectionNote === 'string' && payment.rejectionNote
+    ? ` ${payment.rejectionNote}`
+    : '';
+  await deliverUserNotification(tenantUid, {
+    id: `payment_rejected_${paymentId}`,
+    kind: 'system',
+    custom: {
+      title: 'Your reported payment was not confirmed',
+      body: `${ugx(payment.amountMinor)} for ${String(payment.period ?? 'rent')} `
+        + `could not be confirmed by your landlord.${note} Your balance is unchanged.`,
+    },
+    relatedEntityId: paymentId,
+    data: { route: '/tenant/payments', paymentId },
+  });
+}
+
 /**
  * Delivers a prospect's contact request to the landlord and records the
  * delivery state on both the canonical record and the prospect's portal, so the
