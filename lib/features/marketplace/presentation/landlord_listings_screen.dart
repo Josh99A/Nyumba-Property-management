@@ -15,6 +15,7 @@ import '../../../core/config/market_config.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/page_header.dart';
+import '../../../core/presentation/photo_editor_field.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
@@ -297,143 +298,151 @@ class _LandlordListingsScreenState
 
   Future<void> _editListing(Listing listing) async {
     final formKey = GlobalKey<FormState>();
-    final title = TextEditingController(text: listing.title);
-    final description = TextEditingController(text: listing.description);
-    final rent = TextEditingController(
-      text: (listing.monthlyRentMinor ~/ 100).toString(),
-    );
-    final city = TextEditingController(text: listing.city);
-    final neighborhood = TextEditingController(text: listing.neighborhood);
-    final district = TextEditingController(text: listing.district);
-    String? error;
+    final fields = _ListingFields.from(listing);
+    ActionFailure? failure;
+    ModalRoute<bool>? dialogRoute;
     final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text.localized('Edit ${listing.title}'),
-          content: SizedBox(
-            width: 560,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: title,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Listing title'),
-                      ),
-                      validator: (value) => (value?.trim().length ?? 0) < 3
-                          ? context.tr('Enter a listing title')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: description,
-                      minLines: 3,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Description'),
-                      ),
-                      validator: (value) => (value?.trim().length ?? 0) < 10
-                          ? context.tr('Add a useful description')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: rent,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Monthly rent'),
-                        prefixText: 'UGX ',
-                      ),
-                      validator: (value) {
-                        final amount = int.tryParse(
-                          value?.replaceAll(',', '') ?? '',
-                        );
-                        return amount == null || amount <= 0
-                            ? context.tr('Enter a valid rent amount')
-                            : null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: city,
-                      decoration: InputDecoration(
-                        labelText: context.tr('City'),
-                      ),
-                      validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? context.tr('Enter a city')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: neighborhood,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Neighborhood'),
-                      ),
-                      validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? context.tr('Enter a neighborhood')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: district,
-                      decoration: InputDecoration(
-                        labelText: context.tr('District (optional)'),
+      builder: (context) {
+        dialogRoute ??= ModalRoute.of<bool>(context);
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text.localized('Edit ${listing.title}'),
+            content: SizedBox(
+              width: 560,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Form(
+                      key: formKey,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: fields.build(
+                            context,
+                            setDialogState,
+                            includeRentAndCity: true,
+                          ),
+                        ),
                       ),
                     ),
-                    if (error != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        error!,
-                        style: TextStyle(color: context.nyumba.danger),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                  PickProblemsNotice(problems: fields.photoProblems),
+                  if (failure != null) ActionFailureNotice(failure: failure!),
+                ],
               ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text.localized('Cancel'),
+              ),
+              AsyncActionButton.filled(
+                onPressed: () async {
+                  if (!formKey.currentState!.validate()) return;
+                  try {
+                    await ref.read(updateListingProvider)(
+                      listing.copyWith(
+                        title: fields.title.text.trim(),
+                        description: fields.description.text.trim(),
+                        monthlyRentMinor:
+                            int.parse(fields.rent.text.replaceAll(',', '')) *
+                            100,
+                        city: fields.city.text.trim(),
+                        neighborhood: fields.neighborhood.text.trim(),
+                        clearNeighborhood: fields.neighborhood.text
+                            .trim()
+                            .isEmpty,
+                        district: fields.district.text.trim(),
+                        clearDistrict: fields.district.text.trim().isEmpty,
+                        approximateLatitude: _optionalDouble(
+                          fields.latitude.text,
+                        ),
+                        clearApproximateLatitude:
+                            _optionalDouble(fields.latitude.text) == null,
+                        approximateLongitude: _optionalDouble(
+                          fields.longitude.text,
+                        ),
+                        clearApproximateLongitude:
+                            _optionalDouble(fields.longitude.text) == null,
+                        availableFrom: fields.availableFrom,
+                        clearAvailableFrom: fields.availableFrom == null,
+                        floorAreaSquareMetres: _optionalInt(
+                          fields.floorArea.text,
+                        ),
+                        clearFloorAreaSquareMetres:
+                            _optionalInt(fields.floorArea.text) == null,
+                        furnished: fields.furnished,
+                        parkingSpaces: _optionalInt(fields.parkingSpaces.text),
+                        clearParkingSpaces:
+                            _optionalInt(fields.parkingSpaces.text) == null,
+                        minimumLeaseMonths: _optionalInt(
+                          fields.minimumLeaseMonths.text,
+                        ),
+                        clearMinimumLeaseMonths:
+                            _optionalInt(fields.minimumLeaseMonths.text) ==
+                            null,
+                        securityDepositMinor: _optionalMoneyMinor(
+                          fields.securityDeposit.text,
+                        ),
+                        clearSecurityDepositMinor:
+                            _optionalMoneyMinor(fields.securityDeposit.text) ==
+                            null,
+                        serviceChargeMinor: _optionalMoneyMinor(
+                          fields.serviceCharge.text,
+                        ),
+                        clearServiceChargeMinor:
+                            _optionalMoneyMinor(fields.serviceCharge.text) ==
+                            null,
+                        utilitiesIncluded: _splitCommaSeparated(
+                          fields.utilities.text,
+                        ),
+                        accessibilityFeatures: _splitCommaSeparated(
+                          fields.accessibility.text,
+                        ),
+                        petsPolicy: fields.petsPolicy.text.trim(),
+                        clearPetsPolicy: fields.petsPolicy.text.trim().isEmpty,
+                        smokingPolicy: fields.smokingPolicy.text.trim(),
+                        clearSmokingPolicy: fields.smokingPolicy.text
+                            .trim()
+                            .isEmpty,
+                        viewingInstructions: fields.viewingInstructions.text
+                            .trim(),
+                        clearViewingInstructions: fields
+                            .viewingInstructions
+                            .text
+                            .trim()
+                            .isEmpty,
+                        imageUrls: fields.photos.toImageUrls(),
+                        videoUrl: fields.videoUrl.text.trim(),
+                        clearVideoUrl: fields.videoUrl.text.trim().isEmpty,
+                        contactPhone: fields.phone.text.trim(),
+                        clearContactPhone: fields.phone.text.trim().isEmpty,
+                        contactEmail: fields.email.text.trim(),
+                        clearContactEmail: fields.email.text.trim().isEmpty,
+                      ),
+                    );
+                    if (context.mounted) Navigator.pop(context, true);
+                  } on Object catch (caught) {
+                    if (!context.mounted) return;
+                    setDialogState(
+                      () => failure = describeActionFailure(
+                        caught,
+                        action: context.tr('save these listing changes'),
+                      ),
+                    );
+                  }
+                },
+                child: const Text.localized('Save changes'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text.localized('Cancel'),
-            ),
-            AsyncActionButton.filled(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                try {
-                  await ref.read(updateListingProvider)(
-                    listing.copyWith(
-                      title: title.text.trim(),
-                      description: description.text.trim(),
-                      monthlyRentMinor:
-                          int.parse(rent.text.replaceAll(',', '')) * 100,
-                      city: city.text.trim(),
-                      neighborhood: neighborhood.text.trim(),
-                      district: district.text.trim(),
-                      clearDistrict: district.text.trim().isEmpty,
-                    ),
-                  );
-                  if (context.mounted) Navigator.pop(context, true);
-                } on Object catch (caught) {
-                  setDialogState(() => error = caught.toString());
-                }
-              },
-              child: const Text.localized('Save changes'),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
-    title.dispose();
-    description.dispose();
-    rent.dispose();
-    city.dispose();
-    neighborhood.dispose();
-    district.dispose();
+    await dialogRoute?.completed;
+    fields.dispose();
     if (saved == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -526,40 +535,15 @@ class _LandlordListingsScreenState
     final propertyById = {
       for (final property in properties) property.id: property,
     };
-    final title = TextEditingController(
-      text:
+    final fields = _ListingFields.blank(
+      titleSeed:
           '${selectedUnit.displayName} at ${propertyById[selectedUnit.propertyId]?.name ?? 'My property'}',
+      districtSeed: 'Kampala',
     );
-    final description = TextEditingController(
-      text: 'A well maintained home in a convenient Kampala location.',
-    );
-    final phone = TextEditingController();
-    final email = TextEditingController();
-    final neighborhood = TextEditingController();
-    final district = TextEditingController(text: 'Kampala');
-    final latitude = TextEditingController();
-    final longitude = TextEditingController();
-    final floorArea = TextEditingController();
-    final parkingSpaces = TextEditingController();
-    final minimumLeaseMonths = TextEditingController(text: '12');
-    final securityDeposit = TextEditingController();
-    final serviceCharge = TextEditingController();
-    final utilities = TextEditingController();
-    final accessibility = TextEditingController();
-    final petsPolicy = TextEditingController(text: 'Ask the landlord');
-    final smokingPolicy = TextEditingController(text: 'No smoking indoors');
-    final viewingInstructions = TextEditingController(
-      text: 'Request a viewing through Nyumba.',
-    );
-    final selectedPhotos = <PickedListingPhoto>[];
-    final videoUrl = TextEditingController();
-    DateTime? availableFrom;
-    bool furnished = false;
     // Photo rejections and a refused save are different things and are shown
     // differently. Both are pinned below the scroll view, because a snack bar
     // raised from inside a dialog surfaces behind the modal barrier where it
     // is easy to miss entirely.
-    var photoProblems = const <String>[];
     ActionFailure? failure;
     final created = await showDialog<bool>(
       context: context,
@@ -596,413 +580,19 @@ class _LandlordListingsScreenState
                               if (value == null) return;
                               setDialogState(() {
                                 selectedUnit = value;
-                                title.text =
+                                fields.title.text =
                                     '${value.label} at ${propertyById[value.propertyId]?.name ?? 'My property'}';
-                                district.text =
+                                fields.district.text =
                                     propertyById[value.propertyId]?.city ??
                                     'Kampala';
                               });
                             },
                           ),
                           const SizedBox(height: 14),
-                          TextFormField(
-                            controller: title,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Listing title'),
-                            ),
-                            validator: (value) =>
-                                (value?.trim().length ?? 0) < 5
-                                ? context.tr('Enter a clear title')
-                                : null,
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: description,
-                            minLines: 3,
-                            maxLines: 5,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Description'),
-                            ),
-                            validator: (value) =>
-                                (value?.trim().length ?? 0) < 15
-                                ? context.tr('Add a little more detail')
-                                : null,
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: neighborhood,
-                                  decoration: InputDecoration(
-                                    labelText: context.tr('Neighborhood'),
-                                    helperText: context.tr(
-                                      'Public; do not enter an exact address',
-                                    ),
-                                  ),
-                                  validator: (value) =>
-                                      value?.trim().isEmpty ?? true
-                                      ? context.tr(
-                                          'Enter a public neighborhood',
-                                        )
-                                      : null,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: district,
-                                  decoration: InputDecoration(
-                                    labelText: context.tr(
-                                      'District or city area',
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: latitude,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                        signed: true,
-                                      ),
-                                  decoration: InputDecoration(
-                                    labelText: context.tr(
-                                      'Approx. latitude (optional)',
-                                    ),
-                                  ),
-                                  validator: (value) =>
-                                      _optionalLatitudeValidator(
-                                        context,
-                                        value,
-                                      ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: longitude,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                        signed: true,
-                                      ),
-                                  decoration: InputDecoration(
-                                    labelText: context.tr(
-                                      'Approx. longitude (optional)',
-                                    ),
-                                  ),
-                                  validator: (value) =>
-                                      _optionalLongitudeValidator(
-                                        context,
-                                        value,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          AsyncActionButton.outlined(
-                            showBusyIndicator: false,
-                            onPressed: () async {
-                              final now = DateTime.now();
-                              final date = await showDatePicker(
-                                context: context,
-                                firstDate: DateTime(
-                                  now.year,
-                                  now.month,
-                                  now.day,
-                                ),
-                                lastDate: now.add(const Duration(days: 730)),
-                              );
-                              if (date != null) {
-                                setDialogState(() => availableFrom = date);
-                              }
-                            },
-                            icon: const Icon(Icons.event_available_outlined),
-                            child: Text.localized(
-                              availableFrom == null
-                                  ? 'Choose availability date'
-                                  : 'Available ${DateFormat('d MMM y').format(availableFrom!)}',
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: floorArea,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: context.tr('Floor area (m²)'),
-                                  ),
-                                  validator: (value) =>
-                                      _optionalPositiveIntegerValidator(
-                                        context,
-                                        value,
-                                      ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: parkingSpaces,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: context.tr('Parking spaces'),
-                                  ),
-                                  validator: (value) =>
-                                      _optionalNonNegativeIntegerValidator(
-                                        context,
-                                        value,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SwitchListTile.adaptive(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text.localized('Furnished'),
-                            value: furnished,
-                            onChanged: (value) =>
-                                setDialogState(() => furnished = value),
-                          ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: minimumLeaseMonths,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: context.tr(
-                                      'Minimum lease (months)',
-                                    ),
-                                  ),
-                                  validator: (value) =>
-                                      _optionalPositiveIntegerValidator(
-                                        context,
-                                        value,
-                                      ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: securityDeposit,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: context.tr(
-                                      'Security deposit (UGX)',
-                                    ),
-                                  ),
-                                  validator: (value) =>
-                                      _optionalNonNegativeIntegerValidator(
-                                        context,
-                                        value,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: serviceCharge,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: context.tr(
-                                'Monthly service charge (UGX)',
-                              ),
-                            ),
-                            validator: (value) =>
-                                _optionalNonNegativeIntegerValidator(
-                                  context,
-                                  value,
-                                ),
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: utilities,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Utilities included'),
-                              helperText: context.tr(
-                                'Comma-separated, for example water, internet',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: accessibility,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Accessibility features'),
-                              helperText: context.tr('Comma-separated'),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: petsPolicy,
-                                  decoration: InputDecoration(
-                                    labelText: context.tr('Pets policy'),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: smokingPolicy,
-                                  decoration: InputDecoration(
-                                    labelText: context.tr('Smoking policy'),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: viewingInstructions,
-                            minLines: 2,
-                            maxLines: 3,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Viewing instructions'),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            child: Text.localized(
-                              'Listing photos',
-                              style: Theme.of(context).textTheme.labelLarge,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            child: AsyncActionButton.outlined(
-                              showBusyIndicator: false,
-                              onPressed:
-                                  selectedPhotos.length >= listingPhotoLimit
-                                  ? null
-                                  : () async {
-                                      final result = await pickListingPhotos(
-                                        remainingSlots:
-                                            listingPhotoLimit -
-                                            selectedPhotos.length,
-                                      );
-                                      if (!context.mounted) return;
-                                      // Backing out of the chooser changes nothing.
-                                      if (result.cancelled) return;
-                                      setDialogState(() {
-                                        selectedPhotos.addAll(result.images);
-                                        photoProblems = result.problems;
-                                      });
-                                    },
-                              icon: const Icon(
-                                Icons.add_photo_alternate_outlined,
-                              ),
-                              child: Text.localized(
-                                selectedPhotos.isEmpty
-                                    ? 'Choose photos'
-                                    : 'Add more (${selectedPhotos.length}/$listingPhotoLimit)',
-                              ),
-                            ),
-                          ),
-                          if (selectedPhotos.isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                for (final photo in selectedPhotos)
-                                  InputChip(
-                                    avatar: CircleAvatar(
-                                      backgroundImage: MemoryImage(photo.bytes),
-                                    ),
-                                    label: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 150,
-                                      ),
-                                      child: Text(
-                                        photo.name,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    onDeleted: () => setDialogState(
-                                      () => selectedPhotos.remove(photo),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: 6),
-                          Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            child: Text.localized(
-                              '$supportedPhotoFormats; up to 5 MB each and '
-                              '$listingPhotoLimit photos. Selections stay in this '
-                              'local draft. Publishing stays blocked until the '
-                              'production upload service replaces them with '
-                              'server-owned media references.',
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: videoUrl,
-                            keyboardType: TextInputType.url,
-                            decoration: InputDecoration(
-                              labelText: context.tr(
-                                'Video or virtual-tour URL (optional)',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: phone,
-                            keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Contact phone'),
-                            ),
-                            validator: (value) =>
-                                (value?.trim().length ?? 0) < 7
-                                ? email.text.trim().isEmpty
-                                      ? context.tr(
-                                          'Enter a phone or email for routed enquiries',
-                                        )
-                                      : null
-                                : !NyumbaMarket.isValidPhone(value!.trim())
-                                ? context.tr('Use the Ugandan +256 format')
-                                : null,
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: email,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: InputDecoration(
-                              labelText: context.tr(
-                                'Private contact email (optional)',
-                              ),
-                              helperText: context.tr(
-                                'Used for routed enquiries; not shown publicly',
-                              ),
-                            ),
-                            validator: (value) {
-                              final text = value?.trim() ?? '';
-                              if (text.isEmpty && phone.text.trim().isEmpty) {
-                                return context.tr(
-                                  'Enter a phone or email for routed enquiries',
-                                );
-                              }
-                              return text.isNotEmpty && !text.contains('@')
-                                  ? context.tr('Enter a valid email')
-                                  : null;
-                            },
+                          ...fields.build(
+                            context,
+                            setDialogState,
+                            includeRentAndCity: false,
                           ),
                           const SizedBox(height: 14),
                           Align(
@@ -1024,7 +614,7 @@ class _LandlordListingsScreenState
                     ),
                   ),
                 ),
-                PickProblemsNotice(problems: photoProblems),
+                PickProblemsNotice(problems: fields.photoProblems),
                 if (failure != null) ActionFailureNotice(failure: failure!),
               ],
             ),
@@ -1047,41 +637,50 @@ class _LandlordListingsScreenState
                       unitId: selectedUnit.id,
                       propertyId: selectedUnit.propertyId,
                       landlordId: selectedUnit.landlordId,
-                      title: title.text.trim(),
-                      description: description.text.trim(),
+                      title: fields.title.text.trim(),
+                      description: fields.description.text.trim(),
                       monthlyRentMinor: selectedUnit.monthlyRentMinor,
                       currency: selectedUnit.currency,
                       city:
                           propertyById[selectedUnit.propertyId]?.city ??
                           'Kampala',
-                      district: district.text.trim(),
-                      neighborhood: neighborhood.text.trim(),
-                      approximateLatitude: _optionalDouble(latitude.text),
-                      approximateLongitude: _optionalDouble(longitude.text),
-                      availableFrom: availableFrom,
-                      floorAreaSquareMetres: _optionalInt(floorArea.text),
-                      furnished: furnished,
-                      parkingSpaces: _optionalInt(parkingSpaces.text),
-                      minimumLeaseMonths: _optionalInt(minimumLeaseMonths.text),
+                      district: fields.district.text.trim(),
+                      neighborhood: fields.neighborhood.text.trim(),
+                      approximateLatitude: _optionalDouble(
+                        fields.latitude.text,
+                      ),
+                      approximateLongitude: _optionalDouble(
+                        fields.longitude.text,
+                      ),
+                      availableFrom: fields.availableFrom,
+                      floorAreaSquareMetres: _optionalInt(
+                        fields.floorArea.text,
+                      ),
+                      furnished: fields.furnished,
+                      parkingSpaces: _optionalInt(fields.parkingSpaces.text),
+                      minimumLeaseMonths: _optionalInt(
+                        fields.minimumLeaseMonths.text,
+                      ),
                       securityDepositMinor: _optionalMoneyMinor(
-                        securityDeposit.text,
+                        fields.securityDeposit.text,
                       ),
                       serviceChargeMinor: _optionalMoneyMinor(
-                        serviceCharge.text,
+                        fields.serviceCharge.text,
                       ),
-                      utilitiesIncluded: _splitCommaSeparated(utilities.text),
+                      utilitiesIncluded: _splitCommaSeparated(
+                        fields.utilities.text,
+                      ),
                       accessibilityFeatures: _splitCommaSeparated(
-                        accessibility.text,
+                        fields.accessibility.text,
                       ),
-                      petsPolicy: petsPolicy.text.trim(),
-                      smokingPolicy: smokingPolicy.text.trim(),
-                      viewingInstructions: viewingInstructions.text.trim(),
-                      imageUrls: selectedPhotos
-                          .map((photo) => photo.dataUri)
-                          .toList(),
-                      videoUrl: videoUrl.text.trim(),
-                      contactPhone: phone.text.trim(),
-                      contactEmail: email.text.trim(),
+                      petsPolicy: fields.petsPolicy.text.trim(),
+                      smokingPolicy: fields.smokingPolicy.text.trim(),
+                      viewingInstructions: fields.viewingInstructions.text
+                          .trim(),
+                      imageUrls: fields.photos.toImageUrls(),
+                      videoUrl: fields.videoUrl.text.trim(),
+                      contactPhone: fields.phone.text.trim(),
+                      contactEmail: fields.email.text.trim(),
                     ),
                   );
                   if (context.mounted) Navigator.pop(context, true);
@@ -1112,25 +711,434 @@ class _LandlordListingsScreenState
         );
       }
     }
-    title.dispose();
-    description.dispose();
-    phone.dispose();
-    email.dispose();
-    neighborhood.dispose();
-    district.dispose();
-    latitude.dispose();
-    longitude.dispose();
-    floorArea.dispose();
-    parkingSpaces.dispose();
-    minimumLeaseMonths.dispose();
-    securityDeposit.dispose();
-    serviceCharge.dispose();
-    utilities.dispose();
-    accessibility.dispose();
-    petsPolicy.dispose();
-    smokingPolicy.dispose();
-    viewingInstructions.dispose();
-    videoUrl.dispose();
+    fields.dispose();
+  }
+}
+
+/// Every editable listing field, in one place.
+///
+/// The create and edit dialogs both build their form from this, so the two
+/// cannot drift on what a landlord is allowed to change. That drift is exactly
+/// why editing used to expose six fields out of twenty-odd, and offered no way
+/// to touch the photos at all.
+class _ListingFields {
+  _ListingFields._();
+
+  /// A new draft, pre-filled with the defaults the create dialog has always
+  /// used.
+  factory _ListingFields.blank({
+    required String titleSeed,
+    required String districtSeed,
+  }) {
+    final fields = _ListingFields._();
+    fields.title.text = titleSeed;
+    fields.description.text =
+        'A well maintained home in a convenient Kampala location.';
+    fields.district.text = districtSeed;
+    fields.minimumLeaseMonths.text = '12';
+    fields.petsPolicy.text = 'Ask the landlord';
+    fields.smokingPolicy.text = 'No smoking indoors';
+    fields.viewingInstructions.text = 'Request a viewing through Nyumba.';
+    return fields;
+  }
+
+  /// An existing listing opened for editing.
+  factory _ListingFields.from(Listing listing) {
+    final fields = _ListingFields._();
+    fields.title.text = listing.title;
+    fields.description.text = listing.description;
+    fields.rent.text = (listing.monthlyRentMinor ~/ 100).toString();
+    fields.city.text = listing.city;
+    fields.neighborhood.text = listing.neighborhood ?? '';
+    fields.district.text = listing.district ?? '';
+    fields.latitude.text = listing.approximateLatitude?.toString() ?? '';
+    fields.longitude.text = listing.approximateLongitude?.toString() ?? '';
+    fields.floorArea.text = listing.floorAreaSquareMetres?.toString() ?? '';
+    fields.parkingSpaces.text = listing.parkingSpaces?.toString() ?? '';
+    fields.minimumLeaseMonths.text =
+        listing.minimumLeaseMonths?.toString() ?? '';
+    fields.securityDeposit.text = listing.securityDepositMinor == null
+        ? ''
+        : (listing.securityDepositMinor! ~/ 100).toString();
+    fields.serviceCharge.text = listing.serviceChargeMinor == null
+        ? ''
+        : (listing.serviceChargeMinor! ~/ 100).toString();
+    fields.utilities.text = listing.utilitiesIncluded.join(', ');
+    fields.accessibility.text = listing.accessibilityFeatures.join(', ');
+    fields.petsPolicy.text = listing.petsPolicy ?? '';
+    fields.smokingPolicy.text = listing.smokingPolicy ?? '';
+    fields.viewingInstructions.text = listing.viewingInstructions ?? '';
+    fields.videoUrl.text = listing.videoUrl ?? '';
+    fields.phone.text = listing.contactPhone ?? '';
+    fields.email.text = listing.contactEmail ?? '';
+    fields.photos.existing.addAll(listing.imageUrls);
+    fields.availableFrom = listing.availableFrom;
+    fields.furnished = listing.furnished;
+    return fields;
+  }
+
+  final title = TextEditingController();
+  final description = TextEditingController();
+  final rent = TextEditingController();
+  final city = TextEditingController();
+  final phone = TextEditingController();
+  final email = TextEditingController();
+  final neighborhood = TextEditingController();
+  final district = TextEditingController();
+  final latitude = TextEditingController();
+  final longitude = TextEditingController();
+  final floorArea = TextEditingController();
+  final parkingSpaces = TextEditingController();
+  final minimumLeaseMonths = TextEditingController();
+  final securityDeposit = TextEditingController();
+  final serviceCharge = TextEditingController();
+  final utilities = TextEditingController();
+  final accessibility = TextEditingController();
+  final petsPolicy = TextEditingController();
+  final smokingPolicy = TextEditingController();
+  final viewingInstructions = TextEditingController();
+  final videoUrl = TextEditingController();
+  final photos = EditablePhotoSet();
+
+  DateTime? availableFrom;
+  bool furnished = false;
+
+  /// Files the last chooser trip left out, surfaced by the host dialog.
+  var photoProblems = const <String>[];
+
+  /// The form body.
+  ///
+  /// [includeRentAndCity] is the one real difference between the two callers:
+  /// a new draft takes its rent and city from the chosen unit and its
+  /// property, while an existing listing carries its own and can edit them.
+  List<Widget> build(
+    BuildContext context,
+    StateSetter setDialogState, {
+    required bool includeRentAndCity,
+  }) => [
+    TextFormField(
+      controller: title,
+      decoration: InputDecoration(labelText: context.tr('Listing title')),
+      validator: (value) => (value?.trim().length ?? 0) < 5
+          ? context.tr('Enter a clear title')
+          : null,
+    ),
+    const SizedBox(height: 14),
+    TextFormField(
+      controller: description,
+      minLines: 3,
+      maxLines: 5,
+      decoration: InputDecoration(labelText: context.tr('Description')),
+      validator: (value) => (value?.trim().length ?? 0) < 15
+          ? context.tr('Add a little more detail')
+          : null,
+    ),
+    if (includeRentAndCity) ...[
+      const SizedBox(height: 14),
+      Row(
+        children: [
+          Expanded(
+            child: TextFormField(
+              controller: rent,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: context.tr('Monthly rent'),
+                prefixText: 'UGX ',
+              ),
+              validator: (value) {
+                final amount = int.tryParse(value?.replaceAll(',', '') ?? '');
+                return amount == null || amount <= 0
+                    ? context.tr('Enter a valid rent amount')
+                    : null;
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextFormField(
+              controller: city,
+              decoration: InputDecoration(labelText: context.tr('City')),
+              validator: (value) => (value?.trim().isEmpty ?? true)
+                  ? context.tr('Enter a city')
+                  : null,
+            ),
+          ),
+        ],
+      ),
+    ],
+    const SizedBox(height: 14),
+    Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: neighborhood,
+            decoration: InputDecoration(
+              labelText: context.tr('Neighborhood'),
+              helperText: context.tr('Public; do not enter an exact address'),
+            ),
+            validator: (value) => value?.trim().isEmpty ?? true
+                ? context.tr('Enter a public neighborhood')
+                : null,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextFormField(
+            controller: district,
+            decoration: InputDecoration(
+              labelText: context.tr('District or city area'),
+            ),
+          ),
+        ),
+      ],
+    ),
+    const SizedBox(height: 14),
+    Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: latitude,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+              signed: true,
+            ),
+            decoration: InputDecoration(
+              labelText: context.tr('Approx. latitude (optional)'),
+            ),
+            validator: (value) => _optionalLatitudeValidator(context, value),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextFormField(
+            controller: longitude,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+              signed: true,
+            ),
+            decoration: InputDecoration(
+              labelText: context.tr('Approx. longitude (optional)'),
+            ),
+            validator: (value) => _optionalLongitudeValidator(context, value),
+          ),
+        ),
+      ],
+    ),
+    const SizedBox(height: 14),
+    AsyncActionButton.outlined(
+      showBusyIndicator: false,
+      onPressed: () async {
+        final now = DateTime.now();
+        final date = await showDatePicker(
+          context: context,
+          initialDate: availableFrom,
+          firstDate: DateTime(now.year, now.month, now.day),
+          lastDate: now.add(const Duration(days: 730)),
+        );
+        if (date != null) setDialogState(() => availableFrom = date);
+      },
+      icon: const Icon(Icons.event_available_outlined),
+      child: Text.localized(
+        availableFrom == null
+            ? 'Choose availability date'
+            : 'Available ${DateFormat('d MMM y').format(availableFrom!)}',
+      ),
+    ),
+    const SizedBox(height: 14),
+    Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: floorArea,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: context.tr('Floor area (m²)')),
+            validator: (value) =>
+                _optionalPositiveIntegerValidator(context, value),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextFormField(
+            controller: parkingSpaces,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: context.tr('Parking spaces')),
+            validator: (value) =>
+                _optionalNonNegativeIntegerValidator(context, value),
+          ),
+        ),
+      ],
+    ),
+    SwitchListTile.adaptive(
+      contentPadding: EdgeInsets.zero,
+      title: const Text.localized('Furnished'),
+      value: furnished,
+      onChanged: (value) => setDialogState(() => furnished = value),
+    ),
+    Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: minimumLeaseMonths,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: context.tr('Minimum lease (months)'),
+            ),
+            validator: (value) =>
+                _optionalPositiveIntegerValidator(context, value),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextFormField(
+            controller: securityDeposit,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: context.tr('Security deposit (UGX)'),
+            ),
+            validator: (value) =>
+                _optionalNonNegativeIntegerValidator(context, value),
+          ),
+        ),
+      ],
+    ),
+    const SizedBox(height: 14),
+    TextFormField(
+      controller: serviceCharge,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: context.tr('Monthly service charge (UGX)'),
+      ),
+      validator: (value) => _optionalNonNegativeIntegerValidator(context, value),
+    ),
+    const SizedBox(height: 14),
+    TextFormField(
+      controller: utilities,
+      decoration: InputDecoration(
+        labelText: context.tr('Utilities included'),
+        helperText: context.tr('Comma-separated, for example water, internet'),
+      ),
+    ),
+    const SizedBox(height: 14),
+    TextFormField(
+      controller: accessibility,
+      decoration: InputDecoration(
+        labelText: context.tr('Accessibility features'),
+        helperText: context.tr('Comma-separated'),
+      ),
+    ),
+    const SizedBox(height: 14),
+    Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: petsPolicy,
+            decoration: InputDecoration(labelText: context.tr('Pets policy')),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextFormField(
+            controller: smokingPolicy,
+            decoration: InputDecoration(labelText: context.tr('Smoking policy')),
+          ),
+        ),
+      ],
+    ),
+    const SizedBox(height: 14),
+    TextFormField(
+      controller: viewingInstructions,
+      minLines: 2,
+      maxLines: 3,
+      decoration: InputDecoration(
+        labelText: context.tr('Viewing instructions'),
+      ),
+    ),
+    const SizedBox(height: 14),
+    Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: PhotoEditorField(
+        label: 'Listing photos',
+        photos: photos,
+        limit: listingPhotoLimit,
+        pick: pickListingPhotos,
+        onChanged: (problems) =>
+            setDialogState(() => photoProblems = problems),
+        helperText:
+            '$supportedPhotoFormats; up to 5 MB each and $listingPhotoLimit '
+            'photos. Selections stay in this local draft. Publishing stays '
+            'blocked until the production upload service replaces them with '
+            'server-owned media references.',
+      ),
+    ),
+    const SizedBox(height: 14),
+    TextFormField(
+      controller: videoUrl,
+      keyboardType: TextInputType.url,
+      decoration: InputDecoration(
+        labelText: context.tr('Video or virtual-tour URL (optional)'),
+      ),
+    ),
+    const SizedBox(height: 14),
+    TextFormField(
+      controller: phone,
+      keyboardType: TextInputType.phone,
+      decoration: InputDecoration(labelText: context.tr('Contact phone')),
+      validator: (value) => (value?.trim().length ?? 0) < 7
+          ? email.text.trim().isEmpty
+                ? context.tr('Enter a phone or email for routed enquiries')
+                : null
+          : !NyumbaMarket.isValidPhone(value!.trim())
+          ? context.tr('Use the Ugandan +256 format')
+          : null,
+    ),
+    const SizedBox(height: 14),
+    TextFormField(
+      controller: email,
+      keyboardType: TextInputType.emailAddress,
+      decoration: InputDecoration(
+        labelText: context.tr('Private contact email (optional)'),
+        helperText: context.tr(
+          'Used for routed enquiries; not shown publicly',
+        ),
+      ),
+      validator: (value) {
+        final text = value?.trim() ?? '';
+        if (text.isEmpty && phone.text.trim().isEmpty) {
+          return context.tr('Enter a phone or email for routed enquiries');
+        }
+        return text.isNotEmpty && !text.contains('@')
+            ? context.tr('Enter a valid email')
+            : null;
+      },
+    ),
+  ];
+
+  void dispose() {
+    for (final controller in [
+      title,
+      description,
+      rent,
+      city,
+      phone,
+      email,
+      neighborhood,
+      district,
+      latitude,
+      longitude,
+      floorArea,
+      parkingSpaces,
+      minimumLeaseMonths,
+      securityDeposit,
+      serviceCharge,
+      utilities,
+      accessibility,
+      petsPolicy,
+      smokingPolicy,
+      viewingInstructions,
+      videoUrl,
+    ]) {
+      controller.dispose();
+    }
   }
 }
 
