@@ -975,6 +975,11 @@ describe('command router', () => {
     expect((await db.doc(`subscriptions/${landlord.uid}`).get()).data()).toMatchObject({
       status: 'active', tier: 'starter', paymentReference: 'MoMo TX 998877',
     });
+    // The landlord was told while pending to wait and check their email; first
+    // activation must actually enqueue that notice.
+    expect((await db.doc('backendJobs/command_sub_05_notice').get()).data()).toMatchObject({
+      type: 'sendSubscriptionNoticeEmail', payload: { landlordId: landlord.uid, kind: 'activated', tier: 'starter' },
+    });
 
     const after = await executeCommandCore(db, landlord, envelope('command_sub_06', 'unit.create', 'unit_234567', 0, unitPayload('A2')), now);
     expect(after.status).toBe('applied');

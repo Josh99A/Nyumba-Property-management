@@ -2693,6 +2693,24 @@ class AppLocalizationsLg extends AppLocalizations {
       'Okusasula n\'esente za ssimu ne kaadi bijja mangu. Kati, londa Sente enkalu okulinnyisa — omukulu aginnyisa okusasula kwo bwe kumala okukakasibwa.';
 
   @override
+  String subscriptionChooseInitialPaymentMethodTitle(String plan) {
+    return 'Sasulira $plan';
+  }
+
+  @override
+  String get subscriptionChooseInitialPaymentMethodSubtitle =>
+      'Londa engeri gy\'onoosasulira okusasula enteekateeka eno.';
+
+  @override
+  String subscriptionPlanReservedCashToast(String plan) {
+    return 'Enteekateeka ya $plan erondeddwa. Sasula Nyumba sente enkalu, olyoke olinde okukakasibwa — kebera email yo bwe kimala okukakasibwa, ekifo kyo ne kiggulwawo kyokka.';
+  }
+
+  @override
+  String get subscriptionInitialElectronicComingSoon =>
+      'Okusasula n\'esente za ssimu ne kaadi bijja mangu; bwe birimala okuteekebwawo, ekifo kyo kijja kuggulwawo kyokka. Kati, sasula Nyumba butereevu mu ssente enkalu; omukulu y\'aginnyisa.';
+
+  @override
   String subscriptionRenewsOn(String date) {
     return 'Eddamu ku $date';
   }

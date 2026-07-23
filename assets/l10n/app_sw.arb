@@ -809,6 +809,12 @@
     ,"subscriptionUpgradeCashRequested": "Ombi la kuboresha hadi {plan} limetumwa. Lipa Nyumba kwa fedha taslimu — msimamizi anaiwezesha malipo yatakapothibitishwa. Mpango wako wa sasa unaendelea kutumika."
     ,"@subscriptionUpgradeCashRequested": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionElectronicComingSoon": "Malipo ya pesa za simu na kadi yanakuja hivi karibuni. Kwa sasa, chagua Fedha taslimu kuboresha — msimamizi anaiwezesha malipo yako yatakapothibitishwa."
+    ,"subscriptionChooseInitialPaymentMethodTitle": "Lipia {plan}"
+    ,"@subscriptionChooseInitialPaymentMethodTitle": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChooseInitialPaymentMethodSubtitle": "Chagua jinsi utakavyolipia mpango huu."
+    ,"subscriptionPlanReservedCashToast": "Mpango wa {plan} umehifadhiwa. Lipa Nyumba kwa fedha taslimu kisha usubiri idhini — angalia barua pepe yako baada ya kuthibitishwa, na nafasi yako itafunguka moja kwa moja."
+    ,"@subscriptionPlanReservedCashToast": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionInitialElectronicComingSoon": "Malipo ya pesa za simu na kadi yanakuja hivi karibuni — utapata ufikiaji moja kwa moja yatakapopatikana. Kwa sasa, lipa Nyumba kwa fedha taslimu; msimamizi ataiwezesha."
     ,"subscriptionRenewsOn": "Inahuishwa tarehe {date}"
     ,"@subscriptionRenewsOn": {"placeholders": {"date": {"type": "String"}}}
     ,"subscriptionOverdueTitle": "Malipo yako yamechelewa"

@@ -809,6 +809,12 @@
     ,"subscriptionUpgradeCashRequested": "تم طلب الترقية إلى {plan}. ادفع لـ Nyumba نقداً — يفعّلها المسؤول بمجرد التحقق من الدفع. تبقى خطتك الحالية نشطة في هذه الأثناء."
     ,"@subscriptionUpgradeCashRequested": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionElectronicComingSoon": "مدفوعات المحفظة الإلكترونية والبطاقة قادمة قريباً. في الوقت الحالي، اختر نقداً للترقية — يفعّلها المسؤول بمجرد التحقق من دفعتك."
+    ,"subscriptionChooseInitialPaymentMethodTitle": "الدفع مقابل {plan}"
+    ,"@subscriptionChooseInitialPaymentMethodTitle": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChooseInitialPaymentMethodSubtitle": "اختر كيف ستدفع لتفعيل هذه الخطة."
+    ,"subscriptionPlanReservedCashToast": "تم حجز خطة {plan}. ادفع لـ Nyumba نقداً ثم انتظر الموافقة — تحقق من بريدك الإلكتروني بمجرد التأكيد، وستفتح مساحتك تلقائياً."
+    ,"@subscriptionPlanReservedCashToast": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionInitialElectronicComingSoon": "مدفوعات المحفظة الإلكترونية والبطاقة قادمة قريباً — ستحصل على الوصول تلقائياً عند توفرها. في الوقت الحالي، ادفع لـ Nyumba نقداً ليتم التفعيل يدوياً."
     ,"subscriptionRenewsOn": "يتجدد في {date}"
     ,"@subscriptionRenewsOn": {"placeholders": {"date": {"type": "String"}}}
     ,"subscriptionOverdueTitle": "دفعتك متأخرة"

@@ -4806,6 +4806,30 @@ abstract class AppLocalizations {
   /// **'Mobile money and card payments are coming soon. For now, choose Cash to upgrade — an admin activates it once your payment is verified.'**
   String get subscriptionElectronicComingSoon;
 
+  /// No description provided for @subscriptionChooseInitialPaymentMethodTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay for {plan}'**
+  String subscriptionChooseInitialPaymentMethodTitle(String plan);
+
+  /// No description provided for @subscriptionChooseInitialPaymentMethodSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how you\'ll pay to activate this plan.'**
+  String get subscriptionChooseInitialPaymentMethodSubtitle;
+
+  /// No description provided for @subscriptionPlanReservedCashToast.
+  ///
+  /// In en, this message translates to:
+  /// **'{plan} plan reserved. Pay Nyumba in cash, then wait for approval — check your email once it\'s confirmed, and your workspace opens automatically.'**
+  String subscriptionPlanReservedCashToast(String plan);
+
+  /// No description provided for @subscriptionInitialElectronicComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile money and card payments are coming soon — you\'ll get automatic access once available. For now, pay Nyumba in cash to activate manually.'**
+  String get subscriptionInitialElectronicComingSoon;
+
   /// No description provided for @subscriptionRenewsOn.
   ///
   /// In en, this message translates to:

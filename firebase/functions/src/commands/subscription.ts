@@ -295,6 +295,17 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
         ...bumpVersion(account, now),
       });
     }
+    // First activation only: the landlord was told to wait for this and check
+    // their email while `pending_payment`, so it must actually arrive. A plan
+    // change on an already-active subscription is not this moment — the
+    // workspace was already open.
+    if (!wasActive) {
+      createJob(tx, db, `${cmd.commandId}_notice`, 'sendSubscriptionNoticeEmail', {
+        landlordId,
+        kind: 'activated',
+        tier,
+      }, now);
+    }
     return {
       status: 'applied',
       aggregateId: landlordId,
