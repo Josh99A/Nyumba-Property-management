@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' hide Text, Tooltip;
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
@@ -379,12 +381,7 @@ class _DesktopSidebar extends ConsumerWidget {
             ),
             Padding(
               padding: const EdgeInsetsDirectional.fromSTEB(11, 0, 11, 14),
-              child: _SidebarProfile(
-                session: session,
-                collapsed: collapsed,
-                onSignOut: () =>
-                    ref.read(sessionControllerProvider.notifier).signOut(),
-              ),
+              child: _SidebarProfile(session: session, collapsed: collapsed),
             ),
           ],
         ),
@@ -583,43 +580,114 @@ class _SidebarSyncStatus extends ConsumerWidget {
   }
 }
 
-class _SidebarProfile extends StatelessWidget {
-  const _SidebarProfile({
-    required this.session,
-    required this.collapsed,
-    required this.onSignOut,
-  });
+/// Menu entries shared by the sidebar and mobile account menus: the profile
+/// switcher (only when this account wears more than one hat), then settings
+/// and sign-out.
+List<PopupMenuEntry<String>> _accountMenuItems(
+  BuildContext context,
+  UserSession session,
+) => [
+  if (session.hasMultipleProfiles) ...[
+    PopupMenuItem<String>(
+      enabled: false,
+      height: 32,
+      child: Text.localized(
+        'Switch profile',
+        style: Theme.of(context).textTheme.labelSmall,
+      ),
+    ),
+    for (final profile in session.profiles)
+      PopupMenuItem(
+        value: 'switch:${profile.key}',
+        child: ListTile(
+          leading: Icon(_profileIcon(profile.role)),
+          title: Text.localized(
+            localizedAppRole(appLocalizationsOf(context), profile.role),
+          ),
+          trailing: profile.key == session.activeProfile.key
+              ? const Icon(Icons.check_rounded, size: 18)
+              : null,
+          contentPadding: EdgeInsets.zero,
+        ),
+      ),
+    const PopupMenuDivider(),
+  ],
+  const PopupMenuItem(
+    value: 'profile',
+    child: ListTile(
+      leading: Icon(Icons.manage_accounts_outlined),
+      title: Text.localized('Profile settings'),
+      contentPadding: EdgeInsets.zero,
+    ),
+  ),
+  const PopupMenuItem(
+    value: 'sign-out',
+    child: ListTile(
+      leading: Icon(Icons.logout_rounded),
+      title: Text.localized('Sign out'),
+      contentPadding: EdgeInsets.zero,
+    ),
+  ),
+];
+
+IconData _profileIcon(AppRole role) => switch (role) {
+  AppRole.superAdmin || AppRole.admin => Icons.admin_panel_settings_outlined,
+  AppRole.landlord => Icons.apartment_outlined,
+  AppRole.staff => Icons.badge_outlined,
+  AppRole.tenant => Icons.home_outlined,
+  AppRole.client => Icons.storefront_outlined,
+};
+
+void _handleAccountMenuSelection(
+  BuildContext context,
+  WidgetRef ref,
+  UserSession session,
+  String value,
+) {
+  if (value == 'profile') {
+    context.go('/settings');
+    return;
+  }
+  if (value == 'sign-out') {
+    ref.read(sessionControllerProvider.notifier).signOut();
+    return;
+  }
+  if (!value.startsWith('switch:')) return;
+  final key = value.substring('switch:'.length);
+  for (final profile in session.profiles) {
+    if (profile.key != key) continue;
+    // Push what this workspace can before its database closes; anything left
+    // stays quarantined on disk until this profile is next active.
+    unawaited(_flushPendingWritesBestEffort(ref));
+    ref.read(sessionControllerProvider.notifier).switchProfile(profile);
+    final home = ref.read(sessionControllerProvider)?.workspacePath;
+    context.go(home ?? '/explore');
+    return;
+  }
+}
+
+Future<void> _flushPendingWritesBestEffort(WidgetRef ref) async {
+  try {
+    await ref.read(manualSyncProvider)();
+  } on Object {
+    // Offline or mid-teardown: the outbox stays quarantined with the closing
+    // workspace and flushes when this profile next opens.
+  }
+}
+
+class _SidebarProfile extends ConsumerWidget {
+  const _SidebarProfile({required this.session, required this.collapsed});
 
   final UserSession session;
   final bool collapsed;
-  final VoidCallback onSignOut;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<String>(
       tooltip: context.tr('Account menu'),
-      onSelected: (value) {
-        if (value == 'profile') context.go('/settings');
-        if (value == 'sign-out') onSignOut();
-      },
-      itemBuilder: (context) => const [
-        PopupMenuItem(
-          value: 'profile',
-          child: ListTile(
-            leading: Icon(Icons.manage_accounts_outlined),
-            title: Text.localized('Profile settings'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem(
-          value: 'sign-out',
-          child: ListTile(
-            leading: Icon(Icons.logout_rounded),
-            title: Text.localized('Sign out'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-      ],
+      onSelected: (value) =>
+          _handleAccountMenuSelection(context, ref, session, value),
+      itemBuilder: (context) => _accountMenuItems(context, session),
       child: Container(
         height: 52,
         padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 9),
@@ -779,30 +847,9 @@ class _MobileShell extends ConsumerWidget {
           const LanguageMenuButton(compact: true),
           PopupMenuButton<String>(
             tooltip: context.tr('Account menu'),
-            onSelected: (value) {
-              if (value == 'profile') context.go('/settings');
-              if (value == 'sign-out') {
-                ref.read(sessionControllerProvider.notifier).signOut();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'profile',
-                child: ListTile(
-                  leading: Icon(Icons.manage_accounts_outlined),
-                  title: Text.localized('Profile settings'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              PopupMenuItem(
-                value: 'sign-out',
-                child: ListTile(
-                  leading: Icon(Icons.logout_rounded),
-                  title: Text.localized('Sign out'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ],
+            onSelected: (value) =>
+                _handleAccountMenuSelection(context, ref, session, value),
+            itemBuilder: (context) => _accountMenuItems(context, session),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: _Avatar(session: session, radius: 17),

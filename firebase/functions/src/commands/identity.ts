@@ -4,6 +4,7 @@ import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../s
 import { COLLECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { optionalShortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import { mergeRoles } from '../shared/roles';
 
 const notificationPreferencesSchema = z
   .object({
@@ -234,7 +235,14 @@ export const landlordOnboard: CommandHandler<z.infer<typeof onboardSchema>> = {
         requestedAt: now,
       });
     }
-    tx.update(userRef, { role: 'landlord', ...bumpVersion(userData, now) });
+    // The scalar becomes the landlord primary, but the additive roles array
+    // keeps whatever the account already was (e.g. a tenant onboarding their
+    // own workspace stays reachable as a tenant).
+    tx.update(userRef, {
+      role: 'landlord',
+      roles: mergeRoles(userData.roles, userData.role, 'landlord'),
+      ...bumpVersion(userData, now),
+    });
     return {
       status: 'applied',
       aggregateId: actor.uid,

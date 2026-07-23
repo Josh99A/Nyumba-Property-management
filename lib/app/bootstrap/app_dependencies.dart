@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/documents/nyumba_document_service.dart';
@@ -106,6 +107,18 @@ class AppDependencies {
   }
 }
 
+/// One offline mirror per account AND active profile: an admin's
+/// platform-wide pulls must never surface in the same user's landlord views,
+/// so each role opens its own database. Tenants keep the legacy unsuffixed
+/// scope because their data is locally recorded and has no server pull to
+/// rebuild it from; every other role re-syncs on first open of its own scope.
+@visibleForTesting
+String workspaceScopeFor(UserSession? session) => session == null
+    ? 'anonymous'
+    : session.role == AppRole.tenant
+    ? 'account-${session.userId}'
+    : 'account-${session.userId}--${session.role.name}';
+
 /// Serializes workspace shutdown so a scope that is re-opened immediately
 /// after sign-out never races its predecessor's close.
 Future<void> _previousWorkspaceClosed = Future<void>.value();
@@ -123,7 +136,7 @@ class AppDependenciesController extends AsyncNotifier<AppDependencies> {
   @override
   Future<AppDependencies> build() async {
     final session = ref.watch(sessionControllerProvider);
-    final scope = session == null ? 'anonymous' : 'account-${session.userId}';
+    final scope = workspaceScopeFor(session);
     final dependencies = await createAppDependencies(
       scope: scope,
       session: session,

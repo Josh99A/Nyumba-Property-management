@@ -20,6 +20,7 @@ import '../../../core/localization/command_failure_localizations.dart';
 import '../../../core/localization/device_language_store.dart';
 import '../../../core/offline/firebase_remote_sync_gateway.dart';
 import '../../staff/domain/staff_permission.dart';
+import '../data/active_profile_store.dart';
 import '../domain/auth_failure.dart';
 import '../domain/user_session.dart';
 
@@ -95,6 +96,36 @@ String? firstFilled(Object? preferred, String? fallback) {
 final authCommandGatewayProvider = FutureProvider<FirebaseRemoteSyncGateway>(
   (ref) => FirebaseRemoteSyncGateway.create(),
 );
+
+/// Picks which of an account's profiles opens first: the device's remembered
+/// choice when it still exists, otherwise the highest-privilege profile. The
+/// priority mirrors what the old single-role cascade produced, so accounts
+/// that only ever had one hat resolve exactly as before.
+@visibleForTesting
+SessionProfile selectActiveProfile(
+  List<SessionProfile> profiles,
+  String? persistedKey,
+) {
+  if (persistedKey != null) {
+    for (final profile in profiles) {
+      if (profile.key == persistedKey) return profile;
+    }
+  }
+  const priority = [
+    AppRole.superAdmin,
+    AppRole.admin,
+    AppRole.landlord,
+    AppRole.staff,
+    AppRole.tenant,
+    AppRole.client,
+  ];
+  for (final role in priority) {
+    for (final profile in profiles) {
+      if (profile.role == role) return profile;
+    }
+  }
+  return profiles.first;
+}
 
 /// Resolves listener-owned failures through the best language known while the
 /// session is still opening. Unlike form failures, these have no widget
@@ -421,65 +452,83 @@ class SessionController extends Notifier<UserSession?> {
     }
     final superAdmin = token.claims?['superAdmin'] == true;
     final platformAdmin = token.claims?['platformAdmin'] == true;
-    var role = superAdmin
-        ? AppRole.superAdmin
-        : platformAdmin
-        ? AppRole.admin
-        : _roleFromServer(data['role']?.toString(), user.isAnonymous);
-    var accountStatus = _statusFromServer(data['status']?.toString());
-    var subscriptionStatus = LandlordSubscriptionStatus.notApplicable;
-    String? subscriptionTier;
-    String? subscriptionRequestedTier;
-    String? workspaceId;
-    var permissions = const <StaffPermission>{};
+    final accountStatus = _statusFromServer(data['status']?.toString());
+    final serverRoles = _serverRoles(data);
 
-    // A plain account may already be an accepted staff member of a landlord's
-    // workspace. The membership doc is the source of truth (users/{uid}.role is
-    // left untouched so a person can be both), so resolve it before deciding
-    // this is a bare client.
-    if (role == AppRole.client && !user.isAnonymous) {
+    // One account can wear several hats at once (an admin who owns a landlord
+    // workspace, a landlord renting elsewhere as a tenant, a tenant who is
+    // staff in another workspace). Collect every profile the server state
+    // supports; exactly one becomes active below.
+    final profiles = <SessionProfile>[];
+    if (!user.isAnonymous) {
+      if (superAdmin || platformAdmin) {
+        profiles.add(
+          SessionProfile(
+            role: superAdmin ? AppRole.superAdmin : AppRole.admin,
+            accountStatus: accountStatus,
+          ),
+        );
+      }
+      if (serverRoles.contains('landlord')) {
+        final workspace = await _loadWorkspaceState(user.uid, accountStatus);
+        profiles.add(
+          SessionProfile(
+            role: AppRole.landlord,
+            workspaceId: user.uid,
+            accountStatus: workspace.accountStatus,
+            subscriptionStatus: workspace.subscriptionStatus,
+            subscriptionTier: workspace.tier,
+            subscriptionRequestedTier: workspace.requestedTier,
+          ),
+        );
+      }
+      // The membership doc is the source of truth (users/{uid}.role is left
+      // untouched so a person can be both); staff inherit the owner's approval
+      // and subscription gating because they act in the owner's space.
       final membership = await _resolveStaffMembership(user.uid, generation);
       if (generation != _generation) return null;
       if (membership != null) {
-        role = AppRole.staff;
-        workspaceId = membership.landlordId;
-        permissions = membership.permissions;
+        final workspace = await _loadWorkspaceState(
+          membership.landlordId,
+          accountStatus,
+        );
+        profiles.add(
+          SessionProfile(
+            role: AppRole.staff,
+            workspaceId: membership.landlordId,
+            permissions: membership.permissions,
+            accountStatus: workspace.accountStatus,
+            subscriptionStatus: workspace.subscriptionStatus,
+            subscriptionTier: workspace.tier,
+            subscriptionRequestedTier: workspace.requestedTier,
+          ),
+        );
+      }
+      // The role fields answer tenant-ness for everyone whose invite claim
+      // could promote the scalar. Landlords and admins keep their primary
+      // scalar on claim, so for them (pre-`roles`-array accounts) fall back to
+      // probing the uid-keyed portal projection directly.
+      final tenantMasked =
+          profiles.isNotEmpty && !serverRoles.contains('tenant');
+      if (serverRoles.contains('tenant') ||
+          (tenantMasked && await _hasTenantLeases(user.uid))) {
+        profiles.add(
+          SessionProfile(role: AppRole.tenant, accountStatus: accountStatus),
+        );
       }
     }
-
-    // Owners and staff both read the workspace's server-owned approval and
-    // subscription state; staff inherit the owner's gating because they act in
-    // the owner's space.
-    if (role == AppRole.landlord || role == AppRole.staff) {
-      final workspaceUid = role == AppRole.landlord ? user.uid : workspaceId!;
-      final account = await FirebaseFirestore.instance
-          .collection('landlordAccounts')
-          .doc(workspaceUid)
-          .get(const GetOptions(source: Source.server));
-      accountStatus = switch (account.data()?['approvalStatus']?.toString()) {
-        'pending' => AccountStatus.pendingApproval,
-        'suspended' => AccountStatus.suspended,
-        _ => accountStatus,
-      };
-      final subscription = await FirebaseFirestore.instance
-          .collection('subscriptions')
-          .doc(workspaceUid)
-          .get(const GetOptions(source: Source.server));
-      final subscriptionData = subscription.data();
-      subscriptionStatus = _subscriptionStatusFromServer(
-        subscriptionData?['status']?.toString(),
+    if (profiles.isEmpty) {
+      profiles.add(
+        SessionProfile(role: AppRole.client, accountStatus: accountStatus),
       );
-      final rawTier = subscriptionData?['tier'];
-      subscriptionTier = rawTier is String && rawTier.trim().isNotEmpty
-          ? rawTier.trim()
-          : null;
-      final rawRequestedTier = subscriptionData?['requestedTier'];
-      subscriptionRequestedTier =
-          rawRequestedTier is String && rawRequestedTier.trim().isNotEmpty
-          ? rawRequestedTier.trim()
-          : null;
     }
+
     if (generation != _generation) return null;
+    final persistedKey = user.isAnonymous
+        ? null
+        : await const SecureActiveProfileStore().read(user.uid);
+    if (generation != _generation) return null;
+    final active = selectActiveProfile(profiles, persistedKey);
     final session = UserSession(
       userId: user.uid,
       displayName:
@@ -487,22 +536,25 @@ class SessionController extends Notifier<UserSession?> {
           (user.isAnonymous ? 'Prospective tenant' : 'Nyumba user'),
       email: firstFilled(data['email'], user.email) ?? '',
       phone: firstFilled(data['phone'], user.phoneNumber) ?? '',
-      role: role,
-      accountStatus: accountStatus,
-      subscriptionStatus: subscriptionStatus,
-      subscriptionTier: subscriptionTier,
-      subscriptionRequestedTier: subscriptionRequestedTier,
+      role: active.role,
+      accountStatus: active.accountStatus,
+      subscriptionStatus: active.subscriptionStatus,
+      subscriptionTier: active.subscriptionTier,
+      subscriptionRequestedTier: active.subscriptionRequestedTier,
       language: data['locale'] is String
           ? AppLanguage.fromCode(data['locale'] as String)
           : null,
       emailVerified: user.emailVerified,
       isAnonymous: user.isAnonymous,
-      workspaceId: role == AppRole.landlord ? user.uid : workspaceId,
-      permissions: permissions,
-      isWorkspaceOwner: role == AppRole.landlord,
+      workspaceId: active.workspaceId,
+      permissions: active.permissions,
+      profiles: profiles,
+      isWorkspaceOwner: active.role == AppRole.landlord,
     );
     state = session;
-    if (role == AppRole.client && !user.isAnonymous) {
+    final onlyClient =
+        profiles.length == 1 && profiles.single.role == AppRole.client;
+    if (onlyClient && !user.isAnonymous) {
       // An invited tenant signs in as a plain account; linking happens
       // server-side against the verified email and upgrades the role.
       unawaited(_autoClaimInvites(generation));
@@ -510,6 +562,83 @@ class SessionController extends Notifier<UserSession?> {
     if (!_announceArrival) return null;
     _announceArrival = false;
     return session.firstName;
+  }
+
+  /// Reopens this session as [profile] — one of the hats collected at
+  /// resolution. The scalar fields swap to the profile's snapshot; every
+  /// watcher of the session (router redirect, dependency bootstrap with its
+  /// per-role offline workspace) rebuilds from there. Pending outbox writes in
+  /// the closing workspace stay quarantined on disk and flush the next time
+  /// that profile is active.
+  void switchProfile(SessionProfile profile) {
+    final session = state;
+    if (session == null || profile.key == session.activeProfile.key) return;
+    state = session.withActiveProfile(profile);
+    // Re-aim the subscription watch at the new profile's workspace (or stop
+    // it, for roles without one).
+    _watchLandlordSubscription(_generation);
+    unawaited(
+      const SecureActiveProfileStore().write(session.userId, profile.key),
+    );
+  }
+
+  /// Reads a workspace's server-owned approval and subscription state — the
+  /// owner's own for a landlord profile, the owner's for a staff profile.
+  Future<
+    ({
+      AccountStatus accountStatus,
+      LandlordSubscriptionStatus subscriptionStatus,
+      String? tier,
+      String? requestedTier,
+    })
+  >
+  _loadWorkspaceState(String workspaceUid, AccountStatus fallbackStatus) async {
+    final account = await FirebaseFirestore.instance
+        .collection('landlordAccounts')
+        .doc(workspaceUid)
+        .get(const GetOptions(source: Source.server));
+    final accountStatus = switch (account.data()?['approvalStatus']?.toString()) {
+      'pending' => AccountStatus.pendingApproval,
+      'suspended' => AccountStatus.suspended,
+      _ => fallbackStatus,
+    };
+    final subscription = await FirebaseFirestore.instance
+        .collection('subscriptions')
+        .doc(workspaceUid)
+        .get(const GetOptions(source: Source.server));
+    final subscriptionData = subscription.data();
+    final rawTier = subscriptionData?['tier'];
+    final rawRequestedTier = subscriptionData?['requestedTier'];
+    return (
+      accountStatus: accountStatus,
+      subscriptionStatus: _subscriptionStatusFromServer(
+        subscriptionData?['status']?.toString(),
+      ),
+      tier: rawTier is String && rawTier.trim().isNotEmpty
+          ? rawTier.trim()
+          : null,
+      requestedTier:
+          rawRequestedTier is String && rawRequestedTier.trim().isNotEmpty
+          ? rawRequestedTier.trim()
+          : null,
+    );
+  }
+
+  /// Whether any lease projection exists under this uid's tenant portal.
+  /// Best-effort: an unreachable server reads as "no", and the probe reruns
+  /// on the next resolution.
+  Future<bool> _hasTenantLeases(String uid) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('tenantPortals')
+          .doc(uid)
+          .collection('leases')
+          .limit(1)
+          .get(const GetOptions(source: Source.server));
+      return snapshot.docs.isNotEmpty;
+    } on Object {
+      return false;
+    }
   }
 
   /// Reads the profile document, waiting out the gap between the account
@@ -706,14 +835,19 @@ class SessionController extends Notifier<UserSession?> {
     }
   }
 
-  static AppRole _roleFromServer(String? role, bool anonymous) {
-    if (anonymous) return AppRole.client;
-    return switch (role) {
-      'landlord' => AppRole.landlord,
-      'tenant' => AppRole.tenant,
-      'client' => AppRole.client,
-      _ => AppRole.client,
-    };
+  /// Every role the server records for this account: the legacy scalar plus
+  /// the additive `roles` array (which survives promotions the scalar loses,
+  /// e.g. a tenant who onboards as a landlord).
+  static Set<String> _serverRoles(Map<String, dynamic> data) {
+    final roles = <String>{};
+    if (data['role'] is String) roles.add(data['role'] as String);
+    final list = data['roles'];
+    if (list is List) {
+      for (final entry in list) {
+        if (entry is String) roles.add(entry);
+      }
+    }
+    return roles;
   }
 
   static AccountStatus _statusFromServer(String? status) => switch (status) {

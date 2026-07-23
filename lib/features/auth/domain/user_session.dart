@@ -15,6 +15,53 @@ enum LandlordSubscriptionStatus {
   unavailable,
 }
 
+/// One hat a signed-in person can wear. An account may hold several at once
+/// (an admin who owns a landlord workspace, a landlord who rents elsewhere as
+/// a tenant); exactly one profile is active per [UserSession], and the
+/// session's scalar fields always mirror the active one so role-branching
+/// call sites never need to know about the others.
+class SessionProfile {
+  const SessionProfile({
+    required this.role,
+    this.workspaceId,
+    this.permissions = const {},
+    this.accountStatus = AccountStatus.active,
+    this.subscriptionStatus = LandlordSubscriptionStatus.notApplicable,
+    this.subscriptionTier,
+    this.subscriptionRequestedTier,
+  });
+
+  final AppRole role;
+
+  /// The landlord workspace this profile acts in: own uid for a landlord,
+  /// the owner's uid for a staff member, null for workspace-less roles.
+  final String? workspaceId;
+
+  final Set<StaffPermission> permissions;
+  final AccountStatus accountStatus;
+  final LandlordSubscriptionStatus subscriptionStatus;
+  final String? subscriptionTier;
+  final String? subscriptionRequestedTier;
+
+  /// Stable identity used for persistence and equality: distinct staff
+  /// workspaces yield distinct keys, everything else is identified by role.
+  String get key => workspaceId == null ? role.name : '${role.name}:$workspaceId';
+
+  SessionProfile withSubscription({
+    required LandlordSubscriptionStatus status,
+    required String? tier,
+    String? requestedTier,
+  }) => SessionProfile(
+    role: role,
+    workspaceId: workspaceId,
+    permissions: permissions,
+    accountStatus: accountStatus,
+    subscriptionStatus: status,
+    subscriptionTier: tier,
+    subscriptionRequestedTier: requestedTier,
+  );
+}
+
 class UserSession {
   const UserSession({
     required this.userId,
@@ -31,6 +78,7 @@ class UserSession {
     this.isAnonymous = false,
     this.workspaceId,
     this.permissions = const {},
+    this.profiles = const [],
     bool? isWorkspaceOwner,
   }) : isWorkspaceOwner = isWorkspaceOwner ?? role == AppRole.landlord;
 
@@ -60,9 +108,56 @@ class UserSession {
   /// them (see [can]); other roles hold none.
   final Set<StaffPermission> permissions;
 
+  /// Every hat this account can wear. Empty for sessions built before the
+  /// resolver collected profiles (and in most tests); [activeProfile] then
+  /// synthesizes the single profile from the scalar fields.
+  final List<SessionProfile> profiles;
+
   /// Whether this session owns its workspace (a landlord) rather than being a
   /// staff member within someone else's.
   final bool isWorkspaceOwner;
+
+  /// The profile the scalar fields mirror.
+  SessionProfile get activeProfile {
+    for (final profile in profiles) {
+      if (profile.role == role && profile.workspaceId == workspaceId) {
+        return profile;
+      }
+    }
+    return SessionProfile(
+      role: role,
+      workspaceId: workspaceId,
+      permissions: permissions,
+      accountStatus: accountStatus,
+      subscriptionStatus: subscriptionStatus,
+      subscriptionTier: subscriptionTier,
+      subscriptionRequestedTier: subscriptionRequestedTier,
+    );
+  }
+
+  bool get hasMultipleProfiles => profiles.length > 1;
+
+  /// A copy of this session acting as [profile]: the scalar fields swap to the
+  /// profile's snapshot while identity, language and the profile set carry
+  /// over. The caller owns rebuilding whatever hangs off the session.
+  UserSession withActiveProfile(SessionProfile profile) => UserSession(
+    userId: userId,
+    displayName: displayName,
+    email: email,
+    phone: phone,
+    role: profile.role,
+    accountStatus: profile.accountStatus,
+    subscriptionStatus: profile.subscriptionStatus,
+    subscriptionTier: profile.subscriptionTier,
+    subscriptionRequestedTier: profile.subscriptionRequestedTier,
+    language: language,
+    emailVerified: emailVerified,
+    isAnonymous: isAnonymous,
+    workspaceId: profile.workspaceId,
+    permissions: profile.permissions,
+    profiles: profiles,
+    isWorkspaceOwner: profile.role == AppRole.landlord,
+  );
 
   String get firstName {
     final trimmed = displayName.trim();
@@ -116,6 +211,7 @@ class UserSession {
         isAnonymous: isAnonymous,
         workspaceId: workspaceId,
         permissions: permissions,
+        profiles: profiles,
         isWorkspaceOwner: isWorkspaceOwner,
       );
 
@@ -138,6 +234,19 @@ class UserSession {
     isAnonymous: isAnonymous,
     workspaceId: workspaceId,
     permissions: permissions,
+    // The active entry must track the new subscription state too, or switching
+    // away and back would resurrect the stale snapshot.
+    profiles: [
+      for (final profile in profiles)
+        if (profile.role == role && profile.workspaceId == workspaceId)
+          profile.withSubscription(
+            status: status,
+            tier: tier,
+            requestedTier: requestedTier,
+          )
+        else
+          profile,
+    ],
     isWorkspaceOwner: isWorkspaceOwner,
   );
 }

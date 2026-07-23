@@ -82,7 +82,17 @@ async function resolveAudience(
     case 'tenants':
     case 'clients': {
       const role = audience.slice(0, -1);
-      snapshots = (await users.where('role', '==', role).get()).docs;
+      // Multi-role accounts carry the additive `roles` array; legacy accounts
+      // predate it and are only findable by the scalar. Query both and merge
+      // by id so a landlord-who-is-a-tenant hears tenant broadcasts exactly
+      // once.
+      const [byArray, byScalar] = await Promise.all([
+        users.where('roles', 'array-contains', role).get(),
+        users.where('role', '==', role).get(),
+      ]);
+      const byId = new Map<string, DocumentSnapshot>();
+      for (const doc of [...byArray.docs, ...byScalar.docs]) byId.set(doc.id, doc);
+      snapshots = [...byId.values()];
       break;
     }
     case 'tier': {

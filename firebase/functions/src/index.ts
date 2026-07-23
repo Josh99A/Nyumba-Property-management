@@ -63,6 +63,7 @@ export const onUserCreated = functionsV1
         displayName: user.displayName || null,
         email: user.email ?? null,
         role: 'client',
+        roles: ['client'],
         status: 'active',
         version: 1,
         createdAt: now,

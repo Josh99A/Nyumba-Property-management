@@ -1658,6 +1658,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get legacy_d48725356945 => 'إيقاف هذا المالك؟';
 
   @override
+  String get legacy_c1e0daeef31e => 'تبديل الملف الشخصي';
+
+  @override
   String get legacy_8a046cc90ab0 => 'جارٍ المزامنة…';
 
   @override
