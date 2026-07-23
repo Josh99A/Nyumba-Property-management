@@ -23,6 +23,7 @@
  */
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { isEntitlementPlanObject } from './check-plan-catalog-helpers.mjs';
 
 const args = process.argv.slice(2);
 const projectFlag = args.indexOf('--project');
@@ -80,6 +81,13 @@ if (!entitlementsSnap.exists) {
   console.log('backendConfig/entitlements');
   console.log('-'.repeat(78));
   for (const [tier, plan] of Object.entries(entitlements).sort()) {
+    if (!isEntitlementPlanObject(plan)) {
+      problems.push(
+        `${tier}: backendConfig/entitlements plan is malformed ` +
+          `(expected a non-null object).`,
+      );
+      continue;
+    }
     console.log(
       `  ${tier.padEnd(12)} unitLimit=${plan.unitLimit}  ` +
         `activeListingLimit=${plan.activeListingLimit}  ` +
@@ -121,12 +129,12 @@ for (const doc of catalogSnap.docs.sort((a, b) => a.id.localeCompare(b.id))) {
 
   // The divergence that makes an advertised capacity a lie.
   const enforced = entitlements?.[doc.id];
-  if (entitlements && !enforced) {
+  if (entitlements && enforced === undefined) {
     problems.push(
       `${doc.id}: advertised in planCatalog but absent from backendConfig/entitlements — ` +
         `commands fail closed for anyone on this tier.`,
     );
-  } else if (enforced) {
+  } else if (isEntitlementPlanObject(enforced)) {
     if (enforced.unitLimit !== data.unitLimit) {
       problems.push(
         `${doc.id}: unitLimit MISMATCH — catalogue advertises ${data.unitLimit}, ` +
