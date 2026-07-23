@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAggregate } from '../shared/aggregates';
+import { requireActiveAccount } from '../shared/accounts';
 import { requirePlatformAdmin, requireSuperAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
@@ -99,6 +100,7 @@ export const userArchive: CommandHandler<z.infer<typeof userLifecycleReasonSchem
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
     requirePlatformAdmin(actor);
+    await requireActiveAccount(tx, db, actor);
     const targetUid = cmd.aggregateId!;
     if (targetUid === actor.uid) throw new DomainError('PERMISSION_DENIED');
     const ref = db.collection(COLLECTIONS.users).doc(targetUid);
@@ -142,6 +144,7 @@ export const userRestore: CommandHandler<z.infer<typeof userLifecycleReasonSchem
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
     requirePlatformAdmin(actor);
+    await requireActiveAccount(tx, db, actor);
     const targetUid = cmd.aggregateId!;
     if (targetUid === actor.uid) throw new DomainError('PERMISSION_DENIED');
     const ref = db.collection(COLLECTIONS.users).doc(targetUid);
@@ -242,6 +245,7 @@ export const userChangeRole: CommandHandler<z.infer<typeof changeRoleSchema>> = 
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
     requirePlatformAdmin(actor);
+    await requireActiveAccount(tx, db, actor);
     const targetUid = cmd.aggregateId!;
     if (targetUid === actor.uid) throw new DomainError('PERMISSION_DENIED');
     const ref = db.collection(COLLECTIONS.users).doc(targetUid);

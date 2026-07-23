@@ -1,6 +1,7 @@
 import { Timestamp, type Firestore, type Transaction } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, requireAggregate } from '../shared/aggregates';
+import { requireActiveAccount } from '../shared/accounts';
 import { requirePlatformAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { loadEntitlements, planForTier } from '../shared/config';
@@ -579,6 +580,7 @@ export const planUpdate: CommandHandler<z.infer<typeof updatePlanSchema>> = {
   expectedVersionMode: 'none',
   async apply({ tx, db, actor, cmd, now }) {
     requirePlatformAdmin(actor);
+    await requireActiveAccount(tx, db, actor);
     const { tier, expectedCatalogVersion, ...edits } = cmd.payload;
     const changedFields = EDITABLE_PLAN_FIELDS.filter((field) => edits[field] !== undefined);
     if (changedFields.length === 0) {

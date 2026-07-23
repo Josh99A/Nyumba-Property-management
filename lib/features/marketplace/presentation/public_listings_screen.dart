@@ -517,10 +517,11 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                                     ? 2
                                     : 1;
                                 const gap = 18.0;
-                                final width =
-                                    (constraints.maxWidth -
-                                        gap * (columns - 1)) /
-                                    columns;
+                                final width = gridItemWidth(
+                                  constraints.maxWidth,
+                                  columns: columns,
+                                  gap: gap,
+                                );
                                 return Wrap(
                                   spacing: gap,
                                   runSpacing: gap,

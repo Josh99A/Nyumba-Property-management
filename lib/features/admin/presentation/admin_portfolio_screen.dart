@@ -64,26 +64,23 @@ class _AdminPortfolioScreenState extends ConsumerState<AdminPortfolioScreen> {
     // actually structured: one workspace per landlord.
     final landlordIds =
         <String>{
-            ...visibleProperties.map((property) => property.landlordId),
-            ...listings.map((listing) => listing.landlordId),
-          }.toList(growable: false)
-          ..sort(
-            (left, right) => accountLabelFor(
-              left,
-              accountsByUid,
-            ).toLowerCase().compareTo(
-              accountLabelFor(right, accountsByUid).toLowerCase(),
-            ),
-          );
+          ...visibleProperties.map((property) => property.landlordId),
+          ...listings.map((listing) => listing.landlordId),
+        }.toList(growable: false)..sort(
+          (left, right) => accountLabelFor(left, accountsByUid)
+              .toLowerCase()
+              .compareTo(accountLabelFor(right, accountsByUid).toLowerCase()),
+        );
     final query = _query.trim().toLowerCase();
     final matching = query.isEmpty
         ? landlordIds
         : landlordIds
               .where(
                 (uid) =>
-                    accountLabelFor(uid, accountsByUid).toLowerCase().contains(
-                      query,
-                    ) ||
+                    accountLabelFor(
+                      uid,
+                      accountsByUid,
+                    ).toLowerCase().contains(query) ||
                     uid.toLowerCase().contains(query),
               )
               .toList(growable: false);
@@ -483,7 +480,7 @@ class _UnitRow extends StatelessWidget {
       ),
       title: Text.localized(unit.label),
       subtitle: Text.localized(
-        '${unit.status.name} · ${formatAdminUgx(unit.monthlyRentMinor / 100)}',
+        '${unit.status.name} · ${formatAdminUgx(unit.monthlyRentMinor)}',
         style: Theme.of(context).textTheme.bodySmall,
       ),
       trailing: Row(

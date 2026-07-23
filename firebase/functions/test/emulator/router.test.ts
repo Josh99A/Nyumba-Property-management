@@ -240,6 +240,58 @@ describe('command router', () => {
     expect(await executeCommandCore(db, superAdmin, superAdminApproval, now)).toMatchObject({ status: 'applied' });
   });
 
+  it('rejects archived or deleted administrators from privileged account commands', async () => {
+    const commands = [
+      {
+        status: 'archived',
+        isDeleted: false,
+        command: envelope('command_inactive_admin_1', 'user.archive', 'target_user_1234', 1, { reasonCode: 'ADMIN_CORRECTION' }),
+      },
+      {
+        status: 'active',
+        isDeleted: true,
+        command: envelope('command_inactive_admin_2', 'user.restore', 'target_user_1234', 1, { reasonCode: 'APPEAL_APPROVED' }),
+      },
+      {
+        status: 'archived',
+        isDeleted: false,
+        command: envelope('command_inactive_admin_3', 'user.changeRole', 'target_user_1234', 1, { role: 'client', reasonCode: 'ADMIN_CORRECTION' }),
+      },
+      {
+        status: 'active',
+        isDeleted: true,
+        command: envelope('command_inactive_admin_4', 'platform.broadcast', 'broadcast_inactive_1', 0, { title: 'Maintenance', body: 'Scheduled maintenance.', audience: 'all_users' }),
+      },
+      {
+        status: 'archived',
+        isDeleted: false,
+        command: {
+          commandId: 'command_inactive_admin_5',
+          type: 'plan.update',
+          schemaVersion: 1 as const,
+          payload: { tier: 'starter', expectedCatalogVersion: 1, displayName: 'Starter' },
+          client: { installationId: 'install_1234', appVersion: '1.0.0', platform: 'web' as const },
+        },
+      },
+    ];
+
+    for (const testCase of commands) {
+      await db.doc(`users/${admin.uid}`).set({
+        id: admin.uid,
+        role: 'client',
+        status: testCase.status,
+        isDeleted: testCase.isDeleted,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+      expect(await executeCommandCore(db, admin, testCase.command, now)).toMatchObject({
+        status: 'rejected',
+        error: { code: 'PERMISSION_DENIED' },
+      });
+    }
+  });
+
   it('lets any administrator archive and restore, but reserves permanent deletion for a Super Admin', async () => {
     await seedLandlord();
     await db.doc(`users/${landlord.uid}`).set({
@@ -419,7 +471,10 @@ describe('command router', () => {
       status: 'active', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
     });
 
-    await db.doc(`users/${superAdmin.uid}`).set({ id: superAdmin.uid, role: 'client', status: 'active', version: 1, isDeleted: false });
+    await Promise.all([
+      db.doc(`users/${superAdmin.uid}`).set({ id: superAdmin.uid, role: 'client', status: 'active', version: 1, isDeleted: false }),
+      db.doc(`users/${admin.uid}`).set({ id: admin.uid, role: 'client', status: 'active', version: 1, isDeleted: false }),
+    ]);
     const selfAttempt = envelope('command_role_1', 'user.changeRole', superAdmin.uid, 1, { role: 'landlord', reasonCode: 'ADMIN_CORRECTION' });
     expect(await executeCommandCore(db, superAdmin, selfAttempt, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
 

@@ -293,6 +293,20 @@ final class _AesGcmDecoder extends Converter<String, Object?> {
   }
 }
 
+/// Test-only access to [_FastAesGcm] for published known-answer vectors.
+final class FastAesGcmTestHarness {
+  FastAesGcmTestHarness(Uint8List key)
+    : _cipher = _FastAesGcm(Uint8List.fromList(key));
+
+  final _FastAesGcm _cipher;
+
+  Uint8List encrypt(Uint8List plaintext, Uint8List nonce) =>
+      _cipher.encrypt(plaintext, nonce);
+
+  Uint8List decrypt(Uint8List sealed, Uint8List nonce) =>
+      _cipher.decrypt(sealed, nonce);
+}
+
 /// One-shot AES-GCM specialized for Sembast's synchronous content-codec API.
 ///
 /// PointyCastle's general GCM implementation multiplies each 128-bit block one

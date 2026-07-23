@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
-import { requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
+import {
+  requireActiveAccount,
+  requireOwnedByLandlord,
+  requireWorkspace,
+} from '../shared/accounts';
 import { requirePlatformAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { loadEntitlements, planForTier } from '../shared/config';
@@ -76,6 +80,7 @@ export const platformBroadcast: CommandHandler<z.infer<typeof broadcastSchema>> 
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
     requirePlatformAdmin(actor);
+    await requireActiveAccount(tx, db, actor);
     const ref = db.collection(COLLECTIONS.platformBroadcasts).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     requireAbsent(snapshot);
