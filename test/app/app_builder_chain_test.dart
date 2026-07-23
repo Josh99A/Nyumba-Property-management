@@ -99,23 +99,30 @@ void main() {
 
     router.go('/finances');
     await tester.pump();
+    final nextFieldController = TextEditingController();
+    ModalRoute<void>? nextDialogRoute;
     final nextDialog = showDialog<void>(
       context: router.routerDelegate.navigatorKey.currentContext!,
-      builder: (dialogContext) => AlertDialog(
-        content: const TextField(autofocus: true),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close next dialog'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        nextDialogRoute ??= ModalRoute.of<void>(dialogContext);
+        return AlertDialog(
+          content: TextField(controller: nextFieldController, autofocus: true),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Close next dialog'),
+            ),
+          ],
+        );
+      },
     );
     await _pumpFor(tester, const Duration(seconds: 3));
     expect(find.text('Close next dialog'), findsOneWidget);
     await tester.tap(find.text('Close next dialog'));
     await nextDialog;
     await _pumpFor(tester, const Duration(milliseconds: 300));
+    await nextDialogRoute!.completed;
+    nextFieldController.dispose();
 
     expect(tester.takeException(), isNull, reason: 'after pop + go');
   });
