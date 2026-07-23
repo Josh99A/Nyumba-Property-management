@@ -9,7 +9,9 @@ import 'package:intl/intl.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/domain/sync_metadata.dart';
+import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
+import '../../../core/presentation/photo_editor_field.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
@@ -26,6 +28,7 @@ import '../domain/property.dart';
 import '../domain/unit.dart';
 import 'portfolio_visuals.dart';
 import 'property_archive_button.dart';
+import 'property_photo_picker.dart';
 
 class PropertyDetailScreen extends ConsumerStatefulWidget {
   const PropertyDetailScreen({
@@ -271,6 +274,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final address = TextEditingController(text: property.addressLine);
     final city = TextEditingController(text: property.city);
     final description = TextEditingController(text: property.description ?? '');
+    final photos = EditablePhotoSet(existing: property.imageUrls);
+    var photoProblems = const <String>[];
     String? error;
     ModalRoute<bool>? dialogRoute;
     final updated = await showDialog<bool>(
@@ -326,6 +331,23 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           labelText: context.tr('Description (optional)'),
                         ),
                       ),
+                      const SizedBox(height: 18),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: PhotoEditorField(
+                          label: 'Property photos',
+                          photos: photos,
+                          limit: propertyPhotoLimit,
+                          pick: pickPropertyPhotos,
+                          onChanged: (problems) =>
+                              setDialogState(() => photoProblems = problems),
+                          helperText:
+                              '$supportedPhotoFormats; up to 5 MB each and '
+                              '$propertyPhotoLimit photos. The first photo is '
+                              'the one shown on the property card.',
+                        ),
+                      ),
+                      PickProblemsNotice(problems: photoProblems),
                       if (error != null) ...[
                         const SizedBox(height: 12),
                         Text(
@@ -346,6 +368,16 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               AsyncActionButton.filled(
                 onPressed: () async {
                   if (!formKey.currentState!.validate()) return;
+                  // Creating a property demands a photo, so editing must not
+                  // be a way to end up with none.
+                  if (photos.isEmpty) {
+                    setDialogState(
+                      () => error = context.tr(
+                        'Keep at least one photo of the property.',
+                      ),
+                    );
+                    return;
+                  }
                   try {
                     await ref.read(updatePropertyProvider)(
                       property.copyWith(
@@ -354,6 +386,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         city: city.text.trim(),
                         description: description.text.trim(),
                         clearDescription: description.text.trim().isEmpty,
+                        imageUrls: photos.toImageUrls(),
                       ),
                     );
                     if (context.mounted) Navigator.pop(context, true);
