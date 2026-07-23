@@ -13,6 +13,7 @@ import { deliverUserNotification } from '../shared/messaging';
  * command handlers and the renewal sweep from each growing their own.
  */
 export type SubscriptionNoticeKind =
+  | 'activated'
   | 'renewal_due'
   | 'grace_started'
   | 'grace_ending'
@@ -128,6 +129,16 @@ function noticeContent(
     'Your tenants are not affected — they keep their portal, balances, '
     + 'receipts and documents throughout.';
   switch (kind) {
+    case 'activated':
+      return {
+        subject: 'Your Nyumba subscription is confirmed',
+        heading: 'Your payment is confirmed — your workspace is open',
+        paragraphs: [
+          `We have confirmed payment for your ${facts.tier} plan.`,
+          'You can sign back in now and enter your workspace — no further action is needed.',
+        ],
+        milestone: facts.tier,
+      };
     case 'renewal_due':
       return {
         subject: 'Your Nyumba subscription renews soon',

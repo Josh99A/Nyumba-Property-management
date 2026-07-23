@@ -272,98 +272,103 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final city = TextEditingController(text: property.city);
     final description = TextEditingController(text: property.description ?? '');
     String? error;
+    ModalRoute<bool>? dialogRoute;
     final updated = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text.localized('Edit ${property.name}'),
-          content: SizedBox(
-            width: 500,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: name,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Property name'),
+      builder: (context) {
+        dialogRoute ??= ModalRoute.of<bool>(context);
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text.localized('Edit ${property.name}'),
+            content: SizedBox(
+              width: 500,
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: name,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Property name'),
+                        ),
+                        validator: (value) => (value?.trim().length ?? 0) < 2
+                            ? context.tr('Enter a property name')
+                            : null,
                       ),
-                      validator: (value) => (value?.trim().length ?? 0) < 2
-                          ? context.tr('Enter a property name')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: address,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Street address'),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: address,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Street address'),
+                        ),
+                        validator: (value) => (value?.trim().length ?? 0) < 3
+                            ? context.tr('Enter the street address')
+                            : null,
                       ),
-                      validator: (value) => (value?.trim().length ?? 0) < 3
-                          ? context.tr('Enter the street address')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: city,
-                      decoration: InputDecoration(
-                        labelText: context.tr('City or town'),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: city,
+                        decoration: InputDecoration(
+                          labelText: context.tr('City or town'),
+                        ),
+                        validator: (value) => (value?.trim().isEmpty ?? true)
+                            ? context.tr('Enter a city or town')
+                            : null,
                       ),
-                      validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? context.tr('Enter a city or town')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: description,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Description (optional)'),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: description,
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Description (optional)'),
+                        ),
                       ),
-                    ),
-                    if (error != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        error!,
-                        style: TextStyle(color: context.nyumba.danger),
-                      ),
+                      if (error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          error!,
+                          style: TextStyle(color: context.nyumba.danger),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text.localized('Cancel'),
+              ),
+              AsyncActionButton.filled(
+                onPressed: () async {
+                  if (!formKey.currentState!.validate()) return;
+                  try {
+                    await ref.read(updatePropertyProvider)(
+                      property.copyWith(
+                        name: name.text.trim(),
+                        addressLine: address.text.trim(),
+                        city: city.text.trim(),
+                        description: description.text.trim(),
+                        clearDescription: description.text.trim().isEmpty,
+                      ),
+                    );
+                    if (context.mounted) Navigator.pop(context, true);
+                  } on Object catch (caught) {
+                    setDialogState(() => error = caught.toString());
+                  }
+                },
+                child: const Text.localized('Save changes'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text.localized('Cancel'),
-            ),
-            AsyncActionButton.filled(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                try {
-                  await ref.read(updatePropertyProvider)(
-                    property.copyWith(
-                      name: name.text.trim(),
-                      addressLine: address.text.trim(),
-                      city: city.text.trim(),
-                      description: description.text.trim(),
-                      clearDescription: description.text.trim().isEmpty,
-                    ),
-                  );
-                  if (context.mounted) Navigator.pop(context, true);
-                } on Object catch (caught) {
-                  setDialogState(() => error = caught.toString());
-                }
-              },
-              child: const Text.localized('Save changes'),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
+    await dialogRoute?.completed;
     name.dispose();
     address.dispose();
     city.dispose();
@@ -386,10 +391,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     // Hitting the plan's rental-space limit prompts an upgrade instead of a
     // form that the server would reject. Only a confirmed entitlement blocks
     // here — when the plan is unknown the server stays the judge.
-    if (ref.read(landlordEntitlementProvider).value
-        case EntitlementKnown(entitlement: final plan)) {
-      final unitCount =
-          ref.read(portfolioUnitsProvider).value?.length ?? 0;
+    if (ref.read(landlordEntitlementProvider).value case EntitlementKnown(
+      entitlement: final plan,
+    )) {
+      final unitCount = ref.read(portfolioUnitsProvider).value?.length ?? 0;
       if (unitCount >= plan.unitLimit) {
         await showUpgradePrompt(
           context,
@@ -411,159 +416,166 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     var type = UnitType.apartment;
     var status = UnitStatus.vacant;
     String? error;
+    ModalRoute<bool>? dialogRoute;
     final created = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text.localized('Add rental space to ${property.name}'),
-          content: SizedBox(
-            width: 520,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: label,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Rental space name or number'),
-                      ),
-                      validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? context.tr('Enter a rental space name or number')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    DropdownButtonFormField<UnitType>(
-                      initialValue: type,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Rental space type'),
-                      ),
-                      items: [
-                        for (final item in UnitType.values)
-                          DropdownMenuItem(
-                            value: item,
-                            child: Text.localized(_titleCase(item.name)),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) setDialogState(() => type = value);
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: rent,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Monthly rent'),
-                        prefixText: 'UGX ',
-                      ),
-                      validator: (value) {
-                        final amount = int.tryParse(
-                          value?.replaceAll(',', '') ?? '',
-                        );
-                        return amount == null || amount <= 0
-                            ? context.tr('Enter a valid rent amount')
-                            : null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: bedrooms,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Bedrooms'),
-                            ),
-                            validator: (value) =>
-                                int.tryParse(value ?? '') == null
-                                ? context.tr('Required')
-                                : null,
-                          ),
+      builder: (context) {
+        dialogRoute ??= ModalRoute.of<bool>(context);
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text.localized('Add rental space to ${property.name}'),
+            content: SizedBox(
+              width: 520,
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: label,
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Rental space name or number'),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: bathrooms,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Bathrooms'),
-                            ),
-                            validator: (value) =>
-                                int.tryParse(value ?? '') == null
-                                ? context.tr('Required')
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    DropdownButtonFormField<UnitStatus>(
-                      initialValue: status,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Availability'),
-                        helperText: context.tr(status.helperText),
+                        validator: (value) => (value?.trim().isEmpty ?? true)
+                            ? context.tr('Enter a rental space name or number')
+                            : null,
                       ),
-                      items: [
-                        for (final item in UnitStatus.values)
-                          if (item != UnitStatus.occupied)
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<UnitType>(
+                        initialValue: type,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Rental space type'),
+                        ),
+                        items: [
+                          for (final item in UnitType.values)
                             DropdownMenuItem(
                               value: item,
-                              child: Text.localized(item.displayLabel),
+                              child: Text.localized(_titleCase(item.name)),
                             ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) setDialogState(() => status = value);
-                      },
-                    ),
-                    if (error != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        error!,
-                        style: TextStyle(color: context.nyumba.danger),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) setDialogState(() => type = value);
+                        },
                       ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: rent,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Monthly rent'),
+                          prefixText: 'UGX ',
+                        ),
+                        validator: (value) {
+                          final amount = int.tryParse(
+                            value?.replaceAll(',', '') ?? '',
+                          );
+                          return amount == null || amount <= 0
+                              ? context.tr('Enter a valid rent amount')
+                              : null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: bedrooms,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: context.tr('Bedrooms'),
+                              ),
+                              validator: (value) =>
+                                  int.tryParse(value ?? '') == null
+                                  ? context.tr('Required')
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: bathrooms,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: context.tr('Bathrooms'),
+                              ),
+                              validator: (value) =>
+                                  int.tryParse(value ?? '') == null
+                                  ? context.tr('Required')
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<UnitStatus>(
+                        initialValue: status,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Availability'),
+                          helperText: context.tr(status.helperText),
+                        ),
+                        items: [
+                          for (final item in UnitStatus.values)
+                            if (item != UnitStatus.occupied)
+                              DropdownMenuItem(
+                                value: item,
+                                child: Text.localized(item.displayLabel),
+                              ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => status = value);
+                          }
+                        },
+                      ),
+                      if (error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          error!,
+                          style: TextStyle(color: context.nyumba.danger),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text.localized('Cancel'),
+              ),
+              AsyncActionButton.filled(
+                onPressed: () async {
+                  if (!formKey.currentState!.validate()) return;
+                  try {
+                    await ref.read(createUnitProvider)(
+                      CreateUnitInput(
+                        propertyId: property.id,
+                        landlordId: property.landlordId,
+                        label: label.text.trim(),
+                        type: type,
+                        status: status,
+                        monthlyRentMinor:
+                            int.parse(rent.text.replaceAll(',', '')) * 100,
+                        bedrooms: int.parse(bedrooms.text),
+                        bathrooms: int.parse(bathrooms.text),
+                      ),
+                    );
+                    if (context.mounted) Navigator.pop(context, true);
+                  } on Object catch (caught) {
+                    setDialogState(() => error = caught.toString());
+                  }
+                },
+                child: const Text.localized('Save rental space'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text.localized('Cancel'),
-            ),
-            AsyncActionButton.filled(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                try {
-                  await ref.read(createUnitProvider)(
-                    CreateUnitInput(
-                      propertyId: property.id,
-                      landlordId: property.landlordId,
-                      label: label.text.trim(),
-                      type: type,
-                      status: status,
-                      monthlyRentMinor:
-                          int.parse(rent.text.replaceAll(',', '')) * 100,
-                      bedrooms: int.parse(bedrooms.text),
-                      bathrooms: int.parse(bathrooms.text),
-                    ),
-                  );
-                  if (context.mounted) Navigator.pop(context, true);
-                } on Object catch (caught) {
-                  setDialogState(() => error = caught.toString());
-                }
-              },
-              child: const Text.localized('Save rental space'),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
+    await dialogRoute?.completed;
     label.dispose();
     rent.dispose();
     bedrooms.dispose();
@@ -618,193 +630,201 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     );
     UpdateUnitResult? result;
     String? error;
+    ModalRoute<bool>? dialogRoute;
     final updated = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text.localized('Edit ${unit.displayName}'),
-          content: SizedBox(
-            width: 520,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: label,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Rental space name or number'),
-                      ),
-                      validator: (value) => (value?.trim().isEmpty ?? true)
-                          ? context.tr('Enter a rental space name or number')
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    DropdownButtonFormField<UnitType>(
-                      initialValue: type,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Rental space type'),
-                      ),
-                      items: [
-                        for (final item in UnitType.values)
-                          DropdownMenuItem(
-                            value: item,
-                            child: Text.localized(_titleCase(item.name)),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) setDialogState(() => type = value);
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    DropdownButtonFormField<UnitStatus>(
-                      initialValue: status,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Availability'),
-                        helperText: context.tr(
-                          unit.status == UnitStatus.occupied
-                              ? 'Managed by active tenancy'
-                              : status.helperText,
+      builder: (context) {
+        dialogRoute ??= ModalRoute.of<bool>(context);
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text.localized('Edit ${unit.displayName}'),
+            content: SizedBox(
+              width: 520,
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: label,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Rental space name or number'),
                         ),
+                        validator: (value) => (value?.trim().isEmpty ?? true)
+                            ? context.tr('Enter a rental space name or number')
+                            : null,
                       ),
-                      items: [
-                        for (final item in UnitStatus.values)
-                          if (item != UnitStatus.occupied ||
-                              unit.status == UnitStatus.occupied)
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<UnitType>(
+                        initialValue: type,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Rental space type'),
+                        ),
+                        items: [
+                          for (final item in UnitType.values)
                             DropdownMenuItem(
                               value: item,
-                              enabled: item != UnitStatus.occupied,
-                              child: Text.localized(item.displayLabel),
+                              child: Text.localized(_titleCase(item.name)),
                             ),
-                      ],
-                      onChanged: unit.status == UnitStatus.occupied
-                          ? null
-                          : (value) {
-                              if (value != null) {
-                                setDialogState(() => status = value);
-                              }
-                            },
-                    ),
-                    if (hasPublishedListing && status != UnitStatus.vacant) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: context.nyumba.goldTint,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: context.nyumba.goldBorder),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) setDialogState(() => type = value);
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<UnitStatus>(
+                        initialValue: status,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Availability'),
+                          helperText: context.tr(
+                            unit.status == UnitStatus.occupied
+                                ? 'Managed by active tenancy'
+                                : status.helperText,
+                          ),
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.public_off_outlined,
-                              size: 18,
-                              color: context.nyumba.terracottaDark,
-                            ),
-                            const SizedBox(width: 8),
-                            const Expanded(
-                              child: Text.localized(
-                                'This change will remove the rental space from the public screen after server confirmation.',
+                        items: [
+                          for (final item in UnitStatus.values)
+                            if (item != UnitStatus.occupied ||
+                                unit.status == UnitStatus.occupied)
+                              DropdownMenuItem(
+                                value: item,
+                                enabled: item != UnitStatus.occupied,
+                                child: Text.localized(item.displayLabel),
                               ),
-                            ),
-                          ],
-                        ),
+                        ],
+                        onChanged: unit.status == UnitStatus.occupied
+                            ? null
+                            : (value) {
+                                if (value != null) {
+                                  setDialogState(() => status = value);
+                                }
+                              },
                       ),
-                    ],
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: rent,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: context.tr('Monthly rent'),
-                        prefixText: 'UGX ',
-                      ),
-                      validator: (value) {
-                        final amount = int.tryParse(
-                          value?.replaceAll(',', '') ?? '',
-                        );
-                        return amount == null || amount <= 0
-                            ? context.tr('Enter a valid rent amount')
-                            : null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: bedrooms,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Bedrooms'),
+                      if (hasPublishedListing &&
+                          status != UnitStatus.vacant) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: context.nyumba.goldTint,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: context.nyumba.goldBorder,
                             ),
-                            validator: (value) =>
-                                int.tryParse(value ?? '') == null
-                                ? context.tr('Required')
-                                : null,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: bathrooms,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: context.tr('Bathrooms'),
-                            ),
-                            validator: (value) =>
-                                int.tryParse(value ?? '') == null
-                                ? context.tr('Required')
-                                : null,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.public_off_outlined,
+                                size: 18,
+                                color: context.nyumba.terracottaDark,
+                              ),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text.localized(
+                                  'This change will remove the rental space from the public screen after server confirmation.',
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                    if (error != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        error!,
-                        style: TextStyle(color: context.nyumba.danger),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: rent,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Monthly rent'),
+                          prefixText: 'UGX ',
+                        ),
+                        validator: (value) {
+                          final amount = int.tryParse(
+                            value?.replaceAll(',', '') ?? '',
+                          );
+                          return amount == null || amount <= 0
+                              ? context.tr('Enter a valid rent amount')
+                              : null;
+                        },
                       ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: bedrooms,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: context.tr('Bedrooms'),
+                              ),
+                              validator: (value) =>
+                                  int.tryParse(value ?? '') == null
+                                  ? context.tr('Required')
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: bathrooms,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: context.tr('Bathrooms'),
+                              ),
+                              validator: (value) =>
+                                  int.tryParse(value ?? '') == null
+                                  ? context.tr('Required')
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          error!,
+                          style: TextStyle(color: context.nyumba.danger),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text.localized('Cancel'),
+              ),
+              AsyncActionButton.filled(
+                onPressed: () async {
+                  if (!formKey.currentState!.validate()) return;
+                  try {
+                    result = await ref.read(updateUnitProvider)(
+                      unit.copyWith(
+                        label: label.text.trim(),
+                        type: type,
+                        status: status,
+                        monthlyRentMinor:
+                            int.parse(rent.text.replaceAll(',', '')) * 100,
+                        bedrooms: int.parse(bedrooms.text),
+                        bathrooms: int.parse(bathrooms.text),
+                      ),
+                    );
+                    if (context.mounted) Navigator.pop(context, true);
+                  } on Object catch (caught) {
+                    setDialogState(() => error = caught.toString());
+                  }
+                },
+                child: const Text.localized('Save changes'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text.localized('Cancel'),
-            ),
-            AsyncActionButton.filled(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                try {
-                  result = await ref.read(updateUnitProvider)(
-                    unit.copyWith(
-                      label: label.text.trim(),
-                      type: type,
-                      status: status,
-                      monthlyRentMinor:
-                          int.parse(rent.text.replaceAll(',', '')) * 100,
-                      bedrooms: int.parse(bedrooms.text),
-                      bathrooms: int.parse(bathrooms.text),
-                    ),
-                  );
-                  if (context.mounted) Navigator.pop(context, true);
-                } on Object catch (caught) {
-                  setDialogState(() => error = caught.toString());
-                }
-              },
-              child: const Text.localized('Save changes'),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
+    await dialogRoute?.completed;
     label.dispose();
     rent.dispose();
     bedrooms.dispose();

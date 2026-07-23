@@ -45,6 +45,22 @@ export async function cleanupListingMedia(payload: Record<string, unknown>): Pro
   await getStorage().bucket().deleteFiles({ prefix, force: true });
 }
 
+/**
+ * Deletes an explicit list of storage objects, for records whose photos never
+ * reached a server-owned prefix — a property keeps its staged uploads under
+ * `uploads/{uid}/...`, so there is nothing to sweep by prefix. Missing objects
+ * are not an error: the purge that enqueued this is the last word either way.
+ */
+export async function purgeStorageObjects(payload: Record<string, unknown>): Promise<void> {
+  const paths = Array.isArray(payload.paths)
+    ? payload.paths.filter((value): value is string => typeof value === 'string' && value.length > 0)
+    : [];
+  const bucket = getStorage().bucket();
+  for (const path of paths) {
+    await bucket.file(path).delete({ ignoreNotFound: true });
+  }
+}
+
 export async function movePrivateDocument(payload: Record<string, unknown>): Promise<void> {
   const documentId = String(payload.documentId);
   const landlordId = String(payload.landlordId);

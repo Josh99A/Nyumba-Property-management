@@ -161,6 +161,13 @@ acknowledged upload.
 
 On Android and iOS, each account-scoped Sembast database uses AES-256-GCM with
 a distinct random key stored through Keychain/Keystore-backed secure storage.
+Sembast invokes the encrypted content codec asynchronously on worker isolates;
+large photo-bearing transaction lines must never be encrypted, decrypted, or
+JSON-decoded on Flutter's UI isolate. Before opening an encrypted append log of
+5 MiB or more, mobile builds compact obsolete lines on a worker isolate using
+Sembast's atomic recovery file. Compaction preserves the latest entity records
+and every pending outbox command, including after process death during the
+rewrite.
 Web IndexedDB remains unencrypted because browser JavaScript cannot provide an
 equivalent device-keystore boundary; public/browser workspaces must therefore
 minimize retained PII. Desktop builds are development-only and currently share

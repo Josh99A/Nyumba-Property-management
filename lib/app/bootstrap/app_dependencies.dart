@@ -152,6 +152,20 @@ final landlordListingsProvider = StreamProvider<List<Listing>>((ref) async* {
   yield* deps.listings.watchAll();
 });
 
+/// The portfolio streams with archived records retained, for the platform
+/// screens only. A landlord's own views deliberately hide what they retired;
+/// an administrator investigating an account needs to see it, and a super
+/// admin purging it needs something to select.
+final adminPropertiesProvider = StreamProvider<List<Property>>((ref) async* {
+  final deps = await ref.watch(appDependenciesProvider.future);
+  yield* deps.properties.watchAll(includeArchived: true);
+});
+
+final adminUnitsProvider = StreamProvider<List<Unit>>((ref) async* {
+  final deps = await ref.watch(appDependenciesProvider.future);
+  yield* deps.units.watchAll(includeArchived: true);
+});
+
 final publicListingsProvider = StreamProvider<List<Listing>>((ref) async* {
   final deps = await ref.watch(appDependenciesProvider.future);
   yield* deps.listings.watchAll(publicOnly: true);

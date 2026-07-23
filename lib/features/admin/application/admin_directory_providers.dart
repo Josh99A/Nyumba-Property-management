@@ -89,6 +89,16 @@ const changeRoleReasonCodes = [
   'IDENTITY_VERIFIED',
 ];
 
+/// Why an archived record was destroyed for good
+/// (`firebase/functions/src/commands/purge.ts`).
+const purgeReasonCodes = [
+  'DATA_RETENTION',
+  'USER_REQUESTED',
+  'POLICY_VIOLATION',
+  'FRAUD_RISK',
+  'ADMIN_CORRECTION',
+];
+
 /// Why staff could not confirm a payment a landlord reported
 /// (`subscription.rejectPayment`).
 const rejectPaymentReasonCodes = [
@@ -192,9 +202,10 @@ final sendPlatformBroadcastProvider = Provider<SendPlatformBroadcast>(
   SendPlatformBroadcast.new,
 );
 
-/// Sends a platform announcement through the audited, super-admin-only
-/// `platform.broadcast` command. Delivery (inbox, push, email) is the
-/// server's durable job — nothing is sent from the client.
+/// Sends a platform announcement through the audited `platform.broadcast`
+/// command. Open to any administrator: running the announcement channel is
+/// ordinary platform duty. Delivery (inbox, push, email) is the server's
+/// durable job — nothing is sent from the client.
 class SendPlatformBroadcast {
   const SendPlatformBroadcast(this._ref);
 
@@ -207,8 +218,9 @@ class SendPlatformBroadcast {
     String? audienceId,
   }) async {
     final session = _ref.read(sessionControllerProvider);
-    if (session?.role != AppRole.superAdmin) {
-      throw StateError('Only a super administrator can send a broadcast.');
+    if (session == null ||
+        (session.role != AppRole.admin && session.role != AppRole.superAdmin)) {
+      throw StateError('Administrator permission is required.');
     }
     if (title.trim().isEmpty || body.trim().isEmpty) {
       throw StateError('A broadcast needs both a title and a message.');
@@ -361,7 +373,8 @@ class AdminAccountCommands {
   }
 
   /// Archives any account: sign-in is disabled server-side and the profile is
-  /// marked archived. Super-admin only, like every `user.*` lifecycle command.
+  /// marked archived. Open to any administrator because [restoreUser] undoes
+  /// it; only the permanent [deleteUser] is reserved for a super admin.
   Future<void> archiveUser({
     required PlatformAccount account,
     required String reasonCode,
@@ -374,11 +387,17 @@ class AdminAccountCommands {
   }) => _userLifecycle('user.restore', account, reasonCode);
 
   /// Permanently deletes an account out of the archive. The server refuses
-  /// this unless the account is already archived.
+  /// this unless the account is already archived, and unless the caller holds
+  /// the super-admin claim.
   Future<void> deleteUser({
     required PlatformAccount account,
     required String reasonCode,
-  }) => _userLifecycle('user.delete', account, reasonCode);
+  }) => _userLifecycle(
+    'user.delete',
+    account,
+    reasonCode,
+    superAdminOnly: true,
+  );
 
   /// Changes an account's ordinary role (`landlord`/`tenant`/`client`).
   /// Administrator privileges cannot be granted here by design.
@@ -387,7 +406,7 @@ class AdminAccountCommands {
     required String role,
     required String reasonCode,
   }) async {
-    final version = _requireSuperAdminTarget(account);
+    final version = _requireLifecycleTarget(account);
     if (!assignableServerRoles.contains(role)) {
       throw StateError('That role cannot be assigned from the app.');
     }
@@ -403,9 +422,13 @@ class AdminAccountCommands {
   Future<void> _userLifecycle(
     String type,
     PlatformAccount account,
-    String reasonCode,
-  ) async {
-    final version = _requireSuperAdminTarget(account);
+    String reasonCode, {
+    bool superAdminOnly = false,
+  }) async {
+    final version = _requireLifecycleTarget(
+      account,
+      superAdminOnly: superAdminOnly,
+    );
     final gateway = await _ref.read(authCommandGatewayProvider.future);
     await gateway.sendCommand(
       type: type,
@@ -415,15 +438,22 @@ class AdminAccountCommands {
     );
   }
 
-  /// Shared gate for the super-admin-only `user.*` commands; returns the
-  /// `users/{uid}` concurrency token.
-  int _requireSuperAdminTarget(PlatformAccount account) {
+  /// Shared gate for the `user.*` commands; returns the `users/{uid}`
+  /// concurrency token. The reversible ones are open to any administrator;
+  /// pass [superAdminOnly] for the irreversible ones. This mirrors the
+  /// server's own gate — it is a UX guard, never the security boundary.
+  int _requireLifecycleTarget(
+    PlatformAccount account, {
+    bool superAdminOnly = false,
+  }) {
     _requireManageable(account);
-    final session = _ref.read(sessionControllerProvider);
-    if (session?.role != AppRole.superAdmin) {
-      throw StateError(
-        'Only a super administrator can perform this account action.',
-      );
+    if (superAdminOnly) {
+      final session = _ref.read(sessionControllerProvider);
+      if (session?.role != AppRole.superAdmin) {
+        throw StateError(
+          'Only a super administrator can permanently delete an account.',
+        );
+      }
     }
     final version = account.userVersion;
     if (version == null) {
@@ -466,5 +496,79 @@ class AdminAccountCommands {
     )) {
       throw StateError('You do not have permission to manage this account.');
     }
+  }
+}
+
+final adminPurgeCommandsProvider = Provider<AdminPurgeCommands>(
+  AdminPurgeCommands.new,
+);
+
+/// Permanent removal of archived portfolio records, across any landlord's
+/// workspace.
+///
+/// Online and super-admin only, for the same reasons as [AdminAccountCommands]:
+/// each command carries the aggregate's current server version, and a purge
+/// queued offline could fire against a record that was restored in the
+/// meantime. The role check here is a UX guard so the menu item never offers
+/// what the server would refuse — `requireSuperAdmin` in
+/// `firebase/functions/src/commands/purge.ts` is the real boundary.
+class AdminPurgeCommands {
+  const AdminPurgeCommands(this._ref);
+
+  final Ref _ref;
+
+  /// Destroys an archived property. The server refuses while any unit still
+  /// references it, so units are purged first.
+  Future<void> deleteProperty({
+    required String propertyId,
+    required int expectedVersion,
+    required String reasonCode,
+  }) => _purge('property.delete', propertyId, expectedVersion, reasonCode);
+
+  /// Destroys an archived rental space.
+  Future<void> deleteUnit({
+    required String unitId,
+    required int expectedVersion,
+    required String reasonCode,
+  }) => _purge('unit.delete', unitId, expectedVersion, reasonCode);
+
+  /// Destroys a listing that is off the market, private and public copies
+  /// together. The server refuses while it is still published.
+  Future<void> deleteListing({
+    required String listingId,
+    required int expectedVersion,
+    required String reasonCode,
+  }) => _purge('listing.delete', listingId, expectedVersion, reasonCode);
+
+  /// Purges a soft-deleted document now instead of at the end of its
+  /// retention window.
+  Future<void> purgeDocument({
+    required String documentId,
+    required int expectedVersion,
+    required String reasonCode,
+  }) => _purge('document.purge', documentId, expectedVersion, reasonCode);
+
+  Future<void> _purge(
+    String type,
+    String aggregateId,
+    int expectedVersion,
+    String reasonCode,
+  ) async {
+    final session = _ref.read(sessionControllerProvider);
+    if (session?.role != AppRole.superAdmin) {
+      throw StateError(
+        'Only a super administrator can permanently delete a record.',
+      );
+    }
+    if (!purgeReasonCodes.contains(reasonCode)) {
+      throw StateError('That reason code is not accepted for a purge.');
+    }
+    final gateway = await _ref.read(authCommandGatewayProvider.future);
+    await gateway.sendCommand(
+      type: type,
+      aggregateId: aggregateId,
+      expectedVersion: expectedVersion,
+      payload: <String, Object?>{'reasonCode': reasonCode},
+    );
   }
 }

@@ -75,7 +75,10 @@ export const documentDelete: CommandHandler<Record<string, never>> = {
     }
     const purgeAt = Timestamp.fromMillis(now.toMillis() + 90 * 24 * 60 * 60 * 1000);
     tx.update(ref, { isDeleted: true, deletedAt: now, purgeAt, state: 'deleted', ...bumpVersion(document, now) });
-    createJob(tx, db, `${cmd.commandId}_purge`, 'purgeDocument', { documentId: cmd.aggregateId!, purgeAt: purgeAt.toDate().toISOString() }, now);
+    // Deferred to `purgeAt`: deletion is soft for the retention window, so the
+    // file is still recoverable while a dispute or an accidental delete is
+    // resolved. `document.purge` is the Super Admin path that skips the wait.
+    createJob(tx, db, `${cmd.commandId}_purge`, 'purgeDocument', { documentId: cmd.aggregateId!, purgeAt: purgeAt.toDate().toISOString() }, now, purgeAt);
     return { status: 'accepted', aggregateId: cmd.aggregateId!, serverVersion: document.version + 1, changedFields: ['isDeleted', 'deletedAt', 'purgeAt', 'state'] };
   },
 };

@@ -40,6 +40,13 @@ export function strictPayload<T extends z.ZodRawShape>(shape: T): z.ZodObject<T,
   return z.object(shape).strict();
 }
 
+/**
+ * Enqueues a background job atomically with the command that produced it.
+ *
+ * `runAt` defers the first attempt: `claimJob` refuses a pending job until
+ * `nextAttemptAt` has passed and `sweepBackendJobs` polls for the ones that
+ * have. Omit it for work that should run as soon as the write lands.
+ */
 export function createJob(
   tx: Transaction,
   db: Firestore,
@@ -47,6 +54,7 @@ export function createJob(
   type: string,
   payload: Record<string, unknown>,
   now: Timestamp,
+  runAt?: Timestamp,
 ): void {
   tx.create(db.collection('backendJobs').doc(id), {
     id,
@@ -54,7 +62,7 @@ export function createJob(
     payload,
     state: 'pending',
     attemptCount: 0,
-    nextAttemptAt: now,
+    nextAttemptAt: runAt ?? now,
     leaseUntil: null,
     createdAt: now,
     updatedAt: now,

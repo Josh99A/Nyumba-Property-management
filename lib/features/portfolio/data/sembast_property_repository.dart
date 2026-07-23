@@ -136,11 +136,17 @@ final class SembastPropertyRepository implements PropertyRepository {
   }
 
   @override
-  Stream<List<Property>> watchAll({String? landlordId}) => _database
+  Stream<List<Property>> watchAll({
+    String? landlordId,
+    bool includeArchived = false,
+  }) => _database
       .watchEntities(OfflineEntityType.property)
       .map(
-        (items) =>
-            _filterAndSort(items.map(PropertyMapper.fromJson), landlordId),
+        (items) => _filterAndSort(
+          items.map(PropertyMapper.fromJson),
+          landlordId,
+          includeArchived: includeArchived,
+        ),
       );
 
   @override

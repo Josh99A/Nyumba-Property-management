@@ -84,6 +84,21 @@ class _AppLockGateState extends ConsumerState<AppLockGate>
       }
     });
 
+    // Covering the workspace hides it from sight and from assistive
+    // technology, but focus is neither of those: a field that was focused when
+    // the lock engaged keeps receiving hardware-keyboard input from behind the
+    // cover. Dropping focus here — rather than wrapping the Navigator in
+    // ExcludeFocus, which raced Android's focus restoration — hands it to the
+    // lock screen's own scope, which then contains tab traversal.
+    ref.listen<bool>(appLockControllerProvider.select((lock) => lock.locked), (
+      previous,
+      next,
+    ) {
+      if (next && previous != true) {
+        FocusManager.instance.primaryFocus?.unfocus();
+      }
+    });
+
     final lock = ref.watch(appLockControllerProvider);
     final session = ref.watch(sessionControllerProvider);
     final covered =
@@ -91,14 +106,21 @@ class _AppLockGateState extends ConsumerState<AppLockGate>
 
     return Stack(
       children: [
-        // The overlay stops pointers, but screen readers and keyboard Tab
-        // traversal walk the widget tree, not the paint order — the covered
-        // workspace must leave the semantics tree and focus scope too.
-        ExcludeSemantics(
-          excluding: covered,
-          child: ExcludeFocus(excluding: covered, child: widget.child),
-        ),
-        if (covered) const Positioned.fill(child: AppLockScreen()),
+        // Keep the Navigator completely untouched. Focus or inherited-widget
+        // wrappers here race Android's focus restoration when the biometric
+        // Activity closes. The opaque cover wins hit testing, while
+        // BlockSemantics hides everything painted before it from assistive
+        // technologies without changing the Navigator's element ancestry.
+        widget.child,
+        if (covered)
+          Positioned.fill(
+            child: FocusScope(
+              autofocus: true,
+              child: BlockSemantics(
+                child: AppLockScreen(unlocking: lock.unlocking),
+              ),
+            ),
+          ),
       ],
     );
   }

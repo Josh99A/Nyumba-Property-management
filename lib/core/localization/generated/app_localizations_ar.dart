@@ -2615,6 +2615,24 @@ class AppLocalizationsAr extends AppLocalizations {
       'مدفوعات المحفظة الإلكترونية والبطاقة قادمة قريباً. في الوقت الحالي، اختر نقداً للترقية — يفعّلها المسؤول بمجرد التحقق من دفعتك.';
 
   @override
+  String subscriptionChooseInitialPaymentMethodTitle(String plan) {
+    return 'الدفع مقابل $plan';
+  }
+
+  @override
+  String get subscriptionChooseInitialPaymentMethodSubtitle =>
+      'اختر كيف ستدفع لتفعيل هذه الخطة.';
+
+  @override
+  String subscriptionPlanReservedCashToast(String plan) {
+    return 'تم حجز خطة $plan. ادفع لـ Nyumba نقداً ثم انتظر الموافقة — تحقق من بريدك الإلكتروني بمجرد التأكيد، وستفتح مساحتك تلقائياً.';
+  }
+
+  @override
+  String get subscriptionInitialElectronicComingSoon =>
+      'مدفوعات المحفظة الإلكترونية والبطاقة قادمة قريباً — ستحصل على الوصول تلقائياً عند توفرها. في الوقت الحالي، ادفع لـ Nyumba نقداً ليتم التفعيل يدوياً.';
+
+  @override
   String subscriptionRenewsOn(String date) {
     return 'يتجدد في $date';
   }

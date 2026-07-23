@@ -1,7 +1,10 @@
 import 'property.dart';
 
 abstract interface class PropertyRepository {
-  Stream<List<Property>> watchAll({String? landlordId});
+  Stream<List<Property>> watchAll({
+    String? landlordId,
+    bool includeArchived = false,
+  });
   Stream<Property?> watchById(String id);
   Future<List<Property>> getAll({
     String? landlordId,

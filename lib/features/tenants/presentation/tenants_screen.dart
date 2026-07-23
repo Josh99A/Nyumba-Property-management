@@ -129,7 +129,11 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final width = (constraints.maxWidth - 28) / 3;
+            final width = gridItemWidth(
+              constraints.maxWidth,
+              columns: 3,
+              gap: 14,
+            );
             return Wrap(
               spacing: 14,
               runSpacing: 14,

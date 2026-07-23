@@ -92,6 +92,24 @@ export interface WorkspaceContext extends LandlordContext {
   permissions: readonly StaffPermission[];
 }
 
+/** Rejects a claimed role when the actor's mutable account is no longer active. */
+export async function requireActiveAccount(
+  tx: Transaction,
+  db: Firestore,
+  actor: Actor,
+): Promise<void> {
+  const snapshot = await tx.get(db.collection(COLLECTIONS.users).doc(actor.uid));
+  const account = snapshot.data();
+  if (
+    !snapshot.exists
+    || !account
+    || account.status !== 'active'
+    || account.isDeleted === true
+  ) {
+    throw new DomainError('PERMISSION_DENIED');
+  }
+}
+
 /**
  * Loads and authorizes the landlord acting on their own aggregate. The
  * landlord ID is always the actor UID — never a payload field. Approval and

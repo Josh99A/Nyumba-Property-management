@@ -56,6 +56,7 @@ describe('background job registry', () => {
       'notifyTenantPaymentRejected',
       'publishListingMedia',
       'purgeDocument',
+      'purgeStorageObjects',
       'renderReceipt',
       'sendLandlordApprovedEmail',
       'sendMaintenanceStatusEmail',

@@ -2680,6 +2680,24 @@ class AppLocalizationsSw extends AppLocalizations {
       'Malipo ya pesa za simu na kadi yanakuja hivi karibuni. Kwa sasa, chagua Fedha taslimu kuboresha — msimamizi anaiwezesha malipo yako yatakapothibitishwa.';
 
   @override
+  String subscriptionChooseInitialPaymentMethodTitle(String plan) {
+    return 'Lipia $plan';
+  }
+
+  @override
+  String get subscriptionChooseInitialPaymentMethodSubtitle =>
+      'Chagua jinsi utakavyolipia mpango huu.';
+
+  @override
+  String subscriptionPlanReservedCashToast(String plan) {
+    return 'Mpango wa $plan umehifadhiwa. Lipa Nyumba kwa fedha taslimu kisha usubiri idhini — angalia barua pepe yako baada ya kuthibitishwa, na nafasi yako itafunguka moja kwa moja.';
+  }
+
+  @override
+  String get subscriptionInitialElectronicComingSoon =>
+      'Malipo ya pesa za simu na kadi yanakuja hivi karibuni — utapata ufikiaji moja kwa moja yatakapopatikana. Kwa sasa, lipa Nyumba kwa fedha taslimu; msimamizi ataiwezesha.';
+
+  @override
   String subscriptionRenewsOn(String date) {
     return 'Inahuishwa tarehe $date';
   }

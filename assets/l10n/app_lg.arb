@@ -809,6 +809,12 @@
     ,"subscriptionUpgradeCashRequested": "Okusaba okulinnyisa ku {plan} kuweereddwa. Sasula Nyumba sente enkalu — omukulu aginnyisa okusasula bwe kumala okukakasibwa. Enteekateeka yo eriwo ekyakola."
     ,"@subscriptionUpgradeCashRequested": {"placeholders": {"plan": {"type": "String"}}}
     ,"subscriptionElectronicComingSoon": "Okusasula n'esente za ssimu ne kaadi bijja mangu. Kati, londa Sente enkalu okulinnyisa — omukulu aginnyisa okusasula kwo bwe kumala okukakasibwa."
+    ,"subscriptionChooseInitialPaymentMethodTitle": "Sasulira {plan}"
+    ,"@subscriptionChooseInitialPaymentMethodTitle": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionChooseInitialPaymentMethodSubtitle": "Londa engeri gy'onoosasulira okusasula enteekateeka eno."
+    ,"subscriptionPlanReservedCashToast": "Enteekateeka ya {plan} erondeddwa. Sasula Nyumba sente enkalu, olyoke olinde okukakasibwa — kebera email yo bwe kimala okukakasibwa, ekifo kyo ne kiggulwawo kyokka."
+    ,"@subscriptionPlanReservedCashToast": {"placeholders": {"plan": {"type": "String"}}}
+    ,"subscriptionInitialElectronicComingSoon": "Okusasula n'esente za ssimu ne kaadi bijja mangu; bwe birimala okuteekebwawo, ekifo kyo kijja kuggulwawo kyokka. Kati, sasula Nyumba butereevu mu ssente enkalu; omukulu y'aginnyisa."
     ,"subscriptionRenewsOn": "Eddamu ku {date}"
     ,"@subscriptionRenewsOn": {"placeholders": {"date": {"type": "String"}}}
     ,"subscriptionOverdueTitle": "Okusasula kwo kuyise ku kiseera"

@@ -1,7 +1,8 @@
 import { Timestamp, type Firestore, type Transaction } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, requireAggregate } from '../shared/aggregates';
-import { requirePlatformAdmin, requireSuperAdmin } from '../shared/actor';
+import { requireActiveAccount } from '../shared/accounts';
+import { requirePlatformAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { loadEntitlements, planForTier } from '../shared/config';
 import { DomainError } from '../shared/errors';
@@ -294,6 +295,17 @@ export const subscriptionConfirmPayment: CommandHandler<z.infer<typeof confirmPa
         ...bumpVersion(account, now),
       });
     }
+    // First activation only: the landlord was told to wait for this and check
+    // their email while `pending_payment`, so it must actually arrive. A plan
+    // change on an already-active subscription is not this moment — the
+    // workspace was already open.
+    if (!wasActive) {
+      createJob(tx, db, `${cmd.commandId}_notice`, 'sendSubscriptionNoticeEmail', {
+        landlordId,
+        kind: 'activated',
+        tier,
+      }, now);
+    }
     return {
       status: 'applied',
       aggregateId: landlordId,
@@ -564,7 +576,7 @@ interface PlanCatalogRecord {
 }
 
 /**
- * Super-admin editing of one plan's commercial terms: prices, yearly price,
+ * Administrator editing of one plan's commercial terms: prices, yearly price,
  * capacity limits, presentation copy, visibility, and the feature list with
  * its `implemented` flags. Writes `planCatalog/{tier}` (what clients render)
  * and, when a limit changes, the same values into
@@ -578,7 +590,8 @@ export const planUpdate: CommandHandler<z.infer<typeof updatePlanSchema>> = {
   aggregateIdMode: 'forbidden',
   expectedVersionMode: 'none',
   async apply({ tx, db, actor, cmd, now }) {
-    requireSuperAdmin(actor);
+    requirePlatformAdmin(actor);
+    await requireActiveAccount(tx, db, actor);
     const { tier, expectedCatalogVersion, ...edits } = cmd.payload;
     const changedFields = EDITABLE_PLAN_FIELDS.filter((field) => edits[field] !== undefined);
     if (changedFields.length === 0) {

@@ -1,6 +1,4 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/services.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:local_auth/local_auth.dart';
 
 import '../domain/biometric_authenticator.dart';
@@ -31,24 +29,27 @@ final class LocalAuthBiometricAuthenticator implements BiometricAuthenticator {
     try {
       final passed = await _auth.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(
-          // Let the OS fall back to the device PIN/pattern: wet fingers and
-          // failed sensors get a system-quality fallback for free.
-          biometricOnly: false,
-          stickyAuth: true,
-        ),
+        // Let the OS fall back to the device PIN/pattern: wet fingers and
+        // failed sensors get a system-quality fallback for free. App lock can
+        // be retried from its own screen, so do not persist the native prompt
+        // across Activity focus changes.
+        biometricOnly: false,
+        persistAcrossBackgrounding: false,
       );
       return BiometricResult(
         passed ? BiometricOutcome.success : BiometricOutcome.dismissed,
       );
-    } on PlatformException catch (error) {
+    } on LocalAuthException catch (error) {
       final outcome = switch (error.code) {
-        auth_error.notAvailable ||
-        auth_error.notEnrolled ||
-        auth_error.passcodeNotSet => BiometricOutcome.unavailable,
+        LocalAuthExceptionCode.noCredentialsSet ||
+        LocalAuthExceptionCode.noBiometricsEnrolled ||
+        LocalAuthExceptionCode.noBiometricHardware =>
+          BiometricOutcome.unavailable,
+        LocalAuthExceptionCode.userCanceled ||
+        LocalAuthExceptionCode.systemCanceled => BiometricOutcome.dismissed,
         _ => BiometricOutcome.failure,
       };
-      return BiometricResult(outcome, message: error.message);
+      return BiometricResult(outcome, message: error.description);
     } on Object catch (error) {
       // MissingPluginException and friends are not PlatformExceptions; an
       // uncaught throw here would leave callers' in-flight flags stuck.

@@ -15,7 +15,8 @@ final NumberFormat _adminCurrency = NumberFormat.currency(
   decimalDigits: 0,
 );
 
-String formatAdminUgx(num amount) => _adminCurrency.format(amount);
+String formatAdminUgx(int amountMinor) =>
+    _adminCurrency.format(amountMinor / 100);
 
 void showAdminMessage(BuildContext context, String message) {
   ScaffoldMessenger.of(context)

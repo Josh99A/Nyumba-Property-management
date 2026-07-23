@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
@@ -50,13 +49,12 @@ final class _FakeSessionController extends SessionController {
 }
 
 void main() {
-  testWidgets('a locked workspace is hidden from semantics and focus', (
+  testWidgets('a locked workspace is hidden from semantics and interaction', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
     final store = _FakeStore()..enabled = true;
-    final workspaceButton = FocusNode(debugLabel: 'workspace-action');
-    addTearDown(workspaceButton.dispose);
+    var workspacePressed = false;
 
     await tester.pumpWidget(
       ProviderScope(
@@ -72,8 +70,7 @@ void main() {
           home: AppLockGate(
             child: Scaffold(
               body: TextButton(
-                focusNode: workspaceButton,
-                onPressed: () {},
+                onPressed: () => workspacePressed = true,
                 child: const Text('Workspace action'),
               ),
             ),
@@ -93,15 +90,11 @@ void main() {
     expect(find.semantics.byLabel('Workspace action'), findsNothing);
     expect(find.semantics.byLabel('Unlock'), findsOne);
 
-    // Keyboard traversal must not reach behind the cover either.
-    workspaceButton.requestFocus();
+    // The cover receives the pointer instead of the workspace below it.
+    expect(find.byType(ExcludeFocus), findsNothing);
+    await tester.tap(find.text('Workspace action'), warnIfMissed: false);
     await tester.pump();
-    expect(workspaceButton.hasFocus, isFalse);
-    for (var presses = 0; presses < 5; presses++) {
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.pump();
-      expect(workspaceButton.hasFocus, isFalse);
-    }
+    expect(workspacePressed, isFalse);
 
     semantics.dispose();
   });
@@ -146,5 +139,34 @@ void main() {
     expect(workspaceButton.hasFocus, isTrue);
 
     semantics.dispose();
+  });
+
+  testWidgets('successful unlock removes the cover without dirtying it', (
+    tester,
+  ) async {
+    final store = _FakeStore()..enabled = true;
+    final authenticator = _FakeAuthenticator()
+      ..next = const BiometricResult(BiometricOutcome.success);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appLockStoreProvider.overrideWithValue(store),
+          biometricAuthenticatorProvider.overrideWithValue(authenticator),
+          sessionControllerProvider.overrideWith(_FakeSessionController.new),
+        ],
+        child: MaterialApp(
+          theme: NyumbaTheme.light,
+          home: const AppLockGate(child: Scaffold(body: Text('Workspace'))),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Nyumba is locked'), findsNothing);
+    expect(find.text('Workspace'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

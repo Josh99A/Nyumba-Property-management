@@ -131,6 +131,12 @@ const _adminDestinations = [
     path: '/admin/users',
   ),
   AppDestination(
+    label: 'Portfolios',
+    icon: Icons.home_work_outlined,
+    selectedIcon: Icons.home_work_rounded,
+    path: '/admin/portfolio',
+  ),
+  AppDestination(
     label: 'Access & operations',
     shortLabel: 'Access',
     icon: Icons.policy_outlined,

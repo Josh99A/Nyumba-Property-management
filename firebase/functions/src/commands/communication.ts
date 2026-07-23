@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import { newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
-import { requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
-import { requireSuperAdmin } from '../shared/actor';
+import {
+  requireActiveAccount,
+  requireOwnedByLandlord,
+  requireWorkspace,
+} from '../shared/accounts';
+import { requirePlatformAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { loadEntitlements, planForTier } from '../shared/config';
 import { DomainError } from '../shared/errors';
@@ -64,7 +68,8 @@ const broadcastSchema = strictPayload({
 /**
  * Platform announcement to every user, a target group (role or subscription
  * tier), or one individual — the operational channel for incidents,
- * maintenance windows, and commercial notices. Super-admin only. The command
+ * maintenance windows, and commercial notices. Open to any administrator,
+ * since running that channel is ordinary platform duty. The command
  * records the canonical broadcast document and hands delivery (in-app inbox,
  * push, and email) to the durable `broadcastFanout` job, so a large audience
  * never runs inside the command transaction.
@@ -74,7 +79,8 @@ export const platformBroadcast: CommandHandler<z.infer<typeof broadcastSchema>> 
   aggregateIdMode: 'required',
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
-    requireSuperAdmin(actor);
+    requirePlatformAdmin(actor);
+    await requireActiveAccount(tx, db, actor);
     const ref = db.collection(COLLECTIONS.platformBroadcasts).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
     requireAbsent(snapshot);

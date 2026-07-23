@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAggregate } from '../shared/aggregates';
+import { requireActiveAccount } from '../shared/accounts';
 import { requirePlatformAdmin, requireSuperAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
@@ -88,16 +89,18 @@ interface UserProfileAggregate {
 /**
  * Archives any user account: the profile is marked `archived` and a background
  * job disables the Firebase Auth account so the person can no longer sign in.
- * Super-admin only — this acts across every role, unlike the landlord
- * approval transitions above. Records are retained; `user.delete` is the only
- * path out of the archive besides `user.restore`.
+ * Open to any administrator — it acts across every role, unlike the landlord
+ * approval transitions above, but it is fully reversible through
+ * `user.restore`. Records are retained; `user.delete` is the only other path
+ * out of the archive, and that one stays super-admin.
  */
 export const userArchive: CommandHandler<z.infer<typeof userLifecycleReasonSchema>> = {
   payloadSchema: userLifecycleReasonSchema,
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    requireSuperAdmin(actor);
+    requirePlatformAdmin(actor);
+    await requireActiveAccount(tx, db, actor);
     const targetUid = cmd.aggregateId!;
     if (targetUid === actor.uid) throw new DomainError('PERMISSION_DENIED');
     const ref = db.collection(COLLECTIONS.users).doc(targetUid);
@@ -140,7 +143,8 @@ export const userRestore: CommandHandler<z.infer<typeof userLifecycleReasonSchem
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    requireSuperAdmin(actor);
+    requirePlatformAdmin(actor);
+    await requireActiveAccount(tx, db, actor);
     const targetUid = cmd.aggregateId!;
     if (targetUid === actor.uid) throw new DomainError('PERMISSION_DENIED');
     const ref = db.collection(COLLECTIONS.users).doc(targetUid);
@@ -176,6 +180,9 @@ export const userRestore: CommandHandler<z.infer<typeof userLifecycleReasonSchem
  * tombstoned (`isDeleted`, which every directory read filters out) and a
  * background job deletes the Firebase Auth account. Only an already-archived
  * account can be deleted, so removal is always a deliberate two-step act.
+ *
+ * Super-admin only. Archiving is an ordinary administrator's tool because it
+ * can be undone; this cannot, so it stays behind the higher claim.
  */
 export const userDelete: CommandHandler<z.infer<typeof userLifecycleReasonSchema>> = {
   payloadSchema: userLifecycleReasonSchema,
@@ -223,9 +230,11 @@ const changeRoleSchema = strictPayload({
 });
 
 /**
- * Changes any account's ordinary role. Super-admin only, never self, and
+ * Changes any account's ordinary role. Any administrator, never self, and
  * never on an archived account (restore it first so the archive stays an
- * inert state). Promoting to landlord provisions the landlord aggregates the
+ * inert state). The payload enum admits only the ordinary roles, so this can
+ * never mint an administrator no matter who calls it.
+ * Promoting to landlord provisions the landlord aggregates the
  * rest of the backend requires — approval starts `pending` and the
  * subscription `pending_payment`, so the workspace still fails closed until
  * the normal approval and payment paths run.
@@ -235,7 +244,8 @@ export const userChangeRole: CommandHandler<z.infer<typeof changeRoleSchema>> = 
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
   async apply({ tx, db, actor, cmd, now }) {
-    requireSuperAdmin(actor);
+    requirePlatformAdmin(actor);
+    await requireActiveAccount(tx, db, actor);
     const targetUid = cmd.aggregateId!;
     if (targetUid === actor.uid) throw new DomainError('PERMISSION_DENIED');
     const ref = db.collection(COLLECTIONS.users).doc(targetUid);

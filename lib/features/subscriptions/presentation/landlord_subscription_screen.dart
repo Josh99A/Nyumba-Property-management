@@ -76,14 +76,28 @@ class _LandlordSubscriptionScreenState
     }
   }
 
-  Future<void> _choosePlan(String tier, String planName) async {
+  /// Records intent to pay for [tier] via `subscription.selectPlan`. The
+  /// command itself carries no billing channel — only `requestUpgrade` (paid
+  /// plan changes) does — so [channel] only shapes which toast plays: cash
+  /// tells the landlord what to do next and that they'll hear back by email;
+  /// electronic methods aren't wired up yet and say so.
+  Future<void> _choosePlan(
+    String tier,
+    String planName,
+    UpgradeBillingChannel channel,
+  ) async {
     setState(() => _selectingTier = tier);
+    final copy = appLocalizationsOf(context);
     try {
       await ref.read(selectSubscriptionPlanProvider)(tier);
       if (!mounted) return;
       showNyumbaToast(
-        appLocalizationsOf(context).subscriptionPlanSelected(planName),
-        variant: NyumbaToastVariant.success,
+        channel == UpgradeBillingChannel.cash
+            ? copy.subscriptionPlanReservedCashToast(planName)
+            : copy.subscriptionInitialElectronicComingSoon,
+        variant: channel == UpgradeBillingChannel.cash
+            ? NyumbaToastVariant.success
+            : NyumbaToastVariant.info,
       );
     } on Object catch (error) {
       if (!mounted) return;
@@ -96,12 +110,41 @@ class _LandlordSubscriptionScreenState
     }
   }
 
+  /// Asks how the landlord intends to pay for [tier] before reserving it —
+  /// the pre-payment counterpart to [_chooseUpgradeMethod]. Only cash does
+  /// anything today; mobile money and card are offered so the option is
+  /// visible, but activate nobody until an aggregator is wired up.
+  Future<void> _chooseInitialPaymentMethod(String tier, String planName) async {
+    final copy = appLocalizationsOf(context);
+    final channel = await _pickBillingChannel(
+      title: copy.subscriptionChooseInitialPaymentMethodTitle(planName),
+      subtitle: copy.subscriptionChooseInitialPaymentMethodSubtitle,
+    );
+    if (channel == null || !mounted) return;
+    await _choosePlan(tier, planName, channel);
+  }
+
   /// Asks how the landlord will pay, then requests the upgrade on that
   /// channel. Cash goes to admin verification; mobile money and card are the
   /// electronic auto-upgrade path (fail-closed until an aggregator is live).
   Future<void> _chooseUpgradeMethod(String tier, String planName) async {
     final copy = appLocalizationsOf(context);
-    final channel = await showModalBottomSheet<UpgradeBillingChannel>(
+    final channel = await _pickBillingChannel(
+      title: copy.subscriptionChoosePaymentMethodTitle(planName),
+      subtitle: copy.subscriptionChoosePaymentMethodSubtitle,
+    );
+    if (channel == null || !mounted) return;
+    await _requestUpgrade(tier, planName, channel);
+  }
+
+  /// The billing-channel bottom sheet shared by the pre-payment and upgrade
+  /// flows — only its heading text differs between them.
+  Future<UpgradeBillingChannel?> _pickBillingChannel({
+    required String title,
+    required String subtitle,
+  }) {
+    final copy = appLocalizationsOf(context);
+    return showModalBottomSheet<UpgradeBillingChannel>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
@@ -112,14 +155,14 @@ class _LandlordSubscriptionScreenState
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 2, 20, 2),
               child: Text(
-                copy.subscriptionChoosePaymentMethodTitle(planName),
+                title,
                 style: Theme.of(sheetContext).textTheme.titleMedium,
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
               child: Text(
-                copy.subscriptionChoosePaymentMethodSubtitle,
+                subtitle,
                 style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
                   color: sheetContext.nyumba.mutedInk,
                 ),
@@ -153,8 +196,6 @@ class _LandlordSubscriptionScreenState
         ),
       ),
     );
-    if (channel == null || !mounted) return;
-    await _requestUpgrade(tier, planName, channel);
   }
 
   /// Requests a paid plan change on the chosen billing channel. Entitlements
@@ -336,8 +377,10 @@ class _LandlordSubscriptionScreenState
                               catalog[presentation.tier]?.displayName ??
                               _fallbackPlanName(copy, presentation.tier);
                           if (!active) {
-                            return () =>
-                                _choosePlan(presentation.tier, planName);
+                            return () => _chooseInitialPaymentMethod(
+                              presentation.tier,
+                              planName,
+                            );
                           }
                           if (index > currentTierIndex &&
                               currentTierIndex != -1 &&

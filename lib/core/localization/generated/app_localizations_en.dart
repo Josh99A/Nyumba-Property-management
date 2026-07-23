@@ -2638,6 +2638,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'Mobile money and card payments are coming soon. For now, choose Cash to upgrade — an admin activates it once your payment is verified.';
 
   @override
+  String subscriptionChooseInitialPaymentMethodTitle(String plan) {
+    return 'Pay for $plan';
+  }
+
+  @override
+  String get subscriptionChooseInitialPaymentMethodSubtitle =>
+      'Choose how you\'ll pay to activate this plan.';
+
+  @override
+  String subscriptionPlanReservedCashToast(String plan) {
+    return '$plan plan reserved. Pay Nyumba in cash, then wait for approval — check your email once it\'s confirmed, and your workspace opens automatically.';
+  }
+
+  @override
+  String get subscriptionInitialElectronicComingSoon =>
+      'Mobile money and card payments are coming soon — you\'ll get automatic access once available. For now, pay Nyumba in cash to activate manually.';
+
+  @override
   String subscriptionRenewsOn(String date) {
     return 'Renews on $date';
   }
