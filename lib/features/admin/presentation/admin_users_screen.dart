@@ -1227,7 +1227,9 @@ class _AccountMenu extends StatelessWidget {
               ),
             ),
           },
-        if (live && canManage && isSuperAdmin && !archived) ...[
+        // Reversible lifecycle actions are open to any administrator; only the
+        // permanent delete below stays behind the super-admin claim.
+        if (live && canManage && !archived) ...[
           const PopupMenuItem(
             value: 'change-role',
             child: ListTile(
@@ -1245,7 +1247,7 @@ class _AccountMenu extends StatelessWidget {
             ),
           ),
         ],
-        if (live && canManage && isSuperAdmin && archived) ...[
+        if (live && canManage && archived)
           const PopupMenuItem(
             value: 'restore-archived',
             child: ListTile(
@@ -1254,6 +1256,7 @@ class _AccountMenu extends StatelessWidget {
               title: Text.localized('Restore from archive'),
             ),
           ),
+        if (live && canManage && isSuperAdmin && archived)
           PopupMenuItem(
             value: 'delete-permanently',
             child: ListTile(
@@ -1268,7 +1271,6 @@ class _AccountMenu extends StatelessWidget {
               ),
             ),
           ),
-        ],
       ],
       icon: const Icon(Icons.more_horiz_rounded),
     );

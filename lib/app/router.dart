@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../features/admin/presentation/admin_overview_screen.dart';
 import '../features/admin/presentation/admin_access_operations_screen.dart';
 import '../features/admin/presentation/admin_broadcast_screen.dart';
+import '../features/admin/presentation/admin_portfolio_screen.dart';
 import '../features/admin/presentation/admin_reports_screen.dart';
 import '../features/admin/presentation/admin_subscriptions_screen.dart';
 import '../features/admin/presentation/admin_users_screen.dart';
@@ -265,6 +266,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 pageBuilder: (context, state) => _transitionPage(
                   state: state,
                   child: const AdminBroadcastScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'portfolio',
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const AdminPortfolioScreen(),
                 ),
               ),
             ],

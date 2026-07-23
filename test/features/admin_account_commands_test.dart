@@ -27,6 +27,9 @@ void main() {
   PlatformAccount landlord({
     int? accountVersion = 3,
     int? subscriptionVersion = 2,
+    // `user.*` commands version against the profile document, not the
+    // landlord aggregate the approval transitions use.
+    int? userVersion = 5,
   }) => PlatformAccount(
     uid: 'landlord-uid',
     displayName: 'Sandra Nakato',
@@ -34,6 +37,7 @@ void main() {
     roleLabel: 'Landlord',
     status: PlatformAccountStatus.pendingApproval,
     joinedLabel: '12 Mar 2026',
+    userVersion: userVersion,
     landlordAccountVersion: accountVersion,
     subscriptionTier: 'starter',
     subscriptionStatus: PlatformSubscriptionStatus.pendingPayment,
@@ -145,5 +149,115 @@ void main() {
       throwsStateError,
     );
     expect(sent, isEmpty);
+  });
+
+  // Archiving is reversible, so it moved to the ordinary admin claim alongside
+  // the server gate. Only the permanent delete stayed behind super admin.
+  test('an ordinary admin may archive and restore an account', () async {
+    final (container, sent) = harness();
+    await container
+        .read(adminAccountCommandsProvider)
+        .archiveUser(account: landlord(), reasonCode: 'POLICY_VIOLATION');
+    await container
+        .read(adminAccountCommandsProvider)
+        .restoreUser(account: landlord(), reasonCode: 'APPEAL_APPROVED');
+
+    expect(
+      sent.map((envelope) => envelope['type']),
+      ['user.archive', 'user.restore'],
+    );
+  });
+
+  test('an ordinary admin cannot permanently delete an account', () {
+    final (container, sent) = harness();
+    expect(
+      () => container
+          .read(adminAccountCommandsProvider)
+          .deleteUser(account: landlord(), reasonCode: 'USER_REQUESTED'),
+      throwsStateError,
+    );
+    expect(sent, isEmpty);
+  });
+
+  group('portfolio purges', () {
+    const superAdmin = UserSession(
+      userId: 'super-uid',
+      displayName: 'Nyumba Super Admin',
+      email: 'super@nyumba.ug',
+      role: AppRole.superAdmin,
+    );
+
+    test('a super admin purge carries the aggregate version and reason', () async {
+      final (container, sent) = harness(session: superAdmin);
+      await container
+          .read(adminPurgeCommandsProvider)
+          .deleteProperty(
+            propertyId: 'property-1',
+            expectedVersion: 4,
+            reasonCode: 'DATA_RETENTION',
+          );
+
+      final envelope = sent.single;
+      expect(envelope['type'], 'property.delete');
+      expect(envelope['aggregateId'], 'property-1');
+      expect(envelope['expectedVersion'], 4);
+      expect(envelope['payload'], {'reasonCode': 'DATA_RETENTION'});
+    });
+
+    test('every purge maps to its own command', () async {
+      final (container, sent) = harness(session: superAdmin);
+      final commands = container.read(adminPurgeCommandsProvider);
+      await commands.deleteUnit(
+        unitId: 'unit-1',
+        expectedVersion: 2,
+        reasonCode: 'ADMIN_CORRECTION',
+      );
+      await commands.deleteListing(
+        listingId: 'listing-1',
+        expectedVersion: 1,
+        reasonCode: 'POLICY_VIOLATION',
+      );
+      await commands.purgeDocument(
+        documentId: 'document-1',
+        expectedVersion: 3,
+        reasonCode: 'USER_REQUESTED',
+      );
+
+      expect(sent.map((envelope) => envelope['type']), [
+        'unit.delete',
+        'listing.delete',
+        'document.purge',
+      ]);
+    });
+
+    test('an ordinary admin cannot purge anything', () {
+      final (container, sent) = harness();
+      expect(
+        () => container
+            .read(adminPurgeCommandsProvider)
+            .deleteProperty(
+              propertyId: 'property-1',
+              expectedVersion: 4,
+              reasonCode: 'DATA_RETENTION',
+            ),
+        throwsStateError,
+      );
+      expect(sent, isEmpty);
+    });
+
+    test('a reason the server would reject never leaves the device', () {
+      final (container, sent) = harness(session: superAdmin);
+      expect(
+        () => container
+            .read(adminPurgeCommandsProvider)
+            .deleteUnit(
+              unitId: 'unit-1',
+              expectedVersion: 2,
+              reasonCode: 'BECAUSE_I_SAID_SO',
+            ),
+        throwsStateError,
+      );
+      expect(sent, isEmpty);
+    });
   });
 }

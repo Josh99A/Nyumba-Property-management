@@ -19,7 +19,8 @@ Deployment configuration:
 - Region is finalized as `europe-west1`.
 - `TBD_NYUMBA_*_PROJECT_ID` for dev/staging/prod
 - `TBD_PAYMENT_PROVIDER` and Secret Manager secret names
-- Plan prices and unit limits are seeded by `scripts/seed-entitlements.mjs` and edited at runtime by super admins via `plan.update` (docs/architecture/subscription-tiers.md records the launch prices); trials and grace periods remain TBD
+- Plan prices and unit limits are seeded by `scripts/seed-entitlements.mjs` and edited at runtime by administrators via `plan.update` (docs/architecture/subscription-tiers.md records the launch prices); trials and grace periods remain TBD
+- The `superAdmin` claim gates exactly the irreversible commands — `user.delete`, `property.delete`, `unit.delete`, `listing.delete`, `document.purge` (see `src/commands/purge.ts`). Everything else an administrator does is reversible and needs only `platformAdmin`
 - Listing lifetime and upload limits are finalized in `docs/architecture/README.md`; retry and operational retention policies remain deployment-reviewed.
 
 Do not replace a placeholder with a guessed production value. Unknown plan/payment/publication configuration must fail closed.

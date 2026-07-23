@@ -1,7 +1,11 @@
 import 'unit.dart';
 
 abstract interface class UnitRepository {
-  Stream<List<Unit>> watchAll({String? propertyId, String? landlordId});
+  Stream<List<Unit>> watchAll({
+    String? propertyId,
+    String? landlordId,
+    bool includeArchived = false,
+  });
   Stream<Unit?> watchById(String id);
   Future<List<Unit>> getAll({
     String? propertyId,

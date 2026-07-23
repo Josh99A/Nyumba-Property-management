@@ -184,16 +184,20 @@ final class SembastUnitRepository implements UnitRepository {
   }
 
   @override
-  Stream<List<Unit>> watchAll({String? propertyId, String? landlordId}) =>
-      _database
-          .watchEntities(OfflineEntityType.unit)
-          .map(
-            (items) => _filterAndSort(
-              items.map(UnitMapper.fromJson),
-              propertyId: propertyId,
-              landlordId: landlordId,
-            ),
-          );
+  Stream<List<Unit>> watchAll({
+    String? propertyId,
+    String? landlordId,
+    bool includeArchived = false,
+  }) => _database
+      .watchEntities(OfflineEntityType.unit)
+      .map(
+        (items) => _filterAndSort(
+          items.map(UnitMapper.fromJson),
+          propertyId: propertyId,
+          landlordId: landlordId,
+          includeArchived: includeArchived,
+        ),
+      );
 
   @override
   Stream<Unit?> watchById(String id) => _database

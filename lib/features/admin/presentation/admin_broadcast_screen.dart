@@ -181,22 +181,23 @@ class _AdminBroadcastScreenState extends ConsumerState<AdminBroadcastScreen> {
         ],
       );
     }
-    final isSuperAdmin =
-        ref.watch(sessionControllerProvider)?.role == AppRole.superAdmin;
+    final role = ref.watch(sessionControllerProvider)?.role;
+    final canBroadcast =
+        role == AppRole.admin || role == AppRole.superAdmin;
     return AdminPage(
       title: 'Announcements',
       description:
           'Platform-wide notices for incidents, maintenance, and commercial '
           'updates. Delivery is audited and runs server-side.',
       children: [
-        if (isSuperAdmin)
+        if (canBroadcast)
           _buildCompose(context)
         else
           const NyumbaSurface(
             child: AdminEmptyState(
-              title: 'Super administrators only',
+              title: 'Administrators only',
               message:
-                  'Sending a platform broadcast is restricted to super '
+                  'Sending a platform broadcast is restricted to platform '
                   'administrators. The history below stays visible to all '
                   'platform staff.',
               icon: Icons.lock_outline_rounded,

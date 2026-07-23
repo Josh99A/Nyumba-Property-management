@@ -13,6 +13,7 @@ import {
   movePrivateDocument,
   publishListingMedia,
   purgeDocument,
+  purgeStorageObjects,
 } from './media-publication';
 import { fanoutBroadcast } from './broadcast-fanout';
 import { fanoutNotice } from './notice-fanout';
@@ -53,6 +54,7 @@ const processors = new Map<string, JobProcessor>([
   ['cleanupListingMedia', cleanupListingMedia],
   ['movePrivateDocument', movePrivateDocument],
   ['purgeDocument', purgeDocument],
+  ['purgeStorageObjects', purgeStorageObjects],
   ['noticeFanout', fanoutNotice],
   ['broadcastFanout', fanoutBroadcast],
   ['unpublishLandlordListings', unpublishLandlordListings],

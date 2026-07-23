@@ -240,21 +240,17 @@ describe('command router', () => {
     expect(await executeCommandCore(db, superAdmin, superAdminApproval, now)).toMatchObject({ status: 'applied' });
   });
 
-  it('lets only a Super Admin archive, restore, and delete a user account', async () => {
+  it('lets any administrator archive and restore, but reserves permanent deletion for a Super Admin', async () => {
     await seedLandlord();
     await db.doc(`users/${landlord.uid}`).set({
       id: landlord.uid, displayName: 'Landlord', email: 'landlord@nyumba.test', role: 'landlord',
       status: 'active', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
     });
 
-    // A platform admin without the super-admin claim cannot archive.
-    const adminAttempt = envelope('command_user_arch_0', 'user.archive', landlord.uid, 1, { reasonCode: 'POLICY_VIOLATION' });
-    expect(await executeCommandCore(db, admin, adminAttempt, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
-
-    // A super admin cannot act on their own account.
-    await db.doc(`users/${superAdmin.uid}`).set({ id: superAdmin.uid, role: 'client', status: 'active', version: 1, isDeleted: false });
-    const selfAttempt = envelope('command_user_arch_1', 'user.archive', superAdmin.uid, 1, { reasonCode: 'ADMIN_CORRECTION' });
-    expect(await executeCommandCore(db, superAdmin, selfAttempt, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+    // No administrator may act on their own account, whatever the claim.
+    await db.doc(`users/${admin.uid}`).set({ id: admin.uid, role: 'client', status: 'active', version: 1, isDeleted: false });
+    const selfAttempt = envelope('command_user_arch_1', 'user.archive', admin.uid, 1, { reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, admin, selfAttempt, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
 
     // Delete is only allowed out of the archive.
     const premature = envelope('command_user_del_0', 'user.delete', landlord.uid, 1, { reasonCode: 'ADMIN_CORRECTION' });
@@ -262,9 +258,10 @@ describe('command router', () => {
       status: 'rejected', error: { code: 'VALIDATION_FAILED', details: { reason: 'notArchived' } },
     });
 
-    // Archive marks the profile, disables sign-in, and unpublishes listings.
+    // Archiving is reversible, so a platform admin may do it: the profile is
+    // marked, sign-in is disabled, and listings come down.
     const archive = envelope('command_user_arch_2', 'user.archive', landlord.uid, 1, { reasonCode: 'POLICY_VIOLATION' });
-    expect(await executeCommandCore(db, superAdmin, archive, now)).toMatchObject({ status: 'accepted' });
+    expect(await executeCommandCore(db, admin, archive, now)).toMatchObject({ status: 'accepted' });
     expect((await db.doc(`users/${landlord.uid}`).get()).data()).toMatchObject({ status: 'archived', archiveReasonCode: 'POLICY_VIOLATION', version: 2 });
     expect((await db.doc('backendJobs/command_user_arch_2_disable').get()).data()).toMatchObject({
       type: 'setAuthUserDisabled',
@@ -277,13 +274,13 @@ describe('command router', () => {
     });
     expect((await db.doc('backendJobs/command_user_arch_2_unpublish').get()).data()).toMatchObject({ type: 'unpublishLandlordListings' });
     const again = envelope('command_user_arch_3', 'user.archive', landlord.uid, 2, { reasonCode: 'POLICY_VIOLATION' });
-    expect(await executeCommandCore(db, superAdmin, again, now)).toMatchObject({
+    expect(await executeCommandCore(db, admin, again, now)).toMatchObject({
       status: 'rejected', error: { code: 'VALIDATION_FAILED', details: { reason: 'alreadyArchived' } },
     });
 
     // Restore returns the account to active and re-enables sign-in.
     const restore = envelope('command_user_rest_1', 'user.restore', landlord.uid, 2, { reasonCode: 'APPEAL_APPROVED' });
-    expect(await executeCommandCore(db, superAdmin, restore, now)).toMatchObject({ status: 'accepted' });
+    expect(await executeCommandCore(db, admin, restore, now)).toMatchObject({ status: 'accepted' });
     expect((await db.doc(`users/${landlord.uid}`).get()).data()).toMatchObject({ status: 'active', archiveReasonCode: null, version: 3 });
     expect((await db.doc('backendJobs/command_user_rest_1_enable').get()).data()).toMatchObject({
       type: 'setAuthUserDisabled',
@@ -295,23 +292,132 @@ describe('command router', () => {
       },
     });
 
-    // Delete from the archive tombstones the profile and enqueues Auth deletion.
+    // Permanent deletion is where the claims diverge: the same archived
+    // account an admin created cannot be destroyed by that admin.
     const rearchive = envelope('command_user_arch_4', 'user.archive', landlord.uid, 3, { reasonCode: 'USER_REQUESTED' });
-    expect(await executeCommandCore(db, superAdmin, rearchive, now)).toMatchObject({ status: 'accepted' });
+    expect(await executeCommandCore(db, admin, rearchive, now)).toMatchObject({ status: 'accepted' });
+    const adminDelete = envelope('command_user_del_2', 'user.delete', landlord.uid, 4, { reasonCode: 'USER_REQUESTED' });
+    expect(await executeCommandCore(db, admin, adminDelete, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+
+    // Delete from the archive tombstones the profile and enqueues Auth deletion.
     const remove = envelope('command_user_del_1', 'user.delete', landlord.uid, 4, { reasonCode: 'USER_REQUESTED' });
     expect(await executeCommandCore(db, superAdmin, remove, now)).toMatchObject({ status: 'accepted' });
     expect((await db.doc(`users/${landlord.uid}`).get()).data()).toMatchObject({ isDeleted: true, deleteReasonCode: 'USER_REQUESTED', version: 5 });
     expect((await db.doc('backendJobs/command_user_del_1_delete').get()).data()).toMatchObject({ type: 'deleteAuthUser', payload: { uid: landlord.uid } });
   });
 
-  it('lets only a Super Admin change ordinary roles, provisioning landlord aggregates on promotion', async () => {
+  it('purges archived portfolio records only for a Super Admin, and only bottom-up', async () => {
+    await seedLandlord();
+    await executeCommandCore(db, landlord, envelope('command_purge_seed', 'unit.create', 'unit_123456', 0, unitPayload()), now);
+
+    // A live record is never purgeable: the archive is the required first step.
+    const live = envelope('command_purge_0', 'property.delete', 'property_1234', 1, { reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, superAdmin, live, now)).toMatchObject({
+      status: 'rejected', error: { code: 'VALIDATION_FAILED', details: { reason: 'notArchived' } },
+    });
+
+    await executeCommandCore(db, landlord, envelope('command_purge_1', 'unit.archive', 'unit_123456', 1, {}), now);
+    await executeCommandCore(db, landlord, envelope('command_purge_2', 'property.archive', 'property_1234', 1, {}), now);
+
+    // An archived unit still references the property, and purging the parent
+    // would orphan it past recovery — the child has to go first.
+    const parentFirst = envelope('command_purge_3', 'property.delete', 'property_1234', 2, { reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, superAdmin, parentFirst, now)).toMatchObject({
+      status: 'rejected', error: { code: 'VALIDATION_FAILED', details: { reason: 'propertyHasUnits' } },
+    });
+
+    // Permanent deletion is closed to an ordinary platform admin.
+    const adminAttempt = envelope('command_purge_4', 'unit.delete', 'unit_123456', 2, { reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, admin, adminAttempt, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+
+    const removeUnit = envelope('command_purge_5', 'unit.delete', 'unit_123456', 2, { reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, superAdmin, removeUnit, now)).toMatchObject({ status: 'applied' });
+    expect((await db.doc('units/unit_123456').get()).exists).toBe(false);
+    // The archive already decremented the counter; the purge must not repeat it.
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()?.activeUnitCount).toBe(0);
+
+    // Staged photos never reach a server-owned prefix, so they are swept by an
+    // explicit path list rather than by prefix.
+    await db.doc('properties/property_1234').update({ stagedImagePaths: ['uploads/landlord_1234/cmd/a.jpg'] });
+    const removeProperty = envelope('command_purge_6', 'property.delete', 'property_1234', 2, { reasonCode: 'DATA_RETENTION' });
+    expect(await executeCommandCore(db, superAdmin, removeProperty, now)).toMatchObject({ status: 'accepted' });
+    expect((await db.doc('properties/property_1234').get()).exists).toBe(false);
+    expect((await db.doc('backendJobs/command_purge_6_media').get()).data()).toMatchObject({
+      type: 'purgeStorageObjects', payload: { paths: ['uploads/landlord_1234/cmd/a.jpg'] },
+    });
+  });
+
+  it('purges listings and documents that are already out of circulation', async () => {
+    await seedLandlord();
+    await db.doc('privateListings/listing_1234').set({
+      id: 'listing_1234', landlordId: landlord.uid, unitId: 'unit_123456', publicationState: 'published',
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('publicListings/listing_1234').set({
+      id: 'listing_1234', status: 'published', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+
+    // A live advert must be unpublished first, so the ordinary retirement path
+    // clears the unit pointer and the account's listing counter.
+    const published = envelope('command_lpurge_0', 'listing.delete', 'listing_1234', 1, { reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, superAdmin, published, now)).toMatchObject({
+      status: 'rejected', error: { code: 'VALIDATION_FAILED', details: { reason: 'listingStillPublished' } },
+    });
+
+    await db.doc('privateListings/listing_1234').update({ publicationState: 'expired' });
+    const adminAttempt = envelope('command_lpurge_1', 'listing.delete', 'listing_1234', 1, { reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, admin, adminAttempt, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+
+    // Both projections go together — a surviving public row would advertise a
+    // listing with no private record behind it.
+    const remove = envelope('command_lpurge_2', 'listing.delete', 'listing_1234', 1, { reasonCode: 'POLICY_VIOLATION' });
+    expect(await executeCommandCore(db, superAdmin, remove, now)).toMatchObject({ status: 'accepted' });
+    expect((await db.doc('privateListings/listing_1234').get()).exists).toBe(false);
+    expect((await db.doc('publicListings/listing_1234').get()).exists).toBe(false);
+    expect((await db.doc('backendJobs/command_lpurge_2_cleanup').get()).data()).toMatchObject({
+      type: 'cleanupListingMedia', payload: { listingId: 'listing_1234' },
+    });
+
+    // A document must already be soft-deleted; purge only skips the wait.
+    await db.doc('documents/document_1234').set({
+      id: 'document_1234', landlordId: landlord.uid, uploadedByUid: landlord.uid, state: 'available',
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    const live = envelope('command_dpurge_0', 'document.purge', 'document_1234', 1, { reasonCode: 'ADMIN_CORRECTION' });
+    expect(await executeCommandCore(db, superAdmin, live, now)).toMatchObject({
+      status: 'rejected', error: { code: 'VALIDATION_FAILED', details: { reason: 'notDeleted' } },
+    });
+
+    await db.doc('documents/document_1234').update({ isDeleted: true, state: 'deleted' });
+    const purge = envelope('command_dpurge_1', 'document.purge', 'document_1234', 1, { reasonCode: 'USER_REQUESTED' });
+    expect(await executeCommandCore(db, superAdmin, purge, now)).toMatchObject({ status: 'accepted' });
+    expect((await db.doc('backendJobs/command_dpurge_1_purge').get()).data()).toMatchObject({
+      type: 'purgeDocument', payload: { documentId: 'document_1234' },
+    });
+  });
+
+  it('defers the scheduled document purge to the end of the retention window', async () => {
+    await seedLandlord();
+    await db.doc('documents/document_5678').set({
+      id: 'document_5678', landlordId: landlord.uid, uploadedByUid: landlord.uid, state: 'available',
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    const remove = envelope('command_ddel_1', 'document.delete', 'document_5678', 1, {});
+    expect(await executeCommandCore(db, landlord, remove, now)).toMatchObject({ status: 'accepted' });
+
+    // Soft deletion is only honest if the file survives the window: the job
+    // must not become claimable until purgeAt.
+    const job = (await db.doc('backendJobs/command_ddel_1_purge').get()).data();
+    const purgeAt = (await db.doc('documents/document_5678').get()).data()?.purgeAt as Timestamp;
+    expect(purgeAt.toMillis()).toBe(now.toMillis() + 90 * 24 * 60 * 60 * 1000);
+    expect((job?.nextAttemptAt as Timestamp).toMillis()).toBe(purgeAt.toMillis());
+  });
+
+  it('lets any administrator change ordinary roles, provisioning landlord aggregates on promotion', async () => {
     await db.doc('users/tenant_roleup_1').set({
       id: 'tenant_roleup_1', displayName: 'Tenant', role: 'tenant',
       status: 'active', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
     });
-
-    const adminAttempt = envelope('command_role_0', 'user.changeRole', 'tenant_roleup_1', 1, { role: 'landlord', reasonCode: 'ADMIN_CORRECTION' });
-    expect(await executeCommandCore(db, admin, adminAttempt, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
 
     await db.doc(`users/${superAdmin.uid}`).set({ id: superAdmin.uid, role: 'client', status: 'active', version: 1, isDeleted: false });
     const selfAttempt = envelope('command_role_1', 'user.changeRole', superAdmin.uid, 1, { role: 'landlord', reasonCode: 'ADMIN_CORRECTION' });
@@ -323,8 +429,10 @@ describe('command router', () => {
     });
 
     // Promotion provisions the landlord aggregates in the fail-closed states.
+    // A platform admin is enough: the payload enum cannot name an admin role,
+    // so this can never escalate anyone into the administrator claims.
     const promote = envelope('command_role_3', 'user.changeRole', 'tenant_roleup_1', 1, { role: 'landlord', reasonCode: 'IDENTITY_VERIFIED' });
-    expect(await executeCommandCore(db, superAdmin, promote, now)).toMatchObject({ status: 'applied' });
+    expect(await executeCommandCore(db, admin, promote, now)).toMatchObject({ status: 'applied' });
     expect((await db.doc('users/tenant_roleup_1').get()).data()).toMatchObject({ role: 'landlord', roleChangeReasonCode: 'IDENTITY_VERIFIED', version: 2 });
     expect((await db.doc('landlordAccounts/tenant_roleup_1').get()).data()).toMatchObject({ ownerUid: 'tenant_roleup_1', approvalStatus: 'pending' });
     expect((await db.doc('subscriptions/tenant_roleup_1').get()).data()).toMatchObject({ status: 'pending_payment' });

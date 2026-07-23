@@ -1,7 +1,7 @@
 import { Timestamp, type Firestore, type Transaction } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, requireAggregate } from '../shared/aggregates';
-import { requirePlatformAdmin, requireSuperAdmin } from '../shared/actor';
+import { requirePlatformAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { loadEntitlements, planForTier } from '../shared/config';
 import { DomainError } from '../shared/errors';
@@ -564,7 +564,7 @@ interface PlanCatalogRecord {
 }
 
 /**
- * Super-admin editing of one plan's commercial terms: prices, yearly price,
+ * Administrator editing of one plan's commercial terms: prices, yearly price,
  * capacity limits, presentation copy, visibility, and the feature list with
  * its `implemented` flags. Writes `planCatalog/{tier}` (what clients render)
  * and, when a limit changes, the same values into
@@ -578,7 +578,7 @@ export const planUpdate: CommandHandler<z.infer<typeof updatePlanSchema>> = {
   aggregateIdMode: 'forbidden',
   expectedVersionMode: 'none',
   async apply({ tx, db, actor, cmd, now }) {
-    requireSuperAdmin(actor);
+    requirePlatformAdmin(actor);
     const { tier, expectedCatalogVersion, ...edits } = cmd.payload;
     const changedFields = EDITABLE_PLAN_FIELDS.filter((field) => edits[field] !== undefined);
     if (changedFields.length === 0) {

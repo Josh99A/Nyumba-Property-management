@@ -857,11 +857,12 @@ class _ServerCatalogPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final catalog = ref.watch(publicPlanCatalogProvider);
-    final isSuperAdmin =
-        ref.watch(sessionControllerProvider)?.role == AppRole.superAdmin;
+    final role = ref.watch(sessionControllerProvider)?.role;
+    final canEditPlans =
+        role == AppRole.admin || role == AppRole.superAdmin;
     return AdminPanel(
       title: 'Server plan catalog',
-      subtitle: isSuperAdmin
+      subtitle: canEditPlans
           ? 'planCatalog documents — edits run the audited plan.update command'
           : 'planCatalog documents — server-owned, read-only for this role',
       child: switch (catalog) {
@@ -915,7 +916,7 @@ class _ServerCatalogPanel extends ConsumerWidget {
                     ),
                   ),
                   const StatusBadge(label: 'Public', tone: BadgeTone.info),
-                  if (isSuperAdmin) ...[
+                  if (canEditPlans) ...[
                     const SizedBox(width: 6),
                     IconButton(
                       tooltip: context.tr('Edit plan'),

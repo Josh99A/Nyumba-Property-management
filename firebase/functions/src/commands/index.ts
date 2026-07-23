@@ -22,6 +22,7 @@ import {
 import { maintenanceAddComment, maintenanceCreate, maintenanceUpdateStatus } from './maintenance';
 import { listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from './listings';
 import { propertyArchive, propertyCreate, propertyUpdate, unitArchive, unitCreate, unitRestore, unitUpdate } from './portfolio';
+import { documentPurge, listingDelete, propertyDelete, unitDelete } from './purge';
 import { notificationMarkRead } from './notifications';
 import { reportRequest } from './reports';
 import { staffClaimInvite, staffInvite, staffRevoke, staffUpdatePermissions } from './staff';
@@ -66,10 +67,12 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['property.create', propertyCreate],
   ['property.update', propertyUpdate],
   ['property.archive', propertyArchive],
+  ['property.delete', propertyDelete],
   ['unit.create', unitCreate],
   ['unit.update', unitUpdate],
   ['unit.archive', unitArchive],
   ['unit.restore', unitRestore],
+  ['unit.delete', unitDelete],
   ['tenant.invite', tenantInvite],
   ['tenant.update', tenantUpdate],
   ['tenant.claimInvite', tenantClaimInvite],
@@ -95,10 +98,12 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['listing.publish', listingPublish],
   ['listing.unpublish', listingUnpublish],
   ['listing.renew', listingRenew],
+  ['listing.delete', listingDelete],
   ['application.submit', applicationSubmit],
   ['application.withdraw', applicationWithdraw],
   ['contact.submit', contactSubmit],
   ['document.finalizeUpload', documentFinalizeUpload],
   ['document.delete', documentDelete],
+  ['document.purge', documentPurge],
   ['report.request', reportRequest],
 ]);

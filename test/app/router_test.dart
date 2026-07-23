@@ -516,6 +516,7 @@ void main() {
         '/admin/access',
         '/admin/users',
         '/admin/subscriptions',
+        '/admin/portfolio',
         '/admin/reports',
         '/dashboard',
         '/properties',
