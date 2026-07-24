@@ -95,8 +95,8 @@ export async function notifyUser(
 
   // Browser-displayed web notifications do nothing on click unless FCM is
   // given an explicit link; native platforms route through the app's own
-  // message handlers instead. Web notifications use the same canonical
-  // production origin as transactional email rather than fragmenting traffic
+  // message handlers instead. Web notifications use the same canonical public
+  // origin as transactional email rather than fragmenting traffic
   // across Firebase's generated hosting hostname.
   const route = content.data?.route;
   const webpush = route

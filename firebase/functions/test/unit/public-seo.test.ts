@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   isActivePublicListing,
+  listingMediaPath,
+  publicListingImagePaths,
   renderExplorePage,
   renderListingPage,
   renderSitemap,
@@ -28,6 +30,11 @@ function projection(
     bedrooms: 2,
     bathrooms: 1,
     amenities: ['Parking', 'Security'],
+    imagePaths: [
+      'public/listings/listing_1234/0_living-room.png',
+      'public/listings/listing_1234/1_kitchen.png',
+      'public/listings/listing_1234/2_bedroom.png',
+    ],
     publishedAt: new Date('2026-07-20T08:00:00.000Z'),
     updatedAt: new Date('2026-07-23T08:00:00.000Z'),
     expiresAt: new Date('2026-08-20T08:00:00.000Z'),
@@ -49,6 +56,7 @@ function listing(overrides: Partial<PublicSeoListing> = {}): PublicSeoListing {
     bedrooms: 2,
     bathrooms: 1,
     amenities: ['Parking', 'Security'],
+    imageCount: 3,
     publishedAt: new Date('2026-07-20T08:00:00.000Z'),
     updatedAt: new Date('2026-07-23T08:00:00.000Z'),
     expiresAt: new Date('2026-08-20T08:00:00.000Z'),
@@ -88,6 +96,44 @@ describe('public SEO projection', () => {
     expect(result).not.toHaveProperty('landlordId');
     expect(result).not.toHaveProperty('contactEmail');
     expect(result).not.toHaveProperty('exactAddress');
+    expect(result).not.toHaveProperty('imagePaths');
+    expect(result?.imageCount).toBe(3);
+  });
+
+  it('accepts only server-published image paths owned by the listing', () => {
+    const paths = publicListingImagePaths('listing_1234', [
+      'public/listings/listing_1234/0_living-room.png',
+      'public/listings/another_listing/1_private.png',
+      'uploads/private/image.png',
+      'public/listings/listing_1234/../private.png',
+    ]);
+
+    expect(paths).toEqual([
+      'public/listings/listing_1234/0_living-room.png',
+    ]);
+    expect(listingMediaPath('listing_1234', 0)).toBe(
+      '/listing/listing_1234/media/0',
+    );
+  });
+
+  it('rejects malformed and unrecognized currency codes', () => {
+    expect(
+      toPublicSeoListing(
+        'listing_1234',
+        projection({ currency: 'ugx' }),
+        now,
+      ),
+    ).toBeNull();
+    expect(
+      toPublicSeoListing(
+        'listing_1234',
+        projection({ currency: 'ZZZ' }),
+        now,
+      ),
+    ).toBeNull();
+    expect(toPublicSeoListing('listing_1234', projection(), now)?.currency).toBe(
+      'UGX',
+    );
   });
 });
 
@@ -126,8 +172,20 @@ describe('public SEO rendering', () => {
 
     expect(html).toContain('<title>Rental Homes in Uganda | Nyumba</title>');
     expect(html).toContain('href="/listing/listing_1234"');
+    expect(html).toContain('src="/listing/listing_1234/media/0"');
     expect(html).toContain('Two-bedroom apartment');
     expect(html).toContain('UGX\u00a01,500,000 / month');
+    expect(html).not.toContain('public/listings/');
+  });
+
+  it('renders a responsive listing gallery without exposing storage paths', () => {
+    const html = renderListingPage(listing());
+
+    expect(html).toContain('class="seo-gallery ');
+    expect(html).toContain('src="/listing/listing_1234/media/0"');
+    expect(html).toContain('src="/listing/listing_1234/media/2"');
+    expect(html).toContain('summary_large_image');
+    expect(html).not.toContain('public/listings/');
   });
 
   it('generates canonical sitemap URLs with accurate last-modified values', () => {

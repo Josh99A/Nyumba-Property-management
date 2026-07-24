@@ -5,7 +5,7 @@ import { DomainError } from './errors';
 /** Finalized deployment region (docs/architecture/README.md). */
 export const REGION = 'europe-west1';
 
-/** Canonical production web origin (docs/architecture/README.md). */
+/** Planned canonical public origin (docs/architecture/README.md). */
 export const APP_ORIGIN = 'https://nyumba.online';
 
 /**

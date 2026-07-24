@@ -113,11 +113,18 @@ class AppDependencies {
 /// scope because their data is locally recorded and has no server pull to
 /// rebuild it from; every other role re-syncs on first open of its own scope.
 @visibleForTesting
-String workspaceScopeFor(UserSession? session) => session == null
-    ? 'anonymous'
-    : session.role == AppRole.tenant
-    ? 'account-${session.userId}'
-    : 'account-${session.userId}--${session.role.name}';
+String workspaceScopeFor(UserSession? session) {
+  if (session == null) return 'anonymous';
+  if (session.role == AppRole.tenant) return 'account-${session.userId}';
+
+  final roleScope = 'account-${session.userId}--${session.role.name}';
+  if (session.role != AppRole.staff) return roleScope;
+  final workspaceId =
+      session.activeProfile.workspaceId?.trim() ?? session.workspaceId?.trim();
+  return workspaceId == null || workspaceId.isEmpty
+      ? roleScope
+      : '$roleScope--workspace-$workspaceId';
+}
 
 /// Serializes workspace shutdown so a scope that is re-opened immediately
 /// after sign-out never races its predecessor's close.

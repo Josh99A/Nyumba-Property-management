@@ -90,6 +90,66 @@ String? firstFilled(Object? preferred, String? fallback) {
   return null;
 }
 
+typedef WorkspaceState = ({
+  AccountStatus accountStatus,
+  LandlordSubscriptionStatus subscriptionStatus,
+  String? tier,
+  String? requestedTier,
+});
+
+LandlordSubscriptionStatus _subscriptionStatusFromServer(String? status) =>
+    switch (status) {
+      'active' => LandlordSubscriptionStatus.active,
+      'pending_payment' ||
+      'trialing' => LandlordSubscriptionStatus.pendingPayment,
+      'past_due' => LandlordSubscriptionStatus.pastDue,
+      'canceled' => LandlordSubscriptionStatus.canceled,
+      'expired' => LandlordSubscriptionStatus.expired,
+      _ => LandlordSubscriptionStatus.unavailable,
+    };
+
+/// Reads and maps a landlord workspace without letting an unavailable server
+/// abort the surrounding session resolution.
+@visibleForTesting
+Future<WorkspaceState> loadWorkspaceState({
+  required AccountStatus fallbackStatus,
+  required Future<Map<String, dynamic>?> Function() readAccount,
+  required Future<Map<String, dynamic>?> Function() readSubscription,
+}) async {
+  var accountStatus = fallbackStatus;
+  try {
+    final accountData = await readAccount();
+    accountStatus = switch (accountData?['approvalStatus']?.toString()) {
+      'pending' => AccountStatus.pendingApproval,
+      'suspended' => AccountStatus.suspended,
+      _ => fallbackStatus,
+    };
+    final subscriptionData = await readSubscription();
+    final rawTier = subscriptionData?['tier'];
+    final rawRequestedTier = subscriptionData?['requestedTier'];
+    return (
+      accountStatus: accountStatus,
+      subscriptionStatus: _subscriptionStatusFromServer(
+        subscriptionData?['status']?.toString(),
+      ),
+      tier: rawTier is String && rawTier.trim().isNotEmpty
+          ? rawTier.trim()
+          : null,
+      requestedTier:
+          rawRequestedTier is String && rawRequestedTier.trim().isNotEmpty
+          ? rawRequestedTier.trim()
+          : null,
+    );
+  } on Object {
+    return (
+      accountStatus: accountStatus,
+      subscriptionStatus: LandlordSubscriptionStatus.unavailable,
+      tier: null,
+      requestedTier: null,
+    );
+  }
+}
+
 /// Lightweight command channel for auth-time flows (onboarding, invite
 /// claims). Separate from the per-workspace sync gateway because these
 /// commands run before any workspace exists.
@@ -584,45 +644,24 @@ class SessionController extends Notifier<UserSession?> {
 
   /// Reads a workspace's server-owned approval and subscription state — the
   /// owner's own for a landlord profile, the owner's for a staff profile.
-  Future<
-    ({
-      AccountStatus accountStatus,
-      LandlordSubscriptionStatus subscriptionStatus,
-      String? tier,
-      String? requestedTier,
-    })
-  >
-  _loadWorkspaceState(String workspaceUid, AccountStatus fallbackStatus) async {
-    final account = await FirebaseFirestore.instance
-        .collection('landlordAccounts')
-        .doc(workspaceUid)
-        .get(const GetOptions(source: Source.server));
-    final accountStatus = switch (account.data()?['approvalStatus']?.toString()) {
-      'pending' => AccountStatus.pendingApproval,
-      'suspended' => AccountStatus.suspended,
-      _ => fallbackStatus,
-    };
-    final subscription = await FirebaseFirestore.instance
-        .collection('subscriptions')
-        .doc(workspaceUid)
-        .get(const GetOptions(source: Source.server));
-    final subscriptionData = subscription.data();
-    final rawTier = subscriptionData?['tier'];
-    final rawRequestedTier = subscriptionData?['requestedTier'];
-    return (
-      accountStatus: accountStatus,
-      subscriptionStatus: _subscriptionStatusFromServer(
-        subscriptionData?['status']?.toString(),
-      ),
-      tier: rawTier is String && rawTier.trim().isNotEmpty
-          ? rawTier.trim()
-          : null,
-      requestedTier:
-          rawRequestedTier is String && rawRequestedTier.trim().isNotEmpty
-          ? rawRequestedTier.trim()
-          : null,
-    );
-  }
+  Future<WorkspaceState> _loadWorkspaceState(
+    String workspaceUid,
+    AccountStatus fallbackStatus,
+  ) => loadWorkspaceState(
+    fallbackStatus: fallbackStatus,
+    readAccount: () async =>
+        (await FirebaseFirestore.instance
+                .collection('landlordAccounts')
+                .doc(workspaceUid)
+                .get(const GetOptions(source: Source.server)))
+            .data(),
+    readSubscription: () async =>
+        (await FirebaseFirestore.instance
+                .collection('subscriptions')
+                .doc(workspaceUid)
+                .get(const GetOptions(source: Source.server)))
+            .data(),
+  );
 
   /// Whether any lease projection exists under this uid's tenant portal.
   /// Best-effort: an unreachable server reads as "no", and the probe reruns
@@ -854,18 +893,6 @@ class SessionController extends Notifier<UserSession?> {
     'pending' || 'pendingApproval' => AccountStatus.pendingApproval,
     'suspended' => AccountStatus.suspended,
     _ => AccountStatus.active,
-  };
-
-  static LandlordSubscriptionStatus _subscriptionStatusFromServer(
-    String? status,
-  ) => switch (status) {
-    'active' => LandlordSubscriptionStatus.active,
-    'pending_payment' ||
-    'trialing' => LandlordSubscriptionStatus.pendingPayment,
-    'past_due' => LandlordSubscriptionStatus.pastDue,
-    'canceled' => LandlordSubscriptionStatus.canceled,
-    'expired' => LandlordSubscriptionStatus.expired,
-    _ => LandlordSubscriptionStatus.unavailable,
   };
 
   static void _requireFirebase() {

@@ -163,7 +163,15 @@ void main() {
       expect(workspaceScopeFor(session), 'account-owner-1--landlord');
       expect(
         workspaceScopeFor(session.withActiveProfile(staffProfile)),
-        'account-owner-1--staff',
+        'account-owner-1--staff--workspace-other-owner',
+      );
+      const secondStaffWorkspace = SessionProfile(
+        role: AppRole.staff,
+        workspaceId: 'second-owner',
+      );
+      expect(
+        workspaceScopeFor(session.withActiveProfile(secondStaffWorkspace)),
+        'account-owner-1--staff--workspace-second-owner',
       );
       // Tenants keep the legacy unsuffixed scope: their locally recorded data
       // has no server pull to rebuild it from.
@@ -171,6 +179,54 @@ void main() {
         workspaceScopeFor(session.withActiveProfile(tenantProfile)),
         'account-owner-1',
       );
+    });
+  });
+
+  group('loadWorkspaceState', () {
+    test('preserves successful server mapping', () async {
+      final result = await loadWorkspaceState(
+        fallbackStatus: AccountStatus.active,
+        readAccount: () async => {'approvalStatus': 'pending'},
+        readSubscription: () async => {
+          'status': 'active',
+          'tier': ' starter ',
+          'requestedTier': ' pro ',
+        },
+      );
+
+      expect(result.accountStatus, AccountStatus.pendingApproval);
+      expect(result.subscriptionStatus, LandlordSubscriptionStatus.active);
+      expect(result.tier, 'starter');
+      expect(result.requestedTier, 'pro');
+    });
+
+    test('locks an unavailable workspace without throwing', () async {
+      final result = await loadWorkspaceState(
+        fallbackStatus: AccountStatus.active,
+        readAccount: () async => {'approvalStatus': 'suspended'},
+        readSubscription: () async => throw StateError('server unavailable'),
+      );
+
+      expect(result.accountStatus, AccountStatus.suspended);
+      expect(result.subscriptionStatus, LandlordSubscriptionStatus.unavailable);
+      expect(result.tier, isNull);
+      expect(result.requestedTier, isNull);
+
+      var subscriptionRead = false;
+      final accountFailure = await loadWorkspaceState(
+        fallbackStatus: AccountStatus.pendingApproval,
+        readAccount: () async => throw StateError('server unavailable'),
+        readSubscription: () async {
+          subscriptionRead = true;
+          return {'status': 'active'};
+        },
+      );
+      expect(accountFailure.accountStatus, AccountStatus.pendingApproval);
+      expect(
+        accountFailure.subscriptionStatus,
+        LandlordSubscriptionStatus.unavailable,
+      );
+      expect(subscriptionRead, isFalse);
     });
   });
 }

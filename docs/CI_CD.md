@@ -7,7 +7,7 @@ The pipeline lives in [`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd
 | Trigger | Jobs |
 | --- | --- |
 | Pull request to `main` | Analyze + tests only |
-| Push to `main` | Analyze + tests → deploy web to Firebase Hosting at <https://nyumba.online> (live) + build APK + build unsigned IPA (artifacts) |
+| Push to `main` | Analyze + tests → deploy Firestore rules/indexes, Storage rules, and Functions → deploy web to the development Firebase Hosting live channel at <https://nyumba.online> + build APK + build unsigned IPA (artifacts) |
 | Push a tag `v*` (e.g. `v1.0.0`) | Analyze + tests → build APK + IPA → attach both to a GitHub Release |
 | Manual (`workflow_dispatch`) | Same as push to `main` |
 
@@ -46,12 +46,14 @@ Base64 of `android/app/google-services.json`:
 
 ### 3. `FIREBASE_SERVICE_ACCOUNT`
 
-A Google Cloud service account key used by the hosting deploy action:
+A Google Cloud service account key used by the backend and Hosting deploys:
 
 1. Open <https://console.firebase.google.com/project/nyumba-property-management/settings/serviceaccounts/adminsdk>
    and click **Generate new private key** (or create a dedicated service
-   account with the *Firebase Hosting Admin* role in the Google Cloud
-   console — preferred, least privilege).
+   deployment account). The current workflow requires Firebase Admin, Cloud
+   Functions Admin, Service Account User, and Firebase Hosting Admin on the
+   development project; scope each grant to that project or the runtime service
+   account it must impersonate.
 2. Save the downloaded JSON, then:
 
 ```powershell

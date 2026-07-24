@@ -155,10 +155,12 @@ dart pub global run flutterfire_cli:flutterfire configure --project nyumba-prope
 
 This writes `lib/firebase_options.dart` and the platform files (`android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`), all covered by `.gitignore`. These are client identifiers, not secrets — real protection comes from Security Rules, App Check, and API-key restrictions in the Google Cloud console — but keeping them out of the repository keeps environments explicit and prevents accidental cross-environment builds. Service accounts, `.env` files, and signing keys are likewise ignored and must never be committed.
 
-The canonical production web origin is <https://nyumba.online>, served by the
-`nyumba-property-management` Firebase Hosting site. This settles the public
-domain; it does not replace the still-pending work to create separate staging
-and production Firebase projects.
+The current public web origin is <https://nyumba.online>, served by the
+`nyumba-property-management` **development** Firebase Hosting site. It is not a
+production deployment. The same domain is reserved as the planned canonical
+production origin, but it must not be described or operated as production until
+a separate production Firebase project is provisioned and the domain is mapped
+to it.
 
 Deployed to the development project: callable command handlers
 (`executeCommand`), the read-only public SEO renderer (`publicSeo`), the auth
@@ -214,7 +216,7 @@ npm run test:emulator   # rules + command integration against the emulator
 
 ## CI/CD
 
-The pipeline in `.github/workflows/ci-cd.yml` analyzes and tests every pull request. On push to `main` it additionally deploys the web app to Firebase Hosting (live channel) and produces an APK and unsigned IPA as workflow artifacts; pushing a `v*` tag attaches both builds to a GitHub Release. The gitignored Firebase configuration is recreated in CI from repository secrets — see [docs/CI_CD.md](docs/CI_CD.md) for the required secrets and setup commands.
+The pipeline in `.github/workflows/ci-cd.yml` analyzes and tests every pull request. On push to `main` it additionally deploys Firestore rules/indexes, Storage rules, and Functions before the web app's Firebase Hosting live channel, and produces an APK and unsigned IPA as workflow artifacts. These deployments currently target the development project. Pushing a `v*` tag attaches both builds to a GitHub Release. The gitignored Firebase configuration is recreated in CI from repository secrets — see [docs/CI_CD.md](docs/CI_CD.md) for the required secrets and setup commands.
 
 ## Supported platforms
 
@@ -230,7 +232,9 @@ Finalized decisions (mirrored in [`lib/core/config/market_config.dart`](lib/core
 
 - **Market:** Uganda only at launch — UGX currency, `+256` E.164 phone numbers, `Africa/Kampala` reporting timezone. Payment rails: MTN Mobile Money, Airtel Money, bank transfer, landlord-recorded cash. Uganda VAT (18%) on subscription fees is computed server-side.
 - **Firebase region:** `europe-west1` (Firestore, Cloud Functions, Storage).
-- **Production web origin:** <https://nyumba.online> on Firebase Hosting.
+- **Planned production web origin:** <https://nyumba.online> on Firebase
+  Hosting. The domain currently serves the development project
+  (`nyumba-property-management`); the production project ID is still TBD.
 - **Listing lifetime:** published listings expire 30 days after (re)publication and are renewable by the landlord; expiry is enforced server-side.
 - **Upload limits:** max 10 photos per listing at 5 MB each (jpeg/png/webp); documents up to 10 MB (pdf/jpeg/png) — enforced in `firebase/storage.rules`.
 - **Retention:** financial records 7 years; deleted listings/media purged after 90 days; maintenance media 2 years.

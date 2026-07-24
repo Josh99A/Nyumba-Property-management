@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
+import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
 import 'package:nyumba_property_management/features/marketplace/data/sembast_listing_repository.dart';
 import 'package:nyumba_property_management/features/marketplace/data/mappers/listing_mapper.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
@@ -132,5 +133,41 @@ void main() {
     ]) {
       expect(projection, isNot(contains(privateField)));
     }
+  });
+
+  test('public projection decodes with an opaque contact token', () {
+    final publishedAt = DateTime.utc(2026, 7, 24, 8);
+    final listing = ListingMapper.fromJson(<String, Object?>{
+      'id': 'listing-public-1',
+      'unitId': 'public_unit_listing-public-1',
+      'propertyId': 'public_property_listing-public-1',
+      'landlordId': 'opaque-landlord-token',
+      'title': 'Two-bedroom apartment in Ntinda',
+      'description': 'Bright apartment with reliable water.',
+      'monthlyRentMinor': 150000000,
+      'currency': 'UGX',
+      'status': 'published',
+      'bedrooms': 2,
+      'bathrooms': 2,
+      'unitType': 'apartment',
+      'amenities': <String>['Backup water', 'Secure parking'],
+      'city': 'Kampala',
+      'district': 'Kampala',
+      'neighborhood': 'Ntinda',
+      'publicContactToken': 'opaque-contact-token',
+      'imageUrls': <String>[],
+      'createdAt': publishedAt.toIso8601String(),
+      'updatedAt': publishedAt.toIso8601String(),
+      'publishedAt': publishedAt.toIso8601String(),
+      'expiresAt': publishedAt.add(const Duration(days: 30)).toIso8601String(),
+      'syncMetadata': SyncMetadataMapper.toJson(
+        SyncMetadata.synced(serverRevision: '2', lastSyncedAt: publishedAt),
+      ),
+    });
+
+    expect(listing.contactPhone, isNull);
+    expect(listing.contactEmail, isNull);
+    expect(listing.publicContactToken, 'opaque-contact-token');
+    expect(listing.isPublic, isTrue);
   });
 }

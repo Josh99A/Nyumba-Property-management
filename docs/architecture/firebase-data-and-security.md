@@ -137,9 +137,14 @@ frame. The renderer:
 - returns `404` for unknown/malformed listing projections and `410` for
   unpublished, deleted, or expired listings, with `noindex` on both;
 - generates canonical `nyumba.online` URLs, crawlable listing links, safe
-  Schema.org descriptions, and a sitemap containing active listings only; and
-- uses `no-store` so an unpublished or expired projection is not retained by
-  an HTTP cache after public access is revoked.
+  Schema.org descriptions, and a sitemap containing active listings only;
+- renders approved listing photos through
+  `/listing/{listingId}/media/{index}`. That route rechecks the active public
+  projection before reading a server-owned `public/listings/{listingId}/`
+  object, validates its image metadata, and never serializes the Storage path
+  into HTML or structured data;
+- permits only short-lived caching (`max-age=60`, `s-maxage=300`) so browser
+  and shared caches refresh unpublished or expired projections promptly.
 
 All other Flutter routes use the static application shell with
 `noindex, nofollow`. `robots.txt` deliberately permits crawling so crawlers can

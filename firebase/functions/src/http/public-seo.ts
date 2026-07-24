@@ -1,4 +1,4 @@
-import { APP_ORIGIN } from '../shared/config';
+import { APP_ORIGIN, MAX_LISTING_PHOTOS } from '../shared/config';
 
 export interface PublicSeoListing {
   id: string;
@@ -13,6 +13,7 @@ export interface PublicSeoListing {
   bedrooms?: number;
   bathrooms?: number;
   amenities: string[];
+  imageCount: number;
   publishedAt?: Date;
   updatedAt?: Date;
   expiresAt: Date;
@@ -25,10 +26,12 @@ interface PageOptions {
   body: string;
   structuredData?: unknown;
   robots?: 'index, follow' | 'noindex, nofollow';
+  socialImagePath?: string;
 }
 
 const DEFAULT_DESCRIPTION =
   'Browse verified available rental homes in Uganda and contact landlords through Nyumba.';
+const SUPPORTED_CURRENCIES = new Set(Intl.supportedValuesOf('currency'));
 
 function stringValue(value: unknown, maximumLength: number): string | null {
   if (typeof value !== 'string') return null;
@@ -39,6 +42,15 @@ function stringValue(value: unknown, maximumLength: number): string | null {
 
 function optionalString(value: unknown, maximumLength: number): string | undefined {
   return stringValue(value, maximumLength) ?? undefined;
+}
+
+function currencyValue(value: unknown): string | null {
+  const currency = stringValue(value, 3);
+  return currency !== null
+    && /^[A-Z]{3}$/.test(currency)
+    && SUPPORTED_CURRENCIES.has(currency)
+    ? currency
+    : null;
 }
 
 function nonNegativeInteger(value: unknown): number | undefined {
@@ -73,6 +85,22 @@ function stringList(value: unknown, maximumItems: number): string[] {
     .slice(0, maximumItems);
 }
 
+export function publicListingImagePaths(
+  documentId: string,
+  value: unknown,
+): string[] {
+  if (!Array.isArray(value)) return [];
+  const prefix = `public/listings/${documentId}/`;
+  return value
+    .filter((entry): entry is string => {
+      if (typeof entry !== 'string' || !entry.startsWith(prefix)) return false;
+      const fileName = entry.slice(prefix.length);
+      return /^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/.test(fileName)
+        && !fileName.includes('..');
+    })
+    .slice(0, MAX_LISTING_PHOTOS);
+}
+
 /**
  * Rechecks the public-read invariant even though the HTTP Function uses the
  * Admin SDK and therefore bypasses Firestore Rules.
@@ -105,7 +133,7 @@ export function toPublicSeoListing(
   const unitType = stringValue(data.unitType, 100);
   const city = stringValue(data.city, 100);
   const neighborhood = stringValue(data.neighborhood, 100);
-  const currency = stringValue(data.currency, 3);
+  const currency = currencyValue(data.currency);
   const expiresAt = dateValue(data.expiresAt);
   const monthlyRentMinor = data.monthlyRentMinor;
   if (
@@ -128,6 +156,7 @@ export function toPublicSeoListing(
   const bathrooms = nonNegativeInteger(data.bathrooms);
   const publishedAt = dateValue(data.publishedAt) ?? undefined;
   const updatedAt = dateValue(data.updatedAt) ?? undefined;
+  const imageCount = publicListingImagePaths(documentId, data.imagePaths).length;
   return {
     id: documentId,
     title,
@@ -141,6 +170,7 @@ export function toPublicSeoListing(
     ...(bedrooms !== undefined ? { bedrooms } : {}),
     ...(bathrooms !== undefined ? { bathrooms } : {}),
     amenities: stringList(data.amenities, 50),
+    imageCount,
     ...(publishedAt ? { publishedAt } : {}),
     ...(updatedAt ? { updatedAt } : {}),
     expiresAt,
@@ -149,6 +179,10 @@ export function toPublicSeoListing(
 
 export function listingPath(listingId: string): string {
   return `/listing/${encodeURIComponent(listingId)}`;
+}
+
+export function listingMediaPath(listingId: string, index: number): string {
+  return `${listingPath(listingId)}/media/${index}`;
 }
 
 function absoluteUrl(path: string): string {
@@ -221,6 +255,19 @@ function schemaType(unitType: string): 'Apartment' | 'House' | 'Accommodation' {
   return 'Accommodation';
 }
 
+const arrowIcon = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+  <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+const homeIcon = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+  <path d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+</svg>`;
+const bedIcon = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+  <path d="M4 18v-7m16 7v-5a2 2 0 0 0-2-2H9a3 3 0 0 0-3 3v1m0-4V8h5a2 2 0 0 1 2 2v1M4 15h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+const bathIcon = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+  <path d="M4 13h16v2a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-2Zm2 0V7a3 3 0 0 1 5.7-1.3M7 19v2m10-2v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
 function page({
   title,
   description,
@@ -228,8 +275,10 @@ function page({
   body,
   structuredData,
   robots = 'index, follow',
+  socialImagePath = '/icons/Icon-512.png',
 }: PageOptions): string {
   const canonical = absoluteUrl(canonicalPath);
+  const socialImage = absoluteUrl(socialImagePath);
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(metaDescription(description));
   const structuredDataElement = structuredData === undefined
@@ -265,44 +314,115 @@ function page({
   <meta property="og:title" content="${safeTitle}">
   <meta property="og:description" content="${safeDescription}">
   <meta property="og:url" content="${escapeHtml(canonical)}">
-  <meta property="og:image" content="${APP_ORIGIN}/icons/Icon-512.png">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:image" content="${escapeHtml(socialImage)}">
+  <meta name="twitter:card" content="${socialImagePath === '/icons/Icon-512.png' ? 'summary' : 'summary_large_image'}">
   <meta name="twitter:title" content="${safeTitle}">
   <meta name="twitter:description" content="${safeDescription}">
-  <meta name="twitter:image" content="${APP_ORIGIN}/icons/Icon-512.png">
+  <meta name="twitter:image" content="${escapeHtml(socialImage)}">
   ${structuredDataElement}
   <style>
-    :root { color-scheme: light; --navy:#123A6F; --sage:#5F8F6B; --gold:#C98B2E; --ivory:#F7F4ED; --ink:#172033; }
+    :root { color-scheme:light; --navy:#123A6F; --navy-deep:#0b284d; --sage:#5F8F6B; --sage-soft:#eaf2ec; --gold:#C98B2E; --ivory:#F7F4ED; --ink:#172033; --muted:#667085; --line:#e2e7ec; --white:#fff; --shadow:0 22px 55px rgba(18,58,111,.1); }
     * { box-sizing: border-box; }
-    body { margin:0; color:var(--ink); background:var(--ivory); font:16px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:var(--white); font:16px/1.6 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
+    img { display:block; width:100%; }
     a { color:var(--navy); }
-    .seo-header { background:#fff; border-bottom:1px solid #dde4ea; }
-    .seo-nav { max-width:1180px; margin:auto; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
-    .seo-brand { color:var(--navy); font-size:1.45rem; font-weight:800; text-decoration:none; }
-    .seo-nav-links { display:flex; gap:18px; align-items:center; }
-    .seo-nav-links a { font-weight:650; text-decoration:none; }
-    .seo-hero { color:#fff; background:linear-gradient(135deg,var(--navy),#0b284d); }
-    .seo-hero-inner,.seo-main { max-width:1180px; margin:auto; padding:48px 24px; }
-    .seo-hero h1 { max-width:780px; margin:0 0 12px; font-size:clamp(2.1rem,5vw,3.7rem); line-height:1.05; }
-    .seo-hero p { max-width:760px; margin:0; color:#dce7f4; font-size:1.1rem; }
-    .seo-main h1 { color:var(--navy); font-size:clamp(2rem,4vw,3.25rem); line-height:1.12; margin:12px 0; }
-    .seo-breadcrumbs { margin:0 0 18px; color:#526072; font-size:.92rem; }
-    .seo-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:20px; padding:0; list-style:none; }
-    .seo-card { height:100%; background:#fff; border:1px solid #dde4ea; border-radius:16px; padding:22px; box-shadow:0 8px 24px rgba(18,58,111,.06); }
+    a:focus-visible { outline:3px solid rgba(201,139,46,.55); outline-offset:4px; border-radius:4px; }
+    .seo-header { background:rgba(255,255,255,.96); border-bottom:1px solid var(--line); }
+    .seo-nav { max-width:1240px; margin:auto; padding:20px 28px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
+    .seo-brand { color:var(--navy); font-size:1.55rem; font-weight:850; letter-spacing:-.04em; text-decoration:none; }
+    .seo-nav-links { display:flex; gap:28px; align-items:center; }
+    .seo-nav-links a { color:var(--ink); font-size:.94rem; font-weight:700; text-decoration:none; }
+    .seo-nav-links a:hover { color:var(--navy); }
+    .seo-hero { background:var(--ivory); }
+    .seo-hero-inner { max-width:1440px; min-height:510px; margin:auto; display:grid; grid-template-columns:1fr 1fr; }
+    .seo-hero-copy { display:flex; flex-direction:column; justify-content:center; padding:72px clamp(32px,6vw,96px); color:var(--white); background:var(--navy); }
+    .seo-hero h1 { max-width:620px; margin:0 0 24px; font-size:clamp(2.8rem,5vw,5rem); font-weight:780; letter-spacing:-.055em; line-height:.98; }
+    .seo-hero p { max-width:540px; margin:0; color:#dce7f4; font-size:clamp(1rem,1.3vw,1.2rem); }
+    .seo-hero-media { min-height:400px; overflow:hidden; background:#dce3df; }
+    .seo-hero-media img { height:100%; object-fit:cover; }
+    .seo-main { max-width:1240px; margin:auto; padding:72px 28px 88px; }
+    .seo-results-head { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:28px; }
+    .seo-results-head h2 { margin:0; color:var(--navy); font-size:clamp(1.7rem,3vw,2.5rem); line-height:1.1; letter-spacing:-.035em; }
+    .seo-results-head p { margin:0; color:var(--muted); }
+    .seo-grid { display:grid; gap:24px; margin:0; padding:0; list-style:none; }
+    .seo-card { display:grid; grid-template-columns:minmax(300px,42%) 1fr; min-height:330px; overflow:hidden; background:var(--white); border:1px solid var(--line); border-radius:24px; box-shadow:var(--shadow); }
+    .seo-card-media { min-height:300px; overflow:hidden; background:linear-gradient(145deg,#e5ebe6,#cad8cf); }
+    .seo-card-media img { height:100%; object-fit:cover; transition:transform .45s ease; }
+    .seo-card:hover .seo-card-media img { transform:scale(1.025); }
+    .seo-card-placeholder,.seo-gallery-placeholder { height:100%; min-height:inherit; display:grid; place-items:center; padding:28px; color:#4d6254; background:linear-gradient(145deg,#edf2ee,#d7e2da); text-align:center; font-weight:750; }
+    .seo-card-body { display:flex; flex-direction:column; justify-content:center; padding:clamp(28px,5vw,56px); }
+    .seo-card-title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:28px; }
     .seo-card a { color:var(--navy); text-decoration:none; }
-    .seo-card h2 { margin:0 0 9px; font-size:1.25rem; }
-    .seo-kicker { color:var(--sage); font-weight:750; text-transform:uppercase; letter-spacing:.07em; font-size:.78rem; }
-    .seo-location { color:#526072; }
-    .seo-price { color:var(--navy); font-size:1.18rem; font-weight:800; }
-    .seo-facts { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; padding:0; list-style:none; }
-    .seo-facts li,.seo-chip { border-radius:999px; background:#eaf2ec; padding:7px 11px; font-size:.92rem; }
-    .seo-copy { max-width:760px; white-space:pre-line; }
-    .seo-section { margin-top:32px; }
-    .seo-section h2 { color:var(--navy); }
-    .seo-chips { display:flex; flex-wrap:wrap; gap:10px; padding:0; list-style:none; }
-    .seo-cta { display:inline-block; margin-top:24px; padding:12px 18px; border-radius:10px; color:#fff; background:var(--navy); text-decoration:none; font-weight:750; }
-    .seo-footer { border-top:1px solid #dde4ea; padding:24px; text-align:center; color:#526072; }
-    @media (max-width:560px) { .seo-nav,.seo-hero-inner,.seo-main { padding-left:18px; padding-right:18px; } .seo-nav-links { gap:11px; font-size:.9rem; } }
+    .seo-card h2 { margin:7px 0 10px; font-size:clamp(1.55rem,3vw,2.35rem); letter-spacing:-.035em; line-height:1.08; }
+    .seo-card-arrow { flex:0 0 auto; width:46px; height:46px; display:grid; place-items:center; border:1px solid var(--line); border-radius:50%; color:var(--navy); }
+    .seo-card-arrow svg,.seo-cta svg,.seo-facts svg { width:20px; height:20px; }
+    .seo-kicker { margin:0; color:var(--sage); font-weight:800; text-transform:uppercase; letter-spacing:.11em; font-size:.75rem; }
+    .seo-location { margin:0; color:var(--muted); }
+    .seo-price { margin:22px 0 0; color:var(--navy); font-size:1.2rem; font-weight:850; }
+    .seo-summary { max-width:660px; margin:14px 0 0; color:#465366; }
+    .seo-empty { max-width:720px; padding:56px; border-radius:24px; background:var(--ivory); }
+    .seo-empty h2 { color:var(--navy); }
+    .seo-listing-main { max-width:1320px; margin:auto; padding:36px 28px 96px; }
+    .seo-breadcrumbs { margin:0 0 28px; color:var(--muted); font-size:.9rem; }
+    .seo-breadcrumbs a { font-weight:700; text-decoration:none; }
+    .seo-listing-layout { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr); align-items:start; gap:clamp(38px,5vw,72px); }
+    .seo-gallery { display:grid; grid-template-columns:1.6fr 1fr; grid-template-rows:repeat(2,minmax(220px,1fr)); gap:14px; min-height:610px; }
+    .seo-gallery-item { margin:0; overflow:hidden; border-radius:20px; background:#e1e8e2; }
+    .seo-gallery-item:first-child { grid-row:1 / 3; }
+    .seo-gallery-item img { height:100%; object-fit:cover; }
+    .seo-gallery.is-single { display:block; min-height:610px; }
+    .seo-gallery.is-single .seo-gallery-item { height:610px; }
+    .seo-gallery.is-double { grid-template-columns:1.45fr 1fr; grid-template-rows:1fr; }
+    .seo-gallery.is-double .seo-gallery-item:first-child { grid-row:auto; }
+    .seo-listing-details { padding-top:8px; }
+    .seo-listing-details h1 { margin:10px 0 12px; color:var(--navy); font-size:clamp(2.35rem,4vw,4.25rem); font-weight:780; letter-spacing:-.055em; line-height:1.01; }
+    .seo-listing-details .seo-price { margin-top:28px; font-size:1.55rem; }
+    .seo-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:30px 0 0; padding:0; list-style:none; }
+    .seo-facts li { min-height:88px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:8px; padding:14px; border:1px solid var(--line); border-radius:16px; color:#445164; font-size:.9rem; }
+    .seo-facts svg { color:var(--sage); }
+    .seo-copy { margin:0; color:#465366; white-space:pre-line; }
+    .seo-section { margin-top:34px; padding-top:30px; border-top:1px solid var(--line); }
+    .seo-section h2 { margin:0 0 14px; color:var(--navy); font-size:1.25rem; }
+    .seo-chips { display:flex; flex-wrap:wrap; gap:10px; margin:0; padding:0; list-style:none; }
+    .seo-chip { border-radius:999px; background:var(--sage-soft); padding:8px 13px; color:#365540; font-size:.9rem; font-weight:700; }
+    .seo-cta { width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:34px; padding:17px 20px; border-radius:14px; color:var(--white); background:var(--navy); box-shadow:0 12px 30px rgba(18,58,111,.2); text-decoration:none; font-weight:800; transition:transform .2s ease,background .2s ease; }
+    .seo-cta:hover { transform:translateY(-2px); background:var(--navy-deep); }
+    .seo-footer { border-top:1px solid var(--line); padding:30px 24px; background:var(--ivory); text-align:center; color:var(--muted); font-size:.9rem; }
+    @media (max-width:900px) {
+      .seo-hero-inner { min-height:auto; grid-template-columns:1fr; }
+      .seo-hero-copy { min-height:430px; }
+      .seo-hero-media { height:430px; }
+      .seo-card { grid-template-columns:1fr; }
+      .seo-card-media { height:360px; }
+      .seo-listing-layout { grid-template-columns:1fr; }
+      .seo-listing-details { max-width:720px; }
+    }
+    @media (max-width:600px) {
+      .seo-nav { padding:17px 18px; }
+      .seo-nav-links { gap:15px; }
+      .seo-nav-links a { font-size:.82rem; }
+      .seo-brand { font-size:1.35rem; }
+      .seo-hero-copy { min-height:390px; padding:58px 22px; }
+      .seo-hero h1 { font-size:clamp(2.75rem,14vw,4rem); }
+      .seo-hero-media { height:300px; min-height:300px; }
+      .seo-main,.seo-listing-main { padding-left:18px; padding-right:18px; }
+      .seo-main { padding-top:52px; padding-bottom:64px; }
+      .seo-results-head { align-items:flex-start; flex-direction:column; }
+      .seo-card { border-radius:18px; }
+      .seo-card-media { height:250px; min-height:250px; }
+      .seo-card-body { padding:28px 22px 30px; }
+      .seo-card-arrow { width:40px; height:40px; }
+      .seo-gallery { min-height:460px; grid-template-columns:1fr 1fr; grid-template-rows:300px 150px; gap:9px; }
+      .seo-gallery-item { border-radius:13px; }
+      .seo-gallery-item:first-child { grid-column:1 / 3; grid-row:auto; }
+      .seo-gallery.is-single,.seo-gallery.is-single .seo-gallery-item { min-height:360px; height:360px; }
+      .seo-gallery.is-double { min-height:250px; grid-template-columns:1fr 1fr; grid-template-rows:250px; }
+      .seo-gallery.is-double .seo-gallery-item:first-child { grid-column:auto; }
+      .seo-listing-details h1 { font-size:clamp(2.35rem,12vw,3.5rem); }
+      .seo-facts { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .seo-card-media img,.seo-cta { transition:none; } }
   </style>
 </head>
 <body>
@@ -326,17 +446,29 @@ function page({
 
 export function renderExplorePage(listings: PublicSeoListing[]): string {
   const cards = listings.length === 0
-    ? `<section class="seo-main"><h2>No homes are listed right now</h2><p>Landlords add new rental spaces regularly — check back soon.</p></section>`
+    ? `<main class="seo-main"><section class="seo-empty"><h2>No homes are listed right now</h2><p>Landlords add new rental spaces regularly — check back soon.</p></section></main>`
     : `<main class="seo-main">
-        <h2>${listings.length} available ${listings.length === 1 ? 'home' : 'homes'}</h2>
+        <div class="seo-results-head">
+          <h2>${listings.length} available ${listings.length === 1 ? 'home' : 'homes'}</h2>
+        </div>
         <ul class="seo-grid">
           ${listings.map((listing) => `<li>
             <article class="seo-card">
-              <p class="seo-kicker">${escapeHtml(displayUnitType(listing.unitType))}</p>
-              <h2><a href="${listingPath(listing.id)}">${escapeHtml(listing.title)}</a></h2>
-              <p class="seo-location">${escapeHtml(locationFor(listing))}</p>
-              <p class="seo-price">${escapeHtml(formattedRent(listing))} / month</p>
-              <p>${escapeHtml(metaDescription(listing.description))}</p>
+              <a class="seo-card-media" href="${listingPath(listing.id)}" aria-label="View ${escapeHtml(listing.title)}">
+                ${listing.imageCount > 0
+                  ? `<img src="${listingMediaPath(listing.id, 0)}" alt="${escapeHtml(listing.title)}" loading="lazy">`
+                  : '<span class="seo-card-placeholder">Listing photos coming soon</span>'}
+              </a>
+              <div class="seo-card-body">
+                <p class="seo-kicker">${escapeHtml(displayUnitType(listing.unitType))}</p>
+                <div class="seo-card-title-row">
+                  <h2><a href="${listingPath(listing.id)}">${escapeHtml(listing.title)}</a></h2>
+                  <a class="seo-card-arrow" href="${listingPath(listing.id)}" aria-label="View ${escapeHtml(listing.title)}">${arrowIcon}</a>
+                </div>
+                <p class="seo-location">${escapeHtml(locationFor(listing))}</p>
+                <p class="seo-price">${escapeHtml(formattedRent(listing))} / month</p>
+                <p class="seo-summary">${escapeHtml(metaDescription(listing.description))}</p>
+              </div>
             </article>
           </li>`).join('')}
         </ul>
@@ -351,9 +483,16 @@ export function renderExplorePage(listings: PublicSeoListing[]): string {
     title: 'Rental Homes in Uganda | Nyumba',
     description: DEFAULT_DESCRIPTION,
     canonicalPath: '/explore',
+    socialImagePath:
+      '/assets/assets/listings/generated-modern-apartment-exterior.png',
     body: `<section class="seo-hero"><div class="seo-hero-inner">
-        <h1>Find a place that feels like home.</h1>
-        <p>Browse verified available rental spaces and contact landlords directly.</p>
+        <div class="seo-hero-copy">
+          <h1>Find a place that feels like home.</h1>
+          <p>Browse verified available rental spaces and contact landlords directly.</p>
+        </div>
+        <div class="seo-hero-media">
+          <img src="/assets/assets/listings/generated-modern-apartment-exterior.png" alt="">
+        </div>
       </div></section>${cards}`,
     structuredData: {
       '@context': 'https://schema.org',
@@ -395,13 +534,35 @@ export function renderListingPage(listing: PublicSeoListing): string {
     : `${listing.title} in ${listing.neighborhood} | Nyumba`;
   const facts = [
     ...(listing.bedrooms !== undefined
-      ? [`${listing.bedrooms} bedroom${listing.bedrooms === 1 ? '' : 's'}`]
+      ? [{
+        icon: bedIcon,
+        label: `${listing.bedrooms} bedroom${listing.bedrooms === 1 ? '' : 's'}`,
+      }]
       : []),
     ...(listing.bathrooms !== undefined
-      ? [`${listing.bathrooms} bathroom${listing.bathrooms === 1 ? '' : 's'}`]
+      ? [{
+        icon: bathIcon,
+        label: `${listing.bathrooms} bathroom${listing.bathrooms === 1 ? '' : 's'}`,
+      }]
       : []),
-    type,
+    { icon: homeIcon, label: type },
   ];
+  const galleryCount = Math.min(listing.imageCount, 3);
+  const galleryClass = galleryCount <= 1
+    ? 'is-single'
+    : galleryCount === 2
+      ? 'is-double'
+      : '';
+  const gallery = galleryCount === 0
+    ? `<div class="seo-gallery is-single">
+        <div class="seo-gallery-item seo-gallery-placeholder">Listing photos coming soon</div>
+      </div>`
+    : `<div class="seo-gallery ${galleryClass}">
+        ${Array.from({ length: galleryCount }, (_, index) => `
+          <figure class="seo-gallery-item">
+            <img src="${listingMediaPath(listing.id, index)}" alt="${escapeHtml(listing.title)} — photo ${index + 1}" ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>
+          </figure>`).join('')}
+      </div>`;
   const amenities = listing.amenities.length === 0
     ? ''
     : `<section class="seo-section"><h2>Amenities</h2><ul class="seo-chips">${listing.amenities
@@ -412,16 +573,24 @@ export function renderListingPage(listing: PublicSeoListing): string {
     title: pageTitle,
     description: `${type} for rent in ${location}. ${listing.description}`,
     canonicalPath: path,
-    body: `<main class="seo-main">
+    ...(listing.imageCount > 0
+      ? { socialImagePath: listingMediaPath(listing.id, 0) }
+      : {}),
+    body: `<main class="seo-listing-main">
       <nav class="seo-breadcrumbs" aria-label="Breadcrumb"><a href="/explore">Available homes</a> / ${escapeHtml(listing.title)}</nav>
-      <p class="seo-kicker">${escapeHtml(type)} for rent</p>
-      <h1>${escapeHtml(listing.title)}</h1>
-      <p class="seo-location">${escapeHtml(location)}</p>
-      <p class="seo-price">${escapeHtml(formattedRent(listing))} / month</p>
-      <ul class="seo-facts">${facts.map((fact) => `<li>${escapeHtml(fact)}</li>`).join('')}</ul>
-      <section class="seo-section"><h2>About this home</h2><p class="seo-copy">${escapeHtml(listing.description)}</p></section>
-      ${amenities}
-      <a class="seo-cta" href="${path}#contact">Contact landlord</a>
+      <div class="seo-listing-layout">
+        ${gallery}
+        <article class="seo-listing-details">
+          <p class="seo-kicker">${escapeHtml(type)} for rent</p>
+          <h1>${escapeHtml(listing.title)}</h1>
+          <p class="seo-location">${escapeHtml(location)}</p>
+          <p class="seo-price">${escapeHtml(formattedRent(listing))} / month</p>
+          <ul class="seo-facts">${facts.map((fact) => `<li>${fact.icon}<span>${escapeHtml(fact.label)}</span></li>`).join('')}</ul>
+          <section class="seo-section"><h2>About this home</h2><p class="seo-copy">${escapeHtml(listing.description)}</p></section>
+          ${amenities}
+          <a class="seo-cta" href="${path}#contact"><span>Contact landlord</span>${arrowIcon}</a>
+        </article>
+      </div>
     </main>`,
     structuredData: {
       '@context': 'https://schema.org',
@@ -460,6 +629,14 @@ export function renderListingPage(listing: PublicSeoListing): string {
             '@type': schemaType(listing.unitType),
             name: listing.title,
             description: listing.description,
+            ...(listing.imageCount > 0
+              ? {
+                image: Array.from(
+                  { length: listing.imageCount },
+                  (_, index) => absoluteUrl(listingMediaPath(listing.id, index)),
+                ),
+              }
+              : {}),
             ...(listing.bedrooms !== undefined
               ? { numberOfBedrooms: listing.bedrooms }
               : {}),
