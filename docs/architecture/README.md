@@ -110,6 +110,9 @@ Decided on 2026-07-14 (client mirror in `lib/core/config/market_config.dart`; th
 
 - **Market:** Uganda only at launch. Currency is UGX (amounts stored in integer minor units), phone numbers are E.164 `+256` followed by nine digits, reporting timezone is `Africa/Kampala`. Payment rails are MTN Mobile Money, Airtel Money, bank transfer, and landlord-recorded cash. Uganda VAT (standard 18%) applies to platform subscription fees and is computed server-side only.
 - **Region:** `europe-west1` for Firestore, Cloud Functions, and Storage.
+- **Web origin:** the canonical production origin is `https://nyumba.online`,
+  served through Firebase Hosting. Generated Firebase Hosting hostnames are
+  deployment endpoints, not canonical public URLs.
 - **Public listings:** a published listing expires 30 days after (re)publication; landlords can renew. Expiry is enforced by a backend projection job, never by the client.
 - **Upload limits:** property photos max 5 per property and listing photos max 10 per listing, 5 MB each (`image/jpeg`, `image/png`, `image/webp`); documents max 10 MB (`application/pdf`, `image/jpeg`, `image/png`). Enforced in `firebase/storage.rules` and the finalizing command handler. Property media order is significant: the first accepted image is the primary image.
 - **Retention:** financial records (invoices, payments, receipts) 7 years; deleted listings and their media purged 90 days after deletion; maintenance media 2 years.
@@ -118,7 +121,9 @@ Decided on 2026-07-14 (client mirror in `lib/core/config/market_config.dart`; th
 
 The following values must not be hard-coded in Flutter or security rules:
 
-- **TBD:** staging/production Firebase project IDs, application IDs, hosting domains, and sender IDs;
+- **TBD:** staging/production Firebase project IDs and application IDs,
+  environment sender IDs, and the staging hosting domain. The production
+  hosting origin is finalized as `https://nyumba.online`;
 - Tier structure, capability matrix, suggested limits, free tenant/prospect access, non-paywall rules, and downgrade policy are defined in [subscription-tiers.md](subscription-tiers.md). **TBD:** monetary prices, billing intervals, trials, and exact grace-period lengths;
 - Money routing is **decided**: Nyumba's own merchant account collects
   subscription payments only. Rent is the landlord's money and must settle to

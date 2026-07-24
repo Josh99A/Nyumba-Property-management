@@ -1,7 +1,7 @@
 {
     "name": "Nyumba Property Management",
     "short_name": "Nyumba",
-    "start_url": ".",
+    "start_url": "/explore",
     "display": "standalone",
     "background_color": "#F7F4ED",
     "theme_color": "#123A6F",

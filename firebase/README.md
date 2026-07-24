@@ -8,6 +8,13 @@ This directory is environment-neutral and contains no project IDs or secrets.
 - `functions/COMMANDS.md`: Cloud Functions module handoff and links to the command contract.
 - `firebase.json`: rules/index configuration plus local emulator ports.
 
+The production Hosting configuration at the repository root routes public
+marketplace pages and `sitemap.xml` to the `publicSeo` HTTP Function. Deploy
+Functions before Hosting whenever those rewrites change; the CI workflow
+enforces that dependency. The renderer is a read-only consumer of the
+server-owned `publicListings` whitelist and must never read private listing,
+property, or unit collections.
+
 From this directory, validate with the Firebase Emulator Suite after selecting a non-production demo project:
 
 ```sh

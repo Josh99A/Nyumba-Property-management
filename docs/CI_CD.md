@@ -7,13 +7,18 @@ The pipeline lives in [`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd
 | Trigger | Jobs |
 | --- | --- |
 | Pull request to `main` | Analyze + tests only |
-| Push to `main` | Analyze + tests → deploy web to Firebase Hosting (live) + build APK + build unsigned IPA (artifacts) |
+| Push to `main` | Analyze + tests → deploy web to Firebase Hosting at <https://nyumba.online> (live) + build APK + build unsigned IPA (artifacts) |
 | Push a tag `v*` (e.g. `v1.0.0`) | Analyze + tests → build APK + IPA → attach both to a GitHub Release |
 | Manual (`workflow_dispatch`) | Same as push to `main` |
 
 The APK and IPA from every `main` build are downloadable from the workflow
 run's **Artifacts** section (kept 90 days). Tagged builds are attached
 permanently to the GitHub Release.
+
+The Hosting deployment waits for the backend deployment because `/`,
+`/explore`, `/listing/*`, and `/sitemap.xml` rewrite to the `publicSeo`
+Function. Keeping that order prevents a first deployment from publishing a
+rewrite whose target does not exist yet.
 
 ## Required GitHub secrets
 

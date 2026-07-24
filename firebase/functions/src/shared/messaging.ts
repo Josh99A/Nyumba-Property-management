@@ -3,6 +3,7 @@ import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { newAggregate } from './aggregates';
 import { COLLECTIONS } from './collections';
+import { APP_ORIGIN } from './config';
 import {
   notificationTemplate,
   supportedLocale,
@@ -94,12 +95,12 @@ export async function notifyUser(
 
   // Browser-displayed web notifications do nothing on click unless FCM is
   // given an explicit link; native platforms route through the app's own
-  // message handlers instead. The hosting origin is derived from the project
-  // the function runs in, keeping project identifiers out of the repository.
-  const project = process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT;
+  // message handlers instead. Web notifications use the same canonical
+  // production origin as transactional email rather than fragmenting traffic
+  // across Firebase's generated hosting hostname.
   const route = content.data?.route;
-  const webpush = project && route
-    ? { fcmOptions: { link: new URL(route, `https://${project}.web.app`).href } }
+  const webpush = route
+    ? { fcmOptions: { link: new URL(route, APP_ORIGIN).href } }
     : undefined;
 
   let response;

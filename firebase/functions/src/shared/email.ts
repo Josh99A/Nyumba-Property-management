@@ -1,5 +1,7 @@
 import { defineSecret } from 'firebase-functions/params';
-import { CURRENCY } from './config';
+import { APP_ORIGIN, CURRENCY } from './config';
+
+export { APP_ORIGIN } from './config';
 
 /**
  * Resend API key. Lives in Secret Manager, never in the repository: functions
@@ -11,9 +13,6 @@ export const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 
 /** Every function whose code path can reach sendEmail must declare these. */
 export const EMAIL_SECRETS = [RESEND_API_KEY];
-
-/** The verified Resend sending domain — also where email links land. */
-export const APP_ORIGIN = 'https://nyumba.online';
 
 const FROM = 'Nyumba <notifications@nyumba.online>';
 

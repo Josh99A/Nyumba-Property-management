@@ -155,7 +155,19 @@ dart pub global run flutterfire_cli:flutterfire configure --project nyumba-prope
 
 This writes `lib/firebase_options.dart` and the platform files (`android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`), all covered by `.gitignore`. These are client identifiers, not secrets — real protection comes from Security Rules, App Check, and API-key restrictions in the Google Cloud console — but keeping them out of the repository keeps environments explicit and prevents accidental cross-environment builds. Service accounts, `.env` files, and signing keys are likewise ignored and must never be committed.
 
-Deployed to the development project: callable command handlers (`executeCommand`), the auth provisioning trigger, background workers, Firestore/Storage rules and indexes, and the Storage default bucket (all `europe-west1`). Operational configuration is seeded with `firebase/functions/scripts/seed-entitlements.mjs`.
+The canonical production web origin is <https://nyumba.online>, served by the
+`nyumba-property-management` Firebase Hosting site. This settles the public
+domain; it does not replace the still-pending work to create separate staging
+and production Firebase projects.
+
+Deployed to the development project: callable command handlers
+(`executeCommand`), the read-only public SEO renderer (`publicSeo`), the auth
+provisioning trigger, background workers, Firestore/Storage rules and indexes,
+and the Storage default bucket (all `europe-west1`). Public marketplace URLs
+receive server-rendered canonical metadata, crawlable listing content, and
+structured data before Flutter starts; private application routes are
+`noindex`. Operational configuration is seeded with
+`firebase/functions/scripts/seed-entitlements.mjs`.
 
 Transactional email is sent through Resend from the `nyumba.online` domain: all email leaves via durable backend jobs (never directly from request handlers), including a daily rent-reminder sweep. The `RESEND_API_KEY` secret lives in the Functions environment, never in the repository.
 
@@ -218,6 +230,7 @@ Finalized decisions (mirrored in [`lib/core/config/market_config.dart`](lib/core
 
 - **Market:** Uganda only at launch — UGX currency, `+256` E.164 phone numbers, `Africa/Kampala` reporting timezone. Payment rails: MTN Mobile Money, Airtel Money, bank transfer, landlord-recorded cash. Uganda VAT (18%) on subscription fees is computed server-side.
 - **Firebase region:** `europe-west1` (Firestore, Cloud Functions, Storage).
+- **Production web origin:** <https://nyumba.online> on Firebase Hosting.
 - **Listing lifetime:** published listings expire 30 days after (re)publication and are renewable by the landlord; expiry is enforced server-side.
 - **Upload limits:** max 10 photos per listing at 5 MB each (jpeg/png/webp); documents up to 10 MB (pdf/jpeg/png) — enforced in `firebase/storage.rules`.
 - **Retention:** financial records 7 years; deleted listings/media purged after 90 days; maintenance media 2 years.
