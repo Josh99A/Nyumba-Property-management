@@ -119,16 +119,9 @@ class _ListingDetails extends StatelessWidget {
               const SizedBox(height: 10),
               Hero(
                 tag: 'listing-image-${listing.id}',
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: AspectRatio(
-                    aspectRatio: context.isCompact ? 4 / 3 : 2.45,
-                    child: listingImage(
-                      listing,
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.high,
-                    ),
-                  ),
+                child: ListingPhotoCarousel(
+                  listing: listing,
+                  aspectRatio: context.isCompact ? 4 / 3 : 2.45,
                 ),
               ),
               const SizedBox(height: 26),

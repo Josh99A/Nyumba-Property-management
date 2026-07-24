@@ -46,6 +46,80 @@ void main() {
       'acknowledged-listing',
     ]);
   });
+
+  test(
+    'public projections cannot overwrite private listings with the same id',
+    () async {
+      final database = OfflineDatabase(
+        await databaseFactoryMemory.openDatabase('listing-cache-isolation.db'),
+      );
+      addTearDown(database.close);
+      await database.initialize();
+      final now = DateTime.utc(2026, 7, 24);
+      final privateListing = _publishedListing(
+        id: 'shared-listing',
+        now: now,
+        syncMetadata: SyncMetadata.synced(
+          serverRevision: '2',
+          lastSyncedAt: now,
+        ),
+      );
+      final publicListing = Listing(
+        id: privateListing.id,
+        unitId: 'public_unit_shared-listing',
+        propertyId: 'public_property_shared-listing',
+        landlordId: 'opaque-landlord-token',
+        title: 'Public catalogue title',
+        description: privateListing.description,
+        monthlyRentMinor: privateListing.monthlyRentMinor,
+        currency: privateListing.currency,
+        status: ListingStatus.published,
+        unitType: privateListing.unitType,
+        city: privateListing.city,
+        neighborhood: privateListing.neighborhood,
+        publicContactToken: 'opaque-contact-token',
+        createdAt: now,
+        updatedAt: now,
+        publishedAt: now,
+        expiresAt: now.add(const Duration(days: 30)),
+        syncMetadata: SyncMetadata.synced(
+          serverRevision: '2',
+          lastSyncedAt: now,
+        ),
+      );
+      await database.mergeRemoteEntity(
+        entityType: OfflineEntityType.listing,
+        entityId: privateListing.id,
+        entity: ListingMapper.toJson(privateListing),
+      );
+      await database.mergeRemoteEntity(
+        entityType: OfflineEntityType.publicListing,
+        entityId: publicListing.id,
+        entity: ListingMapper.toJson(publicListing),
+      );
+      final properties = SembastPropertyRepository(database: database);
+      final units = SembastUnitRepository(database: database);
+      final privateRepository = SembastListingRepository(
+        database: database,
+        properties: properties,
+        units: units,
+      );
+      final publicRepository = SembastListingRepository.publicCatalog(
+        database: database,
+        properties: properties,
+        units: units,
+      );
+
+      expect(
+        (await privateRepository.getById(privateListing.id))?.title,
+        privateListing.title,
+      );
+      expect(
+        (await publicRepository.getAll(publicOnly: true)).single.title,
+        publicListing.title,
+      );
+    },
+  );
 }
 
 Listing _publishedListing({

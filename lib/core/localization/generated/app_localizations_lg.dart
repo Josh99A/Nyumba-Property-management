@@ -973,7 +973,7 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get legacy_8f953aa4b317 =>
-      'JPEG, PNG, oba WebP; okutuuka ku MB 5 buli emu n’ebifaananyi 10.';
+      'JPEG, PNG, oba WebP; okutuuka ku MB 5 buli emu n’ebifaananyi 5.';
 
   @override
   String get legacy_3259de868228 => 'Kuuma okusaba';
@@ -3178,6 +3178,15 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get addMorePhotos => 'Okwongerako ebifaananyi ebirala';
+
+  @override
+  String get listingPhotoGuidance =>
+      'JPEG, PNG, oba WebP; buli kifaananyi tekisukka MB 5 era ebifaananyi byonna tebisinga 5. Ekifaananyi ekisooka kye kifaananyi ekikulu. Ebifaananyi bisigala nga birindirira okutuusa okutikka bwe kukakasibwa.';
+
+  @override
+  String listingPhotoPosition(String current, String total) {
+    return 'Ekifaananyi $current ku $total';
+  }
 
   @override
   String actionFailureEntityNotFound(String action, String entity) {

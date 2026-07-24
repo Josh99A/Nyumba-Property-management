@@ -302,7 +302,7 @@
     "legacy_320de51a0fea":  "Yita omukozesa",
     "legacy_6ac487a0242c":  "Yita omukozesa",
     "legacy_2864b372fa2c":  "Omuwendo gwa invoice (UGX) .",
-    "legacy_8f953aa4b317":  "JPEG, PNG, oba WebP; okutuuka ku MB 5 buli emu n’ebifaananyi 10.",
+    "legacy_8f953aa4b317":  "JPEG, PNG, oba WebP; okutuuka ku MB 5 buli emu n’ebifaananyi 5.",
     "legacy_3259de868228":  "Kuuma okusaba",
     "legacy_a4e70f65da38":  "Ekiwandiiko kino kikuume ebiwandiiko byo.",
     "legacy_4ac4c025a16c":  "Akawunti za landiroodi",
@@ -954,6 +954,9 @@
     ,"staffPermissionViewReportsLabel": "Alipoota"
     ,"staffPermissionViewReportsDescription": "Kola alipoota z’emirimu."
     ,"addMorePhotos": "Okwongerako ebifaananyi ebirala"
+    ,"listingPhotoGuidance": "JPEG, PNG, oba WebP; buli kifaananyi tekisukka MB 5 era ebifaananyi byonna tebisinga 5. Ekifaananyi ekisooka kye kifaananyi ekikulu. Ebifaananyi bisigala nga birindirira okutuusa okutikka bwe kukakasibwa."
+    ,"listingPhotoPosition": "Ekifaananyi {current} ku {total}"
+    ,"@listingPhotoPosition": {"placeholders": {"current": {"type": "String"}, "total": {"type": "String"}}}
     ,"actionFailureEntityNotFound": "Nyumba teyasobodde {action} kubanga {entity} gy'ekwatagana nayo tekyaliwo nate. Oboolyawo kyali kiterekeddwa ku kyuma ekirala. Ddamu okebera oluvannyuma ogezeeko nate."
     ,"@actionFailureEntityNotFound": {"placeholders": {"action": {"type": "String"}, "entity": {"type": "String"}}}
     ,"actionFailureEntityAlreadyExists": "{entity} eyo emaze okubaawo, noolwekyo Nyumba teyasobodde {action} nate."

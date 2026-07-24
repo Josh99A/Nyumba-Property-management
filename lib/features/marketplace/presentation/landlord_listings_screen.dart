@@ -951,7 +951,9 @@ class _ListingFields {
           child: TextFormField(
             controller: floorArea,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: context.tr('Floor area (m²)')),
+            decoration: InputDecoration(
+              labelText: context.tr('Floor area (m²)'),
+            ),
             validator: (value) =>
                 _optionalPositiveIntegerValidator(context, value),
           ),
@@ -961,7 +963,9 @@ class _ListingFields {
           child: TextFormField(
             controller: parkingSpaces,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: context.tr('Parking spaces')),
+            decoration: InputDecoration(
+              labelText: context.tr('Parking spaces'),
+            ),
             validator: (value) =>
                 _optionalNonNegativeIntegerValidator(context, value),
           ),
@@ -1008,7 +1012,8 @@ class _ListingFields {
       decoration: InputDecoration(
         labelText: context.tr('Monthly service charge (UGX)'),
       ),
-      validator: (value) => _optionalNonNegativeIntegerValidator(context, value),
+      validator: (value) =>
+          _optionalNonNegativeIntegerValidator(context, value),
     ),
     const SizedBox(height: 14),
     TextFormField(
@@ -1039,7 +1044,9 @@ class _ListingFields {
         Expanded(
           child: TextFormField(
             controller: smokingPolicy,
-            decoration: InputDecoration(labelText: context.tr('Smoking policy')),
+            decoration: InputDecoration(
+              labelText: context.tr('Smoking policy'),
+            ),
           ),
         ),
       ],
@@ -1061,13 +1068,11 @@ class _ListingFields {
         photos: photos,
         limit: listingPhotoLimit,
         pick: pickListingPhotos,
-        onChanged: (problems) =>
-            setDialogState(() => photoProblems = problems),
+        onChanged: (problems) => setDialogState(() => photoProblems = problems),
         helperText:
-            '$supportedPhotoFormats; up to 5 MB each and $listingPhotoLimit '
-            'photos. Selections stay in this local draft. Publishing stays '
-            'blocked until the production upload service replaces them with '
-            'server-owned media references.',
+            'JPEG, PNG, or WebP; up to 5 MB each and 5 photos. The first '
+            'photo is the cover image. Photos remain pending until upload '
+            'is confirmed.',
       ),
     ),
     const SizedBox(height: 14),
@@ -1097,9 +1102,7 @@ class _ListingFields {
       keyboardType: TextInputType.emailAddress,
       decoration: InputDecoration(
         labelText: context.tr('Private contact email (optional)'),
-        helperText: context.tr(
-          'Used for routed enquiries; not shown publicly',
-        ),
+        helperText: context.tr('Used for routed enquiries; not shown publicly'),
       ),
       validator: (value) {
         final text = value?.trim() ?? '';

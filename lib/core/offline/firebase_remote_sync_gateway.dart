@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:uuid/uuid.dart';
 
+import '../config/market_config.dart';
 import 'client_platform.dart';
 import 'offline_entity.dart';
 import 'outbox_entry.dart';
@@ -12,12 +16,21 @@ import 'remote_sync_gateway.dart';
 typedef CommandInvoker =
     Future<Map<String, Object?>> Function(Map<String, Object?> envelope);
 
+typedef StagedImageUploader =
+    Future<void> Function({
+      required String path,
+      required Uint8List bytes,
+      required String contentType,
+    });
+
 final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
   FirebaseRemoteSyncGateway({
     required this.invoke,
     required this.installationId,
     required this.appVersion,
     required this.platform,
+    this.actorUid,
+    this.uploadStagedImage,
   });
 
   static const _installationKey = 'nyumba.installation-id.v1';
@@ -25,17 +38,27 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
   final String installationId;
   final String appVersion;
   final String platform;
+  final String? actorUid;
+  final StagedImageUploader? uploadStagedImage;
 
-  static Future<FirebaseRemoteSyncGateway> create() async {
+  static Future<FirebaseRemoteSyncGateway> create({String? actorUid}) async {
     final installationId = await resolveInstallationId();
     final package = await PackageInfo.fromPlatform();
     final callable = FirebaseFunctions.instanceFor(
       region: 'europe-west1',
     ).httpsCallable('executeCommand');
+    final storage = FirebaseStorage.instance;
     return FirebaseRemoteSyncGateway(
       installationId: installationId,
       appVersion: package.version,
       platform: currentClientPlatform,
+      actorUid: actorUid,
+      uploadStagedImage:
+          ({required path, required bytes, required contentType}) async {
+            await storage
+                .ref(path)
+                .putData(bytes, SettableMetadata(contentType: contentType));
+          },
       invoke: (envelope) async {
         final result = await callable.call<Object?>(envelope);
         return _stringMap(result.data);
@@ -121,7 +144,8 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
 
   @override
   Future<RemoteWriteResult> push(RemoteMutation mutation) async {
-    final response = await _invokeEnvelope(buildEnvelope(mutation));
+    final stagedMutation = await _stageImages(mutation);
+    final response = await _invokeEnvelope(buildEnvelope(stagedMutation));
     final committedAt = DateTime.tryParse(
       response['serverUpdatedAt']?.toString() ?? '',
     );
@@ -132,6 +156,84 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
       committedAt: committedAt.toUtc(),
       serverRevision: response['serverVersion']?.toString(),
       wasAlreadyApplied: response['wasAlreadyApplied'] == true,
+    );
+  }
+
+  Future<RemoteMutation> _stageImages(RemoteMutation mutation) async {
+    final isPhotoAggregate =
+        mutation.entityType == OfflineEntityType.property ||
+        mutation.entityType == OfflineEntityType.listing;
+    final isPhotoWrite =
+        isPhotoAggregate &&
+        (mutation.operation == OutboxOperation.create ||
+            mutation.operation == OutboxOperation.update);
+    if (!isPhotoWrite) return mutation;
+
+    final references = _stringList(mutation.payload['imageUrls']);
+    if (!references.any((reference) => reference.startsWith('data:image/'))) {
+      return mutation;
+    }
+    final isListing = mutation.entityType == OfflineEntityType.listing;
+    final subject = isListing ? 'Listing' : 'Property';
+    final filePrefix = isListing ? 'listing' : 'property';
+    final limit = isListing ? NyumbaMarket.maxListingPhotos : 5;
+    final uid = actorUid?.trim();
+    final uploader = uploadStagedImage;
+    if (uid == null || uid.isEmpty || uploader == null) {
+      throw RemoteSyncException('$subject image upload is unavailable.');
+    }
+
+    final stagedPaths = <String>[];
+    for (final (index, reference) in references.take(limit).indexed) {
+      if (reference.startsWith('uploads/')) {
+        stagedPaths.add(reference);
+        continue;
+      }
+      if (!reference.startsWith('data:image/')) continue;
+
+      final image = _decodeStagedImage(reference);
+      if (image == null) {
+        throw RemoteSyncException(
+          '$subject image data is malformed.',
+          retryable: false,
+        );
+      }
+      if (image.bytes.lengthInBytes > NyumbaMarket.maxImageSizeBytes) {
+        throw RemoteSyncException(
+          '$subject image exceeds the upload limit.',
+          retryable: false,
+        );
+      }
+
+      final path =
+          'uploads/$uid/${mutation.idempotencyKey}/'
+          '$filePrefix-$index.${image.extension}';
+      try {
+        await uploader(
+          path: path,
+          bytes: image.bytes,
+          contentType: image.contentType,
+        );
+      } on Object catch (error) {
+        throw RemoteSyncException(
+          '$subject image upload failed.',
+          cause: error,
+        );
+      }
+      stagedPaths.add(path);
+    }
+
+    return RemoteMutation(
+      mutationId: mutation.mutationId,
+      entityType: mutation.entityType,
+      entityId: mutation.entityId,
+      operation: mutation.operation,
+      payload: <String, Object?>{
+        ...mutation.payload,
+        'stagedImagePaths': stagedPaths,
+      },
+      idempotencyKey: mutation.idempotencyKey,
+      clientCreatedAt: mutation.clientCreatedAt,
     );
   }
 
@@ -328,7 +430,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
               'lat': payload['approximateLatitude'],
               'lng': payload['approximateLongitude'],
             },
-          'stagedImagePaths': stagedPaths(10),
+          'stagedImagePaths': stagedPaths(NyumbaMarket.maxListingPhotos),
         },
       ),
       (OfflineEntityType.listing, OutboxOperation.update) => _RemoteCommand(
@@ -353,7 +455,8 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
               'lat': payload['approximateLatitude'],
               'lng': payload['approximateLongitude'],
             },
-          if (stagedPaths(10).isNotEmpty) 'stagedImagePaths': stagedPaths(10),
+          if (stagedPaths(NyumbaMarket.maxListingPhotos).isNotEmpty)
+            'stagedImagePaths': stagedPaths(NyumbaMarket.maxListingPhotos),
         },
       ),
       (OfflineEntityType.listing, OutboxOperation.publish) =>
@@ -464,6 +567,40 @@ Map<String, Object?>? _optionalStringMap(Object? value) =>
 List<String> _stringList(Object? value) => value is List
     ? value.whereType<String>().toList(growable: false)
     : const <String>[];
+
+_StagedImage? _decodeStagedImage(String reference) {
+  final match = RegExp(
+    r'^data:(image\/(?:jpeg|png|webp));base64,(.+)$',
+  ).firstMatch(reference);
+  if (match == null) return null;
+  try {
+    final contentType = match.group(1)!;
+    return _StagedImage(
+      bytes: base64Decode(match.group(2)!),
+      contentType: contentType,
+      extension: switch (contentType) {
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        _ => throw StateError('Unsupported image type.'),
+      },
+    );
+  } on FormatException {
+    return null;
+  }
+}
+
+final class _StagedImage {
+  const _StagedImage({
+    required this.bytes,
+    required this.contentType,
+    required this.extension,
+  });
+
+  final Uint8List bytes;
+  final String contentType;
+  final String extension;
+}
 
 String _snakeCase(String value) => value.replaceAllMapped(
   RegExp(r'[A-Z]'),

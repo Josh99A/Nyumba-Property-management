@@ -2,8 +2,28 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../config/market_config.dart';
 import 'offline_database.dart';
 import 'offline_entity.dart';
+
+List<String> propertyImageReferencesFromRemote(Map<String, Object?> record) {
+  for (final field in const [
+    'imagePaths',
+    'publicImagePaths',
+    'stagedImagePaths',
+    'imageUrls',
+  ]) {
+    final value = record[field];
+    if (value is! List) continue;
+    final references = value
+        .whereType<String>()
+        .map((reference) => reference.trim())
+        .where((reference) => reference.isNotEmpty)
+        .toList(growable: false);
+    if (references.isNotEmpty) return references;
+  }
+  return const <String>[];
+}
 
 final class RemoteRecord {
   RemoteRecord({
@@ -73,11 +93,25 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
           .limit(100);
     } else if (publicOnly) {
       query = switch (entityType) {
-        OfflineEntityType.listing =>
+        OfflineEntityType.publicListing =>
           _firestore
               .collection('publicListings')
               .where('status', isEqualTo: 'published')
-              .where('expiresAt', isGreaterThan: Timestamp.now())
+              // The list rule rechecks `expiresAt > request.time`. A cutoff
+              // captured at the client can be a few milliseconds behind the
+              // server by the time the query arrives, so use a small future
+              // safety window. Listings remain live for 30 days; omitting the
+              // final five minutes prevents an expired row from ever leaking.
+              .where(
+                'expiresAt',
+                isGreaterThan: Timestamp.fromDate(
+                  DateTime.now().toUtc().add(const Duration(minutes: 5)),
+                ),
+              )
+              // Match the deployed composite index exactly:
+              // status ASC, expiresAt ASC, publishedAt DESC.
+              .orderBy('expiresAt')
+              .orderBy('publishedAt', descending: true)
               .limit(50),
         OfflineEntityType.planCatalog =>
           _firestore
@@ -218,11 +252,17 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
         _ => result['status'] ?? 'vacant',
       };
     }
-    if (type == OfflineEntityType.listing) {
+    if (type == OfflineEntityType.property) {
+      result['imageUrls'] = propertyImageReferencesFromRemote(result);
+    }
+    if (type == OfflineEntityType.listing ||
+        type == OfflineEntityType.publicListing) {
       result['status'] =
           result['publicationState'] ?? result['status'] ?? 'draft';
       if (result['status'] == 'unpublished') result['status'] = 'paused';
-      result['imageUrls'] = result['imagePaths'] ?? result['imageUrls'] ?? [];
+      result['imageUrls'] = propertyImageReferencesFromRemote(
+        result,
+      ).take(NyumbaMarket.maxListingPhotos).toList(growable: false);
       result['publicContactToken'] =
           result['landlordToken'] ?? result['publicContactToken'];
       if (publicOnly) {

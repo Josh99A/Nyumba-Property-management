@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -267,6 +269,187 @@ void main() {
         'uploads/landlord/command/photo-$index.webp',
     ]);
   });
+
+  test('listing commands send only five staged image paths in order', () {
+    final gateway = FirebaseRemoteSyncGateway(
+      installationId: 'install_1234',
+      appVersion: '1.2.3',
+      platform: 'web',
+      invoke: (_) async => <String, Object?>{},
+    );
+    final mutation = RemoteMutation(
+      mutationId: 'outbox_listing',
+      entityType: OfflineEntityType.listing,
+      entityId: 'listing_1234',
+      operation: OutboxOperation.create,
+      payload: <String, Object?>{
+        'unitId': 'unit_123456',
+        'title': 'Bright apartment',
+        'description': 'A bright apartment near local amenities.',
+        'monthlyRentMinor': 100000,
+        'unitType': 'apartment',
+        'city': 'Kampala',
+        'neighborhood': 'Ntinda',
+        'bedrooms': 1,
+        'bathrooms': 1,
+        'amenities': <String>[],
+        'imageUrls': <String>[
+          for (var index = 0; index < 6; index++)
+            'uploads/landlord/command/photo-$index.webp',
+        ],
+      },
+      idempotencyKey: 'command_listing',
+      clientCreatedAt: createdAt,
+    );
+
+    final envelope = gateway.buildEnvelope(mutation);
+    final payload = envelope['payload']! as Map<String, Object?>;
+    expect(payload['stagedImagePaths'], <String>[
+      for (var index = 0; index < 5; index++)
+        'uploads/landlord/command/photo-$index.webp',
+    ]);
+  });
+
+  test(
+    'uploads property image data in primary-first order before the command',
+    () async {
+      Map<String, Object?>? captured;
+      final uploads = <({String path, List<int> bytes, String contentType})>[];
+      final gateway = FirebaseRemoteSyncGateway(
+        installationId: 'install_1234',
+        appVersion: '1.2.3',
+        platform: 'web',
+        actorUid: 'landlord_1234',
+        uploadStagedImage:
+            ({required path, required bytes, required contentType}) async {
+              uploads.add((
+                path: path,
+                bytes: bytes.toList(),
+                contentType: contentType,
+              ));
+            },
+        invoke: (envelope) async {
+          captured = envelope;
+          return <String, Object?>{
+            'status': 'applied',
+            'serverVersion': 1,
+            'serverUpdatedAt': '2026-07-15T00:00:00.000Z',
+          };
+        },
+      );
+      final mutation = RemoteMutation(
+        mutationId: 'outbox_property',
+        entityType: OfflineEntityType.property,
+        entityId: 'property_1234',
+        operation: OutboxOperation.create,
+        payload: <String, Object?>{
+          'name': 'Acacia Court',
+          'addressLine': '12 Acacia Avenue',
+          'city': 'Kampala',
+          'imageUrls': <String>[
+            'data:image/png;base64,${base64Encode(<int>[1, 2, 3])}',
+            'data:image/jpeg;base64,${base64Encode(<int>[4, 5, 6])}',
+          ],
+        },
+        idempotencyKey: 'command_property',
+        clientCreatedAt: createdAt,
+      );
+
+      await gateway.push(mutation);
+
+      expect(uploads.map((upload) => upload.path), <String>[
+        'uploads/landlord_1234/command_property/property-0.png',
+        'uploads/landlord_1234/command_property/property-1.jpg',
+      ]);
+      expect(uploads.map((upload) => upload.bytes), [
+        <int>[1, 2, 3],
+        <int>[4, 5, 6],
+      ]);
+      expect(uploads.map((upload) => upload.contentType), <String>[
+        'image/png',
+        'image/jpeg',
+      ]);
+      expect(
+        (captured?['payload']! as Map<String, Object?>)['stagedImagePaths'],
+        <String>[
+          'uploads/landlord_1234/command_property/property-0.png',
+          'uploads/landlord_1234/command_property/property-1.jpg',
+        ],
+      );
+    },
+  );
+
+  test(
+    'uploads listing image data in cover-first order before the command',
+    () async {
+      Map<String, Object?>? captured;
+      final uploads = <({String path, List<int> bytes, String contentType})>[];
+      final gateway = FirebaseRemoteSyncGateway(
+        installationId: 'install_1234',
+        appVersion: '1.2.3',
+        platform: 'web',
+        actorUid: 'landlord_1234',
+        uploadStagedImage:
+            ({required path, required bytes, required contentType}) async {
+              uploads.add((
+                path: path,
+                bytes: bytes.toList(),
+                contentType: contentType,
+              ));
+            },
+        invoke: (envelope) async {
+          captured = envelope;
+          return <String, Object?>{
+            'status': 'applied',
+            'serverVersion': 1,
+            'serverUpdatedAt': '2026-07-15T00:00:00.000Z',
+          };
+        },
+      );
+      final mutation = RemoteMutation(
+        mutationId: 'outbox_listing',
+        entityType: OfflineEntityType.listing,
+        entityId: 'listing_1234',
+        operation: OutboxOperation.create,
+        payload: <String, Object?>{
+          'unitId': 'unit_123456',
+          'title': 'Bright apartment',
+          'description': 'A bright apartment near local amenities.',
+          'monthlyRentMinor': 100000,
+          'unitType': 'apartment',
+          'city': 'Kampala',
+          'neighborhood': 'Ntinda',
+          'bedrooms': 1,
+          'bathrooms': 1,
+          'amenities': <String>[],
+          'imageUrls': <String>[
+            'data:image/webp;base64,${base64Encode(<int>[7, 8, 9])}',
+            'data:image/png;base64,${base64Encode(<int>[10, 11, 12])}',
+          ],
+        },
+        idempotencyKey: 'command_listing',
+        clientCreatedAt: createdAt,
+      );
+
+      await gateway.push(mutation);
+
+      expect(uploads.map((upload) => upload.path), <String>[
+        'uploads/landlord_1234/command_listing/listing-0.webp',
+        'uploads/landlord_1234/command_listing/listing-1.png',
+      ]);
+      expect(uploads.map((upload) => upload.bytes), [
+        <int>[7, 8, 9],
+        <int>[10, 11, 12],
+      ]);
+      expect(
+        (captured?['payload']! as Map<String, Object?>)['stagedImagePaths'],
+        <String>[
+          'uploads/landlord_1234/command_listing/listing-0.webp',
+          'uploads/landlord_1234/command_listing/listing-1.png',
+        ],
+      );
+    },
+  );
 
   test(
     'text edits do not clear already-uploaded property or listing media',

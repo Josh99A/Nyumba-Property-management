@@ -21,20 +21,45 @@ final class SembastListingRepository implements ListingRepository {
     required UnitRepository units,
     IdGenerator? idGenerator,
     Clock clock = const SystemClock(),
+    OfflineEntityType entityType = OfflineEntityType.listing,
+    bool readOnly = false,
   }) : _database = database,
        _properties = properties,
        _units = units,
        _idGenerator = idGenerator ?? UuidIdGenerator(),
-       _clock = clock;
+       _clock = clock,
+       _entityType = entityType,
+       _readOnly = readOnly {
+    if (readOnly && entityType != OfflineEntityType.publicListing) {
+      throw ArgumentError(
+        'Only the public listing cache may use the read-only repository.',
+      );
+    }
+  }
+
+  factory SembastListingRepository.publicCatalog({
+    required OfflineDatabase database,
+    required PropertyRepository properties,
+    required UnitRepository units,
+  }) => SembastListingRepository(
+    database: database,
+    properties: properties,
+    units: units,
+    entityType: OfflineEntityType.publicListing,
+    readOnly: true,
+  );
 
   final OfflineDatabase _database;
   final PropertyRepository _properties;
   final UnitRepository _units;
   final IdGenerator _idGenerator;
   final Clock _clock;
+  final OfflineEntityType _entityType;
+  final bool _readOnly;
 
   @override
   Future<Listing> createDraft(CreateListingInput input) async {
+    _ensureWritable();
     input.validate();
     final unit = await _units.getById(input.unitId);
     if (unit == null) throw EntityNotFoundException('unit', input.unitId);
@@ -116,7 +141,7 @@ final class SembastListingRepository implements ListingRepository {
     String? propertyId,
     bool publicOnly = false,
   }) async => _filterAndSort(
-    _decodeAll(await _database.readEntities(OfflineEntityType.listing)),
+    _decodeAll(await _database.readEntities(_entityType)),
     landlordId: landlordId,
     propertyId: propertyId,
     publicOnly: publicOnly,
@@ -124,12 +149,13 @@ final class SembastListingRepository implements ListingRepository {
 
   @override
   Future<Listing?> getById(String id) async {
-    final json = await _database.readEntity(OfflineEntityType.listing, id);
+    final json = await _database.readEntity(_entityType, id);
     return json == null ? null : ListingMapper.fromJson(json);
   }
 
   @override
   Future<Listing> publish(String listingId) async {
+    _ensureWritable();
     final current = await getById(listingId);
     if (current == null) throw EntityNotFoundException('listing', listingId);
     if (current.status == ListingStatus.published) return current;
@@ -151,6 +177,7 @@ final class SembastListingRepository implements ListingRepository {
 
   @override
   Future<Listing> unpublish(String listingId) async {
+    _ensureWritable();
     final current = await getById(listingId);
     if (current == null) throw EntityNotFoundException('listing', listingId);
     if (current.status != ListingStatus.published) return current;
@@ -167,6 +194,7 @@ final class SembastListingRepository implements ListingRepository {
 
   @override
   Future<Listing> update(Listing listing) async {
+    _ensureWritable();
     listing.validate();
     final current = await getById(listing.id);
     if (current == null) throw EntityNotFoundException('listing', listing.id);
@@ -231,7 +259,7 @@ final class SembastListingRepository implements ListingRepository {
     String? propertyId,
     bool publicOnly = false,
   }) => _database
-      .watchEntities(OfflineEntityType.listing)
+      .watchEntities(_entityType)
       .map(
         (items) => _filterAndSort(
           _decodeAll(items),
@@ -243,7 +271,7 @@ final class SembastListingRepository implements ListingRepository {
 
   @override
   Stream<Listing?> watchById(String id) => _database
-      .watchEntity(OfflineEntityType.listing, id)
+      .watchEntity(_entityType, id)
       .map((json) => json == null ? null : ListingMapper.fromJson(json));
 
   Future<void> _persist(
@@ -252,7 +280,7 @@ final class SembastListingRepository implements ListingRepository {
     bool createOnly = false,
   }) => _database
       .putEntityAndEnqueue(
-        entityType: OfflineEntityType.listing,
+        entityType: _entityType,
         entityId: listing.id,
         entity: ListingMapper.toJson(listing),
         mutationId: _idGenerator.generate(),
@@ -268,6 +296,12 @@ final class SembastListingRepository implements ListingRepository {
         ],
       )
       .then((_) {});
+
+  void _ensureWritable() {
+    if (_readOnly) {
+      throw UnsupportedError('The public listing catalogue is read-only.');
+    }
+  }
 
   /// One record the mapper cannot read (cached under an older pull shape)
   /// must not blank the whole catalogue: the workspace-open sweep and the

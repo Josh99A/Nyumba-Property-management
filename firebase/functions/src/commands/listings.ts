@@ -8,7 +8,7 @@ import {
   requireWorkspace,
 } from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
-import { LISTING_LIFETIME_DAYS } from '../shared/config';
+import { LISTING_LIFETIME_DAYS, MAX_LISTING_PHOTOS } from '../shared/config';
 import { DomainError } from '../shared/errors';
 import {
   createJob,
@@ -33,7 +33,7 @@ const draftSchema = strictPayload({
   bathrooms: z.number().int().min(0).max(100),
   amenities: z.array(z.string().trim().min(1).max(100)).max(50),
   approximateLocation: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).strict().optional(),
-  stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(10).optional(),
+  stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(MAX_LISTING_PHOTOS).optional(),
 });
 
 function validateStagedPaths(uid: string, paths: string[]): void {

@@ -5,9 +5,11 @@ const mocks = vi.hoisted(() => {
   const query = {
     get: vi.fn(),
     limit: vi.fn(),
+    orderBy: vi.fn(),
     startAfter: vi.fn(),
   };
   query.limit.mockReturnValue(query);
+  query.orderBy.mockReturnValue(query);
   query.startAfter.mockReturnValue(query);
 
   const collection = {
@@ -77,6 +79,7 @@ describe('public SEO handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.query.limit.mockReturnValue(mocks.query);
+    mocks.query.orderBy.mockReturnValue(mocks.query);
     mocks.query.startAfter.mockReturnValue(mocks.query);
     mocks.collection.where.mockReturnValue(mocks.collection);
   });
@@ -91,6 +94,8 @@ describe('public SEO handler', () => {
     const listings = await activeListings(now);
 
     expect(listings).toHaveLength(501);
+    expect(mocks.collection.orderBy).toHaveBeenCalledWith('expiresAt');
+    expect(mocks.query.orderBy).toHaveBeenCalledWith('publishedAt', 'desc');
     expect(mocks.query.get).toHaveBeenCalledTimes(2);
     expect(mocks.query.startAfter).toHaveBeenNthCalledWith(1, firstPage[499]);
   });

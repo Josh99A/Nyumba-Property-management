@@ -96,6 +96,7 @@ void main() {
       properties: properties,
       units: units,
       listings: listings,
+      publicListings: listings,
       applications: SembastApplicationRepository(database: database),
       syncEngine: SyncEngine(database: database, gateway: gateway),
       documents: const PdfDocumentService(),

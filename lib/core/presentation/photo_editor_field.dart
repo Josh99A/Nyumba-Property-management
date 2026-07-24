@@ -64,7 +64,7 @@ class PhotoEditorField extends StatelessWidget {
 
   final int limit;
 
-  /// The subject-specific chooser (property photos cap at 5, listings at 10).
+  /// The subject-specific chooser enforces the configured photo cap.
   final Future<ImagePickOutcome> Function({required int remainingSlots}) pick;
 
   /// Called after any mutation, carrying the problems from the last pick so
@@ -159,7 +159,9 @@ class _PhotoChip extends StatelessWidget {
       avatar: bytes == null
           // A stored photo that will not decode still has to be removable,
           // so it is shown as a placeholder rather than dropped silently.
-          ? const CircleAvatar(child: Icon(Icons.broken_image_outlined, size: 16))
+          ? const CircleAvatar(
+              child: Icon(Icons.broken_image_outlined, size: 16),
+            )
           : CircleAvatar(backgroundImage: MemoryImage(bytes!)),
       label: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 150),

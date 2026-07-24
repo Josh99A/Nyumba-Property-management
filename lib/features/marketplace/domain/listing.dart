@@ -1,3 +1,4 @@
+import '../../../core/config/market_config.dart';
 import '../../../core/domain/domain_validation.dart';
 import '../../../core/domain/sync_metadata.dart';
 
@@ -180,8 +181,8 @@ final class Listing {
       ),
       'imageUrls': imageUrls.any((url) => url.trim().isEmpty)
           ? 'must not contain empty image references'
-          : imageUrls.length > 10
-          ? 'must contain at most 10 images'
+          : imageUrls.length > NyumbaMarket.maxListingPhotos
+          ? 'must contain at most ${NyumbaMarket.maxListingPhotos} images'
           : null,
       'amenities': _listError(amenities, maxItems: 40),
       'accessibilityFeatures': _listError(accessibilityFeatures, maxItems: 20),

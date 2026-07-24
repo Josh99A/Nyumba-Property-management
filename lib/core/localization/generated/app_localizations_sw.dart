@@ -963,7 +963,7 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get legacy_8f953aa4b317 =>
-      'JPEG, PNG, au WebP; hadi MB 5 kila moja na picha 10.';
+      'JPEG, PNG, au WebP; hadi MB 5 kila moja na picha 5.';
 
   @override
   String get legacy_3259de868228 => 'Weka ombi';
@@ -3163,6 +3163,15 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get addMorePhotos => 'Ongeza picha zaidi';
+
+  @override
+  String get listingPhotoGuidance =>
+      'JPEG, PNG au WebP; hadi MB 5 kwa kila picha na picha zisizozidi 5. Picha ya kwanza ndiyo picha ya jalada. Picha zitasalia zikisubiri hadi upakiaji uthibitishwe.';
+
+  @override
+  String listingPhotoPosition(String current, String total) {
+    return 'Picha $current kati ya $total';
+  }
 
   @override
   String actionFailureEntityNotFound(String action, String entity) {

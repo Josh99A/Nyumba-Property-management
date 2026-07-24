@@ -154,7 +154,7 @@ void main() {
       );
     });
 
-    test('listing limits public photo references to ten', () {
+    test('listing limits public photo references to five', () {
       expect(
         () => Listing(
           id: 'listing-id',
@@ -170,7 +170,7 @@ void main() {
           city: 'Kampala',
           neighborhood: 'Ntinda',
           imageUrls: List<String>.generate(
-            11,
+            6,
             (index) => 'https://example.com/$index.webp',
           ),
           createdAt: now,

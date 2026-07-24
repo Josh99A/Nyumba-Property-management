@@ -48,7 +48,10 @@ export async function activeListings(now: Date): Promise<PublicSeoListing[]> {
     .collection(COLLECTIONS.publicListings)
     .where('status', '==', 'published')
     .where('expiresAt', '>', Timestamp.fromDate(now))
-    .orderBy('expiresAt');
+    .orderBy('expiresAt')
+    // Match firestore.indexes.json exactly. Without the trailing order the
+    // deployed three-field index cannot serve this query and /explore fails.
+    .orderBy('publishedAt', 'desc');
   const listings: PublicSeoListing[] = [];
   let cursor;
 
