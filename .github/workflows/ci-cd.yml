@@ -70,7 +70,9 @@ jobs:
 
   deploy-web:
     name: Deploy web to Firebase Hosting
-    needs: [test, backend]
+    # Hosting rewrites public routes to publicSeo, so the first deployment must
+    # publish the Function before the Hosting configuration references it.
+    needs: [test, backend, deploy-backend]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:

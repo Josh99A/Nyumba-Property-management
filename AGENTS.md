@@ -242,6 +242,66 @@ Firebase environment IDs are still TBD. Keep all entitlement
 values in versioned server-owned configuration and fail closed when required
 configuration is missing; do not hard-code guesses in Flutter or security rules.
 
+## Public web SEO invariants
+
+The production origin is `https://nyumba.online`. Search-visible marketplace
+routes are server rendered by the `publicSeo` HTTP Function before Flutter starts:
+`/explore`, `/listing/{listingId}`, and `/sitemap.xml`, with `/` redirecting to
+`/explore`. The Hosting rewrites in `firebase.json`, renderer and handler in
+`firebase/functions/src/http/public-seo*.ts`, `web/robots.txt`, and the
+`noindex` fallback in `web/index.html` form one contract. Change and deploy them
+together; deploy the Function before a Hosting rewrite that depends on it.
+
+Treat these as correctness and privacy requirements:
+
+1. A public route must return meaningful HTML without executing JavaScript.
+   Render a unique, accurate title and description, one absolute canonical URL,
+   Open Graph and Twitter metadata, valid JSON-LD, and ordinary crawlable
+   `<a href>` links. Flutter may take over after the first frame, but it is not
+   the crawler fallback.
+2. Build SEO output only from an explicit allowlist mapped from the server-owned
+   `publicListings` projection. Never read or serialize canonical properties,
+   units, landlord records, contact details, storage paths, moderation notes, or
+   arbitrary extra projection fields into public HTML, metadata, or structured
+   data. Escape user-authored values in HTML and serialize JSON-LD safely.
+3. Recheck the public invariant at request time: `status == published`,
+   `isDeleted != true`, and `expiresAt` is in the future. Missing or malformed
+   listing IDs return `404`; unpublished, deleted, or expired listings return
+   `410` where distinguishable. Every unavailable/error/private response must
+   carry both a `noindex, nofollow` meta directive when HTML is returned and an
+   `X-Robots-Tag: noindex, nofollow` header.
+4. The generic authenticated Flutter shell remains `noindex, nofollow`.
+   `robots.txt` is crawl guidance, not authorization, and must not be used to
+   hide private routes. Preview, emulator, and staging deployments must not
+   advertise production canonicals as if their content were the production page.
+5. Canonicals, social URLs, structured-data URLs, redirects, and sitemap entries
+   use `https://nyumba.online` and clean stable paths. Do not create indexed
+   duplicates from query parameters, fragments, alternate slashes, or obsolete
+   routes; redirect or canonicalize them deliberately.
+6. The sitemap contains active canonical public URLs only and must remain complete
+   as listing volume grows. Update its query, pagination/limits, and tests together.
+   Removed listings must leave the sitemap promptly. Public responses must not be
+   cached in a way that keeps an unpublished or expired listing discoverable.
+7. Structured data must describe what the visible page actually contains. Use
+   supported Schema.org types and integer-minor-unit money converted consistently
+   for display. Include listing media only when it has an approved, stable,
+   publicly crawlable URL; never expose a private Storage path or mint crawler
+   access by accident.
+8. When adding, renaming, or removing a public route or public projection field,
+   update the renderer, Hosting rewrites, canonical/internal links, sitemap,
+   robots behavior, architecture documentation, and regression tests in the same
+   change. User-authored names and descriptions remain untranslated; any future
+   locale-specific public URLs also require self-canonical and reciprocal
+   `hreflang` handling.
+
+For SEO-affecting changes, inspect the raw HTTP response rather than only the
+hydrated Flutter DOM. Test status codes, headers, canonical/meta tags, JSON-LD
+parsing, HTML escaping and private-field non-disclosure, crawlable links,
+unavailable listing behavior, and sitemap membership. Then verify at least one
+explore page and one listing page at desktop and mobile widths with no console
+errors, plus a JavaScript-disabled or source-response check. A successful Flutter
+build alone is not SEO verification.
+
 ## Flutter and UI conventions
 
 - Target the SDK constraints in `pubspec.yaml` and keep code compatible with web,
@@ -304,7 +364,10 @@ Add tests at the lowest useful layer:
 - sync tests for ordering, idempotency, retry/backoff, rejection, and blocking;
 - widget/router tests for roles, responsive states, and critical interactions;
 - Firebase Emulator tests for every allowed and denied actor/query before changing
-  rules or implementing remote adapters.
+  rules or implementing remote adapters;
+- public SEO renderer/handler tests for every change to public routes, listing
+  projection fields, Hosting rewrites, metadata, structured data, or sitemap
+  behavior.
 
 Run from the repository root:
 
@@ -364,6 +427,8 @@ A change is complete when:
   permission-denied paths are handled;
 - tests cover the changed policy or regression and all relevant checks pass;
 - responsive and accessibility behavior is verified for UI changes;
+- public web changes preserve the SEO, canonicalization, indexing, and
+  non-disclosure invariants above, with raw-response and rendered-page checks;
 - all new or changed user-facing copy is translated in English, Luganda,
   Kiswahili, and Arabic, with RTL behavior checked where layout changed;
 - architecture, command contracts, Firebase rules/indexes, and user-facing docs are

@@ -1669,6 +1669,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get legacy_d48725356945 => 'Suspend this landlord?';
 
   @override
+  String get legacy_c1e0daeef31e => 'Switch profile';
+
+  @override
   String get legacy_8a046cc90ab0 => 'Syncing…';
 
   @override

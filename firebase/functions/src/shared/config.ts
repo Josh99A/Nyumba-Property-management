@@ -5,6 +5,9 @@ import { DomainError } from './errors';
 /** Finalized deployment region (docs/architecture/README.md). */
 export const REGION = 'europe-west1';
 
+/** Planned canonical public origin (docs/architecture/README.md). */
+export const APP_ORIGIN = 'https://nyumba.online';
+
 /**
  * TODO(release): flip to true once every Flutter platform is registered with
  * App Check (web reCAPTCHA v3, Android Play Integrity, iOS App Attest) and the

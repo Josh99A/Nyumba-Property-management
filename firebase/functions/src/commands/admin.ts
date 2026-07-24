@@ -5,6 +5,7 @@ import { requirePlatformAdmin, requireSuperAdmin } from '../shared/actor';
 import { COLLECTIONS } from '../shared/collections';
 import { DomainError } from '../shared/errors';
 import { createJob, strictPayload, type CommandHandler } from '../shared/handlers';
+import { mergeRoles } from '../shared/roles';
 
 const reasonSchema = strictPayload({
   reasonCode: z.enum([
@@ -84,6 +85,7 @@ interface UserProfileAggregate {
   version: number;
   status?: string;
   role?: string;
+  roles?: unknown;
 }
 
 /**
@@ -288,8 +290,14 @@ export const userChangeRole: CommandHandler<z.infer<typeof changeRoleSchema>> = 
     }
     // Demotion leaves the landlord aggregates in place: they are the audited
     // record of past standing, and restoring the role finds them again.
+    // Promotions merge additively into the roles array; an explicit demotion
+    // to client is the one full reset — it means "this account is ordinary
+    // again", not "add a hat".
     tx.update(ref, {
       role: cmd.payload.role,
+      roles: cmd.payload.role === 'client'
+        ? ['client']
+        : mergeRoles(current.roles, current.role, cmd.payload.role),
       roleChangedAt: now,
       roleChangeReasonCode: cmd.payload.reasonCode,
       ...bumpVersion(current, now),

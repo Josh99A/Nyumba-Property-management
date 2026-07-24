@@ -25,6 +25,34 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
+        "source": "/",
+        "function": {
+          "functionId": "publicSeo",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/explore",
+        "function": {
+          "functionId": "publicSeo",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/listing/**",
+        "function": {
+          "functionId": "publicSeo",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/sitemap.xml",
+        "function": {
+          "functionId": "publicSeo",
+          "region": "europe-west1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

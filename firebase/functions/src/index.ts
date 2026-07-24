@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import * as functionsV1 from 'firebase-functions/v1';
 import { executeCommand } from './callable/execute-command';
+import { publicSeo } from './http/public-seo-handler';
 import { COLLECTIONS } from './shared/collections';
 import { REGION } from './shared/config';
 import { expirePublicListings } from './workers/listing-expiry';
@@ -13,6 +14,7 @@ initializeApp();
 
 export {
   executeCommand,
+  publicSeo,
   processBackendJob,
   sweepBackendJobs,
   expirePublicListings,
@@ -63,6 +65,7 @@ export const onUserCreated = functionsV1
         displayName: user.displayName || null,
         email: user.email ?? null,
         role: 'client',
+        roles: ['client'],
         status: 'active',
         version: 1,
         createdAt: now,

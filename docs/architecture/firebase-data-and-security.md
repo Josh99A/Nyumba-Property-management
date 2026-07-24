@@ -122,6 +122,35 @@ listing records that predate the structured public fields are read with safe
 display defaults; landlords must complete the required unit type and public
 neighborhood/district fields before a new publication request is accepted.
 
+### Public search rendering
+
+Firebase Hosting routes `/`, `/explore`, `/listing/*`, and `/sitemap.xml` to
+the `publicSeo` HTTP Function. It provides indexable initial HTML while the
+Flutter application starts, then Flutter replaces that HTML after its first
+frame. The renderer:
+
+- reads only `publicListings`, rechecking `status == published`,
+  `isDeleted != true`, and `expiresAt > now` because Admin SDK reads bypass
+  Rules;
+- maps an explicit public-field allowlist instead of serializing Firestore
+  documents, so a future private field cannot leak into HTML or JSON-LD;
+- returns `404` for unknown/malformed listing projections and `410` for
+  unpublished, deleted, or expired listings, with `noindex` on both;
+- generates canonical `nyumba.online` URLs, crawlable listing links, safe
+  Schema.org descriptions, and a sitemap containing active listings only;
+- renders approved listing photos through
+  `/listing/{listingId}/media/{index}`. That route rechecks the active public
+  projection before reading a server-owned `public/listings/{listingId}/`
+  object, validates its image metadata, and never serializes the Storage path
+  into HTML or structured data;
+- permits only short-lived caching (`max-age=60`, `s-maxage=300`) so browser
+  and shared caches refresh unpublished or expired projections promptly.
+
+All other Flutter routes use the static application shell with
+`noindex, nofollow`. `robots.txt` deliberately permits crawling so crawlers can
+observe those per-route directives rather than indexing a blocked URL with
+incomplete information.
+
 ## Server-authoritative invariants
 
 ### Landlord approval and suspension

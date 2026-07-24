@@ -1080,6 +1080,51 @@ describe('command router', () => {
     expect(again.result).toMatchObject({ linkedRecords: 0 });
   });
 
+  it('onboarding a tenant keeps tenant-ness in the roles array', async () => {
+    await db.doc(`users/${landlord.uid}`).set({
+      id: landlord.uid, displayName: 'Tenant Turned Landlord', email: 'landlord@nyumba.test',
+      role: 'tenant', roles: ['tenant'],
+      status: 'active', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    const result = await executeCommandCore(db, landlord, envelope('command_onboard_2', 'landlord.onboard', landlord.uid, 0, {
+      phone: '+256772000101',
+    }), now);
+    expect(result.status).toBe('applied');
+    expect((await db.doc(`users/${landlord.uid}`).get()).data()).toMatchObject({
+      role: 'landlord', roles: ['landlord', 'tenant'],
+    });
+  });
+
+  it('linking a lease to a landlord records tenant-ness without demoting them', async () => {
+    await seedLandlord();
+    // The claimer is themselves a landlord elsewhere on the platform.
+    const dualActor: Actor = { uid: 'dual_1234567', email: 'amina.k@example.com', platformAdmin: false, superAdmin: false, emailVerified: true, signInProvider: 'password' };
+    await db.doc(`users/${dualActor.uid}`).set({
+      id: dualActor.uid, displayName: 'Amina K', email: dualActor.email, role: 'landlord', roles: ['landlord'],
+      status: 'active', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    const invite = await executeCommandCore(db, landlord, envelope('command_invite_2', 'tenant.invite', 'tenantrec_456', 0, {
+      displayName: 'Amina K', email: 'amina.k@example.com', phone: '+256772345679',
+    }), now);
+    expect(invite.status).toBe('applied');
+    await db.doc('leases/lease_2345678').set({
+      id: 'lease_2345678', landlordId: landlord.uid, unitId: 'unit_123456', tenantRecordId: 'tenantrec_456',
+      status: 'active', tenantUserUid: null, monthlyRentMinor: 100_000, depositMinor: 0, currency: 'UGX',
+      startDate: '2026-07-01T00:00:00.000Z', endDate: '2027-06-30T00:00:00.000Z',
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+
+    const claim = { commandId: 'command_claim_4', type: 'tenant.claimInvite', schemaVersion: 1 as const, payload: {}, client: { installationId: 'install_1234', appVersion: '1.0.0', platform: 'web' as const } };
+    const result = await executeCommandCore(db, dualActor, claim, now);
+    expect(result.status).toBe('applied');
+    // The landlord scalar survives; the array now carries both hats and the
+    // uid-keyed portal is provisioned for the tenant profile.
+    expect((await db.doc(`users/${dualActor.uid}`).get()).data()).toMatchObject({
+      role: 'landlord', roles: ['landlord', 'tenant'],
+    });
+    expect((await db.doc(`tenantPortals/${dualActor.uid}/leases/lease_2345678`).get()).exists).toBe(true);
+  });
+
   it('rejects invite claims without a verified email', async () => {
     const unverified: Actor = { uid: 'tenant_654321', email: 'new.tenant@example.com', platformAdmin: false, superAdmin: false, emailVerified: false, signInProvider: 'password' };
     const claim = { commandId: 'command_claim_3', type: 'tenant.claimInvite', schemaVersion: 1 as const, payload: {}, client: { installationId: 'install_1234', appVersion: '1.0.0', platform: 'web' as const } };

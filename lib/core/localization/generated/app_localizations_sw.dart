@@ -1698,6 +1698,9 @@ class AppLocalizationsSw extends AppLocalizations {
       'Ungependa kumsimamisha kazi mwenye nyumba huyu?';
 
   @override
+  String get legacy_c1e0daeef31e => 'Badilisha wasifu';
+
+  @override
   String get legacy_8a046cc90ab0 => 'Inasawazisha...';
 
   @override

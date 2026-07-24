@@ -3240,6 +3240,12 @@ abstract class AppLocalizations {
   /// **'Suspend this landlord?'**
   String get legacy_d48725356945;
 
+  /// No description provided for @legacy_c1e0daeef31e.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch profile'**
+  String get legacy_c1e0daeef31e;
+
   /// No description provided for @legacy_8a046cc90ab0.
   ///
   /// In en, this message translates to:

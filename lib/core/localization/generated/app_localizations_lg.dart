@@ -1714,6 +1714,9 @@ class AppLocalizationsLg extends AppLocalizations {
   String get legacy_d48725356945 => 'Yimirizza landiroodi ono?';
 
   @override
+  String get legacy_c1e0daeef31e => 'Kyusa profayilo';
+
+  @override
   String get legacy_8a046cc90ab0 => 'Okukwataganya...';
 
   @override

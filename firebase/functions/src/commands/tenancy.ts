@@ -9,6 +9,7 @@ import {
   loadActiveListingRetirement,
 } from '../shared/listing-retirement';
 import { landlordTenancyProjection, tenantLeaseProjection } from '../shared/projections';
+import { mergeRoles } from '../shared/roles';
 
 // Invite emails are stored lowercased so tenant.claimInvite can match the
 // verified token email with an exact Firestore equality query.
@@ -109,7 +110,10 @@ export const tenantClaimInvite: CommandHandler<Record<string, never>> = {
     );
     const userRef = db.collection(COLLECTIONS.users).doc(actor.uid);
     const userSnap = await tx.get(userRef);
-    const user = requireAggregate<{ version: number; role?: string }>(userSnap, undefined);
+    const user = requireAggregate<{ version: number; role?: string; roles?: unknown }>(
+      userSnap,
+      undefined,
+    );
 
     let linkedLeases = 0;
     for (const doc of claimable) {
@@ -147,9 +151,16 @@ export const tenantClaimInvite: CommandHandler<Record<string, never>> = {
       }
     }
     // Admins and landlords keep their primary role; the portal projection is
-    // keyed by uid, so access still works for them.
-    if (claimable.length > 0 && (user.role === 'client' || user.role === undefined)) {
-      tx.update(userRef, { role: 'tenant', ...bumpVersion(user, now) });
+    // keyed by uid, so access still works for them. The additive roles array
+    // records tenant-ness for everyone, so the client can offer the tenant
+    // profile and role-audience broadcasts can reach it.
+    if (claimable.length > 0) {
+      const promoteScalar = user.role === 'client' || user.role === undefined;
+      tx.update(userRef, {
+        ...(promoteScalar ? { role: 'tenant' } : {}),
+        roles: mergeRoles(user.roles, user.role, 'tenant'),
+        ...bumpVersion(user, now),
+      });
     }
     return {
       status: 'applied',

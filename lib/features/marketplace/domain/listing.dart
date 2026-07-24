@@ -219,8 +219,9 @@ final class Listing {
           : null,
       'contact':
           (contactPhone == null || contactPhone!.trim().isEmpty) &&
-              (contactEmail == null || contactEmail!.trim().isEmpty)
-          ? 'a phone number or email address is required'
+              (contactEmail == null || contactEmail!.trim().isEmpty) &&
+              (publicContactToken == null || publicContactToken!.trim().isEmpty)
+          ? 'a phone number, email address, or public contact token is required'
           : null,
       'imageUrls':
           imageUrls.any((reference) => reference.startsWith('data:image/'))
