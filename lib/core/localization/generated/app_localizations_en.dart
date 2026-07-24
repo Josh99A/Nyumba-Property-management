@@ -955,7 +955,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legacy_8f953aa4b317 =>
-      'JPEG, PNG, or WebP; up to 5 MB each and 10 photos.';
+      'JPEG, PNG, or WebP; up to 5 MB each and 5 photos.';
 
   @override
   String get legacy_3259de868228 => 'Keep request';
@@ -3114,6 +3114,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addMorePhotos => 'Add more photos';
+
+  @override
+  String get listingPhotoGuidance =>
+      'JPEG, PNG, or WebP; up to 5 MB each and 5 photos. The first photo is the cover image. Photos remain pending until upload is confirmed.';
+
+  @override
+  String listingPhotoPosition(String current, String total) {
+    return 'Photo $current of $total';
+  }
 
   @override
   String actionFailureEntityNotFound(String action, String entity) {

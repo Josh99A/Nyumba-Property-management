@@ -4,6 +4,11 @@ enum OfflineEntityType {
   unit('units', 20),
   tenancy('tenancies', 25),
   listing('listings', 30),
+  // Server-owned public catalogue. Keep this separate from `listing`: the
+  // private and public Firestore projections share document IDs and versions
+  // but deliberately have different shapes, so merging them into one store
+  // lets whichever listener arrives first overwrite the other.
+  publicListing('public_listings', 31),
   application('applications', 40),
   invoice('invoices', 45),
   payment('payments', 50),

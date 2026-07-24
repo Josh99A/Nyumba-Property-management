@@ -61,6 +61,7 @@ class AppDependencies {
     required this.properties,
     required this.units,
     required this.listings,
+    required this.publicListings,
     required this.applications,
     required this.syncEngine,
     required this.documents,
@@ -83,6 +84,7 @@ class AppDependencies {
   final PropertyRepository properties;
   final UnitRepository units;
   final ListingRepository listings;
+  final ListingRepository publicListings;
   final ApplicationRepository applications;
   final SyncEngine syncEngine;
   final DocumentService documents;
@@ -208,7 +210,7 @@ final adminUnitsProvider = StreamProvider<List<Unit>>((ref) async* {
 
 final publicListingsProvider = StreamProvider<List<Listing>>((ref) async* {
   final deps = await ref.watch(appDependenciesProvider.future);
-  yield* deps.listings.watchAll(publicOnly: true);
+  yield* deps.publicListings.watchAll(publicOnly: true);
 });
 
 final rentalApplicationsProvider = StreamProvider<List<RentalApplication>>((
@@ -291,9 +293,18 @@ Future<AppDependencies> createAppDependencies({
     OfflineEntityType.listing,
     ListingMapper.canDecode,
   );
+  await database.purgeUndecodable(
+    OfflineEntityType.publicListing,
+    ListingMapper.canDecode,
+  );
   final properties = SembastPropertyRepository(database: database);
   final units = SembastUnitRepository(database: database);
   final listings = SembastListingRepository(
+    database: database,
+    properties: properties,
+    units: units,
+  );
+  final publicListings = SembastListingRepository.publicCatalog(
     database: database,
     properties: properties,
     units: units,
@@ -354,7 +365,10 @@ Future<AppDependencies> createAppDependencies({
       database: database,
       gateway: FirestoreRemotePullGateway(),
     );
-    remotePullCoordinator.watch(OfflineEntityType.listing, publicOnly: true);
+    remotePullCoordinator.watch(
+      OfflineEntityType.publicListing,
+      publicOnly: true,
+    );
     remotePullCoordinator.watch(
       OfflineEntityType.planCatalog,
       publicOnly: true,
@@ -464,6 +478,7 @@ Future<AppDependencies> createAppDependencies({
     properties: properties,
     units: units,
     listings: listings,
+    publicListings: publicListings,
     applications: applications,
     syncEngine: syncEngine,
     documents: const PdfDocumentService(),

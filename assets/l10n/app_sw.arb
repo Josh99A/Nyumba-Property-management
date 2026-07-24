@@ -302,7 +302,7 @@
     "legacy_320de51a0fea":  "Alika mtumiaji",
     "legacy_6ac487a0242c":  "Alika mtumiaji",
     "legacy_2864b372fa2c":  "Kiasi cha ankara (UGX)",
-    "legacy_8f953aa4b317":  "JPEG, PNG, au WebP; hadi MB 5 kila moja na picha 10.",
+    "legacy_8f953aa4b317":  "JPEG, PNG, au WebP; hadi MB 5 kila moja na picha 5.",
     "legacy_3259de868228":  "Weka ombi",
     "legacy_a4e70f65da38":  "Hifadhi hati hii kwa kumbukumbu zako.",
     "legacy_4ac4c025a16c":  "Hesabu za mwenye nyumba",
@@ -954,6 +954,9 @@
     ,"staffPermissionViewReportsLabel": "Ripoti"
     ,"staffPermissionViewReportsDescription": "Tengeneza ripoti za uendeshaji."
     ,"addMorePhotos": "Ongeza picha zaidi"
+    ,"listingPhotoGuidance": "JPEG, PNG au WebP; hadi MB 5 kwa kila picha na picha zisizozidi 5. Picha ya kwanza ndiyo picha ya jalada. Picha zitasalia zikisubiri hadi upakiaji uthibitishwe."
+    ,"listingPhotoPosition": "Picha {current} kati ya {total}"
+    ,"@listingPhotoPosition": {"placeholders": {"current": {"type": "String"}, "total": {"type": "String"}}}
     ,"actionFailureEntityNotFound": "Nyumba haikuweza {action} kwa sababu {entity} inayohusika haipo tena. Huenda ilihifadhiwa kwenye kifaa kingine. Onyesha upya kisha ujaribu tena."
     ,"@actionFailureEntityNotFound": {"placeholders": {"action": {"type": "String"}, "entity": {"type": "String"}}}
     ,"actionFailureEntityAlreadyExists": "{entity} hiyo tayari ipo, kwa hivyo Nyumba haikuweza {action} tena."

@@ -52,7 +52,7 @@ Before any deployment:
 1. Select the project through CI/environment configuration; do not commit a production `.firebaserc` by accident. Use `<your-dev-project-id>` locally (Blaze, region `europe-west1`).
 2. Add emulator tests for every permitted/denied actor and query shape.
 3. Register and enforce App Check for each Flutter platform.
-4. Upload limits are finalized: property photos 5 MB (jpeg/png/webp, max 5 per property), listing photos 5 MB (jpeg/png/webp, max 10 per listing), documents 10 MB (pdf/jpeg/png); staging paths enforce per-file limits in `storage.rules`, while finalizing Functions enforce counts and ordering.
+4. Upload limits are finalized: property and listing photos are 5 MB each (jpeg/png/webp, max 5 per aggregate), while documents are 10 MB (pdf/jpeg/png); staging paths enforce per-file limits in `storage.rules`, while finalizing Functions enforce counts and ordering.
 5. Implement and test callable commands; these rules intentionally deny direct client writes.
 6. Finalized: region `europe-west1`, listing expiry 30 days renewable, retention (financial 7 years, deleted media purged after 90 days, maintenance media 2 years). Still **TBD:** plan pricing/unit limits and the payment provider.
 

@@ -18,8 +18,8 @@ service firebase.storage {
 
     // Finalized limits (mirrored in lib/core/config/market_config.dart):
     // images (listing photos, maintenance media) 5 MB — jpeg/png/webp;
-    // documents 10 MB — pdf. Property photo count (max 5), listing photo
-    // count (max 10), ordering, and checksum validation are enforced by the
+    // documents 10 MB — pdf. Property and listing photo counts (max 5),
+    // ordering and checksum validation are enforced by the
     // finalizing Cloud Function.
     function validImageUpload() {
       return request.resource.size <= 5 * 1024 * 1024

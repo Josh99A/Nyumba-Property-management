@@ -302,7 +302,7 @@
     "legacy_320de51a0fea":  "Invite a user",
     "legacy_6ac487a0242c":  "Invite user",
     "legacy_2864b372fa2c":  "Invoice amount (UGX)",
-    "legacy_8f953aa4b317":  "JPEG, PNG, or WebP; up to 5 MB each and 10 photos.",
+    "legacy_8f953aa4b317":  "JPEG, PNG, or WebP; up to 5 MB each and 5 photos.",
     "legacy_3259de868228":  "Keep request",
     "legacy_a4e70f65da38":  "Keep this document for your records.",
     "legacy_4ac4c025a16c":  "Landlord accounts",
@@ -965,6 +965,9 @@
     ,"staffPermissionViewReportsLabel": "Reports"
     ,"staffPermissionViewReportsDescription": "Generate operational reports."
     ,"addMorePhotos": "Add more photos"
+    ,"listingPhotoGuidance": "JPEG, PNG, or WebP; up to 5 MB each and 5 photos. The first photo is the cover image. Photos remain pending until upload is confirmed."
+    ,"listingPhotoPosition": "Photo {current} of {total}"
+    ,"@listingPhotoPosition": {"placeholders": {"current": {"type": "String"}, "total": {"type": "String"}}}
     ,"actionFailureEntityNotFound": "Nyumba could not {action} because the {entity} it refers to no longer exists. It may have been archived on another device. Refresh and try again."
     ,"@actionFailureEntityNotFound": {"placeholders": {"action": {"type": "String"}, "entity": {"type": "String"}}}
     ,"actionFailureEntityAlreadyExists": "That {entity} already exists, so Nyumba did not {action} again."

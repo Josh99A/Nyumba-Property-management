@@ -21,7 +21,7 @@ export const ENFORCE_APP_CHECK = false;
 export const CURRENCY = 'UGX';
 export const COUNTRY = 'Uganda';
 export const LISTING_LIFETIME_DAYS = 30;
-export const MAX_LISTING_PHOTOS = 10;
+export const MAX_LISTING_PHOTOS = 5;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 

@@ -236,7 +236,7 @@ Finalized decisions (mirrored in [`lib/core/config/market_config.dart`](lib/core
   Hosting. The domain currently serves the development project
   (`nyumba-property-management`); the production project ID is still TBD.
 - **Listing lifetime:** published listings expire 30 days after (re)publication and are renewable by the landlord; expiry is enforced server-side.
-- **Upload limits:** max 10 photos per listing at 5 MB each (jpeg/png/webp); documents up to 10 MB (pdf/jpeg/png) — enforced in `firebase/storage.rules`.
+- **Upload limits:** max 5 photos per property or listing at 5 MB each (jpeg/png/webp); documents up to 10 MB (pdf/jpeg/png) — enforced in `firebase/storage.rules`.
 - **Retention:** financial records 7 years; deleted listings/media purged after 90 days; maintenance media 2 years.
 
 Still TBD: Nyumba's plan names are **Starter**, **Pro**, **Premium**, and **Enterprise**, but subscription prices, billing intervals, trials, grace periods, feature entitlements, and per-plan unit limits are not finalized. These values must be supplied by server-owned configuration and must not be hard-coded in Flutter or security rules. Until they are approved, production entitlement checks should fail closed.

@@ -116,6 +116,21 @@ describe('public SEO projection', () => {
     );
   });
 
+  it('exposes no more than five listing photos', () => {
+    const paths = publicListingImagePaths(
+      'listing_1234',
+      Array.from(
+        { length: 6 },
+        (_, index) => `public/listings/listing_1234/${index}_photo.png`,
+      ),
+    );
+
+    expect(paths).toHaveLength(5);
+    expect(paths.at(-1)).toBe(
+      'public/listings/listing_1234/4_photo.png',
+    );
+  });
+
   it('rejects malformed and unrecognized currency codes', () => {
     expect(
       toPublicSeoListing(

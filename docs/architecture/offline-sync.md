@@ -48,6 +48,15 @@ provide safe defaults for records created before these fields existed; no
 outbox command is rewritten or discarded. A new publication still validates
 the completed structured fields before enqueueing `listing.publish`.
 
+Private listing aggregates and the server-owned public catalogue use separate
+Sembast stores (`listings` and `public_listings`). They intentionally share
+document IDs and may share a version, but their field allowlists differ. Public
+pulls are read-only and must never overwrite a landlord's private draft or be
+used as a source for an outbox command. The public query matches the deployed
+`status`, `expiresAt`, `publishedAt` composite index and uses a short future
+expiry cutoff so Firestore Rules can prove that every returned row remains
+active at request time.
+
 ## Local write transaction
 
 For every mutation that may work offline:

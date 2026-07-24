@@ -1,12 +1,13 @@
 import 'dart:typed_data';
 
+import '../../../core/config/market_config.dart';
 import '../../../core/presentation/image_picking.dart';
 
 export '../../../core/presentation/image_picking.dart'
     show ImagePickOutcome, PickedImage, supportedPhotoFormats;
 
-const int listingPhotoLimit = 10;
-const int listingPhotoMaxBytes = 5 * 1024 * 1024;
+const int listingPhotoLimit = NyumbaMarket.maxListingPhotos;
+const int listingPhotoMaxBytes = NyumbaMarket.maxImageSizeBytes;
 
 /// Listing photos are ordinary picked images; the alias keeps the marketplace
 /// code reading in its own vocabulary.

@@ -144,7 +144,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
 
   @override
   Future<RemoteWriteResult> push(RemoteMutation mutation) async {
-    final stagedMutation = await _stagePropertyImages(mutation);
+    final stagedMutation = await _stageImages(mutation);
     final response = await _invokeEnvelope(buildEnvelope(stagedMutation));
     final committedAt = DateTime.tryParse(
       response['serverUpdatedAt']?.toString() ?? '',
@@ -159,25 +159,32 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
     );
   }
 
-  Future<RemoteMutation> _stagePropertyImages(RemoteMutation mutation) async {
-    final isPropertyWrite =
-        mutation.entityType == OfflineEntityType.property &&
+  Future<RemoteMutation> _stageImages(RemoteMutation mutation) async {
+    final isPhotoAggregate =
+        mutation.entityType == OfflineEntityType.property ||
+        mutation.entityType == OfflineEntityType.listing;
+    final isPhotoWrite =
+        isPhotoAggregate &&
         (mutation.operation == OutboxOperation.create ||
             mutation.operation == OutboxOperation.update);
-    if (!isPropertyWrite) return mutation;
+    if (!isPhotoWrite) return mutation;
 
     final references = _stringList(mutation.payload['imageUrls']);
     if (!references.any((reference) => reference.startsWith('data:image/'))) {
       return mutation;
     }
+    final isListing = mutation.entityType == OfflineEntityType.listing;
+    final subject = isListing ? 'Listing' : 'Property';
+    final filePrefix = isListing ? 'listing' : 'property';
+    final limit = isListing ? NyumbaMarket.maxListingPhotos : 5;
     final uid = actorUid?.trim();
     final uploader = uploadStagedImage;
     if (uid == null || uid.isEmpty || uploader == null) {
-      throw const RemoteSyncException('Property image upload is unavailable.');
+      throw RemoteSyncException('$subject image upload is unavailable.');
     }
 
     final stagedPaths = <String>[];
-    for (final (index, reference) in references.take(5).indexed) {
+    for (final (index, reference) in references.take(limit).indexed) {
       if (reference.startsWith('uploads/')) {
         stagedPaths.add(reference);
         continue;
@@ -186,21 +193,21 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
 
       final image = _decodeStagedImage(reference);
       if (image == null) {
-        throw const RemoteSyncException(
-          'Property image data is malformed.',
+        throw RemoteSyncException(
+          '$subject image data is malformed.',
           retryable: false,
         );
       }
       if (image.bytes.lengthInBytes > NyumbaMarket.maxImageSizeBytes) {
-        throw const RemoteSyncException(
-          'Property image exceeds the upload limit.',
+        throw RemoteSyncException(
+          '$subject image exceeds the upload limit.',
           retryable: false,
         );
       }
 
       final path =
           'uploads/$uid/${mutation.idempotencyKey}/'
-          'property-$index.${image.extension}';
+          '$filePrefix-$index.${image.extension}';
       try {
         await uploader(
           path: path,
@@ -209,7 +216,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         );
       } on Object catch (error) {
         throw RemoteSyncException(
-          'Property image upload failed.',
+          '$subject image upload failed.',
           cause: error,
         );
       }
@@ -423,7 +430,7 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
               'lat': payload['approximateLatitude'],
               'lng': payload['approximateLongitude'],
             },
-          'stagedImagePaths': stagedPaths(10),
+          'stagedImagePaths': stagedPaths(NyumbaMarket.maxListingPhotos),
         },
       ),
       (OfflineEntityType.listing, OutboxOperation.update) => _RemoteCommand(
@@ -448,7 +455,8 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
               'lat': payload['approximateLatitude'],
               'lng': payload['approximateLongitude'],
             },
-          if (stagedPaths(10).isNotEmpty) 'stagedImagePaths': stagedPaths(10),
+          if (stagedPaths(NyumbaMarket.maxListingPhotos).isNotEmpty)
+            'stagedImagePaths': stagedPaths(NyumbaMarket.maxListingPhotos),
         },
       ),
       (OfflineEntityType.listing, OutboxOperation.publish) =>

@@ -49,6 +49,9 @@ const _expectedCommands = <(OfflineEntityType, OutboxOperation), String>{
 /// a type here must be written through `putLocalEntity`, whose `reason`
 /// argument records the same fact at the write site.
 const _neverEnqueued = <OfflineEntityType, String>{
+  OfflineEntityType.publicListing:
+      'Server-owned public catalogue. Clients only pull this projection into '
+      'a cache isolated from private listing drafts.',
   OfflineEntityType.invoice:
       'Server-owned. Created inside payment/tenancy commands; the client only '
       'ever pulls invoices, never authors one.',

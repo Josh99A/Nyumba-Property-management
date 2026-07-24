@@ -1917,7 +1917,7 @@ abstract class AppLocalizations {
   /// No description provided for @legacy_8f953aa4b317.
   ///
   /// In en, this message translates to:
-  /// **'JPEG, PNG, or WebP; up to 5 MB each and 10 photos.'**
+  /// **'JPEG, PNG, or WebP; up to 5 MB each and 5 photos.'**
   String get legacy_8f953aa4b317;
 
   /// No description provided for @legacy_3259de868228.
@@ -5615,6 +5615,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add more photos'**
   String get addMorePhotos;
+
+  /// No description provided for @listingPhotoGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'JPEG, PNG, or WebP; up to 5 MB each and 5 photos. The first photo is the cover image. Photos remain pending until upload is confirmed.'**
+  String get listingPhotoGuidance;
+
+  /// No description provided for @listingPhotoPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo {current} of {total}'**
+  String listingPhotoPosition(String current, String total);
 
   /// No description provided for @actionFailureEntityNotFound.
   ///
