@@ -146,18 +146,22 @@ Uploads are two-phase:
 
 The application must tolerate local files disappearing before upload and surface a recoverable `LOCAL_ATTACHMENT_MISSING` state. Public listing images are never public merely because they were uploaded; only the server-owned public projection/path is readable publicly.
 
-A build with no configured Storage uploader has no remote image sink. Its
-listing and property pickers therefore keep bounded image data references only inside local
-records so the selection survives a local repository reload. Property records
-retain at most five ordered images (the first is primary), while listing records
-retain at most ten. Publication
-validation fails closed while any such local reference remains. This is a
-temporary non-production bridge: the Firebase adapter must replace it with the
-attachment-intent flow above (including checksum and missing-file recovery)
-before photo publication is enabled. The remote command gateway omits local data
-references and sends only validated `uploads/` staging paths. Local image data
-must never be copied into canonical or public documents or treated as an
-acknowledged upload.
+Property pickers keep at most five ordered image data references in the local
+record so a selection survives offline and repository reloads; the first image
+is the primary card image. When connectivity returns, the Firebase gateway
+uploads those images to deterministic
+`uploads/{uid}/{commandId}/property-{index}.{ext}` objects before submitting the
+property command. The command receives the ordered staging paths, and property
+pulls map those paths back into the local image list. Authenticated property
+screens read the private objects through the Storage SDK rather than minting
+public download URLs. Reusing the command ID and index makes an ambiguous retry
+overwrite the same staging objects without changing primary-image order.
+
+Listing pickers still retain at most ten local image references. Publication
+validation fails closed while any such local reference remains because listing
+uploads still need the complete attachment-intent flow above (including
+checksum and missing-file recovery). Local image data must never be copied into
+canonical or public documents or treated as an acknowledged upload.
 
 On Android and iOS, each account-scoped Sembast database uses AES-256-GCM with
 a distinct random key stored through Keychain/Keystore-backed secure storage.

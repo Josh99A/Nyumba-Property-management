@@ -5,6 +5,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'offline_database.dart';
 import 'offline_entity.dart';
 
+List<String> propertyImageReferencesFromRemote(Map<String, Object?> record) {
+  for (final field in const [
+    'imagePaths',
+    'publicImagePaths',
+    'stagedImagePaths',
+    'imageUrls',
+  ]) {
+    final value = record[field];
+    if (value is! List) continue;
+    final references = value
+        .whereType<String>()
+        .map((reference) => reference.trim())
+        .where((reference) => reference.isNotEmpty)
+        .toList(growable: false);
+    if (references.isNotEmpty) return references;
+  }
+  return const <String>[];
+}
+
 final class RemoteRecord {
   RemoteRecord({
     required this.entityType,
@@ -217,6 +236,9 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
         'inactive' => 'inactive',
         _ => result['status'] ?? 'vacant',
       };
+    }
+    if (type == OfflineEntityType.property) {
+      result['imageUrls'] = propertyImageReferencesFromRemote(result);
     }
     if (type == OfflineEntityType.listing) {
       result['status'] =

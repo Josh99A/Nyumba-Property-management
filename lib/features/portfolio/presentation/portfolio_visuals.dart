@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/bootstrap/app_dependencies.dart';
 import '../domain/property.dart';
 import 'property_photo_picker.dart';
 
@@ -44,7 +46,61 @@ Widget propertyImage(
       errorBuilder: (_, _, _) => _fallback(property, fit, filterQuality),
     );
   }
+  if (reference != null && _isStorageReference(reference)) {
+    return _StoragePropertyImage(
+      property: property,
+      reference: reference,
+      fit: fit,
+      filterQuality: filterQuality,
+    );
+  }
   return _fallback(property, fit, filterQuality);
+}
+
+bool _isStorageReference(String reference) =>
+    reference.startsWith('uploads/') ||
+    reference.startsWith('private/landlords/') ||
+    reference.startsWith('gs://');
+
+class _StoragePropertyImage extends ConsumerWidget {
+  const _StoragePropertyImage({
+    required this.property,
+    required this.reference,
+    required this.fit,
+    required this.filterQuality,
+  });
+
+  final Property property;
+  final String reference;
+  final BoxFit fit;
+  final FilterQuality filterQuality;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bytes = ref.watch(propertyMediaBytesProvider(reference));
+    return bytes.when(
+      data: (value) => value == null
+          ? _fallback(property, fit, filterQuality)
+          : Image.memory(
+              value,
+              fit: fit,
+              filterQuality: filterQuality,
+              semanticLabel: property.name,
+              errorBuilder: (_, _, _) =>
+                  _fallback(property, fit, filterQuality),
+            ),
+      error: (_, _) => _fallback(property, fit, filterQuality),
+      loading: () => const ColoredBox(
+        color: Color(0xFFE4E9E5),
+        child: Center(
+          child: SizedBox.square(
+            dimension: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 Widget _fallback(Property property, BoxFit fit, FilterQuality filterQuality) =>

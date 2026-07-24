@@ -1,14 +1,21 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/core/domain/clock.dart';
 import 'package:nyumba_property_management/core/domain/domain_exception.dart';
 import 'package:nyumba_property_management/core/domain/id_generator.dart';
+import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
+import 'package:nyumba_property_management/core/offline/remote_pull_gateway.dart';
 import 'package:nyumba_property_management/features/portfolio/data/mappers/property_mapper.dart';
 import 'package:nyumba_property_management/features/portfolio/data/sembast_property_repository.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/property.dart';
+import 'package:nyumba_property_management/features/portfolio/presentation/portfolio_visuals.dart';
 import 'package:nyumba_property_management/features/portfolio/presentation/property_photo_picker.dart';
 import 'package:sembast/sembast_memory.dart';
 
@@ -148,6 +155,87 @@ void main() {
     );
 
     expect(propertyPhotoBytes(photo.dataUri), orderedEquals(bytes));
+  });
+
+  test('pulled property media keeps the server primary image first', () {
+    expect(
+      propertyImageReferencesFromRemote(<String, Object?>{
+        'stagedImagePaths': <String>[
+          'uploads/landlord/command/primary.webp',
+          'uploads/landlord/command/secondary.webp',
+        ],
+      }),
+      <String>[
+        'uploads/landlord/command/primary.webp',
+        'uploads/landlord/command/secondary.webp',
+      ],
+    );
+    expect(
+      propertyImageReferencesFromRemote(<String, Object?>{
+        'imagePaths': <String>['private/landlords/owner/primary.webp'],
+        'stagedImagePaths': <String>[
+          'uploads/landlord/command/old-primary.webp',
+        ],
+      }),
+      <String>['private/landlords/owner/primary.webp'],
+    );
+  });
+
+  testWidgets('property card image loads the primary Storage object', (
+    tester,
+  ) async {
+    const primary = 'uploads/landlord/command/primary.png';
+    const secondary = 'uploads/landlord/command/secondary.png';
+    final requested = <String>[];
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ'
+      'AAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+    );
+    final property = Property(
+      id: 'property-1',
+      landlordId: 'landlord-1',
+      name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue',
+      city: 'Kampala',
+      country: 'Uganda',
+      imageUrls: const <String>[primary, secondary],
+      createdAt: now,
+      updatedAt: now,
+      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          propertyMediaLoaderProvider.overrideWith(
+            (ref) => (reference) async {
+              requested.add(reference);
+              return png;
+            },
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              key: const Key('property-image'),
+              width: 300,
+              height: 160,
+              child: propertyImage(property),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(requested, <String>[primary]);
+    final image = tester.widget<Image>(
+      find.descendant(
+        of: find.byKey(const Key('property-image')),
+        matching: find.byType(Image),
+      ),
+    );
+    expect(image.image, isA<MemoryImage>());
   });
 }
 

@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/config/market_config.dart';
 import '../../core/documents/nyumba_document_service.dart';
 import '../../core/offline/offline_database.dart';
 import '../../core/offline/in_memory_sync_gateway.dart';
@@ -49,6 +53,8 @@ import '../../features/profile/domain/user_settings_repository.dart';
 import '../bootstrap/local_database_opener.dart';
 import '../bootstrap/resume_sync_trigger.dart';
 
+typedef PropertyMediaLoader = Future<Uint8List?> Function(String reference);
+
 class AppDependencies {
   const AppDependencies({
     required this.database,
@@ -70,6 +76,7 @@ class AppDependencies {
     this.remotePullCoordinator,
     this.reconnectSyncTrigger,
     this.resumeSyncTrigger,
+    this.propertyMediaLoader,
   });
 
   final OfflineDatabase database;
@@ -91,6 +98,7 @@ class AppDependencies {
   final RemotePullCoordinator? remotePullCoordinator;
   final ReconnectSyncTrigger? reconnectSyncTrigger;
   final ResumeSyncTrigger? resumeSyncTrigger;
+  final PropertyMediaLoader? propertyMediaLoader;
 
   /// Closing quarantines the workspace: the database file and its unsynced
   /// outbox stay on disk untouched for the next sign-in of this account.
@@ -134,6 +142,18 @@ final appDependenciesProvider =
     AsyncNotifierProvider<AppDependenciesController, AppDependencies>(
       AppDependenciesController.new,
     );
+
+final propertyMediaLoaderProvider = Provider<PropertyMediaLoader?>((ref) {
+  final dependencies = ref.watch(appDependenciesProvider);
+  if (dependencies.isLoading || dependencies.hasError) return null;
+  return dependencies.value?.propertyMediaLoader;
+});
+
+final propertyMediaBytesProvider = FutureProvider.autoDispose
+    .family<Uint8List?, String>((ref, reference) {
+      final loader = ref.watch(propertyMediaLoaderProvider);
+      return loader == null ? Future<Uint8List?>.value() : loader(reference);
+    });
 
 /// Builds one offline workspace per signed-in account (plus one anonymous
 /// workspace for public browsing) and swaps it when the session changes.
@@ -296,8 +316,17 @@ Future<AppDependencies> createAppDependencies({
   final isAuthenticated = session != null;
   final usesRemoteGateway = usesFirebase && isAuthenticated;
   final gateway = usesRemoteGateway
-      ? await FirebaseRemoteSyncGateway.create()
+      ? await FirebaseRemoteSyncGateway.create(actorUid: session.userId)
       : InMemorySyncGateway();
+  final PropertyMediaLoader? propertyMediaLoader = usesFirebase
+      ? (reference) {
+          final storage = FirebaseStorage.instance;
+          final object = reference.startsWith('gs://')
+              ? storage.refFromURL(reference)
+              : storage.ref(reference);
+          return object.getData(NyumbaMarket.maxImageSizeBytes);
+        }
+      : null;
   // Connectivity gating and reconnect-triggered flushes only make sense when
   // pushes actually cross the network. The in-memory gateway works offline;
   // gating it on connectivity would strand outbox entries for no reason.
@@ -450,5 +479,6 @@ Future<AppDependencies> createAppDependencies({
     remotePullCoordinator: remotePullCoordinator,
     reconnectSyncTrigger: reconnectSyncTrigger,
     resumeSyncTrigger: resumeSyncTrigger,
+    propertyMediaLoader: propertyMediaLoader,
   );
 }
