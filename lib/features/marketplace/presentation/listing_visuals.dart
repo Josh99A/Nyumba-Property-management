@@ -39,6 +39,7 @@ Widget listingImage(
   int index = 0,
   BoxFit fit = BoxFit.cover,
   FilterQuality filterQuality = FilterQuality.medium,
+  int cacheWidth = 1600,
 }) {
   final reference = index >= 0 && index < listing.imageUrls.length
       ? listing.imageUrls[index]
@@ -49,6 +50,8 @@ Widget listingImage(
       localBytes,
       fit: fit,
       filterQuality: filterQuality,
+      cacheWidth: cacheWidth,
+      semanticLabel: listing.title,
       errorBuilder: (_, _, _) => _fallback(listing, fit, filterQuality),
     );
   }
@@ -58,6 +61,11 @@ Widget listingImage(
       reference!,
       fit: fit,
       filterQuality: filterQuality,
+      cacheWidth: cacheWidth,
+      semanticLabel: listing.title,
+      loadingBuilder: (context, child, progress) => progress == null
+          ? child
+          : _loadingPlaceholder(listing, fit, filterQuality, progress),
       errorBuilder: (_, _, _) => _fallback(listing, fit, filterQuality),
     );
   }
@@ -67,6 +75,7 @@ Widget listingImage(
       reference: reference,
       fit: fit,
       filterQuality: filterQuality,
+      cacheWidth: cacheWidth,
     );
   }
   return _fallback(listing, fit, filterQuality);
@@ -91,12 +100,14 @@ class _StorageListingImage extends ConsumerWidget {
     required this.reference,
     required this.fit,
     required this.filterQuality,
+    required this.cacheWidth,
   });
 
   final Listing listing;
   final String reference;
   final BoxFit fit;
   final FilterQuality filterQuality;
+  final int cacheWidth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -108,22 +119,37 @@ class _StorageListingImage extends ConsumerWidget {
               value,
               fit: fit,
               filterQuality: filterQuality,
+              cacheWidth: cacheWidth,
               semanticLabel: listing.title,
               errorBuilder: (_, _, _) => _fallback(listing, fit, filterQuality),
             ),
       error: (_, _) => _fallback(listing, fit, filterQuality),
-      loading: () => const ColoredBox(
-        color: Color(0xFFE4E9E5),
-        child: Center(
-          child: SizedBox.square(
-            dimension: 28,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      ),
+      loading: () => _loadingPlaceholder(listing, fit, filterQuality, null),
     );
   }
 }
+
+Widget _loadingPlaceholder(
+  Listing listing,
+  BoxFit fit,
+  FilterQuality filterQuality,
+  ImageChunkEvent? progress,
+) => Stack(
+  fit: StackFit.expand,
+  children: [
+    ExcludeSemantics(child: _fallback(listing, fit, filterQuality)),
+    Align(
+      alignment: Alignment.bottomCenter,
+      child: LinearProgressIndicator(
+        minHeight: 3,
+        value: progress?.expectedTotalBytes == null
+            ? null
+            : progress!.cumulativeBytesLoaded / progress.expectedTotalBytes!,
+        backgroundColor: Colors.transparent,
+      ),
+    ),
+  ],
+);
 
 /// Responsive listing gallery used by the public advert detail experience.
 ///
@@ -193,6 +219,7 @@ class _ListingPhotoCarouselState extends State<ListingPhotoCarousel> {
                       index: widget.listing.imageUrls.isEmpty ? -1 : index,
                       fit: BoxFit.cover,
                       filterQuality: FilterQuality.high,
+                      cacheWidth: 1920,
                     ),
                   ),
                 ),

@@ -117,7 +117,7 @@ Decided on 2026-07-14 (client mirror in `lib/core/config/market_config.dart`; th
   Generated Firebase Hosting hostnames are deployment endpoints, not canonical
   public URLs.
 - **Public listings:** a published listing expires 30 days after (re)publication; landlords can renew. Expiry is enforced by a backend projection job, never by the client.
-- **Upload limits:** property and listing photos max 5 per aggregate, 5 MB each (`image/jpeg`, `image/png`, `image/webp`); documents max 10 MB (`application/pdf`, `image/jpeg`, `image/png`). Enforced in `firebase/storage.rules` and the finalizing command handler. Media order is significant: the first accepted image is the primary/cover image.
+- **Upload limits:** property photos max 2 per aggregate and listing photos max 5 per aggregate, 5 MB each (`image/jpeg`, `image/png`, `image/webp`); documents max 10 MB (`application/pdf`, `image/jpeg`, `image/png`). Enforced in `firebase/storage.rules` and the finalizing command handler. Media order is significant: the first accepted image is the primary/cover image. Public listing copies are auto-oriented, stripped of source metadata, bounded to 1920×1440, and encoded as WebP before publication so an original upload is never the public delivery asset.
 - **Retention:** financial records (invoices, payments, receipts) 7 years; deleted listings and their media purged 90 days after deletion; maintenance media 2 years.
 
 ## Unresolved product configuration

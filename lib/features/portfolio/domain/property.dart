@@ -1,3 +1,4 @@
+import '../../../core/config/market_config.dart';
 import '../../../core/domain/domain_validation.dart';
 import '../../../core/domain/sync_metadata.dart';
 
@@ -47,8 +48,8 @@ final class Property {
       'description': DomainValidation.optionalText(description),
       'imageUrls': imageUrls.any((url) => url.trim().isEmpty)
           ? 'must not contain empty image references'
-          : imageUrls.length > 5
-          ? 'must contain at most 5 images'
+          : imageUrls.length > NyumbaMarket.maxPropertyPhotos
+          ? 'must contain at most ${NyumbaMarket.maxPropertyPhotos} images'
           : null,
       'updatedAt': updatedAt.isBefore(createdAt)
           ? 'must not be before createdAt'
@@ -120,8 +121,8 @@ final class CreatePropertyInput {
       'description': DomainValidation.optionalText(description),
       'imageUrls': imageUrls.any((url) => url.trim().isEmpty)
           ? 'must not contain empty image references'
-          : imageUrls.length > 5
-          ? 'must contain at most 5 images'
+          : imageUrls.length > NyumbaMarket.maxPropertyPhotos
+          ? 'must contain at most ${NyumbaMarket.maxPropertyPhotos} images'
           : null,
     });
   }

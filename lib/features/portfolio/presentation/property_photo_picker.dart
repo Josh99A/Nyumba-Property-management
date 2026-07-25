@@ -1,12 +1,13 @@
 import 'dart:typed_data';
 
+import '../../../core/config/market_config.dart';
 import '../../../core/presentation/image_picking.dart';
 
 export '../../../core/presentation/image_picking.dart'
     show ImagePickOutcome, PickedImage, supportedPhotoFormats;
 
-const int propertyPhotoLimit = 5;
-const int propertyPhotoMaxBytes = 5 * 1024 * 1024;
+const int propertyPhotoLimit = NyumbaMarket.maxPropertyPhotos;
+const int propertyPhotoMaxBytes = NyumbaMarket.maxImageSizeBytes;
 
 /// Property photos are ordinary picked images; the alias keeps the portfolio
 /// code reading in its own vocabulary.

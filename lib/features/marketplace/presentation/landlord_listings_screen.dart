@@ -1263,7 +1263,11 @@ class _LandlordListingCard extends StatelessWidget {
                 ),
                 child: AspectRatio(
                   aspectRatio: 3 / 2,
-                  child: listingImage(listing, fit: BoxFit.cover),
+                  child: listingImage(
+                    listing,
+                    fit: BoxFit.cover,
+                    cacheWidth: 960,
+                  ),
                 ),
               ),
               PositionedDirectional(

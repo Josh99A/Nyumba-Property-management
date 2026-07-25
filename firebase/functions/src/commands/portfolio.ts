@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import { loadActiveLandlordContext, requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
-import { COUNTRY, CURRENCY } from '../shared/config';
+import { COUNTRY, CURRENCY, MAX_PROPERTY_PHOTOS } from '../shared/config';
 import { DomainError } from '../shared/errors';
 import {
   idSchema,
@@ -25,7 +25,7 @@ const propertyCreateSchema = strictPayload({
   city: shortText,
   district: optionalShortText,
   description: longText.optional(),
-  stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(5).optional(),
+  stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(MAX_PROPERTY_PHOTOS).optional(),
 });
 
 function validateStagedPaths(uid: string, paths: string[]): void {
@@ -72,7 +72,7 @@ const propertyUpdateSchema = strictPayload({
   city: shortText.optional(),
   district: optionalShortText,
   description: z.string().trim().max(5_000).optional(),
-  stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(5).optional(),
+  stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(MAX_PROPERTY_PHOTOS).optional(),
 }).refine((value) => Object.values(value).some((field) => field !== undefined));
 
 export const propertyUpdate: CommandHandler<z.infer<typeof propertyUpdateSchema>> = {

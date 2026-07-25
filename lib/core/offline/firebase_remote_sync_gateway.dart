@@ -188,7 +188,9 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
     final isListing = mutation.entityType == OfflineEntityType.listing;
     final subject = isListing ? 'Listing' : 'Property';
     final filePrefix = isListing ? 'listing' : 'property';
-    final limit = isListing ? NyumbaMarket.maxListingPhotos : 5;
+    final limit = isListing
+        ? NyumbaMarket.maxListingPhotos
+        : NyumbaMarket.maxPropertyPhotos;
     final uid = actorUid?.trim();
     final uploader = uploadStagedImage;
     if (uid == null || uid.isEmpty || uploader == null) {
@@ -375,14 +377,15 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
           if (payload['landlordId'] != null)
             'targetLandlordId': payload['landlordId'],
           ...pick(['name', 'addressLine', 'city', 'district', 'description']),
-          'stagedImagePaths': stagedPaths(5),
+          'stagedImagePaths': stagedPaths(NyumbaMarket.maxPropertyPhotos),
         },
       ),
       (OfflineEntityType.property, OutboxOperation.update) => _RemoteCommand(
         'property.update',
         <String, Object?>{
           ...pick(['name', 'addressLine', 'city', 'district', 'description']),
-          if (stagedPaths(5).isNotEmpty) 'stagedImagePaths': stagedPaths(5),
+          if (stagedPaths(NyumbaMarket.maxPropertyPhotos).isNotEmpty)
+            'stagedImagePaths': stagedPaths(NyumbaMarket.maxPropertyPhotos),
         },
       ),
       (OfflineEntityType.property, OutboxOperation.delete) =>

@@ -331,10 +331,17 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                                           context,
                                         ).textTheme.titleSmall,
                                       ),
-                                      Text.localized(
+                                      Text(
                                         selectedPhotos.isEmpty
-                                            ? 'Add 1–5 photos. The primary photo appears first.'
-                                            : '${selectedPhotos.length} of $propertyPhotoLimit photos added. The primary photo appears first.',
+                                            ? appLocalizationsOf(
+                                                context,
+                                              ).propertyPhotoCreateGuidance
+                                            : appLocalizationsOf(
+                                                context,
+                                              ).propertyPhotoCountGuidance(
+                                                selectedPhotos.length,
+                                                propertyPhotoLimit,
+                                              ),
                                         style: Theme.of(
                                           context,
                                         ).textTheme.bodySmall,
@@ -678,7 +685,7 @@ class _PropertyCard extends StatelessWidget {
                 ),
                 child: AspectRatio(
                   aspectRatio: 3 / 1.45,
-                  child: propertyImage(property),
+                  child: propertyImage(property, cacheWidth: 960),
                 ),
               ),
               if (pending)

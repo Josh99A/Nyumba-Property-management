@@ -163,7 +163,7 @@ Uploads are two-phase:
 
 The application must tolerate local files disappearing before upload and surface a recoverable `LOCAL_ATTACHMENT_MISSING` state. Public listing images are never public merely because they were uploaded; only the server-owned public projection/path is readable publicly.
 
-Property pickers keep at most five ordered image data references in the local
+Property pickers keep at most two ordered image data references in the local
 record so a selection survives offline and repository reloads; the first image
 is the primary card image. When connectivity returns, the Firebase gateway
 uploads those images to deterministic
@@ -187,6 +187,12 @@ data URI remains; the gateway must upload it to the authenticated staging
 prefix before the server can copy validated media into the public projection.
 Local image data must never be copied into canonical or public documents or
 treated as an acknowledged upload.
+
+The listing-media publication worker downloads each validated staged image,
+auto-orients it, strips embedded source metadata, bounds it to 1920×1440, and
+encodes the public copy as WebP. The ordered public paths still preserve the
+first image as the card cover and all accepted images as the detail carousel;
+the original staged upload is never served as the public delivery asset.
 
 On Android and iOS, each account-scoped Sembast database uses AES-256-GCM with
 a distinct random key stored through Keychain/Keystore-backed secure storage.

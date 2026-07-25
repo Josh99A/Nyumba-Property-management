@@ -1,8 +1,15 @@
 import { createHash } from 'node:crypto';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import sharp from 'sharp';
 import { COLLECTIONS } from '../shared/collections';
-import { MAX_DOCUMENT_BYTES, MAX_IMAGE_BYTES, MAX_LISTING_PHOTOS } from '../shared/config';
+import {
+  MAX_DOCUMENT_BYTES,
+  MAX_IMAGE_BYTES,
+  MAX_LISTING_PHOTOS,
+  MAX_PUBLIC_LISTING_IMAGE_HEIGHT,
+  MAX_PUBLIC_LISTING_IMAGE_WIDTH,
+} from '../shared/config';
 
 const imageContentTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
@@ -35,6 +42,31 @@ export function publicListingMediaPatch(
   };
 }
 
+/**
+ * Produces the public delivery copy rather than exposing the upload verbatim.
+ * Auto-orientation fixes phone-camera EXIF rotation, resizing bounds decode
+ * and transfer cost, WebP keeps photographs compact, and Sharp strips source
+ * metadata by default (including camera/location metadata).
+ */
+export async function optimisePublicListingImage(
+  source: Buffer,
+): Promise<Buffer> {
+  const output = await sharp(source)
+    .rotate()
+    .resize({
+      width: MAX_PUBLIC_LISTING_IMAGE_WIDTH,
+      height: MAX_PUBLIC_LISTING_IMAGE_HEIGHT,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .webp({ quality: 82, effort: 4, smartSubsample: true })
+    .toBuffer();
+  if (output.length <= 0 || output.length > MAX_IMAGE_BYTES) {
+    throw new Error('Optimized listing image failed validation.');
+  }
+  return output;
+}
+
 export async function publishListingMedia(payload: Record<string, unknown>): Promise<void> {
   const listingId = String(payload.listingId);
   const staged = Array.isArray(payload.stagedImagePaths)
@@ -47,11 +79,24 @@ export async function publishListingMedia(payload: Record<string, unknown>): Pro
     const source = bucket.file(sourcePath);
     const [metadata] = await source.getMetadata();
     const size = Number(metadata.size);
-    if (!imageContentTypes.has(metadata.contentType ?? '') || !Number.isFinite(size) || size > MAX_IMAGE_BYTES) {
+    if (
+      !imageContentTypes.has(metadata.contentType ?? '')
+      || !Number.isFinite(size)
+      || size <= 0
+      || size > MAX_IMAGE_BYTES
+    ) {
       throw new Error('Staged listing image failed validation.');
     }
-    const destination = `public/listings/${listingId}/${index}_${fileName(sourcePath)}`;
-    await source.copy(bucket.file(destination));
+    const [uploadedImage] = await source.download();
+    const publicImage = await optimisePublicListingImage(uploadedImage);
+    const destination = `public/listings/${listingId}/${index}.webp`;
+    await bucket.file(destination).save(publicImage, {
+      resumable: false,
+      metadata: {
+        contentType: 'image/webp',
+        cacheControl: 'public, max-age=60, s-maxage=300',
+      },
+    });
     publicPaths.push(destination);
   }
   const now = Timestamp.now();

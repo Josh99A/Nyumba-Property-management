@@ -1155,7 +1155,7 @@ abstract class AppLocalizations {
   /// No description provided for @legacy_409c81e0b451.
   ///
   /// In en, this message translates to:
-  /// **'Add 1–5 photos. The primary photo appears first.'**
+  /// **'Add 1–2 photos. The primary photo appears first.'**
   String get legacy_409c81e0b451;
 
   /// No description provided for @legacy_19271cc17a6a.
@@ -5615,6 +5615,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add more photos'**
   String get addMorePhotos;
+
+  /// No description provided for @propertyPhotoCreateGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'Add 1–2 photos. The primary photo appears first.'**
+  String get propertyPhotoCreateGuidance;
+
+  /// No description provided for @propertyPhotoCountGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {maximum} photos added. The primary photo appears first.'**
+  String propertyPhotoCountGuidance(int count, int maximum);
+
+  /// No description provided for @propertyPhotoEditGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'JPEG, PNG, or WebP; up to 5 MB each and 2 photos. The first photo is shown on the property card. Photos remain pending until upload is confirmed.'**
+  String get propertyPhotoEditGuidance;
 
   /// No description provided for @listingPhotoGuidance.
   ///

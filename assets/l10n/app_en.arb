@@ -175,7 +175,7 @@
     "legacy_59a5c54d5f44":  "Active subscriptions by tier",
     "legacy_bbdb3cafea65":  "Active tenants",
     "legacy_35aa97b5d006":  "Activity feed needs a live admin session",
-    "legacy_409c81e0b451":  "Add 1–5 photos. The primary photo appears first.",
+    "legacy_409c81e0b451":  "Add 1–2 photos. The primary photo appears first.",
     "legacy_19271cc17a6a":  "Add a property and rental space before logging a request.",
     "legacy_65da21f513a4":  "Add a tenancy before creating a tenant document.",
     "legacy_c1ad18af83ca":  "Add a tenant before recording a payment.",
@@ -965,6 +965,10 @@
     ,"staffPermissionViewReportsLabel": "Reports"
     ,"staffPermissionViewReportsDescription": "Generate operational reports."
     ,"addMorePhotos": "Add more photos"
+    ,"propertyPhotoCreateGuidance": "Add 1–2 photos. The primary photo appears first."
+    ,"propertyPhotoCountGuidance": "{count} of {maximum} photos added. The primary photo appears first."
+    ,"@propertyPhotoCountGuidance": {"placeholders": {"count": {"type": "int"}, "maximum": {"type": "int"}}}
+    ,"propertyPhotoEditGuidance": "JPEG, PNG, or WebP; up to 5 MB each and 2 photos. The first photo is shown on the property card. Photos remain pending until upload is confirmed."
     ,"listingPhotoGuidance": "JPEG, PNG, or WebP; up to 5 MB each and 5 photos. The first photo is the cover image. Photos remain pending until upload is confirmed."
     ,"listingPhotoPosition": "Photo {current} of {total}"
     ,"@listingPhotoPosition": {"placeholders": {"current": {"type": "String"}, "total": {"type": "String"}}}

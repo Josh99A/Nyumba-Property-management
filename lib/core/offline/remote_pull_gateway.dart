@@ -253,7 +253,12 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
       };
     }
     if (type == OfflineEntityType.property) {
-      result['imageUrls'] = propertyImageReferencesFromRemote(result);
+      // Records created before the two-photo policy may still contain up to
+      // five paths. Preserve their cover-first order while keeping the local
+      // aggregate readable under the current invariant.
+      result['imageUrls'] = propertyImageReferencesFromRemote(
+        result,
+      ).take(NyumbaMarket.maxPropertyPhotos).toList(growable: false);
     }
     if (type == OfflineEntityType.listing ||
         type == OfflineEntityType.publicListing) {

@@ -53,6 +53,7 @@ abstract final class NyumbaMarket {
   static const int listingLifetimeDays = 30;
 
   /// Upload limits (mirrored in firebase/storage.rules — keep in sync).
+  static const int maxPropertyPhotos = 2;
   static const int maxListingPhotos = 5;
   static const int maxImageSizeBytes = 5 * 1024 * 1024; // 5 MB
   static const int maxDocumentSizeBytes = 10 * 1024 * 1024; // 10 MB

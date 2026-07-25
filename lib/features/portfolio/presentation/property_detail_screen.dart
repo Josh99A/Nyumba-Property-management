@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/domain/sync_metadata.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/photo_editor_field.dart';
@@ -341,10 +342,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           pick: pickPropertyPhotos,
                           onChanged: (problems) =>
                               setDialogState(() => photoProblems = problems),
-                          helperText:
-                              '$supportedPhotoFormats; up to 5 MB each and '
-                              '$propertyPhotoLimit photos. The first photo is '
-                              'the one shown on the property card.',
+                          helperText: appLocalizationsOf(
+                            context,
+                          ).propertyPhotoEditGuidance,
                         ),
                       ),
                       PickProblemsNotice(problems: photoProblems),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -21,6 +22,11 @@ import 'package:sembast/sembast_memory.dart';
 
 void main() {
   final now = DateTime.utc(2026, 7, 15, 10);
+
+  test('property uploads allow two images of at most 5 MB each', () {
+    expect(propertyPhotoLimit, 2);
+    expect(propertyPhotoMaxBytes, 5 * 1024 * 1024);
+  });
 
   test('property photos round-trip with the primary image first', () async {
     final database = OfflineDatabase(
@@ -55,14 +61,14 @@ void main() {
     expect(outbox.single.payload['imageUrls'], images);
   });
 
-  test('property rejects more than five images', () {
+  test('property rejects more than two images', () {
     expect(
       () => CreatePropertyInput(
         landlordId: 'landlord-1',
         name: 'Acacia Court',
         addressLine: '12 Acacia Avenue',
         city: 'Kampala',
-        imageUrls: List.generate(6, (index) => 'image-$index'),
+        imageUrls: List.generate(3, (index) => 'image-$index'),
       ).validate(),
       throwsA(isA<DomainValidationException>()),
     );
@@ -87,6 +93,27 @@ void main() {
 
     expect(property.imageUrls, isEmpty);
     expect(property.isArchived, isFalse);
+  });
+
+  test('legacy records keep only their primary-first image pair', () {
+    final property = PropertyMapper.fromJson(<String, Object?>{
+      'id': 'property-legacy-media',
+      'landlordId': 'landlord-1',
+      'name': 'Legacy Court',
+      'addressLine': 'Old Road',
+      'city': 'Kampala',
+      'country': 'Uganda',
+      'imageUrls': const <String>['primary', 'secondary', 'legacy-extra'],
+      'createdAt': now.toIso8601String(),
+      'updatedAt': now.toIso8601String(),
+      'syncMetadata': <String, Object?>{
+        'state': 'synced',
+        'serverVersion': 1,
+        'pendingCommandIds': <String>[],
+      },
+    });
+
+    expect(property.imageUrls, const <String>['primary', 'secondary']);
   });
 
   test(
@@ -235,8 +262,131 @@ void main() {
         matching: find.byType(Image),
       ),
     );
-    expect(image.image, isA<MemoryImage>());
+    final resized = image.image as ResizeImage;
+    expect(resized.width, 1600);
+    expect(resized.imageProvider, isA<MemoryImage>());
   });
+
+  testWidgets('Storage media shows a useful image while bytes are loading', (
+    tester,
+  ) async {
+    const primary = 'uploads/landlord/command/primary.png';
+    final pending = Completer<Uint8List?>();
+    final property = Property(
+      id: 'property-loading',
+      landlordId: 'landlord-1',
+      name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue',
+      city: 'Kampala',
+      country: 'Uganda',
+      imageUrls: const <String>[primary],
+      createdAt: now,
+      updatedAt: now,
+      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          propertyMediaLoaderProvider.overrideWith(
+            (ref) =>
+                (_) => pending.future,
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              height: 160,
+              child: propertyImage(property),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(
+      tester
+          .widgetList<Image>(find.byType(Image))
+          .any((image) => image.image is AssetImage),
+      isTrue,
+    );
+
+    pending.complete(null);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('recent Storage bytes survive a brief card removal', (
+    tester,
+  ) async {
+    const primary = 'uploads/landlord/command/primary.png';
+    final requested = <String>[];
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ'
+      'AAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+    );
+    final property = Property(
+      id: 'property-cache',
+      landlordId: 'landlord-1',
+      name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue',
+      city: 'Kampala',
+      country: 'Uganda',
+      imageUrls: const <String>[primary],
+      createdAt: now,
+      updatedAt: now,
+      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
+    );
+    final visibility = GlobalKey<_MediaVisibilityState>();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          propertyMediaLoaderProvider.overrideWith(
+            (ref) => (reference) async {
+              requested.add(reference);
+              return png;
+            },
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: _MediaVisibility(key: visibility, property: property),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    visibility.currentState!.show = false;
+    await tester.pump();
+    visibility.currentState!.show = true;
+    await tester.pumpAndSettle();
+
+    expect(requested, const <String>[primary]);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+}
+
+class _MediaVisibility extends StatefulWidget {
+  const _MediaVisibility({required this.property, super.key});
+
+  final Property property;
+
+  @override
+  State<_MediaVisibility> createState() => _MediaVisibilityState();
+}
+
+class _MediaVisibilityState extends State<_MediaVisibility> {
+  bool _show = true;
+
+  set show(bool value) => setState(() => _show = value);
+
+  @override
+  Widget build(BuildContext context) => _show
+      ? SizedBox(width: 300, height: 160, child: propertyImage(widget.property))
+      : const SizedBox.shrink();
 }
 
 final class _SequenceIdGenerator implements IdGenerator {

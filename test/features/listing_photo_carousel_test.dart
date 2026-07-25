@@ -81,7 +81,9 @@ void main() {
 
     expect(requested, <String>[primary]);
     expect(find.byType(Image), findsOneWidget);
-    expect(tester.widget<Image>(find.byType(Image)).image, isA<MemoryImage>());
+    final image = tester.widget<Image>(find.byType(Image)).image as ResizeImage;
+    expect(image.width, 1600);
+    expect(image.imageProvider, isA<MemoryImage>());
   });
 
   testWidgets('carousel stays directional and overflow-free in Arabic RTL', (
