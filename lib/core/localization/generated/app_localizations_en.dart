@@ -549,7 +549,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legacy_409c81e0b451 =>
-      'Add 1–5 photos. The primary photo appears first.';
+      'Add 1–2 photos. The primary photo appears first.';
 
   @override
   String get legacy_19271cc17a6a =>
@@ -3114,6 +3114,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addMorePhotos => 'Add more photos';
+
+  @override
+  String get propertyPhotoCreateGuidance =>
+      'Add 1–2 photos. The primary photo appears first.';
+
+  @override
+  String propertyPhotoCountGuidance(int count, int maximum) {
+    return '$count of $maximum photos added. The primary photo appears first.';
+  }
+
+  @override
+  String get propertyPhotoEditGuidance =>
+      'JPEG, PNG, or WebP; up to 5 MB each and 2 photos. The first photo is shown on the property card. Photos remain pending until upload is confirmed.';
 
   @override
   String get listingPhotoGuidance =>

@@ -17,11 +17,12 @@ property, or unit collections.
 
 ## Verification and deployment limitations
 
-- Local verification on 2026-07-24 uses
+- Local verification on 2026-07-25 uses
   `cd firebase/functions && npm run typecheck && npm test && npm run test:emulator`.
-  All three passed: TypeScript reported no errors, all 39 unit tests passed, and
+  All three passed: TypeScript reported no errors, all 47 unit tests passed, and
   the rules/command emulator suite completed successfully against
-  `demo-nyumba`. A local raw-response smoke check also passed for the Function's
+  `demo-nyumba`. The most recent local raw-response smoke check (2026-07-24)
+  also passed for the Function's
   `308` root redirect, HTML explore/listing responses, XML sitemap, missing
   listing `404`/`noindex`, and short-lived cache headers.
 - A Hosting smoke check with
@@ -52,7 +53,7 @@ Before any deployment:
 1. Select the project through CI/environment configuration; do not commit a production `.firebaserc` by accident. Use `<your-dev-project-id>` locally (Blaze, region `europe-west1`).
 2. Add emulator tests for every permitted/denied actor and query shape.
 3. Register and enforce App Check for each Flutter platform.
-4. Upload limits are finalized: property and listing photos are 5 MB each (jpeg/png/webp, max 5 per aggregate), while documents are 10 MB (pdf/jpeg/png); staging paths enforce per-file limits in `storage.rules`, while finalizing Functions enforce counts and ordering.
+4. Upload limits are finalized: property photos are 5 MB each (jpeg/png/webp, max 2 per aggregate), listing photos are 5 MB each (jpeg/png/webp, max 5 per aggregate), and documents are 10 MB (pdf/jpeg/png); staging paths enforce per-file limits in `storage.rules`, while finalizing Functions enforce counts and ordering. Public listing delivery copies are stripped, bounded to 1920×1440, and encoded as WebP.
 5. Implement and test callable commands; these rules intentionally deny direct client writes.
 6. Finalized: region `europe-west1`, listing expiry 30 days renewable, retention (financial 7 years, deleted media purged after 90 days, maintenance media 2 years). Still **TBD:** plan pricing/unit limits and the payment provider.
 

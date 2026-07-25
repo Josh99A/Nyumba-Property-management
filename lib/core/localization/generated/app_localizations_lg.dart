@@ -555,7 +555,7 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get legacy_409c81e0b451 =>
-      'Okwongerako ebifaananyi 1–5. Ekifaananyi ekisookerwako kye kisooka okulabika.';
+      'Yongerako ebifaananyi 1–2. Ekifaananyi ekikulu kye kisooka okulabika.';
 
   @override
   String get legacy_19271cc17a6a =>
@@ -3178,6 +3178,19 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get addMorePhotos => 'Okwongerako ebifaananyi ebirala';
+
+  @override
+  String get propertyPhotoCreateGuidance =>
+      'Yongerako ebifaananyi 1–2. Ekifaananyi ekikulu kye kisooka okulabika.';
+
+  @override
+  String propertyPhotoCountGuidance(int count, int maximum) {
+    return 'Oyongeddeko ebifaananyi $count ku $maximum. Ekifaananyi ekikulu kye kisooka okulabika.';
+  }
+
+  @override
+  String get propertyPhotoEditGuidance =>
+      'JPEG, PNG, oba WebP; buli kifaananyi tekisukka MB 5 era ebifaananyi byonna tebisinga 2. Ekifaananyi ekisooka kye kirabika ku kaadi y’eky’obugagga. Ebifaananyi bisigala nga birindirira okutuusa okutikka bwe kukakasibwa.';
 
   @override
   String get listingPhotoGuidance =>

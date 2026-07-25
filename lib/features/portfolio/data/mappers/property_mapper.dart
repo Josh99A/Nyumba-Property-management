@@ -1,3 +1,4 @@
+import 'package:nyumba_property_management/core/config/market_config.dart';
 import 'package:nyumba_property_management/core/offline/json_reader.dart';
 import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/property.dart';
@@ -31,7 +32,12 @@ final class PropertyMapper {
       city: reader.requiredString('city'),
       country: reader.requiredString('country'),
       description: reader.optionalString('description'),
-      imageUrls: reader.stringList('imageUrls'),
+      // Older local records may predate the two-photo property policy. Keep
+      // the primary-first pair instead of making the property unreadable.
+      imageUrls: reader
+          .stringList('imageUrls')
+          .take(NyumbaMarket.maxPropertyPhotos)
+          .toList(growable: false),
       createdAt: reader.requiredDate('createdAt'),
       updatedAt: reader.requiredDate('updatedAt'),
       isArchived: reader.optionalBool('isDeleted'),

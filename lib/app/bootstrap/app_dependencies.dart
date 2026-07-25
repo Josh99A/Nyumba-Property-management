@@ -151,11 +151,58 @@ final propertyMediaLoaderProvider = Provider<PropertyMediaLoader?>((ref) {
   return dependencies.value?.propertyMediaLoader;
 });
 
+final _propertyMediaCacheProvider = Provider<_PropertyMediaCache?>((ref) {
+  final loader = ref.watch(propertyMediaLoaderProvider);
+  return loader == null ? null : _PropertyMediaCache(loader);
+});
+
 final propertyMediaBytesProvider = FutureProvider.autoDispose
     .family<Uint8List?, String>((ref, reference) {
-      final loader = ref.watch(propertyMediaLoaderProvider);
-      return loader == null ? Future<Uint8List?>.value() : loader(reference);
+      final cache = ref.watch(_propertyMediaCacheProvider);
+      return cache == null ? Future<Uint8List?>.value() : cache.load(reference);
     });
+
+final class _PropertyMediaCache {
+  _PropertyMediaCache(this._loader);
+
+  static const _maximumBytes = 24 * 1024 * 1024;
+
+  final PropertyMediaLoader _loader;
+  final Map<String, Uint8List> _values = <String, Uint8List>{};
+  final Map<String, Future<Uint8List?>> _inFlight =
+      <String, Future<Uint8List?>>{};
+  int _storedBytes = 0;
+
+  Future<Uint8List?> load(String reference) {
+    final cached = _values.remove(reference);
+    if (cached != null) {
+      // A Dart map preserves insertion order; reinserting promotes this entry
+      // to most recently used before the next size-based eviction.
+      _values[reference] = cached;
+      return Future<Uint8List?>.value(cached);
+    }
+    return _inFlight.putIfAbsent(reference, () async {
+      try {
+        final bytes = await _loader(reference);
+        if (bytes != null) _store(reference, bytes);
+        return bytes;
+      } finally {
+        _inFlight.remove(reference);
+      }
+    });
+  }
+
+  void _store(String reference, Uint8List bytes) {
+    if (bytes.lengthInBytes > _maximumBytes) return;
+    while (_storedBytes + bytes.lengthInBytes > _maximumBytes &&
+        _values.isNotEmpty) {
+      final oldestKey = _values.keys.first;
+      _storedBytes -= _values.remove(oldestKey)!.lengthInBytes;
+    }
+    _values[reference] = bytes;
+    _storedBytes += bytes.lengthInBytes;
+  }
+}
 
 /// Builds one offline workspace per signed-in account (plus one anonymous
 /// workspace for public browsing) and swaps it when the session changes.

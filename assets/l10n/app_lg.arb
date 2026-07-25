@@ -175,7 +175,7 @@
     "legacy_59a5c54d5f44":  "Obuwandiike obukola okusinziira ku mutendera",
     "legacy_bbdb3cafea65":  "Abapangisa abakola ennyo",
     "legacy_35aa97b5d006":  "Olukalala lw’ebikolebwa lwetaaga omuddukanya abe ayungiddwa ku seva",
-    "legacy_409c81e0b451":  "Okwongerako ebifaananyi 1–5. Ekifaananyi ekisookerwako kye kisooka okulabika.",
+    "legacy_409c81e0b451":  "Yongerako ebifaananyi 1–2. Ekifaananyi ekikulu kye kisooka okulabika.",
     "legacy_19271cc17a6a":  "Okwongerako ekifo n’ekifo eky’okupangisa nga tonnawandiika kusaba.",
     "legacy_65da21f513a4":  "Yongera ku bupangisa nga tonnaba kukola kiwandiiko kya mupangisa.",
     "legacy_c1ad18af83ca":  "Yongera ku mupangisa nga tonnawandiika nsasula.",
@@ -954,6 +954,10 @@
     ,"staffPermissionViewReportsLabel": "Alipoota"
     ,"staffPermissionViewReportsDescription": "Kola alipoota z’emirimu."
     ,"addMorePhotos": "Okwongerako ebifaananyi ebirala"
+    ,"propertyPhotoCreateGuidance": "Yongerako ebifaananyi 1–2. Ekifaananyi ekikulu kye kisooka okulabika."
+    ,"propertyPhotoCountGuidance": "Oyongeddeko ebifaananyi {count} ku {maximum}. Ekifaananyi ekikulu kye kisooka okulabika."
+    ,"@propertyPhotoCountGuidance": {"placeholders": {"count": {"type": "int"}, "maximum": {"type": "int"}}}
+    ,"propertyPhotoEditGuidance": "JPEG, PNG, oba WebP; buli kifaananyi tekisukka MB 5 era ebifaananyi byonna tebisinga 2. Ekifaananyi ekisooka kye kirabika ku kaadi y’eky’obugagga. Ebifaananyi bisigala nga birindirira okutuusa okutikka bwe kukakasibwa."
     ,"listingPhotoGuidance": "JPEG, PNG, oba WebP; buli kifaananyi tekisukka MB 5 era ebifaananyi byonna tebisinga 5. Ekifaananyi ekisooka kye kifaananyi ekikulu. Ebifaananyi bisigala nga birindirira okutuusa okutikka bwe kukakasibwa."
     ,"listingPhotoPosition": "Ekifaananyi {current} ku {total}"
     ,"@listingPhotoPosition": {"placeholders": {"current": {"type": "String"}, "total": {"type": "String"}}}

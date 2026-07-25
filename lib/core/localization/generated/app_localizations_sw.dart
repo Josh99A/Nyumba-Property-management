@@ -552,7 +552,7 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get legacy_409c81e0b451 =>
-      'Ongeza picha 1-5. Picha ya msingi inaonekana kwanza.';
+      'Ongeza picha 1–2. Picha ya msingi inaonekana kwanza.';
 
   @override
   String get legacy_19271cc17a6a =>
@@ -3163,6 +3163,19 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get addMorePhotos => 'Ongeza picha zaidi';
+
+  @override
+  String get propertyPhotoCreateGuidance =>
+      'Ongeza picha 1–2. Picha ya msingi inaonekana kwanza.';
+
+  @override
+  String propertyPhotoCountGuidance(int count, int maximum) {
+    return 'Picha $count kati ya $maximum zimeongezwa. Picha ya msingi inaonekana kwanza.';
+  }
+
+  @override
+  String get propertyPhotoEditGuidance =>
+      'JPEG, PNG au WebP; hadi MB 5 kwa kila picha na picha zisizozidi 2. Picha ya kwanza ndiyo huonyeshwa kwenye kadi ya mali. Picha zitasalia zikisubiri hadi upakiaji uthibitishwe.';
 
   @override
   String get listingPhotoGuidance =>

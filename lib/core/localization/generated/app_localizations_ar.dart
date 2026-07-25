@@ -547,7 +547,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get legacy_35aa97b5d006 => 'يحتاج موجز النشاط إلى جلسة إدارية مباشرة';
 
   @override
-  String get legacy_409c81e0b451 => 'أضف 1-5 صور. تظهر الصورة الأساسية أولاً.';
+  String get legacy_409c81e0b451 =>
+      'أضف صورة أو صورتين. تظهر الصورة الأساسية أولاً.';
 
   @override
   String get legacy_19271cc17a6a =>
@@ -3080,6 +3081,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get addMorePhotos => 'إضافة المزيد من الصور';
+
+  @override
+  String get propertyPhotoCreateGuidance =>
+      'أضف صورة أو صورتين. تظهر الصورة الأساسية أولاً.';
+
+  @override
+  String propertyPhotoCountGuidance(int count, int maximum) {
+    return 'تمت إضافة $count من أصل $maximum صور. تظهر الصورة الأساسية أولاً.';
+  }
+
+  @override
+  String get propertyPhotoEditGuidance =>
+      'JPEG أو PNG أو WebP؛ بحد أقصى 5 ميغابايت لكل صورة وصورتين. تُعرض الصورة الأولى على بطاقة العقار. تظل الصور قيد الانتظار حتى تأكيد الرفع.';
 
   @override
   String get listingPhotoGuidance =>

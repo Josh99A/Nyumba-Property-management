@@ -24,6 +24,7 @@ Widget propertyImage(
   int index = 0,
   BoxFit fit = BoxFit.cover,
   FilterQuality filterQuality = FilterQuality.medium,
+  int cacheWidth = 1600,
 }) {
   final reference = index >= 0 && index < property.imageUrls.length
       ? property.imageUrls[index]
@@ -34,6 +35,8 @@ Widget propertyImage(
       localBytes,
       fit: fit,
       filterQuality: filterQuality,
+      cacheWidth: cacheWidth,
+      semanticLabel: property.name,
       errorBuilder: (_, _, _) => _fallback(property, fit, filterQuality),
     );
   }
@@ -43,6 +46,11 @@ Widget propertyImage(
       reference!,
       fit: fit,
       filterQuality: filterQuality,
+      cacheWidth: cacheWidth,
+      semanticLabel: property.name,
+      loadingBuilder: (context, child, progress) => progress == null
+          ? child
+          : _loadingPlaceholder(property, fit, filterQuality, progress),
       errorBuilder: (_, _, _) => _fallback(property, fit, filterQuality),
     );
   }
@@ -52,6 +60,7 @@ Widget propertyImage(
       reference: reference,
       fit: fit,
       filterQuality: filterQuality,
+      cacheWidth: cacheWidth,
     );
   }
   return _fallback(property, fit, filterQuality);
@@ -68,12 +77,14 @@ class _StoragePropertyImage extends ConsumerWidget {
     required this.reference,
     required this.fit,
     required this.filterQuality,
+    required this.cacheWidth,
   });
 
   final Property property;
   final String reference;
   final BoxFit fit;
   final FilterQuality filterQuality;
+  final int cacheWidth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -85,23 +96,38 @@ class _StoragePropertyImage extends ConsumerWidget {
               value,
               fit: fit,
               filterQuality: filterQuality,
+              cacheWidth: cacheWidth,
               semanticLabel: property.name,
               errorBuilder: (_, _, _) =>
                   _fallback(property, fit, filterQuality),
             ),
       error: (_, _) => _fallback(property, fit, filterQuality),
-      loading: () => const ColoredBox(
-        color: Color(0xFFE4E9E5),
-        child: Center(
-          child: SizedBox.square(
-            dimension: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      ),
+      loading: () => _loadingPlaceholder(property, fit, filterQuality, null),
     );
   }
 }
+
+Widget _loadingPlaceholder(
+  Property property,
+  BoxFit fit,
+  FilterQuality filterQuality,
+  ImageChunkEvent? progress,
+) => Stack(
+  fit: StackFit.expand,
+  children: [
+    ExcludeSemantics(child: _fallback(property, fit, filterQuality)),
+    Align(
+      alignment: Alignment.bottomCenter,
+      child: LinearProgressIndicator(
+        minHeight: 3,
+        value: progress?.expectedTotalBytes == null
+            ? null
+            : progress!.cumulativeBytesLoaded / progress.expectedTotalBytes!,
+        backgroundColor: Colors.transparent,
+      ),
+    ),
+  ],
+);
 
 Widget _fallback(Property property, BoxFit fit, FilterQuality filterQuality) =>
     Image.asset(

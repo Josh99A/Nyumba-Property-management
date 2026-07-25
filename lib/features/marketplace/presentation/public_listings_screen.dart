@@ -431,6 +431,7 @@ class _MarketplaceHero extends StatelessWidget {
                 listing!,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.medium,
+                cacheWidth: 1280,
               ),
       ),
     );
@@ -1362,6 +1363,7 @@ class _ListingCard extends StatelessWidget {
                       listing,
                       fit: BoxFit.cover,
                       filterQuality: FilterQuality.medium,
+                      cacheWidth: 960,
                     ),
                     PositionedDirectional(
                       bottom: 12,

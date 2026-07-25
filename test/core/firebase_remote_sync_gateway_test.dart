@@ -236,7 +236,7 @@ void main() {
     },
   );
 
-  test('property commands send only five staged image paths in order', () {
+  test('property commands send only two staged image paths in order', () {
     final gateway = FirebaseRemoteSyncGateway(
       installationId: 'install_1234',
       appVersion: '1.2.3',
@@ -265,7 +265,7 @@ void main() {
     final envelope = gateway.buildEnvelope(mutation);
     final payload = envelope['payload']! as Map<String, Object?>;
     expect(payload['stagedImagePaths'], <String>[
-      for (var index = 0; index < 5; index++)
+      for (var index = 0; index < 2; index++)
         'uploads/landlord/command/photo-$index.webp',
     ]);
   });

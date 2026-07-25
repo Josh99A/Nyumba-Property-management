@@ -175,7 +175,7 @@
     "legacy_59a5c54d5f44":  "الاشتراكات النشطة حسب الطبقة",
     "legacy_bbdb3cafea65":  "المستأجرين النشطين",
     "legacy_35aa97b5d006":  "يحتاج موجز النشاط إلى جلسة إدارية مباشرة",
-    "legacy_409c81e0b451":  "أضف 1-5 صور. تظهر الصورة الأساسية أولاً.",
+    "legacy_409c81e0b451":  "أضف صورة أو صورتين. تظهر الصورة الأساسية أولاً.",
     "legacy_19271cc17a6a":  "إضافة عقار ومساحة للإيجار قبل تسجيل الطلب.",
     "legacy_65da21f513a4":  "قم بإضافة عقد إيجار قبل إنشاء مستند المستأجر.",
     "legacy_c1ad18af83ca":  "أضف مستأجرًا قبل تسجيل الدفع.",
@@ -954,6 +954,10 @@
     ,"staffPermissionViewReportsLabel": "التقارير"
     ,"staffPermissionViewReportsDescription": "إنشاء تقارير تشغيلية."
     ,"addMorePhotos": "إضافة المزيد من الصور"
+    ,"propertyPhotoCreateGuidance": "أضف صورة أو صورتين. تظهر الصورة الأساسية أولاً."
+    ,"propertyPhotoCountGuidance": "تمت إضافة {count} من أصل {maximum} صور. تظهر الصورة الأساسية أولاً."
+    ,"@propertyPhotoCountGuidance": {"placeholders": {"count": {"type": "int"}, "maximum": {"type": "int"}}}
+    ,"propertyPhotoEditGuidance": "JPEG أو PNG أو WebP؛ بحد أقصى 5 ميغابايت لكل صورة وصورتين. تُعرض الصورة الأولى على بطاقة العقار. تظل الصور قيد الانتظار حتى تأكيد الرفع."
     ,"listingPhotoGuidance": "JPEG أو PNG أو WebP؛ بحد أقصى 5 ميغابايت لكل صورة و5 صور. الصورة الأولى هي صورة الغلاف. تظل الصور قيد الانتظار حتى تأكيد الرفع."
     ,"listingPhotoPosition": "الصورة {current} من {total}"
     ,"@listingPhotoPosition": {"placeholders": {"current": {"type": "String"}, "total": {"type": "String"}}}

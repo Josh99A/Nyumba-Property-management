@@ -1,6 +1,10 @@
 import { Timestamp } from 'firebase-admin/firestore';
+import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
-import { publicListingMediaPatch } from '../../src/workers/media-publication';
+import {
+  optimisePublicListingImage,
+  publicListingMediaPatch,
+} from '../../src/workers/media-publication';
 
 describe('public listing media projection', () => {
   it('keeps cover-first order and advances the projection version', () => {
@@ -42,5 +46,28 @@ describe('public listing media projection', () => {
         Timestamp.fromMillis(1_721_771_200_000),
       ),
     ).toBeNull();
+  });
+
+  it('auto-orients and bounds the WebP public delivery copy', async () => {
+    const width = 3_000;
+    const height = 2_000;
+    const orientation = 6;
+    const source = await sharp({
+      create: {
+        width,
+        height,
+        channels: 3,
+        background: { r: 95, g: 143, b: 107 },
+      },
+    }).jpeg().withMetadata({ orientation }).toBuffer();
+
+    const output = await optimisePublicListingImage(source);
+    const metadata = await sharp(output).metadata();
+
+    expect(metadata.format).toBe('webp');
+    expect(metadata.width).toBe(960);
+    expect(metadata.height).toBe(1_440);
+    expect(metadata.orientation).toBeUndefined();
+    expect(output.byteLength).toBeLessThan(source.byteLength);
   });
 });

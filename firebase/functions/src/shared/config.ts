@@ -21,9 +21,12 @@ export const ENFORCE_APP_CHECK = false;
 export const CURRENCY = 'UGX';
 export const COUNTRY = 'Uganda';
 export const LISTING_LIFETIME_DAYS = 30;
+export const MAX_PROPERTY_PHOTOS = 2;
 export const MAX_LISTING_PHOTOS = 5;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+export const MAX_PUBLIC_LISTING_IMAGE_WIDTH = 1_920;
+export const MAX_PUBLIC_LISTING_IMAGE_HEIGHT = 1_440;
 
 /**
  * Receipts must outlive the longest plausible offline retry window. Product
