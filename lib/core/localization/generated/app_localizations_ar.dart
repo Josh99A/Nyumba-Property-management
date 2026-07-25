@@ -3131,4 +3131,79 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get actionFailureActionQueueNotice =>
       'وضع هذا الإشعار في قائمة الانتظار';
+
+  @override
+  String get browseHomesNav => 'تصفح المنازل';
+
+  @override
+  String get forLandlords => 'للمُلّاك';
+
+  @override
+  String get searchAction => 'بحث';
+
+  @override
+  String get trustActiveListings => 'إعلانات نشطة';
+
+  @override
+  String get trustDirectLandlordContact => 'تواصل مباشر مع المالك';
+
+  @override
+  String get trustWorksOffline => 'يعمل دون اتصال';
+
+  @override
+  String get publicFreshSpaces => 'مساحات جديدة نشرها مُلّاك Nyumba المعتمدون.';
+
+  @override
+  String get savedForOfflineBrowsing => 'محفوظ للتصفح دون اتصال';
+
+  @override
+  String get lookingForHomeTitle => 'هل تبحث عن منزل؟';
+
+  @override
+  String get lookingForHomeDescription =>
+      'تصفح الإعلانات النشطة، وقارن التفاصيل، وقدّم طلبك عندما تكون مستعدًا.';
+
+  @override
+  String get haveRentalSpaceTitle => 'هل لديك مساحة للإيجار؟';
+
+  @override
+  String get haveRentalSpaceDescription =>
+      'أنشئ إعلانًا احترافيًا وانشر مساحة متاحة من مساحة عمل Nyumba.';
+
+  @override
+  String get signInToListSpace => 'سجّل الدخول لإدراج مساحة';
+
+  @override
+  String get publicFooterDescription =>
+      'إدارة عقارات أوضح للمُلّاك والمستأجرين.';
+
+  @override
+  String get viewHome => 'عرض المنزل';
+
+  @override
+  String monthlyRentDisplay(String rent) {
+    return '$rent / شهريًا';
+  }
+
+  @override
+  String bedroomsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count غرف نوم',
+      one: 'غرفة نوم واحدة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bathroomsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count حمّامات',
+      one: 'حمّام واحد',
+    );
+    return '$_temp0';
+  }
 }

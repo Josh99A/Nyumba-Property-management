@@ -972,4 +972,25 @@
     ,"actionFailureActionSaveListingDraft": "hifadhi rasimu hii ya tangazo"
     ,"actionFailureActionCreateDocument": "unda hati hii"
     ,"actionFailureActionQueueNotice": "panga arifa hii kwenye foleni"
+    ,"browseHomesNav": "Tazama nyumba"
+    ,"forLandlords": "Kwa wamiliki"
+    ,"searchAction": "Tafuta"
+    ,"trustActiveListings": "Matangazo yanayotumika"
+    ,"trustDirectLandlordContact": "Wasiliana na mwenye nyumba moja kwa moja"
+    ,"trustWorksOffline": "Hufanya kazi nje ya mtandao"
+    ,"publicFreshSpaces": "Nafasi mpya zilizochapishwa na wamiliki wa Nyumba waliothibitishwa."
+    ,"savedForOfflineBrowsing": "Imehifadhiwa kwa kuvinjari nje ya mtandao"
+    ,"lookingForHomeTitle": "Unatafuta nyumba?"
+    ,"lookingForHomeDescription": "Tazama matangazo yanayotumika, linganisha maelezo, kisha utume ombi ukiwa tayari."
+    ,"haveRentalSpaceTitle": "Una nafasi ya kupangisha?"
+    ,"haveRentalSpaceDescription": "Unda tangazo la kitaalamu na uchapishe nafasi inayopatikana kutoka kwenye nafasi yako ya kazi ya Nyumba."
+    ,"signInToListSpace": "Ingia ili utangaze nafasi"
+    ,"publicFooterDescription": "Usimamizi wa mali ulio wazi zaidi kwa wamiliki na wapangaji."
+    ,"viewHome": "Tazama nyumba"
+    ,"monthlyRentDisplay": "{rent} / mwezi"
+    ,"@monthlyRentDisplay": {"placeholders": {"rent": {"type": "String"}}}
+    ,"bedroomsCount": "{count, plural, =1{Chumba 1} other{Vyumba {count}}}"
+    ,"@bedroomsCount": {"placeholders": {"count": {"type": "int"}}}
+    ,"bathroomsCount": "{count, plural, =1{Bafu 1} other{Mabafu {count}}}"
+    ,"@bathroomsCount": {"placeholders": {"count": {"type": "int"}}}
 }

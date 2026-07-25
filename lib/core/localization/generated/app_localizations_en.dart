@@ -3164,4 +3164,80 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionFailureActionQueueNotice => 'queue this notice';
+
+  @override
+  String get browseHomesNav => 'Browse homes';
+
+  @override
+  String get forLandlords => 'For landlords';
+
+  @override
+  String get searchAction => 'Search';
+
+  @override
+  String get trustActiveListings => 'Active listings';
+
+  @override
+  String get trustDirectLandlordContact => 'Direct landlord contact';
+
+  @override
+  String get trustWorksOffline => 'Works offline';
+
+  @override
+  String get publicFreshSpaces =>
+      'Fresh spaces published by verified Nyumba landlords.';
+
+  @override
+  String get savedForOfflineBrowsing => 'Saved for offline browsing';
+
+  @override
+  String get lookingForHomeTitle => 'Looking for a home?';
+
+  @override
+  String get lookingForHomeDescription =>
+      'Browse active listings, compare the details, and apply when you are ready.';
+
+  @override
+  String get haveRentalSpaceTitle => 'Have a rental space?';
+
+  @override
+  String get haveRentalSpaceDescription =>
+      'Create a professional listing and publish an available space from your Nyumba workspace.';
+
+  @override
+  String get signInToListSpace => 'Sign in to list a space';
+
+  @override
+  String get publicFooterDescription =>
+      'Property management made clearer for landlords and tenants.';
+
+  @override
+  String get viewHome => 'View home';
+
+  @override
+  String monthlyRentDisplay(String rent) {
+    return '$rent / month';
+  }
+
+  @override
+  String bedroomsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count beds',
+      one: '1 bed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bathroomsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count baths',
+      one: '1 bath',
+    );
+    return '$_temp0';
+  }
 }

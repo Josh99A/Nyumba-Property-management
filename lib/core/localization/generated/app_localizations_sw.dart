@@ -3214,4 +3214,82 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get actionFailureActionQueueNotice => 'panga arifa hii kwenye foleni';
+
+  @override
+  String get browseHomesNav => 'Tazama nyumba';
+
+  @override
+  String get forLandlords => 'Kwa wamiliki';
+
+  @override
+  String get searchAction => 'Tafuta';
+
+  @override
+  String get trustActiveListings => 'Matangazo yanayotumika';
+
+  @override
+  String get trustDirectLandlordContact =>
+      'Wasiliana na mwenye nyumba moja kwa moja';
+
+  @override
+  String get trustWorksOffline => 'Hufanya kazi nje ya mtandao';
+
+  @override
+  String get publicFreshSpaces =>
+      'Nafasi mpya zilizochapishwa na wamiliki wa Nyumba waliothibitishwa.';
+
+  @override
+  String get savedForOfflineBrowsing =>
+      'Imehifadhiwa kwa kuvinjari nje ya mtandao';
+
+  @override
+  String get lookingForHomeTitle => 'Unatafuta nyumba?';
+
+  @override
+  String get lookingForHomeDescription =>
+      'Tazama matangazo yanayotumika, linganisha maelezo, kisha utume ombi ukiwa tayari.';
+
+  @override
+  String get haveRentalSpaceTitle => 'Una nafasi ya kupangisha?';
+
+  @override
+  String get haveRentalSpaceDescription =>
+      'Unda tangazo la kitaalamu na uchapishe nafasi inayopatikana kutoka kwenye nafasi yako ya kazi ya Nyumba.';
+
+  @override
+  String get signInToListSpace => 'Ingia ili utangaze nafasi';
+
+  @override
+  String get publicFooterDescription =>
+      'Usimamizi wa mali ulio wazi zaidi kwa wamiliki na wapangaji.';
+
+  @override
+  String get viewHome => 'Tazama nyumba';
+
+  @override
+  String monthlyRentDisplay(String rent) {
+    return '$rent / mwezi';
+  }
+
+  @override
+  String bedroomsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Vyumba $count',
+      one: 'Chumba 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bathroomsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Mabafu $count',
+      one: 'Bafu 1',
+    );
+    return '$_temp0';
+  }
 }

@@ -983,4 +983,25 @@
     ,"actionFailureActionSaveListingDraft": "save this listing draft"
     ,"actionFailureActionCreateDocument": "create this document"
     ,"actionFailureActionQueueNotice": "queue this notice"
+    ,"browseHomesNav": "Browse homes"
+    ,"forLandlords": "For landlords"
+    ,"searchAction": "Search"
+    ,"trustActiveListings": "Active listings"
+    ,"trustDirectLandlordContact": "Direct landlord contact"
+    ,"trustWorksOffline": "Works offline"
+    ,"publicFreshSpaces": "Fresh spaces published by verified Nyumba landlords."
+    ,"savedForOfflineBrowsing": "Saved for offline browsing"
+    ,"lookingForHomeTitle": "Looking for a home?"
+    ,"lookingForHomeDescription": "Browse active listings, compare the details, and apply when you are ready."
+    ,"haveRentalSpaceTitle": "Have a rental space?"
+    ,"haveRentalSpaceDescription": "Create a professional listing and publish an available space from your Nyumba workspace."
+    ,"signInToListSpace": "Sign in to list a space"
+    ,"publicFooterDescription": "Property management made clearer for landlords and tenants."
+    ,"viewHome": "View home"
+    ,"monthlyRentDisplay": "{rent} / month"
+    ,"@monthlyRentDisplay": {"placeholders": {"rent": {"type": "String"}}}
+    ,"bedroomsCount": "{count, plural, =1{1 bed} other{{count} beds}}"
+    ,"@bedroomsCount": {"placeholders": {"count": {"type": "int"}}}
+    ,"bathroomsCount": "{count, plural, =1{1 bath} other{{count} baths}}"
+    ,"@bathroomsCount": {"placeholders": {"count": {"type": "int"}}}
 }

@@ -216,6 +216,76 @@ void main() {
   });
 
   test(
+    'same-version public media completion repairs a legacy empty gallery',
+    () async {
+      await database.mergeRemoteEntity(
+        entityType: OfflineEntityType.publicListing,
+        entityId: 'listing-1',
+        entity: <String, Object?>{
+          'id': 'listing-1',
+          'imageUrls': <String>[],
+          'version': 4,
+        },
+      );
+
+      final result = await database.mergeRemoteEntity(
+        entityType: OfflineEntityType.publicListing,
+        entityId: 'listing-1',
+        entity: <String, Object?>{
+          'id': 'listing-1',
+          'imageUrls': <String>[
+            'public/listings/listing-1/0_primary.webp',
+            'public/listings/listing-1/1_kitchen.webp',
+          ],
+          'version': 4,
+        },
+      );
+
+      expect(result, RemoteMergeResult.applied);
+      final repaired = await database.readEntity(
+        OfflineEntityType.publicListing,
+        'listing-1',
+      );
+      expect(repaired?['imageUrls'], <String>[
+        'public/listings/listing-1/0_primary.webp',
+        'public/listings/listing-1/1_kitchen.webp',
+      ]);
+      expect(
+        SyncMetadataMapper.fromJson(repaired?['syncMetadata']).serverRevision,
+        '4',
+      );
+    },
+  );
+
+  test('same-version non-media snapshots remain ignored', () async {
+    await database.mergeRemoteEntity(
+      entityType: OfflineEntityType.property,
+      entityId: 'property-1',
+      entity: <String, Object?>{
+        'id': 'property-1',
+        'name': 'Original',
+        'version': 2,
+      },
+    );
+
+    final result = await database.mergeRemoteEntity(
+      entityType: OfflineEntityType.property,
+      entityId: 'property-1',
+      entity: <String, Object?>{
+        'id': 'property-1',
+        'name': 'Changed without a version',
+        'version': 2,
+      },
+    );
+
+    expect(result, RemoteMergeResult.ignored);
+    expect(
+      await database.readEntity(OfflineEntityType.property, 'property-1'),
+      containsPair('name', 'Original'),
+    );
+  });
+
+  test(
     'separate account database paths never expose each other records',
     () async {
       final first = await OfflineDatabase.open(

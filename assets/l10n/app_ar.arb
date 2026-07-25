@@ -972,4 +972,25 @@
     ,"actionFailureActionSaveListingDraft": "حفظ مسودة هذا الإعلان"
     ,"actionFailureActionCreateDocument": "إنشاء هذا المستند"
     ,"actionFailureActionQueueNotice": "وضع هذا الإشعار في قائمة الانتظار"
+    ,"browseHomesNav": "تصفح المنازل"
+    ,"forLandlords": "للمُلّاك"
+    ,"searchAction": "بحث"
+    ,"trustActiveListings": "إعلانات نشطة"
+    ,"trustDirectLandlordContact": "تواصل مباشر مع المالك"
+    ,"trustWorksOffline": "يعمل دون اتصال"
+    ,"publicFreshSpaces": "مساحات جديدة نشرها مُلّاك Nyumba المعتمدون."
+    ,"savedForOfflineBrowsing": "محفوظ للتصفح دون اتصال"
+    ,"lookingForHomeTitle": "هل تبحث عن منزل؟"
+    ,"lookingForHomeDescription": "تصفح الإعلانات النشطة، وقارن التفاصيل، وقدّم طلبك عندما تكون مستعدًا."
+    ,"haveRentalSpaceTitle": "هل لديك مساحة للإيجار؟"
+    ,"haveRentalSpaceDescription": "أنشئ إعلانًا احترافيًا وانشر مساحة متاحة من مساحة عمل Nyumba."
+    ,"signInToListSpace": "سجّل الدخول لإدراج مساحة"
+    ,"publicFooterDescription": "إدارة عقارات أوضح للمُلّاك والمستأجرين."
+    ,"viewHome": "عرض المنزل"
+    ,"monthlyRentDisplay": "{rent} / شهريًا"
+    ,"@monthlyRentDisplay": {"placeholders": {"rent": {"type": "String"}}}
+    ,"bedroomsCount": "{count, plural, =1{غرفة نوم واحدة} other{{count} غرف نوم}}"
+    ,"@bedroomsCount": {"placeholders": {"count": {"type": "int"}}}
+    ,"bathroomsCount": "{count, plural, =1{حمّام واحد} other{{count} حمّامات}}"
+    ,"@bathroomsCount": {"placeholders": {"count": {"type": "int"}}}
 }

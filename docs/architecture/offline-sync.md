@@ -55,7 +55,15 @@ pulls are read-only and must never overwrite a landlord's private draft or be
 used as a source for an outbox command. The public query matches the deployed
 `status`, `expiresAt`, `publishedAt` composite index and uses a short future
 expiry cutoff so Firestore Rules can prove that every returned row remains
-active at request time.
+active at request time. The asynchronous listing-media projector advances the
+public projection version when it replaces the initial empty image list with
+the ordered, server-approved paths. The first path remains the primary card
+image and the complete ordered list drives the listing-detail carousel.
+
+For public listings produced before that version increment was enforced, the
+client accepts one narrowly scoped equal-version repair: an empty cached public
+image list may be completed by a non-empty server list. No other equal-version
+payload change bypasses the normal version-aware merge rule.
 
 ## Local write transaction
 

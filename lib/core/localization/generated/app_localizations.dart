@@ -5687,6 +5687,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'queue this notice'**
   String get actionFailureActionQueueNotice;
+
+  /// No description provided for @browseHomesNav.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse homes'**
+  String get browseHomesNav;
+
+  /// No description provided for @forLandlords.
+  ///
+  /// In en, this message translates to:
+  /// **'For landlords'**
+  String get forLandlords;
+
+  /// No description provided for @searchAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get searchAction;
+
+  /// No description provided for @trustActiveListings.
+  ///
+  /// In en, this message translates to:
+  /// **'Active listings'**
+  String get trustActiveListings;
+
+  /// No description provided for @trustDirectLandlordContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct landlord contact'**
+  String get trustDirectLandlordContact;
+
+  /// No description provided for @trustWorksOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Works offline'**
+  String get trustWorksOffline;
+
+  /// No description provided for @publicFreshSpaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Fresh spaces published by verified Nyumba landlords.'**
+  String get publicFreshSpaces;
+
+  /// No description provided for @savedForOfflineBrowsing.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved for offline browsing'**
+  String get savedForOfflineBrowsing;
+
+  /// No description provided for @lookingForHomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for a home?'**
+  String get lookingForHomeTitle;
+
+  /// No description provided for @lookingForHomeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse active listings, compare the details, and apply when you are ready.'**
+  String get lookingForHomeDescription;
+
+  /// No description provided for @haveRentalSpaceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Have a rental space?'**
+  String get haveRentalSpaceTitle;
+
+  /// No description provided for @haveRentalSpaceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a professional listing and publish an available space from your Nyumba workspace.'**
+  String get haveRentalSpaceDescription;
+
+  /// No description provided for @signInToListSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to list a space'**
+  String get signInToListSpace;
+
+  /// No description provided for @publicFooterDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Property management made clearer for landlords and tenants.'**
+  String get publicFooterDescription;
+
+  /// No description provided for @viewHome.
+  ///
+  /// In en, this message translates to:
+  /// **'View home'**
+  String get viewHome;
+
+  /// No description provided for @monthlyRentDisplay.
+  ///
+  /// In en, this message translates to:
+  /// **'{rent} / month'**
+  String monthlyRentDisplay(String rent);
+
+  /// No description provided for @bedroomsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 bed} other{{count} beds}}'**
+  String bedroomsCount(int count);
+
+  /// No description provided for @bathroomsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 bath} other{{count} baths}}'**
+  String bathroomsCount(int count);
 }
 
 class _AppLocalizationsDelegate

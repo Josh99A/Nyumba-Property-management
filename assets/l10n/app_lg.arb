@@ -972,4 +972,25 @@
     ,"actionFailureActionSaveListingDraft": "okutereka ekiwandiiko kino eky'obulangirira"
     ,"actionFailureActionCreateDocument": "okutonda ekiwandiiko kino"
     ,"actionFailureActionQueueNotice": "okuteeka obubaka buno mu lunyiriri"
+    ,"browseHomesNav": "Laba amaka"
+    ,"forLandlords": "Eri bannannyini nnyumba"
+    ,"searchAction": "Noonya"
+    ,"trustActiveListings": "Amatangazo agaliwo"
+    ,"trustDirectLandlordContact": "Yogera n'omunnyini nnyumba butereevu"
+    ,"trustWorksOffline": "Kikola ne bw'oba toli ku mutimbagano"
+    ,"publicFreshSpaces": "Ebifo ebipya ebifulumiziddwa bannannyini nnyumba ba Nyumba abakakasiddwa."
+    ,"savedForOfflineBrowsing": "Biterekeddwa okulaba nga toli ku mutimbagano"
+    ,"lookingForHomeTitle": "Onoonya aw'okubeera?"
+    ,"lookingForHomeDescription": "Laba amatangazo agaliwo, geraageranya ebikwata ku bifo, era saba ng'omaliridde."
+    ,"haveRentalSpaceTitle": "Olina ekifo ky'okupangisa?"
+    ,"haveRentalSpaceDescription": "Kola ekirango eky'omutindo era ofulumye ekifo ekiriwo okuva mu kifo kyo eky'emirimu ekya Nyumba."
+    ,"signInToListSpace": "Yingira oteeke ekifo ku lukalala"
+    ,"publicFooterDescription": "Enzirukanya y'ebintu ebipangisibwa enyangu eri bannannyini byo n'abapangisa."
+    ,"viewHome": "Laba amaka"
+    ,"monthlyRentDisplay": "{rent} / buli mwezi"
+    ,"@monthlyRentDisplay": {"placeholders": {"rent": {"type": "String"}}}
+    ,"bedroomsCount": "{count, plural, =1{Ekisenge 1} other{Ebisenge {count}}}"
+    ,"@bedroomsCount": {"placeholders": {"count": {"type": "int"}}}
+    ,"bathroomsCount": "{count, plural, =1{Ekinabiro 1} other{Ebinabiro {count}}}"
+    ,"@bathroomsCount": {"placeholders": {"count": {"type": "int"}}}
 }
