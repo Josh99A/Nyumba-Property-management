@@ -55,7 +55,15 @@ pulls are read-only and must never overwrite a landlord's private draft or be
 used as a source for an outbox command. The public query matches the deployed
 `status`, `expiresAt`, `publishedAt` composite index and uses a short future
 expiry cutoff so Firestore Rules can prove that every returned row remains
-active at request time.
+active at request time. The asynchronous listing-media projector advances the
+public projection version when it replaces the initial empty image list with
+the ordered, server-approved paths. The first path remains the primary card
+image and the complete ordered list drives the listing-detail carousel.
+
+For public listings produced before that version increment was enforced, the
+client accepts one narrowly scoped equal-version repair: an empty cached public
+image list may be completed by a non-empty server list. No other equal-version
+payload change bypasses the normal version-aware merge rule.
 
 ## Local write transaction
 
@@ -165,12 +173,20 @@ pulls map those paths back into the local image list. Authenticated property
 screens read the private objects through the Storage SDK rather than minting
 public download URLs. Reusing the command ID and index makes an ambiguous retry
 overwrite the same staging objects without changing primary-image order.
+After the command succeeds, its acknowledgement atomically replaces local data
+URIs with those accepted staging paths. That acknowledgement patch is skipped
+when a newer outbox edit exists, so an older upload can never overwrite newer
+photo choices.
 
-Listing pickers still retain at most ten local image references. Publication
-validation fails closed while any such local reference remains because listing
-uploads still need the complete attachment-intent flow above (including
-checksum and missing-file recovery). Local image data must never be copied into
-canonical or public documents or treated as an acknowledged upload.
+Listing drafts retain at most five ordered local image references. A draft with
+no listing-specific photo selection copies its property's ordered references,
+so the property primary image becomes the marketplace cover and the remaining
+property images become the detail carousel. Explicit listing photos override
+that inherited set. Publication validation still fails closed while any local
+data URI remains; the gateway must upload it to the authenticated staging
+prefix before the server can copy validated media into the public projection.
+Local image data must never be copied into canonical or public documents or
+treated as an acknowledged upload.
 
 On Android and iOS, each account-scoped Sembast database uses AES-256-GCM with
 a distinct random key stored through Keychain/Keystore-backed secure storage.

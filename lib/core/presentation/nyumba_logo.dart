@@ -11,20 +11,34 @@ import '../../app/theme/nyumba_colors.dart';
 /// pale rectangle on dark surfaces. This mark keeps the approved brand colors
 /// while allowing its typography and contrast to follow the active theme.
 class NyumbaLogo extends StatelessWidget {
-  const NyumbaLogo({super.key, this.compact = false, this.height});
+  const NyumbaLogo({
+    super.key,
+    this.compact = false,
+    this.height,
+    this.onDarkSurface = false,
+  });
 
   final bool compact;
   final double? height;
+  final bool onDarkSurface;
 
   @override
   Widget build(BuildContext context) {
     final resolvedHeight = height ?? (compact ? 42 : 56);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final navy = isDark
+    final navy = onDarkSurface
+        ? NyumbaColors.navyOnDark
+        : isDark
         ? context.nyumba.midnightNavy
         : NyumbaColors.midnightNavy;
-    final sage = isDark ? context.nyumba.sageDark : NyumbaColors.sageGreen;
-    final gold = isDark
+    final sage = onDarkSurface
+        ? NyumbaColors.sageOnDark
+        : isDark
+        ? context.nyumba.sageDark
+        : NyumbaColors.sageGreen;
+    final gold = onDarkSurface
+        ? const Color(0xFFF1C982)
+        : isDark
         ? context.nyumba.terracottaGold
         : NyumbaColors.terracottaGold;
 

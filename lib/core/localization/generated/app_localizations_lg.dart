@@ -3231,4 +3231,97 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get actionFailureActionQueueNotice =>
       'okuteeka obubaka buno mu lunyiriri';
+
+  @override
+  String get browseHomesNav => 'Laba amaka';
+
+  @override
+  String get forLandlords => 'Eri bannannyini nnyumba';
+
+  @override
+  String get searchAction => 'Noonya';
+
+  @override
+  String get trustActiveListings => 'Amatangazo agaliwo';
+
+  @override
+  String get trustDirectLandlordContact =>
+      'Yogera n\'omunnyini nnyumba butereevu';
+
+  @override
+  String get trustWorksOffline => 'Kikola ne bw\'oba toli ku mutimbagano';
+
+  @override
+  String get publicFreshSpaces =>
+      'Ebifo ebipya ebifulumiziddwa bannannyini nnyumba ba Nyumba abakakasiddwa.';
+
+  @override
+  String get savedForOfflineBrowsing =>
+      'Biterekeddwa okulaba nga toli ku mutimbagano';
+
+  @override
+  String get lookingForHomeTitle => 'Onoonya aw\'okubeera?';
+
+  @override
+  String get lookingForHomeDescription =>
+      'Laba amatangazo agaliwo, geraageranya ebikwata ku bifo, era saba ng\'omaliridde.';
+
+  @override
+  String get haveRentalSpaceTitle => 'Olina ekifo ky\'okupangisa?';
+
+  @override
+  String get haveRentalSpaceDescription =>
+      'Kola ekirango eky\'omutindo era ofulumye ekifo ekiriwo okuva mu kifo kyo eky\'emirimu ekya Nyumba.';
+
+  @override
+  String get signInToListSpace => 'Yingira oteeke ekifo ku lukalala';
+
+  @override
+  String get publicFooterDescription =>
+      'Enzirukanya y\'ebintu ebipangisibwa enyangu eri bannannyini byo n\'abapangisa.';
+
+  @override
+  String get viewHome => 'Laba amaka';
+
+  @override
+  String monthlyRentDisplay(String rent) {
+    return '$rent / buli mwezi';
+  }
+
+  @override
+  String bedroomsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ebisenge $count',
+      one: 'Ekisenge 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bathroomsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ebinabiro $count',
+      one: 'Ekinabiro 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get publicListingsLoadErrorTitle => 'Tetwasobodde kutikka matangazo';
+
+  @override
+  String get publicListingsLoadErrorMessage =>
+      'Waliwo ensobi mu kusoma olukalala oluterekeddwa. Ddamu ogezeeko mu kaseera katono.';
+
+  @override
+  String get listingAvailableNow => 'Kiriwo kati';
+
+  @override
+  String listingAvailableFromDate(String date) {
+    return 'Kiriwo okuva $date';
+  }
 }

@@ -7,9 +7,11 @@ abstract final class NyumbaColors {
   static const midnightNavy = Color(0xFF123A6F);
   static const navyDark = Color(0xFF0B294F);
   static const navyTint = Color(0xFFEAF1F8);
+  static const navyOnDark = Color(0xFFDCE7F4);
   static const sageGreen = Color(0xFF5F8F6B);
   static const sageDark = Color(0xFF367248);
   static const sageTint = Color(0xFFEAF3EC);
+  static const sageOnDark = Color(0xFFAED0B6);
   static const terracottaGold = Color(0xFFC98B2E);
   static const terracottaDark = Color(0xFF9B6315);
   static const goldTint = Color(0xFFFFF3E2);

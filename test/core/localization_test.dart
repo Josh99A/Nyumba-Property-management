@@ -73,6 +73,23 @@ void main() {
     expect(expected.length, greaterThan(590));
   });
 
+  test('Arabic marketplace counts cover every plural category', () async {
+    final arabic = await AppLocalizations.delegate.load(
+      const material.Locale('ar'),
+    );
+
+    expect(arabic.bedroomsCount(0), 'لا غرف نوم');
+    expect(arabic.bedroomsCount(2), 'غرفتا نوم');
+    expect(arabic.bedroomsCount(3), '3 غرف نوم');
+    expect(arabic.bedroomsCount(11), '11 غرفة نوم');
+    expect(arabic.bedroomsCount(100), '100 غرفة نوم');
+    expect(arabic.bathroomsCount(0), 'لا حمّامات');
+    expect(arabic.bathroomsCount(2), 'حمّامان');
+    expect(arabic.bathroomsCount(3), '3 حمّامات');
+    expect(arabic.bathroomsCount(11), '11 حمّامًا');
+    expect(arabic.bathroomsCount(100), '100 حمّام');
+  });
+
   test('command failures do not silently fall back to English', () async {
     final errors = <RemoteSyncException>[
       for (final code in const [

@@ -428,8 +428,24 @@ final class OfflineDatabase {
     if (local != null && remoteVersion != null) {
       final sync = SyncMetadataMapper.fromJson(local['syncMetadata']);
       final localVersion = int.tryParse(sync.serverRevision ?? '');
+      final completesLegacyPublicMedia =
+          localVersion == remoteVersion &&
+          _completesLegacyPublicListingMedia(entityType, local, entity);
       if (localVersion != null && remoteVersion <= localVersion) {
-        return RemoteMergeResult.ignored;
+        if (!completesLegacyPublicMedia) {
+          return RemoteMergeResult.ignored;
+        }
+        await entityRecord.put(transaction, <String, Object?>{
+          ...local,
+          'imageUrls': _stringReferences(entity['imageUrls']),
+          'syncMetadata': SyncMetadataMapper.toJson(
+            SyncMetadata.synced(
+              serverRevision: remoteVersion.toString(),
+              lastSyncedAt: DateTime.now().toUtc(),
+            ),
+          ),
+        });
+        return RemoteMergeResult.applied;
       }
     }
     final merged = Map<String, Object?>.from(entity);
@@ -447,6 +463,30 @@ final class OfflineDatabase {
     final value = entity['version'] ?? entity['projectionVersion'];
     return value is int ? value : int.tryParse(value?.toString() ?? '');
   }
+
+  /// Older media jobs populated `publicListings.imagePaths` without advancing
+  /// the projection version. Accept only that one safe completion shape so a
+  /// cached empty gallery can repair itself; equal-version changes everywhere
+  /// else remain ignored by the normal merge contract.
+  static bool _completesLegacyPublicListingMedia(
+    OfflineEntityType entityType,
+    Map<String, Object?> local,
+    Map<String, Object?> remote,
+  ) {
+    if (entityType != OfflineEntityType.publicListing) return false;
+    return _stringReferences(local['imageUrls']).isEmpty &&
+        _stringReferences(remote['imageUrls']).isNotEmpty;
+  }
+
+  static List<String> _stringReferences(Object? value) => switch (value) {
+    List() =>
+      value
+          .whereType<String>()
+          .map((reference) => reference.trim())
+          .where((reference) => reference.isNotEmpty)
+          .toList(growable: false),
+    _ => const <String>[],
+  };
 
   Future<List<OutboxEntry>> readOutbox() async {
     final snapshots = await _outboxStore.find(database);
@@ -578,6 +618,7 @@ final class OfflineDatabase {
     required String mutationId,
     required DateTime syncedAt,
     String? serverRevision,
+    Map<String, Object?>? localEntityPatch,
   }) => database.transaction((transaction) async {
     final record = _outboxStore.record(mutationId);
     final raw = await record.get(transaction);
@@ -605,6 +646,7 @@ final class OfflineDatabase {
         : currentSync.markSynced(at: syncedAt, revision: serverRevision);
     await entityRecord.put(transaction, <String, Object?>{
       ...entity,
+      if (!hasNewerMutation && localEntityPatch != null) ...localEntityPatch,
       'syncMetadata': SyncMetadataMapper.toJson(nextSync),
     });
   });

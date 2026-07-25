@@ -114,7 +114,7 @@ generic and contains only safe routes and opaque aggregate IDs.
 
 It must not contain the exact address, private unit label, landlord email/phone unless product policy explicitly opts in, tenant/occupancy identity, internal notes, provider IDs, document paths, or private property/unit snapshots. Contact flows reference the listing ID and let the server route the message without revealing private contact data.
 
-Public reads require `status == 'published'` and `expiresAt > request.time`. Browse queries must include those constraints and a page limit of at most 50; the composite index is provided in `firebase/firestore.indexes.json`. Publication images live under a separate public Storage prefix and are server-copied only after validation.
+Public reads require `status == 'published'` and `expiresAt > request.time`. Browse queries must include those constraints and a page limit of at most 50; the composite index is provided in `firebase/firestore.indexes.json`. Publication images live under a separate public Storage prefix and are server-copied only after validation. That asynchronous media projection preserves the accepted cover-first order and increments the public projection version so version-aware clients replace the initial empty image list.
 
 Private listing drafts may also retain direct phone/email routing data and local
 upload intents. Those fields never enter the public projection. Older local

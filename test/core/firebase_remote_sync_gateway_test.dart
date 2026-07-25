@@ -355,7 +355,7 @@ void main() {
         clientCreatedAt: createdAt,
       );
 
-      await gateway.push(mutation);
+      final result = await gateway.push(mutation);
 
       expect(uploads.map((upload) => upload.path), <String>[
         'uploads/landlord_1234/command_property/property-0.png',
@@ -376,6 +376,12 @@ void main() {
           'uploads/landlord_1234/command_property/property-1.jpg',
         ],
       );
+      expect(result.localEntityPatch, <String, Object?>{
+        'imageUrls': <String>[
+          'uploads/landlord_1234/command_property/property-0.png',
+          'uploads/landlord_1234/command_property/property-1.jpg',
+        ],
+      });
     },
   );
 
@@ -431,7 +437,7 @@ void main() {
         clientCreatedAt: createdAt,
       );
 
-      await gateway.push(mutation);
+      final result = await gateway.push(mutation);
 
       expect(uploads.map((upload) => upload.path), <String>[
         'uploads/landlord_1234/command_listing/listing-0.webp',
@@ -448,6 +454,12 @@ void main() {
           'uploads/landlord_1234/command_listing/listing-1.png',
         ],
       );
+      expect(result.localEntityPatch, <String, Object?>{
+        'imageUrls': <String>[
+          'uploads/landlord_1234/command_listing/listing-0.webp',
+          'uploads/landlord_1234/command_listing/listing-1.png',
+        ],
+      });
     },
   );
 

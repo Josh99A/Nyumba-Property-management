@@ -68,6 +68,41 @@ void main() {
       OutboxState.blocked,
     );
   });
+
+  test('successful upload acknowledgement replaces local photo data', () async {
+    await database.putEntityAndEnqueue(
+      entityType: OfflineEntityType.listing,
+      entityId: 'listing-1',
+      entity: <String, Object?>{
+        'id': 'listing-1',
+        'imageUrls': <String>['data:image/png;base64,AA=='],
+        'syncMetadata': SyncMetadataMapper.toJson(const SyncMetadata.pending()),
+      },
+      mutationId: 'listing-create',
+      operation: OutboxOperation.create,
+      createdAt: now,
+    );
+    final engine = SyncEngine(
+      database: database,
+      gateway: _PatchingGateway(now),
+      clock: FixedClock(now.add(const Duration(minutes: 1))),
+    );
+
+    final report = await engine.syncPending();
+
+    expect(report.succeeded, 1);
+    final listing = await database.readEntity(
+      OfflineEntityType.listing,
+      'listing-1',
+    );
+    expect(listing?['imageUrls'], <String>[
+      'uploads/landlord-1/listing-create/listing-0.png',
+    ]);
+    expect(
+      SyncMetadataMapper.fromJson(listing?['syncMetadata']).state,
+      EntitySyncState.synced,
+    );
+  });
 }
 
 Future<void> _enqueuePropertyAndUnit(
@@ -120,5 +155,24 @@ final class _RejectingGateway implements RemoteSyncGateway {
   @override
   Future<RemoteWriteResult> push(RemoteMutation mutation) async {
     throw const RemoteSyncException('permission denied', retryable: false);
+  }
+}
+
+final class _PatchingGateway implements RemoteSyncGateway {
+  _PatchingGateway(this.now);
+
+  final DateTime now;
+
+  @override
+  Future<RemoteWriteResult> push(RemoteMutation mutation) async {
+    return RemoteWriteResult(
+      committedAt: now,
+      serverRevision: '1',
+      localEntityPatch: <String, Object?>{
+        'imageUrls': <String>[
+          'uploads/landlord-1/listing-create/listing-0.png',
+        ],
+      },
+    );
   }
 }

@@ -83,6 +83,13 @@ final class SembastListingRepository implements ListingRepository {
     if (errors.isNotEmpty) throw DomainValidationException(errors);
 
     final now = _clock.now().toUtc();
+    // A listing may override the property's gallery, but an empty listing
+    // photo selection inherits the property's ordered media. That keeps the
+    // property primary image as the marketplace cover instead of showing the
+    // same generic fallback for every photo-less advert.
+    final imageUrls = input.imageUrls.isEmpty
+        ? property.imageUrls
+        : input.imageUrls;
     final listing = Listing(
       id: _idGenerator.generate(),
       unitId: input.unitId,
@@ -119,7 +126,7 @@ final class SembastListingRepository implements ListingRepository {
       petsPolicy: _optional(input.petsPolicy),
       smokingPolicy: _optional(input.smokingPolicy),
       viewingInstructions: _optional(input.viewingInstructions),
-      imageUrls: input.imageUrls.map((item) => item.trim()).toList(),
+      imageUrls: imageUrls.map((item) => item.trim()).toList(),
       videoUrl: _optional(input.videoUrl),
       contactPhone: _optional(input.contactPhone),
       contactEmail: _optional(input.contactEmail),

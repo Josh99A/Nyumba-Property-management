@@ -10,6 +10,31 @@ function fileName(path: string): string {
   return path.split('/').pop()?.replace(/[^A-Za-z0-9._-]/g, '_') || 'image';
 }
 
+export function publicListingMediaPatch(
+  publicListing: Record<string, unknown>,
+  imagePaths: readonly string[],
+  updatedAt: Timestamp,
+): Record<string, unknown> | null {
+  const currentVersion = Number(publicListing.version);
+  if (!Number.isInteger(currentVersion) || currentVersion < 1) {
+    throw new Error('Published listing media requires a valid projection version.');
+  }
+  const currentPaths = Array.isArray(publicListing.imagePaths)
+    ? publicListing.imagePaths.filter((value): value is string => typeof value === 'string')
+    : [];
+  if (
+    currentPaths.length === imagePaths.length
+    && currentPaths.every((path, index) => path === imagePaths[index])
+  ) {
+    return null;
+  }
+  return {
+    imagePaths: [...imagePaths],
+    updatedAt,
+    version: currentVersion + 1,
+  };
+}
+
 export async function publishListingMedia(payload: Record<string, unknown>): Promise<void> {
   const listingId = String(payload.listingId);
   const staged = Array.isArray(payload.stagedImagePaths)
@@ -36,7 +61,8 @@ export async function publishListingMedia(payload: Record<string, unknown>): Pro
     const [privateSnap, publicSnap] = await Promise.all([tx.get(privateRef), tx.get(publicRef)]);
     if (!privateSnap.exists || !publicSnap.exists || publicSnap.data()?.status !== 'published') return;
     tx.update(privateRef, { mediaState: 'published', publicImagePaths: publicPaths, updatedAt: now });
-    tx.update(publicRef, { imagePaths: publicPaths, updatedAt: now });
+    const publicPatch = publicListingMediaPatch(publicSnap.data()!, publicPaths, now);
+    if (publicPatch) tx.update(publicRef, publicPatch);
   });
 }
 

@@ -47,10 +47,11 @@ void main() {
     expect(find.text('5/5'), findsOneWidget);
   });
 
-  testWidgets('public Storage media is used by listing advertising', (
+  testWidgets('listing advertising loads the first public photo as primary', (
     tester,
   ) async {
-    const reference = 'public/listings/listing_1234/0_cover.png';
+    const primary = 'public/listings/listing_1234/0_cover.png';
+    const secondary = 'public/listings/listing_1234/1_kitchen.png';
     final requested = <String>[];
 
     await tester.pumpWidget(
@@ -69,7 +70,7 @@ void main() {
               width: 400,
               height: 240,
               child: listingImage(
-                _listing(imageUrls: const <String>[reference]),
+                _listing(imageUrls: const <String>[primary, secondary]),
               ),
             ),
           ),
@@ -78,7 +79,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(requested, <String>[reference]);
+    expect(requested, <String>[primary]);
     expect(find.byType(Image), findsOneWidget);
     expect(tester.widget<Image>(find.byType(Image)).image, isA<MemoryImage>());
   });
