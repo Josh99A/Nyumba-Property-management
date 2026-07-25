@@ -1004,4 +1004,9 @@
     ,"@bedroomsCount": {"placeholders": {"count": {"type": "int"}}}
     ,"bathroomsCount": "{count, plural, =1{1 bath} other{{count} baths}}"
     ,"@bathroomsCount": {"placeholders": {"count": {"type": "int"}}}
+    ,"publicListingsLoadErrorTitle": "We could not load the listings"
+    ,"publicListingsLoadErrorMessage": "Something went wrong reading the saved catalogue. Try again in a moment."
+    ,"listingAvailableNow": "Available now"
+    ,"listingAvailableFromDate": "Available {date}"
+    ,"@listingAvailableFromDate": {"placeholders": {"date": {"type": "String"}}}
 }

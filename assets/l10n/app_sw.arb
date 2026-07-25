@@ -993,4 +993,9 @@
     ,"@bedroomsCount": {"placeholders": {"count": {"type": "int"}}}
     ,"bathroomsCount": "{count, plural, =1{Bafu 1} other{Mabafu {count}}}"
     ,"@bathroomsCount": {"placeholders": {"count": {"type": "int"}}}
+    ,"publicListingsLoadErrorTitle": "Hatukuweza kupakia matangazo"
+    ,"publicListingsLoadErrorMessage": "Hitilafu imetokea wakati wa kusoma orodha iliyohifadhiwa. Jaribu tena baada ya muda mfupi."
+    ,"listingAvailableNow": "Inapatikana sasa"
+    ,"listingAvailableFromDate": "Inapatikana kuanzia {date}"
+    ,"@listingAvailableFromDate": {"placeholders": {"date": {"type": "String"}}}
 }

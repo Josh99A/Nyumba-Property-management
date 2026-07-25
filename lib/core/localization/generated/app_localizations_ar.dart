@@ -3190,8 +3190,12 @@ class AppLocalizationsAr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count غرف نوم',
+      other: '$count غرفة نوم',
+      many: '$count غرفة نوم',
+      few: '$count غرف نوم',
+      two: 'غرفتا نوم',
       one: 'غرفة نوم واحدة',
+      zero: 'لا غرف نوم',
     );
     return '$_temp0';
   }
@@ -3201,9 +3205,28 @@ class AppLocalizationsAr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count حمّامات',
+      other: '$count حمّام',
+      many: '$count حمّامًا',
+      few: '$count حمّامات',
+      two: 'حمّامان',
       one: 'حمّام واحد',
+      zero: 'لا حمّامات',
     );
     return '$_temp0';
+  }
+
+  @override
+  String get publicListingsLoadErrorTitle => 'تعذّر علينا تحميل الإعلانات';
+
+  @override
+  String get publicListingsLoadErrorMessage =>
+      'حدث خطأ أثناء قراءة قائمة الإعلانات المحفوظة. حاول مرة أخرى بعد قليل.';
+
+  @override
+  String get listingAvailableNow => 'متاح الآن';
+
+  @override
+  String listingAvailableFromDate(String date) {
+    return 'متاح ابتداءً من $date';
   }
 }

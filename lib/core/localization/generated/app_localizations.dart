@@ -5795,6 +5795,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 bath} other{{count} baths}}'**
   String bathroomsCount(int count);
+
+  /// No description provided for @publicListingsLoadErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not load the listings'**
+  String get publicListingsLoadErrorTitle;
+
+  /// No description provided for @publicListingsLoadErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong reading the saved catalogue. Try again in a moment.'**
+  String get publicListingsLoadErrorMessage;
+
+  /// No description provided for @listingAvailableNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Available now'**
+  String get listingAvailableNow;
+
+  /// No description provided for @listingAvailableFromDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Available {date}'**
+  String listingAvailableFromDate(String date);
 }
 
 class _AppLocalizationsDelegate

@@ -162,6 +162,7 @@ void main() {
       mutationId: 'create',
       syncedAt: now,
       serverRevision: 'revision-1',
+      localEntityPatch: <String, Object?>{'name': 'First accepted by server'},
     );
     final entity = await database.readEntity(
       OfflineEntityType.property,
@@ -171,6 +172,7 @@ void main() {
 
     expect(sync.state, EntitySyncState.pending);
     expect(sync.serverRevision, 'revision-1');
+    expect(entity['name'], 'Second');
     expect(await database.outboxCount(), 1);
   });
 
@@ -224,6 +226,8 @@ void main() {
         entity: <String, Object?>{
           'id': 'listing-1',
           'imageUrls': <String>[],
+          'title': 'Cached title',
+          'city': 'Kampala',
           'version': 4,
         },
       );
@@ -237,6 +241,9 @@ void main() {
             'public/listings/listing-1/0_primary.webp',
             'public/listings/listing-1/1_kitchen.webp',
           ],
+          'title': 'Unexpected same-version title',
+          'city': 'Entebbe',
+          'remoteOnlyField': true,
           'version': 4,
         },
       );
@@ -250,6 +257,9 @@ void main() {
         'public/listings/listing-1/0_primary.webp',
         'public/listings/listing-1/1_kitchen.webp',
       ]);
+      expect(repaired?['title'], 'Cached title');
+      expect(repaired?['city'], 'Kampala');
+      expect(repaired, isNot(contains('remoteOnlyField')));
       expect(
         SyncMetadataMapper.fromJson(repaired?['syncMetadata']).serverRevision,
         '4',

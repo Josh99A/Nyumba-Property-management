@@ -3292,4 +3292,19 @@ class AppLocalizationsSw extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get publicListingsLoadErrorTitle => 'Hatukuweza kupakia matangazo';
+
+  @override
+  String get publicListingsLoadErrorMessage =>
+      'Hitilafu imetokea wakati wa kusoma orodha iliyohifadhiwa. Jaribu tena baada ya muda mfupi.';
+
+  @override
+  String get listingAvailableNow => 'Inapatikana sasa';
+
+  @override
+  String listingAvailableFromDate(String date) {
+    return 'Inapatikana kuanzia $date';
+  }
 }

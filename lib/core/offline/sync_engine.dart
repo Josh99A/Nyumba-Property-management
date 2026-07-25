@@ -124,6 +124,7 @@ final class SyncEngine {
           mutationId: entry.id,
           syncedAt: result.committedAt,
           serverRevision: result.serverRevision,
+          localEntityPatch: result.localEntityPatch,
         );
         succeeded++;
       } catch (error) {

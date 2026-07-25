@@ -431,10 +431,21 @@ final class OfflineDatabase {
       final completesLegacyPublicMedia =
           localVersion == remoteVersion &&
           _completesLegacyPublicListingMedia(entityType, local, entity);
-      if (localVersion != null &&
-          remoteVersion <= localVersion &&
-          !completesLegacyPublicMedia) {
-        return RemoteMergeResult.ignored;
+      if (localVersion != null && remoteVersion <= localVersion) {
+        if (!completesLegacyPublicMedia) {
+          return RemoteMergeResult.ignored;
+        }
+        await entityRecord.put(transaction, <String, Object?>{
+          ...local,
+          'imageUrls': _stringReferences(entity['imageUrls']),
+          'syncMetadata': SyncMetadataMapper.toJson(
+            SyncMetadata.synced(
+              serverRevision: remoteVersion.toString(),
+              lastSyncedAt: DateTime.now().toUtc(),
+            ),
+          ),
+        });
+        return RemoteMergeResult.applied;
       }
     }
     final merged = Map<String, Object?>.from(entity);
@@ -607,6 +618,7 @@ final class OfflineDatabase {
     required String mutationId,
     required DateTime syncedAt,
     String? serverRevision,
+    Map<String, Object?>? localEntityPatch,
   }) => database.transaction((transaction) async {
     final record = _outboxStore.record(mutationId);
     final raw = await record.get(transaction);
@@ -634,6 +646,7 @@ final class OfflineDatabase {
         : currentSync.markSynced(at: syncedAt, revision: serverRevision);
     await entityRecord.put(transaction, <String, Object?>{
       ...entity,
+      if (!hasNewerMutation && localEntityPatch != null) ...localEntityPatch,
       'syncMetadata': SyncMetadataMapper.toJson(nextSync),
     });
   });

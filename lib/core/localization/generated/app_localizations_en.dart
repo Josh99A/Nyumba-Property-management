@@ -3240,4 +3240,19 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get publicListingsLoadErrorTitle => 'We could not load the listings';
+
+  @override
+  String get publicListingsLoadErrorMessage =>
+      'Something went wrong reading the saved catalogue. Try again in a moment.';
+
+  @override
+  String get listingAvailableNow => 'Available now';
+
+  @override
+  String listingAvailableFromDate(String date) {
+    return 'Available $date';
+  }
 }

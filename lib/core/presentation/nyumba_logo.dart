@@ -25,15 +25,14 @@ class NyumbaLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resolvedHeight = height ?? (compact ? 42 : 56);
-    final isDark =
-        Theme.of(context).brightness == Brightness.dark || onDarkSurface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final navy = onDarkSurface
-        ? const Color(0xFFDCE7F4)
+        ? NyumbaColors.navyOnDark
         : isDark
         ? context.nyumba.midnightNavy
         : NyumbaColors.midnightNavy;
     final sage = onDarkSurface
-        ? const Color(0xFFAED0B6)
+        ? NyumbaColors.sageOnDark
         : isDark
         ? context.nyumba.sageDark
         : NyumbaColors.sageGreen;

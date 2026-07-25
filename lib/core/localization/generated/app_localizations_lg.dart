@@ -3309,4 +3309,19 @@ class AppLocalizationsLg extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get publicListingsLoadErrorTitle => 'Tetwasobodde kutikka matangazo';
+
+  @override
+  String get publicListingsLoadErrorMessage =>
+      'Waliwo ensobi mu kusoma olukalala oluterekeddwa. Ddamu ogezeeko mu kaseera katono.';
+
+  @override
+  String get listingAvailableNow => 'Kiriwo kati';
+
+  @override
+  String listingAvailableFromDate(String date) {
+    return 'Kiriwo okuva $date';
+  }
 }

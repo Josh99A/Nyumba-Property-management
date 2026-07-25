@@ -53,6 +53,7 @@ void main() {
   testWidgets('marketplace stays overflow-free on a narrow Arabic screen', (
     tester,
   ) async {
+    final arabicCopy = await AppLocalizations.delegate.load(const Locale('ar'));
     await _setViewport(tester, const Size(390, 844));
     await tester.pumpWidget(_testApp(locale: const Locale('ar')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -70,6 +71,8 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Modern two-bedroom home'), findsOneWidget);
+    expect(find.text(arabicCopy.availableHomes), findsOneWidget);
+    expect(find.text(arabicCopy.listingAvailableNow), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

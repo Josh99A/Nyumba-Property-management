@@ -156,7 +156,19 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
       committedAt: committedAt.toUtc(),
       serverRevision: response['serverVersion']?.toString(),
       wasAlreadyApplied: response['wasAlreadyApplied'] == true,
+      localEntityPatch: _localEntityPatch(stagedMutation),
     );
+  }
+
+  static Map<String, Object?>? _localEntityPatch(RemoteMutation mutation) {
+    if (mutation.entityType != OfflineEntityType.property &&
+        mutation.entityType != OfflineEntityType.listing) {
+      return null;
+    }
+    final stagedPaths = _stringList(mutation.payload['stagedImagePaths']);
+    return stagedPaths.isEmpty
+        ? null
+        : <String, Object?>{'imageUrls': stagedPaths};
   }
 
   Future<RemoteMutation> _stageImages(RemoteMutation mutation) async {

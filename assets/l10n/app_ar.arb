@@ -989,8 +989,13 @@
     ,"viewHome": "عرض المنزل"
     ,"monthlyRentDisplay": "{rent} / شهريًا"
     ,"@monthlyRentDisplay": {"placeholders": {"rent": {"type": "String"}}}
-    ,"bedroomsCount": "{count, plural, =1{غرفة نوم واحدة} other{{count} غرف نوم}}"
+    ,"bedroomsCount": "{count, plural, =0{لا غرف نوم} =1{غرفة نوم واحدة} =2{غرفتا نوم} few{{count} غرف نوم} many{{count} غرفة نوم} other{{count} غرفة نوم}}"
     ,"@bedroomsCount": {"placeholders": {"count": {"type": "int"}}}
-    ,"bathroomsCount": "{count, plural, =1{حمّام واحد} other{{count} حمّامات}}"
+    ,"bathroomsCount": "{count, plural, =0{لا حمّامات} =1{حمّام واحد} =2{حمّامان} few{{count} حمّامات} many{{count} حمّامًا} other{{count} حمّام}}"
     ,"@bathroomsCount": {"placeholders": {"count": {"type": "int"}}}
+    ,"publicListingsLoadErrorTitle": "تعذّر علينا تحميل الإعلانات"
+    ,"publicListingsLoadErrorMessage": "حدث خطأ أثناء قراءة قائمة الإعلانات المحفوظة. حاول مرة أخرى بعد قليل."
+    ,"listingAvailableNow": "متاح الآن"
+    ,"listingAvailableFromDate": "متاح ابتداءً من {date}"
+    ,"@listingAvailableFromDate": {"placeholders": {"date": {"type": "String"}}}
 }

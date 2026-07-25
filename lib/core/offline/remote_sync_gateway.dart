@@ -33,11 +33,14 @@ final class RemoteMutation {
 }
 
 final class RemoteWriteResult {
-  const RemoteWriteResult({
+  RemoteWriteResult({
     required this.committedAt,
     this.serverRevision,
     this.wasAlreadyApplied = false,
-  });
+    Map<String, Object?>? localEntityPatch,
+  }) : localEntityPatch = localEntityPatch == null
+           ? null
+           : Map.unmodifiable(localEntityPatch);
 
   final DateTime committedAt;
   final String? serverRevision;
@@ -45,6 +48,11 @@ final class RemoteWriteResult {
   /// True when the backend recognized the idempotency key from an earlier
   /// request. This is still a successful delivery.
   final bool wasAlreadyApplied;
+
+  /// Transport-derived local fields that become valid only after the remote
+  /// command succeeds. The Firebase photo gateway uses this to replace local
+  /// data URIs with the accepted ordered staging paths.
+  final Map<String, Object?>? localEntityPatch;
 }
 
 /// Implemented by Firebase/backend infrastructure, not feature repositories.

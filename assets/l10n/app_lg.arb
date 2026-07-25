@@ -993,4 +993,9 @@
     ,"@bedroomsCount": {"placeholders": {"count": {"type": "int"}}}
     ,"bathroomsCount": "{count, plural, =1{Ekinabiro 1} other{Ebinabiro {count}}}"
     ,"@bathroomsCount": {"placeholders": {"count": {"type": "int"}}}
+    ,"publicListingsLoadErrorTitle": "Tetwasobodde kutikka matangazo"
+    ,"publicListingsLoadErrorMessage": "Waliwo ensobi mu kusoma olukalala oluterekeddwa. Ddamu ogezeeko mu kaseera katono."
+    ,"listingAvailableNow": "Kiriwo kati"
+    ,"listingAvailableFromDate": "Kiriwo okuva {date}"
+    ,"@listingAvailableFromDate": {"placeholders": {"date": {"type": "String"}}}
 }

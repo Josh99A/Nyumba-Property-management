@@ -8,6 +8,7 @@ import 'package:nyumba_property_management/core/localization/nyumba_localization
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/config/market_config.dart';
 import '../../../core/presentation/cloud_status_badge.dart';
 import '../../../core/presentation/language_menu_button.dart';
 import '../../../core/presentation/motion.dart';
@@ -247,13 +248,12 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                 key: _resultsKey,
                 child: _EmptyState(
                   icon: Icons.cloud_off_rounded,
-                  title: 'We could not load the listings',
-                  message:
-                      'Something went wrong reading the saved catalogue. Try again in a moment.',
+                  title: copy.publicListingsLoadErrorTitle,
+                  message: copy.publicListingsLoadErrorMessage,
                   action: FilledButton.icon(
                     onPressed: () => ref.invalidate(publicListingsProvider),
                     icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text.localized('Try again'),
+                    label: Text(copy.retry),
                   ),
                 ),
               ),
@@ -283,16 +283,15 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                       : listings.isEmpty
                       ? _EmptyState(
                           icon: Icons.search_off_rounded,
-                          title: 'No homes match those filters',
-                          message:
-                              'Try a broader search or a different price range.',
+                          title: copy.noHomesMatch,
+                          message: copy.tryBroaderSearch,
                           action: OutlinedButton.icon(
                             onPressed: _clearFilters,
                             icon: const Icon(
                               Icons.filter_alt_off_outlined,
                               size: 18,
                             ),
-                            label: const Text.localized('Clear filters'),
+                            label: Text(copy.clearFilters),
                           ),
                         )
                       : LayoutBuilder(
@@ -407,7 +406,7 @@ class _MarketplaceHero extends StatelessWidget {
             child: Text(
               appLocalizationsOf(context).browseVerifiedHomes,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFFDCE7F4),
+                color: NyumbaColors.navyOnDark,
                 fontSize: compact ? 18 : 20,
                 fontWeight: FontWeight.w400,
                 height: 1.5,
@@ -650,7 +649,7 @@ class _SearchPanel extends StatelessWidget {
                             for (final type in availableUnitTypes)
                               DropdownMenuItem(
                                 value: type,
-                                child: Text.localized(_unitTypeLabel(type)),
+                                child: Text(_unitTypeLabel(type)),
                               ),
                           ],
                           onChanged: onUnitTypeChanged,
@@ -1041,7 +1040,7 @@ class _MarketplaceFooter extends StatelessWidget {
     final copy = appLocalizationsOf(context);
     final footerText = Theme.of(
       context,
-    ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFDCE7F4));
+    ).textTheme.bodyMedium?.copyWith(color: NyumbaColors.navyOnDark);
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -1081,7 +1080,7 @@ class _MarketplaceFooter extends StatelessWidget {
                       ),
                     ),
                     _FooterLinkGroup(
-                      title: copy.browseHomesNav,
+                      title: copy.availableHomes,
                       children: [
                         TextButton(
                           onPressed: onBrowseHomes,
@@ -1103,7 +1102,7 @@ class _MarketplaceFooter extends StatelessWidget {
                       children: [
                         const Icon(
                           Icons.location_on_outlined,
-                          color: Color(0xFFAED0B6),
+                          color: NyumbaColors.sageOnDark,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -1158,7 +1157,7 @@ class _FooterLinkGroup extends StatelessWidget {
             TextButtonTheme(
               data: TextButtonThemeData(
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFFDCE7F4),
+                  foregroundColor: NyumbaColors.navyOnDark,
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   minimumSize: const Size(0, 36),
                 ),
@@ -1329,11 +1328,18 @@ class _ListingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final copy = appLocalizationsOf(context);
     final currency = NumberFormat.currency(
-      locale: 'en_UG',
-      symbol: 'UGX ',
+      locale: copy.localeName,
+      name: NyumbaMarket.currencyCode,
+      symbol: NyumbaMarket.currencySymbol,
       decimalDigits: 0,
     );
-    final rent = currency.format(listing.monthlyRentMinor / 100);
+    final rent = currency.format(listing.monthlyRentMinor ~/ 100);
+    final availableFrom = listing.availableFrom;
+    final availability = availableFrom == null
+        ? copy.listingAvailableNow
+        : copy.listingAvailableFromDate(
+            DateFormat('d MMM', copy.localeName).format(availableFrom),
+          );
     return NyumbaSurface(
       padding: EdgeInsets.zero,
       borderRadius: 16,
@@ -1363,11 +1369,7 @@ class _ListingCard extends StatelessWidget {
                       child: _PhotoChip(
                         background: context.nyumba.sageGreen,
                         foreground: Colors.white,
-                        child: Text.localized(
-                          listing.availableFrom == null
-                              ? 'Available now'
-                              : 'Available ${DateFormat('d MMM').format(listing.availableFrom!)}',
-                        ),
+                        child: Text(availability),
                       ),
                     ),
                   ],
