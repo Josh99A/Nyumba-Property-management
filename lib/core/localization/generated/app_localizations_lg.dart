@@ -3744,4 +3744,15 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get benefitOneWorkspace =>
       'Obupangisa, ebbaluwa z\'ensimbi, n\'okuddaabiriza mu kifo kimu';
+
+  @override
+  String reviewsSoFarBeforeRating(int count, int minimum) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Endowooza $count',
+      one: 'Endowooza 1',
+    );
+    return '$_temp0 okutuusa kaakano — enkomo z\'emmunyeenye zirabika nga zituuse ku $minimum.';
+  }
 }

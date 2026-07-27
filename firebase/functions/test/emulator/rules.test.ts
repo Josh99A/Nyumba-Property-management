@@ -6,7 +6,7 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { collection, doc, getDoc, getDocs, limit, query, setDoc, Timestamp, where } from 'firebase/firestore';
-import { getBytes, ref, uploadBytes } from 'firebase/storage';
+import { getBytes, listAll, ref, uploadBytes } from 'firebase/storage';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -276,5 +276,32 @@ describe('Firestore rules matrix', () => {
     await assertSucceeds(getBytes(ref(adminStorage, path)));
     await assertSucceeds(getBytes(ref(superAdminStorage, path)));
     await assertFails(getBytes(ref(tenantStorage, path)));
+  });
+
+  it('allows anonymous get on public listing media, published or stale, but denies anonymous list', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await Promise.all([
+        uploadBytes(
+          ref(context.storage(), 'public/listings/published_1/photo.jpg'),
+          new Uint8Array([1, 2, 3]),
+          { contentType: 'image/jpeg' },
+        ),
+        // `expired_123` matches the seeded Firestore doc whose expiresAt is in
+        // the past: the rule does not check Firestore at all, so a stale
+        // object is gettable until the cleanup sweep deletes it — that is the
+        // documented, intentional gap. What must not be true is that it can
+        // also be enumerated.
+        uploadBytes(
+          ref(context.storage(), 'public/listings/expired_123/photo.jpg'),
+          new Uint8Array([1, 2, 3]),
+          { contentType: 'image/jpeg' },
+        ),
+      ]);
+    });
+
+    const anonymousStorage = env.unauthenticatedContext().storage();
+    await assertSucceeds(getBytes(ref(anonymousStorage, 'public/listings/published_1/photo.jpg')));
+    await assertSucceeds(getBytes(ref(anonymousStorage, 'public/listings/expired_123/photo.jpg')));
+    await assertFails(listAll(ref(anonymousStorage, 'public/listings/published_1')));
   });
 });

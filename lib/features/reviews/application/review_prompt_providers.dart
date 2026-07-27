@@ -105,5 +105,5 @@ final myTenanciesForReviewProvider =
 
 int _monthsBetween(DateTime from, DateTime to) {
   final days = to.difference(from).inDays;
-  return days <= 0 ? 1 : (days / 30.44).round().clamp(1, 600);
+  return days <= 0 ? 1 : (days / 30.44).round().clamp(1, 600).toInt();
 }

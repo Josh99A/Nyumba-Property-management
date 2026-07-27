@@ -3639,4 +3639,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get benefitOneWorkspace => 'الإيجار والفواتير والصيانة في مكان واحد';
+
+  @override
+  String reviewsSoFarBeforeRating(int count, int minimum) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مراجعة حتى الآن',
+      many: '$count مراجعة حتى الآن',
+      few: '$count مراجعات حتى الآن',
+      two: 'مراجعتان حتى الآن',
+      one: 'مراجعة واحدة حتى الآن',
+      zero: 'لا مراجعات بعد',
+    );
+    return '$_temp0 — يظهر تقييم النجوم عندما يصل إلى $minimum.';
+  }
 }

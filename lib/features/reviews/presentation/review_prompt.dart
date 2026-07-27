@@ -37,6 +37,7 @@ Future<void> maybePromptForReview(
 
   final store = ref.read(reviewPromptStoreProvider);
   final state = await store.read(candidate.leaseId);
+  if (!context.mounted) return;
   final now = DateTime.now().toUtc();
   if (!ref
       .read(reviewPromptPolicyProvider)
@@ -264,29 +265,9 @@ class AuthoredReviewTile extends ConsumerWidget {
                 AsyncActionButton(
                   style: AsyncActionStyle.text,
                   onPressed: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (dialogContext) => AlertDialog(
-                        title: const Text.localized('Remove this review?'),
-                        content: const Text.localized(
-                          'This cannot be undone. The review will no longer be visible to '
-                          'anyone, including your landlord.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(dialogContext, false),
-                            child: const Text.localized('Keep review'),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(dialogContext, true),
-                            child: const Text.localized('Remove'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true) {
-                      await ref.read(withdrawReviewProvider)(review.id);
-                    }
+                    final confirmed = await _confirmWithdraw(context);
+                    if (confirmed != true || !context.mounted) return;
+                    await ref.read(withdrawReviewProvider)(review.id);
                   },
                   child: Text.localized('Remove'),
                 ),
@@ -302,6 +283,27 @@ class AuthoredReviewTile extends ConsumerWidget {
     );
   }
 }
+
+Future<bool?> _confirmWithdraw(BuildContext context) => showDialog<bool>(
+  context: context,
+  builder: (context) => AlertDialog(
+    title: const Text.localized('Remove this review?'),
+    content: const Text.localized(
+      'This cannot be undone. The review will no longer be visible to '
+      'anyone, including your landlord.',
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context, false),
+        child: const Text.localized('Keep review'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, true),
+        child: const Text.localized('Remove'),
+      ),
+    ],
+  ),
+);
 
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status});

@@ -5,7 +5,6 @@ import '../../../../app/theme/nyumba_colors.dart';
 import '../../../../core/config/market_config.dart';
 import '../../../../core/localization/app_localizations_adapter.dart';
 import '../../../../core/localization/localized_material.dart';
-import '../../../../core/localization/nyumba_localizations.dart';
 import '../../../../core/presentation/surface.dart';
 import '../../domain/listing.dart';
 import '../../../reviews/presentation/review_visuals.dart';
@@ -182,7 +181,7 @@ class _CardMedia extends StatelessWidget {
                   top: 12,
                   end: 12,
                   child: Semantics(
-                    label: context.tr('$photoCount photos'),
+                    label: appLocalizationsOf(context).photoCount(photoCount),
                     child: ExcludeSemantics(
                       child: _CardBadge(
                         background: Colors.black54,

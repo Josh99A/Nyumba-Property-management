@@ -3721,4 +3721,15 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get benefitOneWorkspace =>
       'Kodi, ankara, na matengenezo mahali pamoja';
+
+  @override
+  String reviewsSoFarBeforeRating(int count, int minimum) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Maoni $count',
+      one: 'Maoni 1',
+    );
+    return '$_temp0 hadi sasa — ukadiriaji wa nyota huonekana ukifika $minimum.';
+  }
 }

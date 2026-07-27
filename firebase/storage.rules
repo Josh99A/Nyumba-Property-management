@@ -67,8 +67,16 @@ service firebase.storage {
 
     // Server-projected listing assets. Uploading to staging never makes a file
     // public; publication must also create the Firestore public projection.
+    //
+    // `get` is intentionally unconditional — see above — but `list` is not the
+    // same grant: it lets a client enumerate every object under a prefix
+    // instead of fetching a URL it already has. Left open, that turns "the
+    // cleanup job hasn't swept this listing yet" into "anyone can discover
+    // every retired photo on the platform" rather than just the ones someone
+    // already had a link to.
     match /public/listings/{listingId}/{allPaths=**} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if false;
     }
 

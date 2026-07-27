@@ -1124,4 +1124,6 @@
     ,"benefitPublishInMinutes": "Chapisha nafasi inayopatikana kwa dakika chache"
     ,"benefitRoutedEnquiries": "Maswali yanakufikia bila kushiriki namba yako"
     ,"benefitOneWorkspace": "Kodi, ankara, na matengenezo mahali pamoja"
+    ,"reviewsSoFarBeforeRating": "{count, plural, =1{Maoni 1} other{Maoni {count}}} hadi sasa — ukadiriaji wa nyota huonekana ukifika {minimum}."
+    ,"@reviewsSoFarBeforeRating": {"placeholders": {"count": {"type": "int"}, "minimum": {"type": "int"}}}
 }

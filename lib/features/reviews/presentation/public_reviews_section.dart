@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:nyumba_property_management/core/localization/app_localizations_adapter.dart';
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
 import '../../../core/presentation/async_action_button.dart';
@@ -50,10 +51,13 @@ class PublicReviewsSection extends ConsumerWidget {
                 : ratingAverage == null
                 // The distinction that keeps the system honest: too few reviews
                 // to average is not the same as no reviews, and neither is a bad
-                // rating.
-                ? '$ratingCount review${ratingCount == 1 ? '' : 's'} so far — '
-                      'a star rating appears at '
-                      '${RatingSummary.publicDisplayMinimum}.'
+                // rating. The count still needs each locale's own plural rules,
+                // so it goes through the generated catalog rather than English
+                // string-building.
+                ? appLocalizationsOf(context).reviewsSoFarBeforeRating(
+                    ratingCount,
+                    RatingSummary.publicDisplayMinimum,
+                  )
                 : 'From tenants who actually lived in this landlord\'s units.',
             trailing: RatingBadge(average: ratingAverage, count: ratingCount),
           ),

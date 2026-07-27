@@ -6557,6 +6557,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rent, invoices, and maintenance in one place'**
   String get benefitOneWorkspace;
+
+  /// Shown while a landlord has some reviews but not enough to display a star average yet.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 review} other{{count} reviews}} so far — a star rating appears at {minimum}.'**
+  String reviewsSoFarBeforeRating(int count, int minimum);
 }
 
 class _AppLocalizationsDelegate

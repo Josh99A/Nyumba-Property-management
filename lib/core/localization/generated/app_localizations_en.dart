@@ -3666,4 +3666,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get benefitOneWorkspace =>
       'Rent, invoices, and maintenance in one place';
+
+  @override
+  String reviewsSoFarBeforeRating(int count, int minimum) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reviews',
+      one: '1 review',
+    );
+    return '$_temp0 so far — a star rating appears at $minimum.';
+  }
 }

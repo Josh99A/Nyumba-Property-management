@@ -67,13 +67,24 @@ class _NpsPromptGateState extends ConsumerState<NpsPromptGate> {
     if (!mounted) return;
     final milestone = _milestone;
     final userId = ref.read(sessionControllerProvider)?.userId;
-    final version = ref.read(appVersionProvider).value;
-    if (milestone == null || userId == null || version == null) return;
+    if (milestone == null || userId == null) return;
+    // Awaited rather than a synchronous `.value` read: `PackageInfo.fromPlatform`
+    // has not necessarily resolved by the first post-frame callback, and a
+    // one-shot null read here would permanently skip the prompt for this
+    // widget's lifetime instead of waiting the few milliseconds it needs.
+    final version = await ref.read(appVersionProvider.future);
+    if (!mounted) return;
 
     const store = FeedbackPromptStore();
     final state = await store.read(userId);
     if (!state.allows(DateTime.now().toUtc())) return;
     if (!mounted) return;
+
+    // Captured before the write below overwrites lastPromptedAt: this is the
+    // only point at which "was this user already prompted before now" can
+    // still be answered from state, and onDismissed needs that answer to tell
+    // a first decline from a second one.
+    final hadPriorPrompt = state.lastPromptedAt != null;
 
     // Recorded before the sheet opens: if the app is killed mid-prompt the ask
     // still counts as made, so a crash loop cannot become a nag loop.
@@ -99,7 +110,7 @@ class _NpsPromptGateState extends ConsumerState<NpsPromptGate> {
             // Two declines is an answer. Honouring it costs one boolean and
             // buys the difference between a prompt people tolerate and one
             // they uninstall over.
-            optedOut: permanent || current.lastPromptedAt != null,
+            optedOut: permanent || hadPriorPrompt,
             lastPromptedAt: current.lastPromptedAt,
             lastSubmittedAt: current.lastSubmittedAt,
           ),

@@ -1,10 +1,40 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { newAggregate, requireAbsent } from '../shared/aggregates';
+import { requireActiveLandlord, type LandlordAccount } from '../shared/accounts';
 import { COLLECTIONS } from '../shared/collections';
-import { FEEDBACK_NPS_COOLDOWN_DAYS } from '../shared/config';
+import {
+  FEEDBACK_NPS_COOLDOWN_DAYS,
+  FEEDBACK_SUBMIT_COOLDOWN_SECONDS,
+} from '../shared/config';
 import { DomainError } from '../shared/errors';
 import { longText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+
+/**
+ * The two feedback-cadence timestamps live on `landlordAccounts`, but neither
+ * is part of that document's modelled shape — this command is the only
+ * reader and writer of both. A local extension keeps that scoping visible
+ * instead of widening the shared `LandlordAccount` type for a concern nothing
+ * else touches.
+ */
+interface FeedbackCadence {
+  lastFeedbackSubmittedAt?: Timestamp;
+  lastNpsSubmittedAt?: Timestamp;
+}
+
+function rejectIfWithin(
+  last: Timestamp | undefined,
+  cooldownMs: number,
+  now: Timestamp,
+): void {
+  if (!(last instanceof Timestamp)) return;
+  const elapsed = now.toMillis() - last.toMillis();
+  if (elapsed < cooldownMs) {
+    throw new DomainError('RATE_LIMITED', {
+      retryAfterSeconds: Math.ceil((cooldownMs - elapsed) / 1000),
+    });
+  }
+}
 
 /**
  * Landlord-to-Nyumba product feedback.
@@ -49,33 +79,28 @@ export const feedbackSubmit: CommandHandler<z.infer<typeof feedbackSchema>> = {
   expectedVersionMode: 'create',
   async apply({ tx, db, actor, cmd, now }) {
     const ref = db.collection(COLLECTIONS.platformFeedback).doc(cmd.aggregateId!);
-    const accountRef = db.collection(COLLECTIONS.landlordAccounts).doc(actor.uid);
-    const subscriptionRef = db.collection(COLLECTIONS.subscriptions).doc(actor.uid);
-    const [snapshot, accountSnap, subscriptionSnap] = await Promise.all([
-      tx.get(ref), tx.get(accountRef), tx.get(subscriptionRef),
+    // Reads must precede the writes below within the transaction; order
+    // between these two doesn't matter, only that both land first.
+    const [snapshot, landlord] = await Promise.all([
+      tx.get(ref),
+      requireActiveLandlord(tx, db, actor),
     ]);
     requireAbsent(snapshot);
-    const account = accountSnap.data();
-    const subscription = subscriptionSnap.data();
+    const account = landlord.account as LandlordAccount & FeedbackCadence;
 
-    // The whole point of denormalizing the tier at write time: a detractor on
-    // the top tier is a churn alert worth acting on today. Joining this against
-    // `subscriptions` weeks later reads whatever tier they churned *to*, which
-    // is precisely the information that would be misleading.
-    const planTier = typeof subscription?.tier === 'string' ? subscription.tier : null;
-    const subscriptionStatus = typeof subscription?.status === 'string' ? subscription.status : null;
-
+    // Every kind shares one floor against double-submits and scripted abuse;
+    // NPS additionally keeps its own much longer "don't ask again yet" cadence.
+    rejectIfWithin(
+      account.lastFeedbackSubmittedAt,
+      FEEDBACK_SUBMIT_COOLDOWN_SECONDS * 1000,
+      now,
+    );
     if (cmd.payload.kind === 'nps') {
-      const last = account?.lastNpsSubmittedAt;
-      if (last instanceof Timestamp) {
-        const cooldownMs = FEEDBACK_NPS_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
-        const elapsed = now.toMillis() - last.toMillis();
-        if (elapsed < cooldownMs) {
-          throw new DomainError('RATE_LIMITED', {
-            retryAfterSeconds: Math.ceil((cooldownMs - elapsed) / 1000),
-          });
-        }
-      }
+      rejectIfWithin(
+        account.lastNpsSubmittedAt,
+        FEEDBACK_NPS_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
+        now,
+      );
     }
 
     tx.create(ref, {
@@ -87,20 +112,22 @@ export const feedbackSubmit: CommandHandler<z.infer<typeof feedbackSchema>> = {
       category: cmd.payload.category ?? null,
       appVersion: cmd.payload.appVersion,
       platform: cmd.payload.platform,
-      planTier,
-      subscriptionStatus,
+      // The whole point of denormalizing the tier at write time: a detractor
+      // on the top tier is a churn alert worth acting on today. Joining this
+      // against `subscriptions` weeks later reads whatever tier they churned
+      // *to*, which is precisely the information that would be misleading.
+      planTier: landlord.subscription.tier,
+      subscriptionStatus: landlord.subscription.status,
       submittedAt: now,
     });
 
     // Server-owned prompt schedule. A cadence tracked only on the device resets
     // on reinstall and on every new device, so the same landlord gets asked
     // again and again — the fastest way to make people resent the prompt.
-    if (accountSnap.exists) {
-      tx.update(accountRef, {
-        lastFeedbackSubmittedAt: now,
-        ...(cmd.payload.kind === 'nps' ? { lastNpsSubmittedAt: now } : {}),
-      });
-    }
+    tx.update(db.collection(COLLECTIONS.landlordAccounts).doc(actor.uid), {
+      lastFeedbackSubmittedAt: now,
+      ...(cmd.payload.kind === 'nps' ? { lastNpsSubmittedAt: now } : {}),
+    });
 
     return {
       status: 'applied',

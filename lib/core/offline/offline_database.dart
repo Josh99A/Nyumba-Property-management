@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:sembast/sembast.dart';
 
@@ -446,7 +447,14 @@ final class OfflineDatabase {
                 pendingAggregates: pending,
               ),
             );
-          } on Object {
+          } on Object catch (error, stackTrace) {
+            PerfCounters.increment(PerfNames.remoteMergeFailure);
+            developer.log(
+              'Failed to merge ${merge.entityType.name} ${merge.entityId}',
+              name: 'offline_database',
+              error: error,
+              stackTrace: stackTrace,
+            );
             results.add(RemoteMergeResult.failed);
           }
         }

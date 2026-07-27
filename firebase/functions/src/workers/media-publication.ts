@@ -158,12 +158,15 @@ interface DeliveredMedia {
 }
 
 /**
- * Writes both delivery copies of every staged photo under [prefix] and removes
- * any object left there by a previous publication.
+ * Writes both delivery copies of every staged photo under [prefix].
  *
- * Sweeping is what keeps content-addressed naming from leaking storage: a
- * changed photo writes a new digest, so without this the superseded objects
- * would accumulate under the listing forever.
+ * Deliberately does NOT remove superseded objects. Every caller can still
+ * abandon the publication after this returns — the listing may have been
+ * unpublished, a newer edit may have superseded this job's staged list — and
+ * in each of those cases the stored document keeps pointing at the *previous*
+ * delivery paths. Sweeping here would delete the objects those live
+ * references resolve to. Cleanup is [sweepDelivered], run only once the new
+ * paths are committed.
  */
 async function deliverImages(
   stagedPaths: readonly string[],
@@ -198,15 +201,29 @@ async function deliverImages(
     thumbPaths.push(thumbPath);
   }
 
-  const keep = new Set([...imagePaths, ...thumbPaths]);
-  const [existing] = await bucket.getFiles({ prefix });
+  return { imagePaths, thumbPaths };
+}
+
+/**
+ * Removes every object under [prefix] that the just-committed document does
+ * not reference.
+ *
+ * This is what keeps content-addressed naming from leaking storage: a changed
+ * photo writes a new digest, so without it superseded objects would accumulate
+ * forever. It must run only after the new paths are durably committed —
+ * before that, the surviving references are still the old ones.
+ */
+async function sweepDelivered(
+  prefix: string,
+  delivered: DeliveredMedia,
+): Promise<void> {
+  const keep = new Set<string>([...delivered.imagePaths, ...delivered.thumbPaths]);
+  const [existing] = await getStorage().bucket().getFiles({ prefix });
   await Promise.all(
     existing
       .filter((file) => !keep.has(file.name))
       .map((file) => file.delete({ ignoreNotFound: true })),
   );
-
-  return { imagePaths, thumbPaths };
 }
 
 export async function publishListingMedia(payload: Record<string, unknown>): Promise<void> {
@@ -214,13 +231,19 @@ export async function publishListingMedia(payload: Record<string, unknown>): Pro
   const staged = stringArray(payload.stagedImagePaths);
   if (staged.length > MAX_LISTING_PHOTOS) throw new Error('Listing photo limit exceeded.');
 
-  const delivered = await deliverImages(staged, `public/listings/${listingId}/`);
+  const prefix = `public/listings/${listingId}/`;
+  const delivered = await deliverImages(staged, prefix);
   const now = Timestamp.now();
-  await getFirestore().runTransaction(async (tx) => {
+  // The transaction's return value, not a flag mutated inside it: a
+  // transaction body can be retried, so only the attempt that actually
+  // committed is allowed to authorize the destructive sweep below.
+  const committed = await getFirestore().runTransaction(async (tx) => {
     const privateRef = getFirestore().collection(COLLECTIONS.privateListings).doc(listingId);
     const publicRef = getFirestore().collection(COLLECTIONS.publicListings).doc(listingId);
     const [privateSnap, publicSnap] = await Promise.all([tx.get(privateRef), tx.get(publicRef)]);
-    if (!privateSnap.exists || !publicSnap.exists || publicSnap.data()?.status !== 'published') return;
+    if (!privateSnap.exists || !publicSnap.exists || publicSnap.data()?.status !== 'published') {
+      return false;
+    }
     tx.update(privateRef, {
       mediaState: 'published',
       publicImagePaths: delivered.imagePaths,
@@ -234,7 +257,9 @@ export async function publishListingMedia(payload: Record<string, unknown>): Pro
       delivered.thumbPaths,
     );
     if (publicPatch) tx.update(publicRef, publicPatch);
+    return true;
   });
+  if (committed) await sweepDelivered(prefix, delivered);
 }
 
 /**
@@ -253,25 +278,23 @@ export async function publishPropertyMedia(payload: Record<string, unknown>): Pr
   const staged = stringArray(payload.stagedImagePaths);
   if (staged.length > MAX_PROPERTY_PHOTOS) throw new Error('Property photo limit exceeded.');
 
-  const delivered = await deliverImages(
-    staged,
-    `private/landlords/${landlordId}/properties/${propertyId}/`,
-  );
+  const prefix = `private/landlords/${landlordId}/properties/${propertyId}/`;
+  const delivered = await deliverImages(staged, prefix);
   const now = Timestamp.now();
   const ref = getFirestore().collection(COLLECTIONS.properties).doc(propertyId);
-  await getFirestore().runTransaction(async (tx) => {
+  const committed = await getFirestore().runTransaction(async (tx) => {
     const snapshot = await tx.get(ref);
-    if (!snapshot.exists) return;
+    if (!snapshot.exists) return false;
     const current = snapshot.data()!;
     // The staged list this job was created from must still be the property's
     // current one. A newer edit has already enqueued its own job; letting this
     // one land would resurrect the photos the landlord just replaced.
-    if (!sameOrder(stringArray(current.stagedImagePaths), staged)) return;
+    if (!sameOrder(stringArray(current.stagedImagePaths), staged)) return false;
     if (
       sameOrder(stringArray(current.imagePaths), delivered.imagePaths)
       && sameOrder(stringArray(current.imageThumbPaths), delivered.thumbPaths)
     ) {
-      return;
+      return false;
     }
     tx.update(ref, {
       imagePaths: delivered.imagePaths,
@@ -280,7 +303,9 @@ export async function publishPropertyMedia(payload: Record<string, unknown>): Pr
       updatedAt: now,
       version: Number(current.version ?? 0) + 1,
     });
+    return true;
   });
+  if (committed) await sweepDelivered(prefix, delivered);
 }
 
 /** Removes every delivery copy of a property's photos. */

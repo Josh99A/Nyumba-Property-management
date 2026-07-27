@@ -1124,4 +1124,6 @@
     ,"benefitPublishInMinutes": "Fulumya ekifo ekiriwo mu ddakiika ntono"
     ,"benefitRoutedEnquiries": "Ebibuuzo bikutuukako nga tewali kugaba namba yo"
     ,"benefitOneWorkspace": "Obupangisa, ebbaluwa z'ensimbi, n'okuddaabiriza mu kifo kimu"
+    ,"reviewsSoFarBeforeRating": "{count, plural, =1{Endowooza 1} other{Endowooza {count}}} okutuusa kaakano — enkomo z'emmunyeenye zirabika nga zituuse ku {minimum}."
+    ,"@reviewsSoFarBeforeRating": {"placeholders": {"count": {"type": "int"}, "minimum": {"type": "int"}}}
 }

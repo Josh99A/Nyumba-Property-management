@@ -116,6 +116,14 @@ export const REVIEW_PUBLIC_DISPLAY_MIN_COUNT = 3;
 /** Landlord-facing NPS may be asked at most this often, per landlord. */
 export const FEEDBACK_NPS_COOLDOWN_DAYS = 90;
 
+/**
+ * Floor between any two feedback submissions from the same landlord,
+ * regardless of kind. Shorter than the NPS-specific cooldown above on
+ * purpose: this exists to stop double-submits and scripted abuse, not to
+ * ration how often a paying customer may tell the team something is broken.
+ */
+export const FEEDBACK_SUBMIT_COOLDOWN_SECONDS = 30;
+
 /** Background job retry policy. Product-final values are TBD; fail toward dead-letter. */
 export const JOB_MAX_ATTEMPTS = 8;
 export const JOB_BASE_BACKOFF_SECONDS = 30;

@@ -381,6 +381,9 @@ String? redirectForSession(UserSession? session, String path) {
             );
   // Managing the team (staff seats) is the owner's alone; staff never see it.
   final teamPath = path == '/team';
+  // Reviews left for the landlord's tenants are workspace data, so staff read
+  // and respond to them the same as any other portfolio resource.
+  final reviewsPath = path == '/reviews';
   final allowed =
       path == '/settings' ||
       (adminPath &&
@@ -391,6 +394,9 @@ String? redirectForSession(UserSession? session, String path) {
           )) ||
       portfolioAllowed ||
       (teamPath && session.role == AppRole.landlord) ||
+      (reviewsPath &&
+          (session.role == AppRole.landlord ||
+              session.role == AppRole.staff)) ||
       (session.role == AppRole.tenant &&
           (path == '/tenant' || path.startsWith('/tenant/')));
   return allowed ? null : home;

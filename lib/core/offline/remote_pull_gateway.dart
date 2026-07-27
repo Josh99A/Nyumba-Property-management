@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -457,14 +458,29 @@ final class RemotePullCoordinator {
             // woke the store's snapshot listeners once per document, so every
             // screen watching this collection rebuilt as many times as the
             // snapshot was long.
-            await database.mergeRemoteEntities(<RemoteEntityMerge>[
-              for (final record in records)
-                RemoteEntityMerge(
-                  entityType: record.entityType,
-                  entityId: record.id,
-                  entity: record.data,
-                ),
-            ]);
+            final results = await database
+                .mergeRemoteEntities(<RemoteEntityMerge>[
+                  for (final record in records)
+                    RemoteEntityMerge(
+                      entityType: record.entityType,
+                      entityId: record.id,
+                      entity: record.data,
+                    ),
+                ]);
+            final failed = results
+                .where((result) => result == RemoteMergeResult.failed)
+                .length;
+            // A failed merge is recorded per record inside the database, but a
+            // listener that keeps reporting `live` while quietly dropping every
+            // update from one collection is its own failure mode; surface it
+            // here too so it is visible from the pull side, not only a counter
+            // buried in the merge transaction.
+            if (failed > 0) {
+              developer.log(
+                '$failed of ${results.length} records failed to merge',
+                name: 'remote_pull_gateway',
+              );
+            }
           },
           onError: (_) {
             // Listener errors leave the local source of truth intact. The SDK

@@ -1,7 +1,17 @@
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import {
+  getFirestore,
+  Timestamp,
+  type QueryDocumentSnapshot,
+} from 'firebase-admin/firestore';
 import { landlordPublicToken } from '../shared/canonical';
 import { COLLECTIONS } from '../shared/collections';
 import { ratingBadge, readTotals } from '../shared/ratings';
+
+/**
+ * Listings stamped per page. Kept at the batched-write ceiling of 500 minus
+ * headroom, so one page is exactly one commit.
+ */
+const BADGE_PAGE_SIZE = 400;
 
 /**
  * Copies a landlord's current rating onto every listing they have live.
@@ -37,15 +47,32 @@ export async function refreshLandlordRatingBadges(
   // `privateListings` and deriving IDs: it targets exactly the documents being
   // written, so there is no private listing whose public projection was already
   // retired and would be resurrected as a badge-only document.
-  const published = await db.collection(COLLECTIONS.publicListings)
+  //
+  // Read a page at a time rather than the whole result set. The doc comment
+  // above is explicit that a landlord's live listing count is unbounded, and a
+  // single `.get()` pulls every one of those documents into this function's
+  // memory before the first batch is written — the same unbounded cost the job
+  // exists to keep out of the review transaction.
+  //
+  // `__name__` is the sort key because it is the one field guaranteed present,
+  // unique, and immutable across the page loop; the deployed
+  // (landlordToken, status) composite index already carries it as its implicit
+  // tie-breaker, so this needs no new index.
+  const query = db.collection(COLLECTIONS.publicListings)
     .where('landlordToken', '==', landlordPublicToken(landlordId))
     .where('status', '==', 'published')
-    .get();
+    .orderBy('__name__')
+    .limit(BADGE_PAGE_SIZE);
 
   const now = Timestamp.now();
-  for (let start = 0; start < published.docs.length; start += 400) {
+  let cursor: QueryDocumentSnapshot | undefined;
+
+  while (true) {
+    const page = await (cursor === undefined ? query : query.startAfter(cursor)).get();
+    if (page.empty) break;
+
     const batch = db.batch();
-    for (const listing of published.docs.slice(start, start + 400)) {
+    for (const listing of page.docs) {
       // `update` rather than a merged `set`: if a listing was unpublished
       // between the query and this commit, the right outcome is for the batch
       // to fail and the job to retry against a fresh query — not to write a
@@ -53,5 +80,8 @@ export async function refreshLandlordRatingBadges(
       batch.update(listing.ref, { ...badge, updatedAt: now });
     }
     await batch.commit();
+
+    if (page.docs.length < BADGE_PAGE_SIZE) break;
+    cursor = page.docs.at(-1);
   }
 }

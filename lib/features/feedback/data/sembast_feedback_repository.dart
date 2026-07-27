@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_initializing_formals
 
+import 'dart:collection';
+
 import 'package:nyumba_property_management/core/domain/clock.dart';
 import 'package:nyumba_property_management/core/domain/domain_exception.dart';
 import 'package:nyumba_property_management/core/domain/id_generator.dart';

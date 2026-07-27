@@ -114,6 +114,13 @@ abstract final class PerfNames {
   /// One entry per server record considered by a merge.
   static const String remoteMergeRecord = 'remote-merge-record';
 
+  /// One entry per server record a merge could not apply.
+  ///
+  /// [remoteMergeRecord] alone cannot distinguish "every record merged" from
+  /// "half of them silently failed"; this is what a test or a debug session
+  /// checks to tell the two apart.
+  static const String remoteMergeFailure = 'remote-merge-failure';
+
   /// One entry per storage object whose bytes were downloaded.
   static const String mediaByteFetch = 'media-byte-fetch';
 

@@ -187,7 +187,7 @@ final class RatingSummary {
     final dimensionCounts = <ReviewDimension, int>{};
     for (final review in counted) {
       total += review.overall;
-      final bucket = review.overall.clamp(1, 5) - 1;
+      final bucket = review.overall.clamp(1, 5).toInt() - 1;
       distribution[bucket] += 1;
       for (final entry in review.scores.entries) {
         dimensionSums[entry.key] =

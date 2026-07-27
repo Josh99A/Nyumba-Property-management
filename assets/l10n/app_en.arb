@@ -1135,4 +1135,6 @@
     ,"benefitPublishInMinutes": "Publish an available space in minutes"
     ,"benefitRoutedEnquiries": "Enquiries reach you without sharing your number"
     ,"benefitOneWorkspace": "Rent, invoices, and maintenance in one place"
+    ,"reviewsSoFarBeforeRating": "{count, plural, =1{1 review} other{{count} reviews}} so far — a star rating appears at {minimum}."
+    ,"@reviewsSoFarBeforeRating": {"description": "Shown while a landlord has some reviews but not enough to display a star average yet.", "placeholders": {"count": {"type": "int"}, "minimum": {"type": "int"}}}
 }
