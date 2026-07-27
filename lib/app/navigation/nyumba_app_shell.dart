@@ -89,6 +89,12 @@ const _landlordDestinations = [
     selectedIcon: Icons.description_rounded,
     path: '/documents',
   ),
+  AppDestination(
+    label: 'Reviews',
+    icon: Icons.star_outline_rounded,
+    selectedIcon: Icons.star_rounded,
+    path: '/reviews',
+  ),
 ];
 
 const _tenantDestinations = [
@@ -115,6 +121,14 @@ const _tenantDestinations = [
     icon: Icons.folder_outlined,
     selectedIcon: Icons.folder_rounded,
     path: '/tenant/documents',
+  ),
+  // The deliberate route to writing a review, independent of whether the app
+  // has happened to prompt for one. See TenantReviewsScreen.
+  AppDestination(
+    label: 'Reviews',
+    icon: Icons.star_outline_rounded,
+    selectedIcon: Icons.star_rounded,
+    path: '/tenant/reviews',
   ),
 ];
 
@@ -164,6 +178,20 @@ const _adminDestinations = [
     icon: Icons.campaign_outlined,
     selectedIcon: Icons.campaign_rounded,
     path: '/admin/broadcast',
+  ),
+  AppDestination(
+    label: 'Review moderation',
+    shortLabel: 'Reviews',
+    icon: Icons.flag_outlined,
+    selectedIcon: Icons.flag_rounded,
+    path: '/admin/reviews',
+  ),
+  AppDestination(
+    label: 'Landlord feedback',
+    shortLabel: 'Feedback',
+    icon: Icons.forum_outlined,
+    selectedIcon: Icons.forum_rounded,
+    path: '/admin/feedback',
   ),
 ];
 

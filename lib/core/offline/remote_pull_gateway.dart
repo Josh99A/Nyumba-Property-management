@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -62,7 +63,31 @@ abstract interface class RemotePullGateway {
     bool publicOnly = false,
     bool administrativeScope = false,
   });
+
+  /// One-shot read of the public reviews written about one landlord.
+  ///
+  /// Deliberately not a bootstrap watch. Public reviews are only ever read while
+  /// looking at a particular landlord's listing or profile, and the token to
+  /// filter by is not known until then — a workspace-lifetime subscription would
+  /// either have to pull the platform's most recent reviews (almost never the
+  /// ones on screen) or open a new stream per listing visited and never close
+  /// them. Results are merged into the mirror, so a revisit renders offline.
+  Future<List<RemoteRecord>> fetchPublicReviews(
+    String landlordToken, {
+    int limit = 20,
+  });
 }
+
+/// A ceiling on a single scoped collection pull, not a page size.
+///
+/// These queries were unbounded, so one pathological workspace could stream an
+/// arbitrary number of documents into a client that has to decode and mirror
+/// every one. The bound is set well above the largest plan entitlement (1000
+/// units, 1000 active listings) precisely so it can never truncate a legitimate
+/// workspace: a landlord silently missing properties would be a far worse bug
+/// than a slow sync. If a real workspace ever approaches this, the fix is
+/// cursor pagination, not a bigger number.
+const int _maximumScopedDocuments = 2000;
 
 final class FirestoreRemotePullGateway implements RemotePullGateway {
   FirestoreRemotePullGateway({FirebaseFirestore? firestore})
@@ -118,6 +143,8 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
               .collection('planCatalog')
               .where('isPublic', isEqualTo: true)
               .limit(20),
+        // publicReview is deliberately absent: it is fetched per landlord token
+        // by [fetchPublicReviews], not watched for the workspace lifetime.
         _ => throw ArgumentError(
           'Only listings and the plan catalog have public read models.',
         ),
@@ -130,22 +157,26 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
           _firestore
               .collection('landlordPortals')
               .doc(landlordId)
-              .collection(_landlordPortalSection(entityType)),
+              .collection(_landlordPortalSection(entityType))
+              .limit(_maximumScopedDocuments),
         LandlordReadSource.canonicalCollection =>
           _firestore
               .collection(_landlordCollection(entityType))
-              .where('landlordId', isEqualTo: landlordId),
+              .where('landlordId', isEqualTo: landlordId)
+              .limit(_maximumScopedDocuments),
       };
     } else if (tenantUid != null) {
       query = _firestore
           .collection('tenantPortals')
           .doc(tenantUid)
-          .collection(_tenantSection(entityType));
+          .collection(_tenantSection(entityType))
+          .limit(_maximumScopedDocuments);
     } else if (clientUid != null) {
       query = _firestore
           .collection('clientPortals')
           .doc(clientUid)
-          .collection(_clientSection(entityType));
+          .collection(_clientSection(entityType))
+          .limit(_maximumScopedDocuments);
     } else {
       throw ArgumentError(
         'A user, landlord, tenant, client, administrative, or public scope is required.',
@@ -177,30 +208,70 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
   /// `_toLocalShape` translates only what it names, so an unlisted type would
   /// land raw server JSON in the local store and its mapper would throw on the
   /// next read — a crash on a screen far from this decision.
-  static LandlordReadSource landlordReadSource(OfflineEntityType type) =>
-      switch (type) {
-        // Canonical shapes the client's mappers already accept.
-        OfflineEntityType.property ||
-        OfflineEntityType.unit ||
-        OfflineEntityType.listing ||
-        OfflineEntityType.staffInvite => LandlordReadSource.canonicalCollection,
-        // Joined read models: no single collection can rebuild these.
-        OfflineEntityType.tenancy ||
-        OfflineEntityType.payment => LandlordReadSource.portalProjection,
-        _ => throw ArgumentError(
-          'No landlord read source for ${type.name}. Add a landlordPortals '
-          'projection on the server before pulling it.',
-        ),
-      };
+  static LandlordReadSource landlordReadSource(
+    OfflineEntityType type,
+  ) => switch (type) {
+    // Canonical shapes the client's mappers already accept.
+    OfflineEntityType.property ||
+    OfflineEntityType.unit ||
+    OfflineEntityType.listing ||
+    OfflineEntityType.staffInvite => LandlordReadSource.canonicalCollection,
+    // Joined read models: no single collection can rebuild these.
+    OfflineEntityType.tenancy ||
+    OfflineEntityType.payment ||
+    // Reviews are written about a landlord but authored by someone else, so
+    // there is no `landlordId`-filtered canonical collection they could read:
+    // `landlordReviews` names the reviewer and is admin-only.
+    OfflineEntityType.landlordReview => LandlordReadSource.portalProjection,
+    _ => throw ArgumentError(
+      'No landlord read source for ${type.name}. Add a landlordPortals '
+      'projection on the server before pulling it.',
+    ),
+  };
 
   static String _landlordPortalSection(OfflineEntityType type) =>
       switch (type) {
         OfflineEntityType.tenancy => 'tenancies',
         OfflineEntityType.payment => 'payments',
+        OfflineEntityType.landlordReview => 'reviews',
         _ => throw ArgumentError(
           'No landlord portal section for ${type.name}.',
         ),
       };
+
+  @override
+  Future<List<RemoteRecord>> fetchPublicReviews(
+    String landlordToken, {
+    int limit = 20,
+  }) async {
+    final token = landlordToken.trim();
+    if (token.isEmpty) return const <RemoteRecord>[];
+    // Matches the deployed composite index exactly:
+    // status ASC, landlordToken ASC, createdAt DESC. The rules also cap the
+    // limit at 50, so a caller asking for more would be denied outright rather
+    // than truncated.
+    final snapshot = await _firestore
+        .collection('publicReviews')
+        .where('status', isEqualTo: 'published')
+        .where('landlordToken', isEqualTo: token)
+        .orderBy('createdAt', descending: true)
+        .limit(limit.clamp(1, 50))
+        .get();
+    return snapshot.docs
+        .map(
+          (document) => RemoteRecord(
+            entityType: OfflineEntityType.publicReview,
+            id: document.id,
+            data: _toLocalShape(
+              OfflineEntityType.publicReview,
+              document.id,
+              document.data(),
+              publicOnly: true,
+            ),
+          ),
+        )
+        .toList(growable: false);
+  }
 
   static String _landlordCollection(OfflineEntityType type) => switch (type) {
     OfflineEntityType.property => 'properties',
@@ -214,6 +285,11 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     OfflineEntityType.document => 'documents',
     OfflineEntityType.notice => 'notices',
     OfflineEntityType.staffInvite => 'staffInvites',
+    // Administrative scope only: `landlordReviews` names the reviewer and
+    // `platformFeedback` names the submitting landlord, so Firestore Rules open
+    // both to platform admins alone.
+    OfflineEntityType.landlordReview => 'landlordReviews',
+    OfflineEntityType.platformFeedback => 'platformFeedback',
     _ => throw ArgumentError('No landlord collection for ${type.name}.'),
   };
 
@@ -224,6 +300,11 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     OfflineEntityType.maintenanceRequest => 'maintenance',
     OfflineEntityType.document => 'documents',
     OfflineEntityType.notice => 'notices',
+    // The first tenant projection whose server shape and Dart mapper were
+    // designed together rather than reconciled afterwards, and therefore the
+    // first one this client can actually pull. See app_dependencies.dart for
+    // why the types above it are still not read.
+    OfflineEntityType.landlordReview => 'reviews',
     _ => throw ArgumentError('No tenant projection for ${type.name}.'),
   };
 
@@ -372,11 +453,32 @@ final class RemotePullCoordinator {
             // A delivered snapshot is the only proof the server is readable;
             // an empty list still proves it.
             _publish(slot, CloudLinkState.live);
-            for (final record in records) {
-              await database.mergeRemoteEntity(
-                entityType: record.entityType,
-                entityId: record.id,
-                entity: record.data,
+            if (records.isEmpty) return;
+            // One transaction for the whole snapshot. Merging record by record
+            // woke the store's snapshot listeners once per document, so every
+            // screen watching this collection rebuilt as many times as the
+            // snapshot was long.
+            final results = await database
+                .mergeRemoteEntities(<RemoteEntityMerge>[
+                  for (final record in records)
+                    RemoteEntityMerge(
+                      entityType: record.entityType,
+                      entityId: record.id,
+                      entity: record.data,
+                    ),
+                ]);
+            final failed = results
+                .where((result) => result == RemoteMergeResult.failed)
+                .length;
+            // A failed merge is recorded per record inside the database, but a
+            // listener that keeps reporting `live` while quietly dropping every
+            // update from one collection is its own failure mode; surface it
+            // here too so it is visible from the pull side, not only a counter
+            // buried in the merge transaction.
+            if (failed > 0) {
+              developer.log(
+                '$failed of ${results.length} records failed to merge',
+                name: 'remote_pull_gateway',
               );
             }
           },

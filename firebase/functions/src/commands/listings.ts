@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
@@ -7,9 +6,11 @@ import {
   requireOwnedByLandlord,
   requireWorkspace,
 } from '../shared/accounts';
+import { landlordPublicToken } from '../shared/canonical';
 import { COLLECTIONS } from '../shared/collections';
 import { LISTING_LIFETIME_DAYS, MAX_LISTING_PHOTOS } from '../shared/config';
 import { DomainError } from '../shared/errors';
+import { ratingBadge, readTotals } from '../shared/ratings';
 import {
   createJob,
   idSchema,
@@ -133,9 +134,16 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
         }
       : null;
     const expiresAt = Timestamp.fromMillis(now.toMillis() + LISTING_LIFETIME_DAYS * 24 * 60 * 60 * 1000);
-    const landlordToken = createHash('sha256').update(landlord.landlordId).digest('hex').slice(0, 24);
+    const landlordToken = landlordPublicToken(landlord.landlordId);
     const publicRef = db.collection(COLLECTIONS.publicListings).doc(cmd.aggregateId!);
-    const existingPublic = await tx.get(publicRef);
+    // Stamp the landlord's current rating at publish time. Without this a new
+    // listing shows no badge until the next review happens to trigger the
+    // refresh fan-out, so an established landlord's reputation would silently
+    // fail to carry over to their newest listing — the one they most want it on.
+    const [existingPublic, ratingSnap] = await Promise.all([
+      tx.get(publicRef),
+      tx.get(db.collection(COLLECTIONS.landlordRatings).doc(landlord.landlordId)),
+    ]);
     if (existingPublic.exists) {
       const state = existingPublic.data()?.status;
       if (state === 'published') throw new DomainError('ALREADY_EXISTS');
@@ -157,6 +165,7 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
       amenities: listing.amenities ?? [],
       approximateLocation,
       landlordToken,
+      ...ratingBadge(readTotals(ratingSnap.data())),
       imagePaths: [],
       status: 'published',
       publishedAt: now,

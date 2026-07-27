@@ -14,9 +14,8 @@ void main() {
       ProviderScope(
         overrides: [
           staffPlanProvider.overrideWith(
-            (ref) => Stream.value(
-              const StaffPlan(seatLimit: 0, customRoles: false),
-            ),
+            (ref) =>
+                Stream.value(const StaffPlan(seatLimit: 0, customRoles: false)),
           ),
           staffInvitesProvider.overrideWith((ref) => Stream.value(const [])),
         ],
@@ -38,9 +37,8 @@ void main() {
       ProviderScope(
         overrides: [
           staffPlanProvider.overrideWith(
-            (ref) => Stream.value(
-              const StaffPlan(seatLimit: 3, customRoles: true),
-            ),
+            (ref) =>
+                Stream.value(const StaffPlan(seatLimit: 3, customRoles: true)),
           ),
           staffInvitesProvider.overrideWith(
             (ref) => Stream.value(const [

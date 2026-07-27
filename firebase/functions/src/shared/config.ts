@@ -29,6 +29,31 @@ export const MAX_PUBLIC_LISTING_IMAGE_WIDTH = 1_920;
 export const MAX_PUBLIC_LISTING_IMAGE_HEIGHT = 1_440;
 
 /**
+ * Grid tiles are at most ~420 logical pixels wide on the widest marketplace
+ * layout and full-bleed on a phone. Serving them the 1920px detail copy meant a
+ * card downloaded and decoded roughly nine times the pixels it could display —
+ * the single largest cost in a fifty-card grid. This variant covers those tiles
+ * at better than 1.5x device pixel ratio.
+ */
+export const MEDIA_THUMB_IMAGE_WIDTH = 640;
+export const MEDIA_THUMB_IMAGE_HEIGHT = 480;
+
+/** Suffixes distinguishing the two delivery copies of one source photo. */
+export const MEDIA_THUMB_SUFFIX = 'thumb';
+export const MEDIA_FULL_SUFFIX = 'full';
+
+/**
+ * Delivery objects are content-addressed: the source photo's digest is part of
+ * the file name, so a republished photo is written to a *different* path rather
+ * than overwriting one a cache may still be serving. That is what makes a
+ * one-year immutable lifetime safe — previously these objects carried a
+ * 60-second lifetime purely because the path was reused, which meant repeat
+ * visitors re-downloaded every photo on essentially every page view.
+ */
+export const MEDIA_IMMUTABLE_CACHE_CONTROL =
+  'public, max-age=31536000, immutable';
+
+/**
  * Receipts must outlive the longest plausible offline retry window. Product
  * retention policy is still TBD, so nothing deletes them yet; the field only
  * marks eligibility for a future TTL job.
@@ -49,6 +74,55 @@ export const SUBSCRIPTION_GRACE_DAYS = 7;
 export const SUBSCRIPTION_RENEWAL_WARNING_DAYS = 7;
 /** Days of grace remaining when the second warning goes out. */
 export const SUBSCRIPTION_GRACE_WARNING_DAYS_LEFT = 3;
+
+/**
+ * Reputation policy (docs/architecture/reviews-and-feedback-plan.md).
+ *
+ * A review is keyed by the lease it describes, so eligibility is a question
+ * about that lease rather than about the tenant. The two windows below are what
+ * keep the corpus honest at both ends: a tenant cannot review in week one, when
+ * nothing has been experienced and a dispute is still hot, and cannot review a
+ * tenancy that ended long enough ago that the landlord has no chance to answer.
+ */
+export const REVIEW_MIN_TENANCY_DAYS = 30;
+export const REVIEW_POST_TENANCY_WINDOW_DAYS = 90;
+/** How long the author may still edit or withdraw their own review. */
+export const REVIEW_EDIT_WINDOW_DAYS = 14;
+
+/**
+ * Bayesian shrinkage for the public ranking score.
+ *
+ * A raw mean lets one five-star review outrank a landlord holding 4.7 across
+ * fifty, which is exactly the outcome that makes a rating system worthless. The
+ * shrunk score pulls small samples toward the platform mean and lets real
+ * volume earn its way out. Firestore cannot compute this at query time, so
+ * `rankScore` is stored on the rating document and recomputed on every write.
+ *
+ * REVIEW_PRIOR_MEAN is a seeded assumption until there is enough data to
+ * measure it; revisit manually rather than computing it live, so ranking never
+ * shifts underneath users because of one bad week.
+ */
+export const REVIEW_PRIOR_MEAN = 4;
+export const REVIEW_PRIOR_WEIGHT = 5;
+
+/**
+ * Reviews needed before a star average is shown at all.
+ *
+ * Below this the marketplace shows a "new to Nyumba" state instead. One review
+ * is noise, and one *bad* review is a weapon; neither should read as a verdict.
+ */
+export const REVIEW_PUBLIC_DISPLAY_MIN_COUNT = 3;
+
+/** Landlord-facing NPS may be asked at most this often, per landlord. */
+export const FEEDBACK_NPS_COOLDOWN_DAYS = 90;
+
+/**
+ * Floor between any two feedback submissions from the same landlord,
+ * regardless of kind. Shorter than the NPS-specific cooldown above on
+ * purpose: this exists to stop double-submits and scripted abuse, not to
+ * ration how often a paying customer may tell the team something is broken.
+ */
+export const FEEDBACK_SUBMIT_COOLDOWN_SECONDS = 30;
 
 /** Background job retry policy. Product-final values are TBD; fail toward dead-letter. */
 export const JOB_MAX_ATTEMPTS = 8;

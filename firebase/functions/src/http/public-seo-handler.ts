@@ -25,7 +25,27 @@ const PUBLIC_IMAGE_CONTENT_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
-export const PUBLIC_SEO_CACHE_CONTROL = 'public, max-age=60, s-maxage=300';
+/**
+ * A shared cache stores a response under the headers it had *at fetch time*;
+ * nothing this handler does on a later request can shorten a copy it already
+ * handed out. An `s-maxage` longer than the browser lifetime was an invitation
+ * to keep serving an unpublished or expired listing as a 200 for however much
+ * longer that edge copy had left — up to the full hour this used to allow.
+ * Matching `s-maxage` to `max-age` bounds a shared cache to the same window a
+ * browser already accepts, so the worst case is "one more minute," not "up to
+ * an hour," on every response this handler returns — including the sitemap
+ * and the explore page, which read as stale-active-listing lists under the
+ * same shared-cache lifetime for the same reason.
+ */
+export const PUBLIC_SEO_CACHE_CONTROL = 'public, max-age=60, s-maxage=60';
+
+/**
+ * A 404, 410, 405, or media error must not outlive the state change that
+ * caused it in a shared cache. These aren't responses a CDN should ever
+ * smooth over with staleness — unlike the happy path above, there is no
+ * "close enough" render to serve while revalidating.
+ */
+const UNAVAILABLE_CACHE_CONTROL = 'no-store';
 
 interface HeaderResponse {
   set(headers: Record<string, string>): unknown;
@@ -41,6 +61,10 @@ export function applyDocumentHeaders(
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
   });
+}
+
+function markUnavailable(response: HeaderResponse): void {
+  response.set({ 'Cache-Control': UNAVAILABLE_CACHE_CONTROL });
 }
 
 export async function activeListings(now: Date): Promise<PublicSeoListing[]> {
@@ -83,6 +107,7 @@ export const publicSeo = onRequest(
   async (request, response) => {
     applyDocumentHeaders(response);
     if (request.method !== 'GET' && request.method !== 'HEAD') {
+      markUnavailable(response);
       response.set('Allow', 'GET, HEAD').status(405).send('Method not allowed.');
       return;
     }
@@ -119,6 +144,7 @@ export const publicSeo = onRequest(
         .doc(listingId)
         .get();
       if (!snapshot.exists) {
+        markUnavailable(response);
         response
           .set('X-Robots-Tag', 'noindex, nofollow')
           .status(404)
@@ -127,6 +153,7 @@ export const publicSeo = onRequest(
       }
       const data = snapshot.data() ?? {};
       if (!isActivePublicListing(data, now)) {
+        markUnavailable(response);
         response
           .set('X-Robots-Tag', 'noindex, nofollow')
           .status(410)
@@ -140,6 +167,7 @@ export const publicSeo = onRequest(
         ? imagePaths[imageIndex]
         : undefined;
       if (!imagePath) {
+        markUnavailable(response);
         response
           .set('X-Robots-Tag', 'noindex, nofollow')
           .status(404)
@@ -157,6 +185,7 @@ export const publicSeo = onRequest(
           || byteSize <= 0
           || byteSize > MAX_IMAGE_BYTES
         ) {
+          markUnavailable(response);
           response
             .set('X-Robots-Tag', 'noindex, nofollow')
             .status(404)
@@ -174,6 +203,7 @@ export const publicSeo = onRequest(
         const [image] = await file.download();
         response.status(200).send(image);
       } catch {
+        markUnavailable(response);
         response
           .set('X-Robots-Tag', 'noindex, nofollow')
           .status(404)
@@ -192,6 +222,7 @@ export const publicSeo = onRequest(
         .doc(listingId)
         .get();
       if (!snapshot.exists) {
+        markUnavailable(response);
         response
           .set('X-Robots-Tag', 'noindex, nofollow')
           .type('html')
@@ -201,6 +232,7 @@ export const publicSeo = onRequest(
       }
       const data = snapshot.data() ?? {};
       if (!isActivePublicListing(data, now)) {
+        markUnavailable(response);
         response
           .set('X-Robots-Tag', 'noindex, nofollow')
           .type('html')
@@ -210,6 +242,7 @@ export const publicSeo = onRequest(
       }
       const listing = toPublicSeoListing(listingId, data, now);
       if (!listing) {
+        markUnavailable(response);
         response
           .set('X-Robots-Tag', 'noindex, nofollow')
           .type('html')
@@ -221,6 +254,7 @@ export const publicSeo = onRequest(
       return;
     }
 
+    markUnavailable(response);
     response
       .set('X-Robots-Tag', 'noindex, nofollow')
       .type('html')

@@ -164,3 +164,49 @@ export async function deliverContactRequest(payload: Record<string, unknown>): P
     data: { route: '/listings', contactRequestId, listingId: String(contact.listingId ?? '') },
   });
 }
+
+/**
+ * Tells a landlord a tenant reviewed them.
+ *
+ * Re-reads the canonical review rather than trusting the job payload, and stays
+ * silent for anything not currently published: a review withdrawn or moderated
+ * away between submission and this job running must not generate a push
+ * pointing at content the landlord can no longer see.
+ */
+export async function notifyLandlordReview(payload: Record<string, unknown>): Promise<void> {
+  const db = getFirestore();
+  const reviewId = String(payload.reviewId);
+  const snapshot = await db.collection(COLLECTIONS.landlordReviews).doc(reviewId).get();
+  const review = snapshot.data();
+  if (!review || review.status !== 'published') return;
+  if (typeof review.landlordId !== 'string' || !review.landlordId) return;
+
+  await deliverUserNotification(review.landlordId, {
+    id: `review_${reviewId}`,
+    kind: 'review',
+    templateKey: 'new_review',
+    relatedEntityId: reviewId,
+    data: { route: '/reviews', reviewId },
+  });
+}
+
+/** Tells the review's author that their landlord replied in public. */
+export async function notifyTenantReviewResponse(
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const db = getFirestore();
+  const reviewId = String(payload.reviewId);
+  const snapshot = await db.collection(COLLECTIONS.landlordReviews).doc(reviewId).get();
+  const review = snapshot.data();
+  if (!review || review.status !== 'published') return;
+  if (typeof review.landlordResponse !== 'string' || review.landlordResponse.length === 0) return;
+  if (typeof review.reviewerUid !== 'string' || !review.reviewerUid) return;
+
+  await deliverUserNotification(review.reviewerUid, {
+    id: `review_response_${reviewId}`,
+    kind: 'review',
+    templateKey: 'review_response',
+    relatedEntityId: reviewId,
+    data: { route: '/tenant/reviews', reviewId },
+  });
+}

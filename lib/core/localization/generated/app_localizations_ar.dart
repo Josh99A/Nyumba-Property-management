@@ -3084,7 +3084,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get propertyPhotoCreateGuidance =>
-      'أضف صورة أو صورتين. تظهر الصورة الأساسية أولاً.';
+      'أضف صورة أو صورتين. تُصغّر الصور وتُضغط قبل الرفع، وتظهر الصورة الأساسية أولاً.';
 
   @override
   String propertyPhotoCountGuidance(int count, int maximum) {
@@ -3093,11 +3093,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get propertyPhotoEditGuidance =>
-      'JPEG أو PNG أو WebP؛ بحد أقصى 5 ميغابايت لكل صورة وصورتين. تُعرض الصورة الأولى على بطاقة العقار. تظل الصور قيد الانتظار حتى تأكيد الرفع.';
+      'JPEG أو PNG أو WebP؛ بحد أقصى 5 ميغابايت لكل صورة وصورتين. تُصغّر الصور وتُضغط قبل الرفع. تُعرض الصورة الأولى على بطاقة العقار. تظل الصور قيد الانتظار حتى تأكيد الرفع.';
 
   @override
   String get listingPhotoGuidance =>
-      'JPEG أو PNG أو WebP؛ بحد أقصى 5 ميغابايت لكل صورة و5 صور. الصورة الأولى هي صورة الغلاف. تظل الصور قيد الانتظار حتى تأكيد الرفع.';
+      'JPEG أو PNG أو WebP؛ بحد أقصى 5 ميغابايت لكل صورة و5 صور. تُصغّر الصور وتُضغط قبل الرفع. الصورة الأولى هي صورة الغلاف. تظل الصور قيد الانتظار حتى تأكيد الرفع.';
 
   @override
   String listingPhotoPosition(String current, String total) {
@@ -3243,4 +3243,450 @@ class AppLocalizationsAr extends AppLocalizations {
   String listingAvailableFromDate(String date) {
     return 'متاح ابتداءً من $date';
   }
+
+  @override
+  String get imageLoading => 'جارٍ تحميل الصورة';
+
+  @override
+  String get imageUnavailable => 'الصورة غير متاحة';
+
+  @override
+  String get filtersTitle => 'عوامل التصفية';
+
+  @override
+  String get clearAllFilters => 'مسح الكل';
+
+  @override
+  String get sortResults => 'ترتيب النتائج';
+
+  @override
+  String get removeFilter => 'إزالة عامل التصفية';
+
+  @override
+  String get allUnitTypes => 'كل الأنواع';
+
+  @override
+  String photoCount(int count) {
+    return '$count صور';
+  }
+
+  @override
+  String showHomesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'عرض $count منزل',
+      many: 'عرض $count منزلاً',
+      few: 'عرض $count منازل',
+      two: 'عرض منزلين',
+      one: 'عرض منزل واحد',
+      zero: 'لا توجد منازل مطابقة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reviewsTitle => 'المراجعات';
+
+  @override
+  String get reviewsLandlordDescription =>
+      'يمكن للمستأجرين مراجعتك بعد 30 يومًا في إحدى وحداتك. الرد العلني أكثر إقناعًا عادةً من الاعتراض.';
+
+  @override
+  String get yourReviews => 'مراجعاتك';
+
+  @override
+  String get yourReviewsDescription =>
+      'المراجعات التي كتبتها عن مالك العقار. تظهر المراجعات المنشورة في إعلاناته من دون اسمك.';
+
+  @override
+  String get reviewModeration => 'مراجعة التقييمات';
+
+  @override
+  String get reviewModerationDescription =>
+      'تبقى المراجعات المُبلَّغ عنها علنية حتى اتخاذ القرار. إخفاؤها يزيلها من تقييم المالك، ونشرها يلغي البلاغ.';
+
+  @override
+  String get recentlyDecided => 'تم البتّ فيها مؤخرًا';
+
+  @override
+  String get landlordFeedback => 'ملاحظات الملّاك';
+
+  @override
+  String get landlordFeedbackDescription =>
+      'ملاحظات خاصة عن المنتج من الملّاك. لا تُعرض علنًا ولا يراها المستأجرون.';
+
+  @override
+  String get landlordReviews => 'مراجعات مالك العقار';
+
+  @override
+  String get feedbackSection => 'الملاحظات';
+
+  @override
+  String get feedbackSectionDescription =>
+      'أخبر فريق نيومبا بما ينجح وما لا ينجح. هذا خاص — لا يراه مستأجروك أبدًا.';
+
+  @override
+  String get reviewDimResponsiveness => 'سرعة الاستجابة';
+
+  @override
+  String get reviewDimMaintenance => 'الإصلاح والصيانة';
+
+  @override
+  String get reviewDimListingAccuracy => 'كان الإعلان دقيقًا';
+
+  @override
+  String get reviewDimDepositFairness => 'التعامل مع التأمين بإنصاف';
+
+  @override
+  String get reviewFlagInaccurate => 'غير دقيق واقعيًا';
+
+  @override
+  String get reviewFlagAbusive => 'مسيء أو تحرّشي';
+
+  @override
+  String get reviewFlagNotMyTenant => 'لم يكتبه مستأجري';
+
+  @override
+  String get reviewFlagPersonalData => 'يحتوي على معلومات شخصية';
+
+  @override
+  String get reviewFlagSpam => 'رسائل مزعجة أو دعاية';
+
+  @override
+  String get ratingPoor => 'ضعيف';
+
+  @override
+  String get ratingBelowExpectations => 'دون المتوقع';
+
+  @override
+  String get ratingAcceptable => 'مقبول';
+
+  @override
+  String get ratingGood => 'جيد';
+
+  @override
+  String get ratingExcellent => 'ممتاز';
+
+  @override
+  String get rateYourLandlord => 'قيّم مالك عقارك';
+
+  @override
+  String get editYourReview => 'عدّل مراجعتك';
+
+  @override
+  String get reviewFormerLandlord => 'قيّم مالك عقارك السابق';
+
+  @override
+  String get howWasThatRepair => 'كيف جرى التعامل مع ذلك الإصلاح؟';
+
+  @override
+  String get ratingCoversWholeTenancy =>
+      'يشمل تقييمك فترة الإيجار كاملة، لا هذا الإصلاح وحده.';
+
+  @override
+  String get reviewWindowAfterMoveOut =>
+      'يمكنك كتابة مراجعة حتى 90 يومًا بعد المغادرة.';
+
+  @override
+  String get helpTheNextTenant => 'ساعد المستأجر التالي على معرفة ما يتوقعه.';
+
+  @override
+  String get addMoreDetailOptional => 'أضف تفاصيل أكثر (اختياري)';
+
+  @override
+  String get whatShouldNextTenantKnow =>
+      'ما الذي ينبغي أن يعرفه المستأجر التالي؟';
+
+  @override
+  String get postReview => 'انشر المراجعة';
+
+  @override
+  String get notNow => 'ليس الآن';
+
+  @override
+  String get writeAReview => 'اكتب مراجعة';
+
+  @override
+  String get reviewVisibilityNotice =>
+      'لا يُعرض اسمك علنًا أبدًا — يرى القرّاء \"مستأجر موثّق\". سيتمكّن مالك العقار من معرفة أن المراجعة جاءت من فترة إيجارك، ويمكنه الرد عليها علنًا. يمكنك تعديلها أو حذفها خلال 14 يومًا.';
+
+  @override
+  String get reviewEligibleAfter30Days =>
+      'يمكنك تقييم مالك عقارك بعد 30 يومًا في منزلك.';
+
+  @override
+  String get reviewsLoadFailedTenant =>
+      'تعذّر تحميل مراجعاتك. إنها آمنة — أعد المحاولة عند عودتك للاتصال.';
+
+  @override
+  String get noReviewWrittenYet => 'لم تكتب مراجعة بعد.';
+
+  @override
+  String get useCardAboveWhenReady => 'استخدم البطاقة أعلاه متى كنت مستعدًا.';
+
+  @override
+  String get reviewEligibilityExplainer =>
+      'يمكنك تقييم المالك بعد 30 يومًا في منزلك، وحتى 90 يومًا بعد مغادرتك.';
+
+  @override
+  String get reviewStatusPublished => 'منشورة';
+
+  @override
+  String get reviewStatusWithdrawnByYou => 'أزلتها بنفسك';
+
+  @override
+  String get reviewStatusUnderReview => 'قيد المراجعة';
+
+  @override
+  String get reviewStatusTakenDown => 'تمت إزالتها';
+
+  @override
+  String get reviewHiddenNoticeAuthor =>
+      'أخفت نيومبا هذه المراجعة أثناء فحصها. لا يزال بإمكانك رؤيتها هنا.';
+
+  @override
+  String get replyFromLandlord => 'رد من مالك العقار';
+
+  @override
+  String get editLabel => 'تعديل';
+
+  @override
+  String get removeLabel => 'إزالة';
+
+  @override
+  String get editWindowClosed => 'انتهت مهلة التعديل البالغة 14 يومًا.';
+
+  @override
+  String get reviewsLoadFailed => 'تعذّر تحميل المراجعات الآن.';
+
+  @override
+  String get noReviewsYet => 'لا توجد مراجعات بعد.';
+
+  @override
+  String get repairsDriveRatings =>
+      'سرعة معالجة الإصلاحات هي العامل الأكبر في التقييمات التي يتركها المستأجرون.';
+
+  @override
+  String get reviewHiddenFromPublic => 'مخفية عن العامة بينما تفحصها نيومبا.';
+
+  @override
+  String get reviewReportedStillVisible =>
+      'لقد أبلغت عن هذه المراجعة. تبقى ظاهرة بينما ننظر فيها.';
+
+  @override
+  String get yourPublicReply => 'ردك العلني';
+
+  @override
+  String get replyPublicly => 'رد علنًا';
+
+  @override
+  String get editReply => 'عدّل الرد';
+
+  @override
+  String get reportLabel => 'إبلاغ';
+
+  @override
+  String get replyInPublic => 'الرد علنًا';
+
+  @override
+  String get replyPersuasionNotice =>
+      'سيرى كل من يقرأ هذه المراجعة ردك بجوارها. الرد الهادئ والوقائعي يقنع القرّاء أكثر بكثير من المراجعة نفسها.';
+
+  @override
+  String get yourReplyHint => 'ردك';
+
+  @override
+  String get postReply => 'انشر الرد';
+
+  @override
+  String get reportThisReview => 'الإبلاغ عن هذه المراجعة';
+
+  @override
+  String get reportNotTakedownNotice =>
+      'ستنظر فيها نيومبا. تبقى المراجعة ظاهرة في هذه الأثناء — الإبلاغ ليس وسيلة لإزالة النقد.';
+
+  @override
+  String get reportsDoNotHide =>
+      'ستنظر فيها نيومبا. البلاغات لا تُخفي المراجعة.';
+
+  @override
+  String get sendReport => 'إرسال البلاغ';
+
+  @override
+  String get noTenantReviewedYet => 'لم يقيّم أي مستأجر هذا المالك بعد.';
+
+  @override
+  String get fromTenantsWhoLivedHere =>
+      'من مستأجرين سكنوا فعليًا في وحدات هذا المالك.';
+
+  @override
+  String get noWrittenReviewsYet =>
+      'لا توجد مراجعات مكتوبة بعد — تقييمات بالنجوم فقط.';
+
+  @override
+  String get landlordReplied => 'ردّ مالك العقار';
+
+  @override
+  String get newOnNyumba => 'جديد على نيومبا';
+
+  @override
+  String get tooFewReviewsYet => 'المراجعات قليلة جدًا حتى الآن';
+
+  @override
+  String get moderationQueueLoadFailed => 'تعذّر تحميل قائمة المراجعة.';
+
+  @override
+  String get nothingAwaitingDecision => 'لا شيء ينتظر قرارًا.';
+
+  @override
+  String get keepPublished => 'أبقِها منشورة';
+
+  @override
+  String get hidePendingAppeal => 'إخفاء بانتظار الاعتراض';
+
+  @override
+  String get decisionKept => 'أُبقيت';
+
+  @override
+  String get decisionHidden => 'مخفية';
+
+  @override
+  String get decisionRemoved => 'أُزيلت';
+
+  @override
+  String get decisionWithdrawn => 'مسحوبة';
+
+  @override
+  String get npsQuestion => 'ما مدى احتمال أن توصي بنيومبا لمالك عقار آخر؟';
+
+  @override
+  String get npsNotLikely => 'غير مرجّح';
+
+  @override
+  String get npsVeryLikely => 'مرجّح جدًا';
+
+  @override
+  String get sendLabel => 'إرسال';
+
+  @override
+  String get sendFeedback => 'إرسال الملاحظات';
+
+  @override
+  String get feedbackPrivacyNotice =>
+      'يذهب هذا مباشرة إلى فريق نيومبا. لا يُنشر في أي مكان ولا يراه مستأجروك أبدًا.';
+
+  @override
+  String get feedbackCategoryBug => 'هناك خلل';
+
+  @override
+  String get feedbackCategoryFeature => 'أحتاج ميزة';
+
+  @override
+  String get feedbackCategoryEaseOfUse => 'صعب الاستخدام';
+
+  @override
+  String get feedbackCategoryValue => 'السعر والقيمة';
+
+  @override
+  String get feedbackCategorySupport => 'الدعم';
+
+  @override
+  String get feedbackHint => 'ماذا حدث، وماذا كنت تتوقع؟';
+
+  @override
+  String get feedbackVersionNotice =>
+      'أُرفق إصدار التطبيق ونوع الجهاز حتى نتمكن من إعادة إنتاج المشكلة.';
+
+  @override
+  String get feedbackLoadFailed => 'تعذّر تحميل الملاحظات.';
+
+  @override
+  String get noFeedbackYet => 'لم تُرسل أي ملاحظات بعد.';
+
+  @override
+  String get noNpsResponsesYet => 'لا توجد ردود NPS بعد.';
+
+  @override
+  String get netPromoterScore => 'صافي نقاط الترويج';
+
+  @override
+  String get listYourSpace => 'أضف عقارك';
+
+  @override
+  String get forTenants => 'للمستأجرين';
+
+  @override
+  String get popularLocations => 'المواقع الشائعة';
+
+  @override
+  String get whyNyumba => 'لماذا نيومبا';
+
+  @override
+  String get benefitVerifiedLandlords => 'مُلّاك موثّقون فقط';
+
+  @override
+  String get benefitNoAgentFees => 'بدون رسوم وسطاء وبدون إعلانات منتهية';
+
+  @override
+  String get benefitBrowseOffline => 'تصفّح وقدّم طلبك دون اتصال';
+
+  @override
+  String get benefitPublishInMinutes => 'انشر مساحة متاحة في دقائق';
+
+  @override
+  String get benefitRoutedEnquiries => 'تصلك الاستفسارات دون مشاركة رقمك';
+
+  @override
+  String get benefitOneWorkspace => 'الإيجار والفواتير والصيانة في مكان واحد';
+
+  @override
+  String reviewsSoFarBeforeRating(int count, int minimum) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مراجعة حتى الآن',
+      many: '$count مراجعة حتى الآن',
+      few: '$count مراجعات حتى الآن',
+      two: 'مراجعتان حتى الآن',
+      one: 'مراجعة واحدة حتى الآن',
+      zero: 'لا مراجعات بعد',
+    );
+    return '$_temp0 — يظهر تقييم النجوم عندما يصل إلى $minimum.';
+  }
+
+  @override
+  String get trustRealTenantReviews => 'مراجعات من مستأجرين حقيقيين';
+
+  @override
+  String get benefitRealTenantReviews => 'تقييمات كتبها من سكنوا هناك';
+
+  @override
+  String get browseAllHomes => 'تصفّح كل المنازل';
+
+  @override
+  String get viewAllHomes => 'عرض كل المنازل';
+
+  @override
+  String get featuredHomes => 'منازل مختارة';
+
+  @override
+  String get featuredHomesDescription =>
+      'بعض أحدث المساحات التي نشرها مُلّاك موثّقون.';
+
+  @override
+  String get searchHomesTitle => 'البحث عن منازل';
+
+  @override
+  String get backToHome => 'العودة إلى الرئيسية';
+
+  @override
+  String get refineYourSearch => 'نقّح بحثك';
+
+  @override
+  String get noHomesListedTitle => 'لا توجد منازل مدرجة الآن';
+
+  @override
+  String get noHomesListedMessage =>
+      'يضيف الملاك مساحات إيجار جديدة بانتظام - تحقق مرة أخرى قريبا.';
 }

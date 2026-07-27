@@ -5,7 +5,9 @@ export type SupportedLocale = typeof SUPPORTED_LOCALES[number];
 export type NotificationTemplateKey =
   | 'new_application'
   | 'new_enquiry'
-  | 'tenant_notice';
+  | 'tenant_notice'
+  | 'new_review'
+  | 'review_response';
 
 interface LocalizedNotification {
   title: string;
@@ -68,6 +70,45 @@ const NOTIFICATION_TEMPLATES: Record<
     ar: {
       title: 'إشعار عقار جديد',
       body: 'يوجد إشعار جديد من مدير العقار جاهز في نيومبا.',
+    },
+  },
+  // Deliberately neutral: the notification must not reveal the score. A push
+  // reading "you got 2 stars" on a lock screen invites a reaction written in
+  // the worst possible frame of mind, and the reply is public.
+  new_review: {
+    en: {
+      title: 'New tenant review',
+      body: 'One of your tenants left a review. Open Nyumba to read and reply.',
+    },
+    lg: {
+      title: 'Okwogera okupya okw’omupangisa',
+      body: 'Omu ku bapangisa bo awadde endowooza. Ggulawo Nyumba osome era oddemu.',
+    },
+    sw: {
+      title: 'Maoni mapya ya mpangaji',
+      body: 'Mmoja wa wapangaji wako ameacha maoni. Fungua Nyumba usome na ujibu.',
+    },
+    ar: {
+      title: 'مراجعة جديدة من مستأجر',
+      body: 'ترك أحد مستأجريك مراجعة. افتح نيومبا للقراءة والرد.',
+    },
+  },
+  review_response: {
+    en: {
+      title: 'Your landlord replied',
+      body: 'There is a public reply to the review you left.',
+    },
+    lg: {
+      title: 'Nnyini nnyumba addemu',
+      body: 'Waliwo okuddamu okw’olukale ku ndowooza gye wawadde.',
+    },
+    sw: {
+      title: 'Mwenye nyumba amejibu',
+      body: 'Kuna jibu la hadharani kwa maoni uliyoacha.',
+    },
+    ar: {
+      title: 'ردّ مالك العقار',
+      body: 'هناك ردّ علني على المراجعة التي كتبتها.',
     },
   },
 };

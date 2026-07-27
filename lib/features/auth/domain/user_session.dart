@@ -45,7 +45,8 @@ class SessionProfile {
 
   /// Stable identity used for persistence and equality: distinct staff
   /// workspaces yield distinct keys, everything else is identified by role.
-  String get key => workspaceId == null ? role.name : '${role.name}:$workspaceId';
+  String get key =>
+      workspaceId == null ? role.name : '${role.name}:$workspaceId';
 
   SessionProfile withSubscription({
     required LandlordSubscriptionStatus status,

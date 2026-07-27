@@ -103,10 +103,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.widgetWithText(
-          TextFormField,
-          'Request a viewing through Nyumba.',
-        ),
+        find.widgetWithText(TextFormField, 'Request a viewing through Nyumba.'),
         findsOneWidget,
       );
       expect(
@@ -203,9 +200,7 @@ Future<void> _pump(
             ),
           ),
         ),
-        landlordListingsProvider.overrideWith(
-          (ref) => Stream.value(listings),
-        ),
+        landlordListingsProvider.overrideWith((ref) => Stream.value(listings)),
         portfolioUnitsProvider.overrideWith(
           (ref) => Stream.value(const <Unit>[]),
         ),

@@ -14,6 +14,9 @@ import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
+import '../../feedback/presentation/nps_prompt_gate.dart';
+import '../../finance/application/billing_providers.dart';
+import '../../finance/domain/rent_payment.dart';
 import '../application/dashboard_snapshot.dart';
 import 'widgets/dashboard_cards.dart';
 import 'widgets/rental_space_availability.dart';
@@ -50,6 +53,12 @@ class LandlordDashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 14),
                 const _PendingApprovalBanner(),
               ],
+              // Asked here, after a milestone, and never at launch — see
+              // NpsPromptGate for why the moment matters more than the wording.
+              // Suppressed entirely while the account is still pending
+              // approval: nothing has been delivered yet to have an opinion on.
+              if (session?.accountStatus != AccountStatus.pendingApproval)
+                const _DashboardFeedbackGate(),
               const SizedBox(height: 22),
               _KpiGrid(snapshot: snapshot),
               const SizedBox(height: 20),
@@ -322,6 +331,39 @@ class _SyncStatusBar extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Supplies [NpsPromptGate] with the milestone signals, from data the dashboard
+/// already holds.
+///
+/// Kept as its own widget so the gate's stream subscriptions do not rebuild the
+/// whole dashboard, and so the "what counts as a milestone" question stays in
+/// one place rather than spread through the page body.
+class _DashboardFeedbackGate extends ConsumerWidget {
+  const _DashboardFeedbackGate();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final payments =
+        ref.watch(rentPaymentsProvider).value ?? const <RentPayment>[];
+    final listings = ref.watch(landlordListingsProvider).value ?? const [];
+    // Account age is taken from the oldest recorded payment rather than a
+    // signup date the client does not hold. It understates a brand-new account
+    // and never overstates one, which is the safe direction: the cost of asking
+    // late is nothing, and the cost of asking too early is a wasted ask.
+    final oldest = payments.isEmpty
+        ? null
+        : payments
+              .map((payment) => payment.createdAt)
+              .reduce((a, b) => a.isBefore(b) ? a : b);
+    return NpsPromptGate(
+      paymentsRecorded: payments.length,
+      hasApplications: listings.any((listing) => listing.isPublic),
+      accountAgeDays: oldest == null
+          ? 0
+          : DateTime.now().toUtc().difference(oldest).inDays,
     );
   }
 }

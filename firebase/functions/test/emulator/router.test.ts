@@ -1321,4 +1321,55 @@ describe('staff seats and roles', () => {
     }), now);
     expect(update).toMatchObject({ status: 'rejected', error: { code: 'CUSTOM_ROLES_UNAVAILABLE' } });
   });
+
+  function npsPayload(score = 8) {
+    return { kind: 'nps' as const, score, appVersion: '1.0.0', platform: 'web' as const };
+  }
+
+  function freeformPayload(comment = 'Something is broken.') {
+    return { kind: 'freeform' as const, comment, appVersion: '1.0.0', platform: 'web' as const };
+  }
+
+  it('rejects feedback from an actor with no landlord account', async () => {
+    // Seeded then removed, so the entitlements config still exists and the
+    // missing account is the only thing left to reject on.
+    await seedLandlord();
+    await db.doc(`landlordAccounts/${landlord.uid}`).delete();
+    const result = await executeCommandCore(db, landlord, envelope(
+      'command_feedback_no_account', 'feedback.submit', 'feedback_1', 0, npsPayload(),
+    ), now);
+    expect(result).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+  });
+
+  it('rejects feedback from a suspended landlord account', async () => {
+    await seedLandlord({ approval: 'suspended' });
+    const result = await executeCommandCore(db, landlord, envelope(
+      'command_feedback_suspended', 'feedback.submit', 'feedback_1', 0, npsPayload(),
+    ), now);
+    expect(result).toMatchObject({ status: 'rejected', error: { code: 'ACCOUNT_SUSPENDED' } });
+  });
+
+  it('throttles any second submission within the shared cooldown, on top of the longer NPS cadence', async () => {
+    await seedLandlord();
+    const first = await executeCommandCore(db, landlord, envelope(
+      'command_feedback_first', 'feedback.submit', 'feedback_1', 0, npsPayload(),
+    ), now);
+    expect(first.status).toBe('applied');
+
+    // A different kind, a few seconds later: the shared floor blocks it
+    // regardless of kind, which the NPS-only cooldown never would have.
+    // RATE_LIMITED is transient rather than deterministic, so it propagates
+    // instead of being persisted as a `rejected` receipt — a retry after the
+    // cooldown must be able to succeed under the same command id.
+    const fewSecondsLater = Timestamp.fromMillis(now.toMillis() + 5_000);
+    await expect(executeCommandCore(db, landlord, envelope(
+      'command_feedback_second', 'feedback.submit', 'feedback_2', 0, freeformPayload(),
+    ), fewSecondsLater)).rejects.toMatchObject({ code: 'RATE_LIMITED' });
+
+    const wellAfter = Timestamp.fromMillis(now.toMillis() + 60_000);
+    const third = await executeCommandCore(db, landlord, envelope(
+      'command_feedback_third', 'feedback.submit', 'feedback_3', 0, freeformPayload(),
+    ), wellAfter);
+    expect(third.status).toBe('applied');
+  });
 });

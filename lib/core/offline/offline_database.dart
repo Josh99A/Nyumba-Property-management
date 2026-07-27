@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:sembast/sembast.dart';
 
+import '../diagnostics/perf_trace.dart';
 import '../domain/domain_exception.dart';
 import '../domain/sync_metadata.dart';
 import 'offline_entity.dart';
@@ -397,12 +399,97 @@ final class OfflineDatabase {
     required OfflineEntityType entityType,
     required String entityId,
     required Map<String, Object?> entity,
-  }) => database.transaction((transaction) async {
-    final outbox = await _outboxStore.find(transaction);
-    final hasLocalMutation = outbox.any((snapshot) {
-      final entry = OutboxEntry.fromJson(snapshot.value);
-      return entry.entityType == entityType && entry.entityId == entityId;
-    });
+  }) => traceAsync(
+    PerfNames.remoteMergeTransaction,
+    () => database.transaction((transaction) async {
+      final pending = await _pendingAggregateKeys(transaction);
+      return _mergeRemoteRecord(
+        transaction,
+        entityType: entityType,
+        entityId: entityId,
+        entity: entity,
+        pendingAggregates: pending,
+      );
+    }),
+  );
+
+  /// Merges a whole server snapshot in one transaction.
+  ///
+  /// A Firestore snapshot delivers every document in the query, so merging one
+  /// record at a time cost a transaction per document and re-scanned the entire
+  /// outbox inside each of them. Worse, every one of those transactions woke the
+  /// store's snapshot listeners, so a fifty-document snapshot re-emitted the
+  /// full collection fifty times and rebuilt every screen watching it. Batching
+  /// collapses that into a single commit, a single outbox scan, and a single
+  /// downstream emission.
+  ///
+  /// The batch is all-or-nothing at the transaction level, but a record that
+  /// cannot be merged does not take the snapshot down with it: it is recorded as
+  /// [RemoteMergeResult.failed] and the rest still commit. One corrupt document
+  /// must not be able to permanently wedge every other listing behind it.
+  Future<List<RemoteMergeResult>> mergeRemoteEntities(
+    List<RemoteEntityMerge> merges,
+  ) async {
+    if (merges.isEmpty) return const <RemoteMergeResult>[];
+    return traceAsync(
+      PerfNames.remoteMergeTransaction,
+      () => _writeTransaction((transaction) async {
+        final pending = await _pendingAggregateKeys(transaction);
+        final results = <RemoteMergeResult>[];
+        for (final merge in merges) {
+          try {
+            results.add(
+              await _mergeRemoteRecord(
+                transaction,
+                entityType: merge.entityType,
+                entityId: merge.entityId,
+                entity: merge.entity,
+                pendingAggregates: pending,
+              ),
+            );
+          } on Object catch (error, stackTrace) {
+            PerfCounters.increment(PerfNames.remoteMergeFailure);
+            developer.log(
+              'Failed to merge ${merge.entityType.name} ${merge.entityId}',
+              name: 'offline_database',
+              error: error,
+              stackTrace: stackTrace,
+            );
+            results.add(RemoteMergeResult.failed);
+          }
+        }
+        return results;
+      }),
+      arguments: () => <String, Object?>{'records': merges.length},
+    );
+  }
+
+  /// The `type/id` key of every aggregate carrying an unsynced local mutation.
+  ///
+  /// Hoisted out of the per-record merge so a snapshot decodes the outbox once
+  /// rather than once per document.
+  Future<Set<String>> _pendingAggregateKeys(DatabaseClient transaction) async {
+    final snapshots = await _outboxStore.find(transaction);
+    return <String>{
+      for (final snapshot in snapshots)
+        _aggregateKey(OutboxEntry.fromJson(snapshot.value)),
+    };
+  }
+
+  static String _aggregateKey(OutboxEntry entry) =>
+      '${entry.entityType.name} ${entry.entityId}';
+
+  Future<RemoteMergeResult> _mergeRemoteRecord(
+    DatabaseClient transaction, {
+    required OfflineEntityType entityType,
+    required String entityId,
+    required Map<String, Object?> entity,
+    required Set<String> pendingAggregates,
+  }) async {
+    PerfCounters.increment(PerfNames.remoteMergeRecord);
+    final hasLocalMutation = pendingAggregates.contains(
+      '${entityType.name} $entityId',
+    );
     final entityRecord = _entityStore(entityType).record(entityId);
     final local = await entityRecord.get(transaction);
     final remoteVersion = _remoteVersion(entity);
@@ -457,7 +544,7 @@ final class OfflineDatabase {
     );
     await _entityStore(entityType).record(entityId).put(transaction, merged);
     return RemoteMergeResult.applied;
-  });
+  }
 
   static int? _remoteVersion(Map<String, Object?> entity) {
     final value = entity['version'] ?? entity['projectionVersion'];
@@ -744,4 +831,20 @@ final class _OfflineTransactionContext {
   String? lastMutationId;
 }
 
-enum RemoteMergeResult { applied, ignored, conflicted }
+enum RemoteMergeResult { applied, ignored, conflicted, failed }
+
+/// One server record awaiting merge into the local mirror.
+///
+/// Batching needs the entity type per record rather than per call: a single
+/// transaction may carry records from more than one watched collection.
+final class RemoteEntityMerge {
+  const RemoteEntityMerge({
+    required this.entityType,
+    required this.entityId,
+    required this.entity,
+  });
+
+  final OfflineEntityType entityType;
+  final String entityId;
+  final Map<String, Object?> entity;
+}

@@ -195,6 +195,47 @@
         { "fieldPath": "listingId", "order": "ASCENDING" },
         { "fieldPath": "applicantUid", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "publicReviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "landlordToken", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "publicListings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "landlordToken", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "landlordReviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "flagState", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "landlordReviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "lastReportedBy", "order": "ASCENDING" },
+        { "fieldPath": "lastReportedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "platformFeedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kind", "order": "ASCENDING" },
+        { "fieldPath": "submittedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

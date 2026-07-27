@@ -361,6 +361,58 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
       });
     }
 
+    /// Review scores, shared by `review.submit` and `review.update`.
+    Map<String, Object?> reviewScores() => <String, Object?>{
+      'overall': payload['overall'],
+      ...pick([
+        'responsiveness',
+        'maintenance',
+        'listingAccuracy',
+        'depositFairness',
+      ]),
+      if (payload['body'] != null &&
+          payload['body'].toString().trim().isNotEmpty)
+        'body': payload['body'].toString().trim(),
+    };
+
+    /// Resolves the five distinct edits a review can carry into one command.
+    ///
+    /// There are more review commands than there are [OutboxOperation] values,
+    /// so the operation alone cannot name the intent. The repository stamps
+    /// `pendingAction` on the record it enqueues and this reads it back — the
+    /// same shape as [noticePublicationCommand] above, which likewise switches
+    /// on a payload field rather than inventing an operation.
+    _RemoteCommand reviewMutationCommand() {
+      final action = payload['pendingAction'];
+      return switch (action) {
+        'edit' => _RemoteCommand('review.update', reviewScores()),
+        'withdraw' => const _RemoteCommand(
+          'review.withdraw',
+          <String, Object?>{},
+        ),
+        'respond' => _RemoteCommand('review.respond', <String, Object?>{
+          'response': payload['landlordResponse'],
+        }),
+        'flag' => _RemoteCommand('review.flag', <String, Object?>{
+          'reasonCode': payload['flagReasonCode'],
+          if (payload['flagNote'] != null) 'note': payload['flagNote'],
+        }),
+        'report' => _RemoteCommand('review.report', <String, Object?>{
+          'reasonCode': payload['flagReasonCode'],
+          if (payload['flagNote'] != null) 'note': payload['flagNote'],
+        }),
+        'moderate' => _RemoteCommand('review.moderate', <String, Object?>{
+          'decision': payload['moderationDecision'],
+          if (payload['moderationNote'] != null)
+            'note': payload['moderationNote'],
+        }),
+        _ => throw RemoteSyncException(
+          'Unsupported review action: $action.',
+          retryable: false,
+        ),
+      };
+    }
+
     return switch ((mutation.entityType, mutation.operation)) {
       (OfflineEntityType.userProfile, OutboxOperation.update) => _RemoteCommand(
         'profile.update',
@@ -551,6 +603,23 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         noticePublicationCommand(),
       (OfflineEntityType.notification, OutboxOperation.update) =>
         const _RemoteCommand('notification.markRead', <String, Object?>{}),
+      // The aggregate ID is the lease ID, which is what makes one-review-per-
+      // tenancy a document-existence check on the server rather than a query.
+      (OfflineEntityType.landlordReview, OutboxOperation.create) =>
+        _RemoteCommand('review.submit', reviewScores()),
+      (OfflineEntityType.landlordReview, OutboxOperation.update) =>
+        reviewMutationCommand(),
+      (OfflineEntityType.platformFeedback, OutboxOperation.create) =>
+        _RemoteCommand('feedback.submit', <String, Object?>{
+          'kind': payload['kind'],
+          if (payload['score'] != null) 'score': payload['score'],
+          if (payload['comment'] != null &&
+              payload['comment'].toString().trim().isNotEmpty)
+            'comment': payload['comment'].toString().trim(),
+          if (payload['category'] != null) 'category': payload['category'],
+          'appVersion': payload['appVersion'],
+          'platform': payload['platform'],
+        }),
       _ => throw RemoteSyncException(
         'No production command mapping for '
         '${mutation.entityType.name}.${mutation.operation.name}.',

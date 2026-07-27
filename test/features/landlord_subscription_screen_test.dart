@@ -49,7 +49,9 @@ void main() {
             recorder = _RecordingSelectSubscriptionPlan(ref),
       );
 
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Choose plan').first);
+      await tester.tap(
+        find.widgetWithText(OutlinedButton, 'Choose plan').first,
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Pay for Pro'), findsOneWidget);
@@ -85,7 +87,9 @@ void main() {
             recorder = _RecordingSelectSubscriptionPlan(ref),
       );
 
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Choose plan').first);
+      await tester.tap(
+        find.widgetWithText(OutlinedButton, 'Choose plan').first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Mobile money'));
       await tester.pumpAndSettle();

@@ -7,36 +7,84 @@ import {
   MAX_DOCUMENT_BYTES,
   MAX_IMAGE_BYTES,
   MAX_LISTING_PHOTOS,
+  MAX_PROPERTY_PHOTOS,
   MAX_PUBLIC_LISTING_IMAGE_HEIGHT,
   MAX_PUBLIC_LISTING_IMAGE_WIDTH,
+  MEDIA_FULL_SUFFIX,
+  MEDIA_IMMUTABLE_CACHE_CONTROL,
+  MEDIA_THUMB_IMAGE_HEIGHT,
+  MEDIA_THUMB_IMAGE_WIDTH,
+  MEDIA_THUMB_SUFFIX,
 } from '../shared/config';
 
 const imageContentTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
+/** The two delivery copies produced from one source photo. */
+export interface RenderedImageVariants {
+  readonly digest: string;
+  readonly full: Buffer;
+  readonly thumb: Buffer;
+}
+
+/** Short content digest naming a delivery object. */
+export function imageDigest(source: Buffer): string {
+  return createHash('sha256').update(source).digest('hex').slice(0, 16);
+}
+
+/**
+ * Names a delivery object after its content.
+ *
+ * The digest — not the index — carries the identity, so re-publishing an
+ * unchanged photo lands on the same path (a free cache hit) and republishing a
+ * changed one lands on a new path instead of poisoning caches holding the old
+ * bytes. The index stays in the name only to keep cover-first ordering legible
+ * when browsing the bucket.
+ */
+export function deliveryObjectPath(
+  prefix: string,
+  index: number,
+  digest: string,
+  variant: string,
+): string {
+  return `${prefix}${index}-${digest}-${variant}.webp`;
+}
+
 function fileName(path: string): string {
   return path.split('/').pop()?.replace(/[^A-Za-z0-9._-]/g, '_') || 'image';
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
+function sameOrder(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length
+    && left.every((value, index) => value === right[index]);
 }
 
 export function publicListingMediaPatch(
   publicListing: Record<string, unknown>,
   imagePaths: readonly string[],
   updatedAt: Timestamp,
+  thumbPaths: readonly string[] = [],
 ): Record<string, unknown> | null {
   const currentVersion = Number(publicListing.version);
   if (!Number.isInteger(currentVersion) || currentVersion < 1) {
     throw new Error('Published listing media requires a valid projection version.');
   }
-  const currentPaths = Array.isArray(publicListing.imagePaths)
-    ? publicListing.imagePaths.filter((value): value is string => typeof value === 'string')
-    : [];
-  if (
-    currentPaths.length === imagePaths.length
-    && currentPaths.every((path, index) => path === imagePaths[index])
-  ) {
+  const currentPaths = stringArray(publicListing.imagePaths);
+  const currentThumbs = stringArray(publicListing.imageThumbPaths);
+  // Both arrays must match before this is a no-op retry: a projection carrying
+  // the full copies but no thumbnails is exactly the state an older publication
+  // left behind, and it still needs the thumbnail field filled in.
+  if (sameOrder(currentPaths, imagePaths) && sameOrder(currentThumbs, thumbPaths)) {
     return null;
   }
   return {
     imagePaths: [...imagePaths],
+    imageThumbPaths: [...thumbPaths],
     updatedAt,
     version: currentVersion + 1,
   };
@@ -50,12 +98,14 @@ export function publicListingMediaPatch(
  */
 export async function optimisePublicListingImage(
   source: Buffer,
+  width: number = MAX_PUBLIC_LISTING_IMAGE_WIDTH,
+  height: number = MAX_PUBLIC_LISTING_IMAGE_HEIGHT,
 ): Promise<Buffer> {
   const output = await sharp(source)
     .rotate()
     .resize({
-      width: MAX_PUBLIC_LISTING_IMAGE_WIDTH,
-      height: MAX_PUBLIC_LISTING_IMAGE_HEIGHT,
+      width,
+      height,
       fit: 'inside',
       withoutEnlargement: true,
     })
@@ -67,48 +117,201 @@ export async function optimisePublicListingImage(
   return output;
 }
 
+/**
+ * Renders both delivery copies from one source, digesting the source rather
+ * than either output so the two variants of a photo always share an identity.
+ */
+export async function renderImageVariants(
+  source: Buffer,
+): Promise<RenderedImageVariants> {
+  const [full, thumb] = await Promise.all([
+    optimisePublicListingImage(source),
+    optimisePublicListingImage(
+      source,
+      MEDIA_THUMB_IMAGE_WIDTH,
+      MEDIA_THUMB_IMAGE_HEIGHT,
+    ),
+  ]);
+  return { digest: imageDigest(source), full, thumb };
+}
+
+/** Reads a staged upload, rejecting anything outside the declared limits. */
+async function downloadStagedImage(sourcePath: string): Promise<Buffer> {
+  const source = getStorage().bucket().file(sourcePath);
+  const [metadata] = await source.getMetadata();
+  const size = Number(metadata.size);
+  if (
+    !imageContentTypes.has(metadata.contentType ?? '')
+    || !Number.isFinite(size)
+    || size <= 0
+    || size > MAX_IMAGE_BYTES
+  ) {
+    throw new Error('Staged image failed validation.');
+  }
+  const [contents] = await source.download();
+  return contents;
+}
+
+interface DeliveredMedia {
+  readonly imagePaths: string[];
+  readonly thumbPaths: string[];
+}
+
+/**
+ * Writes both delivery copies of every staged photo under [prefix].
+ *
+ * Deliberately does NOT remove superseded objects. Every caller can still
+ * abandon the publication after this returns — the listing may have been
+ * unpublished, a newer edit may have superseded this job's staged list — and
+ * in each of those cases the stored document keeps pointing at the *previous*
+ * delivery paths. Sweeping here would delete the objects those live
+ * references resolve to. Cleanup is [sweepDelivered], run only once the new
+ * paths are committed.
+ */
+async function deliverImages(
+  stagedPaths: readonly string[],
+  prefix: string,
+): Promise<DeliveredMedia> {
+  const bucket = getStorage().bucket();
+  const imagePaths: string[] = [];
+  const thumbPaths: string[] = [];
+
+  for (const [index, sourcePath] of stagedPaths.entries()) {
+    const uploaded = await downloadStagedImage(sourcePath);
+    const variants = await renderImageVariants(uploaded);
+    const fullPath = deliveryObjectPath(prefix, index, variants.digest, MEDIA_FULL_SUFFIX);
+    const thumbPath = deliveryObjectPath(prefix, index, variants.digest, MEDIA_THUMB_SUFFIX);
+    await Promise.all([
+      bucket.file(fullPath).save(variants.full, {
+        resumable: false,
+        metadata: {
+          contentType: 'image/webp',
+          cacheControl: MEDIA_IMMUTABLE_CACHE_CONTROL,
+        },
+      }),
+      bucket.file(thumbPath).save(variants.thumb, {
+        resumable: false,
+        metadata: {
+          contentType: 'image/webp',
+          cacheControl: MEDIA_IMMUTABLE_CACHE_CONTROL,
+        },
+      }),
+    ]);
+    imagePaths.push(fullPath);
+    thumbPaths.push(thumbPath);
+  }
+
+  return { imagePaths, thumbPaths };
+}
+
+/**
+ * Removes every object under [prefix] that the just-committed document does
+ * not reference.
+ *
+ * This is what keeps content-addressed naming from leaking storage: a changed
+ * photo writes a new digest, so without it superseded objects would accumulate
+ * forever. It must run only after the new paths are durably committed —
+ * before that, the surviving references are still the old ones.
+ */
+async function sweepDelivered(
+  prefix: string,
+  delivered: DeliveredMedia,
+): Promise<void> {
+  const keep = new Set<string>([...delivered.imagePaths, ...delivered.thumbPaths]);
+  const [existing] = await getStorage().bucket().getFiles({ prefix });
+  await Promise.all(
+    existing
+      .filter((file) => !keep.has(file.name))
+      .map((file) => file.delete({ ignoreNotFound: true })),
+  );
+}
+
 export async function publishListingMedia(payload: Record<string, unknown>): Promise<void> {
   const listingId = String(payload.listingId);
-  const staged = Array.isArray(payload.stagedImagePaths)
-    ? payload.stagedImagePaths.filter((value): value is string => typeof value === 'string')
-    : [];
+  const staged = stringArray(payload.stagedImagePaths);
   if (staged.length > MAX_LISTING_PHOTOS) throw new Error('Listing photo limit exceeded.');
-  const bucket = getStorage().bucket();
-  const publicPaths: string[] = [];
-  for (const [index, sourcePath] of staged.entries()) {
-    const source = bucket.file(sourcePath);
-    const [metadata] = await source.getMetadata();
-    const size = Number(metadata.size);
-    if (
-      !imageContentTypes.has(metadata.contentType ?? '')
-      || !Number.isFinite(size)
-      || size <= 0
-      || size > MAX_IMAGE_BYTES
-    ) {
-      throw new Error('Staged listing image failed validation.');
-    }
-    const [uploadedImage] = await source.download();
-    const publicImage = await optimisePublicListingImage(uploadedImage);
-    const destination = `public/listings/${listingId}/${index}.webp`;
-    await bucket.file(destination).save(publicImage, {
-      resumable: false,
-      metadata: {
-        contentType: 'image/webp',
-        cacheControl: 'public, max-age=60, s-maxage=300',
-      },
-    });
-    publicPaths.push(destination);
-  }
+
+  const prefix = `public/listings/${listingId}/`;
+  const delivered = await deliverImages(staged, prefix);
   const now = Timestamp.now();
-  await getFirestore().runTransaction(async (tx) => {
+  // The transaction's return value, not a flag mutated inside it: a
+  // transaction body can be retried, so only the attempt that actually
+  // committed is allowed to authorize the destructive sweep below.
+  const committed = await getFirestore().runTransaction(async (tx) => {
     const privateRef = getFirestore().collection(COLLECTIONS.privateListings).doc(listingId);
     const publicRef = getFirestore().collection(COLLECTIONS.publicListings).doc(listingId);
     const [privateSnap, publicSnap] = await Promise.all([tx.get(privateRef), tx.get(publicRef)]);
-    if (!privateSnap.exists || !publicSnap.exists || publicSnap.data()?.status !== 'published') return;
-    tx.update(privateRef, { mediaState: 'published', publicImagePaths: publicPaths, updatedAt: now });
-    const publicPatch = publicListingMediaPatch(publicSnap.data()!, publicPaths, now);
+    if (!privateSnap.exists || !publicSnap.exists || publicSnap.data()?.status !== 'published') {
+      return false;
+    }
+    tx.update(privateRef, {
+      mediaState: 'published',
+      publicImagePaths: delivered.imagePaths,
+      publicImageThumbPaths: delivered.thumbPaths,
+      updatedAt: now,
+    });
+    const publicPatch = publicListingMediaPatch(
+      publicSnap.data()!,
+      delivered.imagePaths,
+      now,
+      delivered.thumbPaths,
+    );
     if (publicPatch) tx.update(publicRef, publicPatch);
+    return true;
   });
+  if (committed) await sweepDelivered(prefix, delivered);
+}
+
+/**
+ * Gives property photos the delivery pipeline listings already had.
+ *
+ * Property photos previously stayed exactly as the landlord uploaded them, in
+ * the staging prefix, at full capture resolution — so a portfolio grid of
+ * 300px tiles fetched 1920px originals. These land under the landlord's own
+ * private prefix, which the storage rules already scope to the owner and
+ * platform admins, so the delivery copies inherit the same access as the
+ * originals.
+ */
+export async function publishPropertyMedia(payload: Record<string, unknown>): Promise<void> {
+  const propertyId = String(payload.propertyId);
+  const landlordId = String(payload.landlordId);
+  const staged = stringArray(payload.stagedImagePaths);
+  if (staged.length > MAX_PROPERTY_PHOTOS) throw new Error('Property photo limit exceeded.');
+
+  const prefix = `private/landlords/${landlordId}/properties/${propertyId}/`;
+  const delivered = await deliverImages(staged, prefix);
+  const now = Timestamp.now();
+  const ref = getFirestore().collection(COLLECTIONS.properties).doc(propertyId);
+  const committed = await getFirestore().runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) return false;
+    const current = snapshot.data()!;
+    // The staged list this job was created from must still be the property's
+    // current one. A newer edit has already enqueued its own job; letting this
+    // one land would resurrect the photos the landlord just replaced.
+    if (!sameOrder(stringArray(current.stagedImagePaths), staged)) return false;
+    if (
+      sameOrder(stringArray(current.imagePaths), delivered.imagePaths)
+      && sameOrder(stringArray(current.imageThumbPaths), delivered.thumbPaths)
+    ) {
+      return false;
+    }
+    tx.update(ref, {
+      imagePaths: delivered.imagePaths,
+      imageThumbPaths: delivered.thumbPaths,
+      mediaState: 'published',
+      updatedAt: now,
+      version: Number(current.version ?? 0) + 1,
+    });
+    return true;
+  });
+  if (committed) await sweepDelivered(prefix, delivered);
+}
+
+/** Removes every delivery copy of a property's photos. */
+export async function cleanupPropertyMedia(payload: Record<string, unknown>): Promise<void> {
+  const prefix = `private/landlords/${String(payload.landlordId)}/properties/${String(payload.propertyId)}/`;
+  await getStorage().bucket().deleteFiles({ prefix, force: true });
 }
 
 export async function cleanupListingMedia(payload: Record<string, unknown>): Promise<void> {

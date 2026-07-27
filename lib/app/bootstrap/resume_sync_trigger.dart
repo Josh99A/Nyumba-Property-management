@@ -14,7 +14,8 @@ import '../../core/offline/sync_engine.dart';
 /// cheap: concurrent callers share the engine's single active run, and an
 /// offline device skips without claiming anything.
 final class ResumeSyncTrigger {
-  ResumeSyncTrigger({required SyncEngine syncEngine}) : _syncEngine = syncEngine {
+  ResumeSyncTrigger({required SyncEngine syncEngine})
+    : _syncEngine = syncEngine {
     _listener = AppLifecycleListener(onResume: _onResume);
   }
 

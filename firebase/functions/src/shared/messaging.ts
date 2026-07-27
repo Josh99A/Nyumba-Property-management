@@ -32,7 +32,7 @@ export interface InboxNotificationContent
   extends Omit<NotificationContent, 'title' | 'body'> {
   /** Stable per business event, so a retried job cannot duplicate the inbox. */
   id: string;
-  kind: 'application' | 'enquiry' | 'tenant_notice' | 'system';
+  kind: 'application' | 'enquiry' | 'tenant_notice' | 'review' | 'system';
   templateKey?: NotificationTemplateKey;
   /**
    * Author-written copy (platform broadcasts) delivered verbatim to every

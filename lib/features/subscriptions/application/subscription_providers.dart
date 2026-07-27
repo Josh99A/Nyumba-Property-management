@@ -464,7 +464,8 @@ class UpdatePlanCatalog {
       'yearlyPriceMinor': ?yearlyPriceMinor,
       'unitLimit': ?unitLimit,
       'activeListingLimit': ?activeListingLimit,
-      if (tagline != null && tagline.trim().isNotEmpty) 'tagline': tagline.trim(),
+      if (tagline != null && tagline.trim().isNotEmpty)
+        'tagline': tagline.trim(),
       if (features != null)
         'features': <Object?>[
           for (final feature in features)

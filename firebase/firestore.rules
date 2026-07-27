@@ -299,6 +299,54 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Reputation.
+    //
+    // The canonical review names its author, so it is admin-only: a landlord
+    // reads their copy from landlordPortals/{uid}/reviews and the author reads
+    // theirs from tenantPortals/{uid}/reviews, both already covered by the
+    // catch-alls above. Every anonymous reader goes through the two public
+    // mirrors below, which carry no UID at all.
+    match /landlordReviews/{reviewId} {
+      allow read: if isPlatformAdmin();
+      allow write: if false;
+    }
+
+    // A landlord may read their own totals even below the public display
+    // threshold — they should be able to see a rating forming before the
+    // marketplace shows it, not be surprised by it on the day it appears.
+    match /landlordRatings/{landlordId} {
+      allow read: if isSelf(landlordId) || isPlatformAdmin();
+      allow write: if false;
+    }
+
+    // Public mirrors, keyed by the opaque landlordToken rather than the UID
+    // (see landlordPublicToken in functions/src/shared/canonical.ts). Anonymous
+    // browsing is a supported mode, so these are readable unauthenticated;
+    // withdrawn, hidden, and removed reviews are deleted from the mirror rather
+    // than filtered here, so nothing unpublished is ever present to leak.
+    match /publicReviews/{reviewId} {
+      allow get: if resource.data.status == 'published';
+      allow list: if resource.data.status == 'published'
+        && request.query.limit != null
+        && request.query.limit <= 50;
+      allow write: if false;
+    }
+
+    match /publicLandlordRatings/{landlordToken} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if false;
+    }
+
+    // Landlord-to-Nyumba product feedback. Write-only from the client's side
+    // through the callable command; not even the author reads it back, because
+    // nothing in the app renders it and a readable path would make one
+    // landlord's complaints enumerable by another.
+    match /platformFeedback/{feedbackId} {
+      allow read: if isPlatformAdmin();
+      allow write: if false;
+    }
+
     match /commandReceipts/{commandId} {
       allow read: if isPlatformAdmin()
         || (signedIn() && resource.data.actorUid == request.auth.uid);

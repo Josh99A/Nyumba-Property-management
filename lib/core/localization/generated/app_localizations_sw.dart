@@ -3166,7 +3166,7 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get propertyPhotoCreateGuidance =>
-      'Ongeza picha 1–2. Picha ya msingi inaonekana kwanza.';
+      'Ongeza picha 1–2. Picha hupunguzwa ukubwa kabla ya kupakiwa, na picha ya msingi huonekana kwanza.';
 
   @override
   String propertyPhotoCountGuidance(int count, int maximum) {
@@ -3175,11 +3175,11 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get propertyPhotoEditGuidance =>
-      'JPEG, PNG au WebP; hadi MB 5 kwa kila picha na picha zisizozidi 2. Picha ya kwanza ndiyo huonyeshwa kwenye kadi ya mali. Picha zitasalia zikisubiri hadi upakiaji uthibitishwe.';
+      'JPEG, PNG au WebP; hadi MB 5 kwa kila picha na picha zisizozidi 2. Picha hupunguzwa ukubwa kabla ya kupakiwa. Picha ya kwanza ndiyo huonyeshwa kwenye kadi ya mali. Picha zitasalia zikisubiri hadi upakiaji uthibitishwe.';
 
   @override
   String get listingPhotoGuidance =>
-      'JPEG, PNG au WebP; hadi MB 5 kwa kila picha na picha zisizozidi 5. Picha ya kwanza ndiyo picha ya jalada. Picha zitasalia zikisubiri hadi upakiaji uthibitishwe.';
+      'JPEG, PNG au WebP; hadi MB 5 kwa kila picha na picha zisizozidi 5. Picha hupunguzwa ukubwa kabla ya kupakiwa. Picha ya kwanza ndiyo picha ya jalada. Picha zitasalia zikisubiri hadi upakiaji uthibitishwe.';
 
   @override
   String listingPhotoPosition(String current, String total) {
@@ -3320,4 +3320,452 @@ class AppLocalizationsSw extends AppLocalizations {
   String listingAvailableFromDate(String date) {
     return 'Inapatikana kuanzia $date';
   }
+
+  @override
+  String get imageLoading => 'Picha inapakia';
+
+  @override
+  String get imageUnavailable => 'Picha haipatikani';
+
+  @override
+  String get filtersTitle => 'Vichujio';
+
+  @override
+  String get clearAllFilters => 'Futa zote';
+
+  @override
+  String get sortResults => 'Panga matokeo';
+
+  @override
+  String get removeFilter => 'Ondoa kichujio';
+
+  @override
+  String get allUnitTypes => 'Aina zote';
+
+  @override
+  String photoCount(int count) {
+    return 'Picha $count';
+  }
+
+  @override
+  String showHomesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Onyesha nyumba $count',
+      one: 'Onyesha nyumba 1',
+      zero: 'Hakuna nyumba zinazolingana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reviewsTitle => 'Maoni';
+
+  @override
+  String get reviewsLandlordDescription =>
+      'Wapangaji wanaweza kukupa maoni baada ya siku 30 katika mojawapo ya vyumba vyako. Kujibu hadharani mara nyingi hushawishi zaidi kuliko kubisha.';
+
+  @override
+  String get yourReviews => 'Maoni yako';
+
+  @override
+  String get yourReviewsDescription =>
+      'Maoni uliyoandika kuhusu mwenye nyumba wako. Maoni yaliyochapishwa yanaonekana kwenye matangazo yake bila jina lako.';
+
+  @override
+  String get reviewModeration => 'Usimamizi wa maoni';
+
+  @override
+  String get reviewModerationDescription =>
+      'Maoni yaliyoripotiwa hubaki hadharani hadi uamuzi ufanyike. Kuficha huondoa kwenye ukadiriaji wa mwenye nyumba; kuchapisha hutupilia mbali ripoti.';
+
+  @override
+  String get recentlyDecided => 'Zilizoamuliwa hivi karibuni';
+
+  @override
+  String get landlordFeedback => 'Maoni ya wenye nyumba';
+
+  @override
+  String get landlordFeedbackDescription =>
+      'Maoni ya faragha kuhusu bidhaa kutoka kwa wenye nyumba. Hayaonyeshwi hadharani wala kwa wapangaji.';
+
+  @override
+  String get landlordReviews => 'Maoni kuhusu mwenye nyumba';
+
+  @override
+  String get feedbackSection => 'Maoni';
+
+  @override
+  String get feedbackSectionDescription =>
+      'Ieleze timu ya Nyumba kinachofanya kazi na kisichofanya. Haya ni ya faragha — wapangaji wako hawayaoni.';
+
+  @override
+  String get reviewDimResponsiveness => 'Uharaka wa kujibu';
+
+  @override
+  String get reviewDimMaintenance => 'Matengenezo na ukarabati';
+
+  @override
+  String get reviewDimListingAccuracy => 'Tangazo lilikuwa sahihi';
+
+  @override
+  String get reviewDimDepositFairness => 'Amana ilishughulikiwa kwa haki';
+
+  @override
+  String get reviewFlagInaccurate => 'Si sahihi kwa ukweli';
+
+  @override
+  String get reviewFlagAbusive => 'Matusi au unyanyasaji';
+
+  @override
+  String get reviewFlagNotMyTenant => 'Hayakuandikwa na mpangaji wangu';
+
+  @override
+  String get reviewFlagPersonalData => 'Yana taarifa binafsi';
+
+  @override
+  String get reviewFlagSpam => 'Taka au matangazo';
+
+  @override
+  String get ratingPoor => 'Duni';
+
+  @override
+  String get ratingBelowExpectations => 'Chini ya matarajio';
+
+  @override
+  String get ratingAcceptable => 'Inakubalika';
+
+  @override
+  String get ratingGood => 'Nzuri';
+
+  @override
+  String get ratingExcellent => 'Bora sana';
+
+  @override
+  String get rateYourLandlord => 'Kadiria mwenye nyumba wako';
+
+  @override
+  String get editYourReview => 'Hariri maoni yako';
+
+  @override
+  String get reviewFormerLandlord =>
+      'Toa maoni kuhusu mwenye nyumba wako wa zamani';
+
+  @override
+  String get howWasThatRepair => 'Matengenezo hayo yalishughulikiwaje?';
+
+  @override
+  String get ratingCoversWholeTenancy =>
+      'Ukadiriaji wako unahusu upangaji wote, si matengenezo haya pekee.';
+
+  @override
+  String get reviewWindowAfterMoveOut =>
+      'Unaweza kutoa maoni hadi siku 90 baada ya kuhama.';
+
+  @override
+  String get helpTheNextTenant => 'Msaidie mpangaji ajaye ajue la kutarajia.';
+
+  @override
+  String get addMoreDetailOptional => 'Ongeza maelezo zaidi (si lazima)';
+
+  @override
+  String get whatShouldNextTenantKnow => 'Mpangaji ajaye anapaswa kujua nini?';
+
+  @override
+  String get postReview => 'Tuma maoni';
+
+  @override
+  String get notNow => 'Si sasa';
+
+  @override
+  String get writeAReview => 'Andika maoni';
+
+  @override
+  String get reviewVisibilityNotice =>
+      'Jina lako haonyeshwi hadharani — wasomaji huona \"Mpangaji aliyethibitishwa\". Mwenye nyumba wako ataweza kutambua kuwa maoni yametoka kwenye upangaji wako, na anaweza kujibu hadharani. Unaweza kuyahariri au kuyaondoa kwa siku 14.';
+
+  @override
+  String get reviewEligibleAfter30Days =>
+      'Unaweza kumkadiria mwenye nyumba baada ya siku 30 nyumbani kwako.';
+
+  @override
+  String get reviewsLoadFailedTenant =>
+      'Maoni yako hayakuweza kupakiwa. Yako salama — jaribu tena ukirudi mtandaoni.';
+
+  @override
+  String get noReviewWrittenYet => 'Bado hujaandika maoni.';
+
+  @override
+  String get useCardAboveWhenReady =>
+      'Tumia kadi iliyo hapo juu wakati wowote ukiwa tayari.';
+
+  @override
+  String get reviewEligibilityExplainer =>
+      'Unaweza kumkadiria mwenye nyumba baada ya siku 30 nyumbani kwako, na hadi siku 90 baada ya kuhama.';
+
+  @override
+  String get reviewStatusPublished => 'Yamechapishwa';
+
+  @override
+  String get reviewStatusWithdrawnByYou => 'Umeyaondoa';
+
+  @override
+  String get reviewStatusUnderReview => 'Inakaguliwa';
+
+  @override
+  String get reviewStatusTakenDown => 'Imeondolewa';
+
+  @override
+  String get reviewHiddenNoticeAuthor =>
+      'Nyumba imeficha maoni haya wakati yanakaguliwa. Bado unaweza kuyaona hapa.';
+
+  @override
+  String get replyFromLandlord => 'Jibu kutoka kwa mwenye nyumba';
+
+  @override
+  String get editLabel => 'Hariri';
+
+  @override
+  String get removeLabel => 'Ondoa';
+
+  @override
+  String get editWindowClosed => 'Kipindi cha siku 14 cha kuhariri kimefungwa.';
+
+  @override
+  String get reviewsLoadFailed => 'Maoni hayakuweza kupakiwa kwa sasa.';
+
+  @override
+  String get noReviewsYet => 'Bado hakuna maoni.';
+
+  @override
+  String get repairsDriveRatings =>
+      'Kushughulikia matengenezo haraka ndicho kichocheo kikubwa zaidi cha ukadiriaji wanaotoa wapangaji.';
+
+  @override
+  String get reviewHiddenFromPublic =>
+      'Imefichwa kwa umma wakati Nyumba inaikagua.';
+
+  @override
+  String get reviewReportedStillVisible =>
+      'Uliripoti maoni haya. Yanabaki yakionekana tunapoyaangalia.';
+
+  @override
+  String get yourPublicReply => 'Jibu lako la hadharani';
+
+  @override
+  String get replyPublicly => 'Jibu hadharani';
+
+  @override
+  String get editReply => 'Hariri jibu';
+
+  @override
+  String get reportLabel => 'Ripoti';
+
+  @override
+  String get replyInPublic => 'Jibu hadharani';
+
+  @override
+  String get replyPersuasionNotice =>
+      'Yeyote atakayesoma maoni haya ataona jibu lako pembeni yake. Jibu tulivu lenye ukweli hushawishi wasomaji wengi zaidi kuliko maoni yenyewe.';
+
+  @override
+  String get yourReplyHint => 'Jibu lako';
+
+  @override
+  String get postReply => 'Tuma jibu';
+
+  @override
+  String get reportThisReview => 'Ripoti maoni haya';
+
+  @override
+  String get reportNotTakedownNotice =>
+      'Nyumba itaiangalia. Maoni yanabaki yakionekana wakati huo — kuripoti si njia ya kuondoa ukosoaji.';
+
+  @override
+  String get reportsDoNotHide => 'Nyumba itaiangalia. Ripoti hazifichi maoni.';
+
+  @override
+  String get sendReport => 'Tuma ripoti';
+
+  @override
+  String get noTenantReviewedYet =>
+      'Hakuna mpangaji aliyemkadiria mwenye nyumba huyu bado.';
+
+  @override
+  String get fromTenantsWhoLivedHere =>
+      'Kutoka kwa wapangaji walioishi kweli katika vyumba vya mwenye nyumba huyu.';
+
+  @override
+  String get noWrittenReviewsYet =>
+      'Bado hakuna maoni yaliyoandikwa — ukadiriaji wa nyota tu.';
+
+  @override
+  String get landlordReplied => 'Mwenye nyumba amejibu';
+
+  @override
+  String get newOnNyumba => 'Mpya kwenye Nyumba';
+
+  @override
+  String get tooFewReviewsYet => 'Maoni bado ni machache mno';
+
+  @override
+  String get moderationQueueLoadFailed =>
+      'Foleni ya usimamizi haikuweza kupakiwa.';
+
+  @override
+  String get nothingAwaitingDecision => 'Hakuna kinachosubiri uamuzi.';
+
+  @override
+  String get keepPublished => 'Iache imechapishwa';
+
+  @override
+  String get hidePendingAppeal => 'Ficha ikisubiri rufaa';
+
+  @override
+  String get decisionKept => 'Imebaki';
+
+  @override
+  String get decisionHidden => 'Imefichwa';
+
+  @override
+  String get decisionRemoved => 'Imeondolewa';
+
+  @override
+  String get decisionWithdrawn => 'Imeondolewa na mwandishi';
+
+  @override
+  String get npsQuestion =>
+      'Una uwezekano gani wa kupendekeza Nyumba kwa mwenye nyumba mwingine?';
+
+  @override
+  String get npsNotLikely => 'Haiwezekani';
+
+  @override
+  String get npsVeryLikely => 'Inawezekana sana';
+
+  @override
+  String get sendLabel => 'Tuma';
+
+  @override
+  String get sendFeedback => 'Tuma maoni';
+
+  @override
+  String get feedbackPrivacyNotice =>
+      'Haya huenda moja kwa moja kwa timu ya Nyumba. Hayachapishwi popote na wapangaji wako hawayaoni.';
+
+  @override
+  String get feedbackCategoryBug => 'Kuna kilichoharibika';
+
+  @override
+  String get feedbackCategoryFeature => 'Nahitaji kipengele';
+
+  @override
+  String get feedbackCategoryEaseOfUse => 'Ngumu kutumia';
+
+  @override
+  String get feedbackCategoryValue => 'Bei na thamani';
+
+  @override
+  String get feedbackCategorySupport => 'Msaada';
+
+  @override
+  String get feedbackHint => 'Nini kilitokea, na ulitarajia nini?';
+
+  @override
+  String get feedbackVersionNotice =>
+      'Toleo la programu yako na aina ya kifaa vimeambatishwa ili tuweze kuiga tatizo.';
+
+  @override
+  String get feedbackLoadFailed => 'Maoni hayakuweza kupakiwa.';
+
+  @override
+  String get noFeedbackYet => 'Bado hakuna maoni yaliyotumwa.';
+
+  @override
+  String get noNpsResponsesYet => 'Bado hakuna majibu ya NPS.';
+
+  @override
+  String get netPromoterScore => 'Alama ya mapendekezo';
+
+  @override
+  String get listYourSpace => 'Orodhesha nafasi yako';
+
+  @override
+  String get forTenants => 'Kwa wapangaji';
+
+  @override
+  String get popularLocations => 'Maeneo maarufu';
+
+  @override
+  String get whyNyumba => 'Kwa nini Nyumba';
+
+  @override
+  String get benefitVerifiedLandlords => 'Wamiliki waliothibitishwa pekee';
+
+  @override
+  String get benefitNoAgentFees =>
+      'Hakuna ada za madalali wala matangazo yaliyokwisha';
+
+  @override
+  String get benefitBrowseOffline => 'Vinjari na uombe nje ya mtandao';
+
+  @override
+  String get benefitPublishInMinutes =>
+      'Chapisha nafasi inayopatikana kwa dakika chache';
+
+  @override
+  String get benefitRoutedEnquiries =>
+      'Maswali yanakufikia bila kushiriki namba yako';
+
+  @override
+  String get benefitOneWorkspace =>
+      'Kodi, ankara, na matengenezo mahali pamoja';
+
+  @override
+  String reviewsSoFarBeforeRating(int count, int minimum) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Maoni $count',
+      one: 'Maoni 1',
+    );
+    return '$_temp0 hadi sasa — ukadiriaji wa nyota huonekana ukifika $minimum.';
+  }
+
+  @override
+  String get trustRealTenantReviews => 'Maoni kutoka kwa wapangaji halisi';
+
+  @override
+  String get benefitRealTenantReviews =>
+      'Ukadiriaji ulioandikwa na walioishi humo';
+
+  @override
+  String get browseAllHomes => 'Vinjari nyumba zote';
+
+  @override
+  String get viewAllHomes => 'Tazama nyumba zote';
+
+  @override
+  String get featuredHomes => 'Nyumba zilizoangaziwa';
+
+  @override
+  String get featuredHomesDescription =>
+      'Baadhi ya nafasi mpya zilizochapishwa na wamiliki waliothibitishwa wa Nyumba.';
+
+  @override
+  String get searchHomesTitle => 'Tafuta nyumba';
+
+  @override
+  String get backToHome => 'Rudi mwanzo';
+
+  @override
+  String get refineYourSearch => 'Boresha utafutaji wako';
+
+  @override
+  String get noHomesListedTitle => 'Hakuna nyumba zilizoorodheshwa kwa sasa';
+
+  @override
+  String get noHomesListedMessage =>
+      'Wamiliki huongeza nafasi mpya mara kwa mara - rudi baadaye.';
 }

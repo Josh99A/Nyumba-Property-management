@@ -63,6 +63,8 @@ dependencies:
   # Used only by the web photo picker, which drives its own <input type="file">
   # rather than file_picker's web backend. See core/presentation/image_picking.
   web: ^1.1.1
+  image: 4.8.0
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:

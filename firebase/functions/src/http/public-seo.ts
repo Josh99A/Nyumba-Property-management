@@ -14,6 +14,16 @@ export interface PublicSeoListing {
   bathrooms?: number;
   amenities: string[];
   imageCount: number;
+  /**
+   * Landlord reputation, denormalized onto the listing by the review pipeline.
+   *
+   * Null average with a non-zero count is a real state, not missing data: the
+   * landlord has reviews but not yet enough for an average to be shown. Both
+   * must survive into the HTML so a crawler and a reader see the same thing the
+   * app does.
+   */
+  ratingAverage?: number;
+  ratingCount?: number;
   publishedAt?: Date;
   updatedAt?: Date;
   expiresAt: Date;
@@ -157,6 +167,14 @@ export function toPublicSeoListing(
   const publishedAt = dateValue(data.publishedAt) ?? undefined;
   const updatedAt = dateValue(data.updatedAt) ?? undefined;
   const imageCount = publicListingImagePaths(documentId, data.imagePaths).length;
+  const ratingCount = nonNegativeInteger(data.ratingCount);
+  const rawAverage = data.ratingAverage;
+  const ratingAverage = typeof rawAverage === 'number'
+    && Number.isFinite(rawAverage)
+    && rawAverage >= 1
+    && rawAverage <= 5
+    ? rawAverage
+    : undefined;
   return {
     id: documentId,
     title,
@@ -171,6 +189,8 @@ export function toPublicSeoListing(
     ...(bathrooms !== undefined ? { bathrooms } : {}),
     amenities: stringList(data.amenities, 50),
     imageCount,
+    ...(ratingAverage !== undefined ? { ratingAverage } : {}),
+    ...(ratingCount !== undefined ? { ratingCount } : {}),
     ...(publishedAt ? { publishedAt } : {}),
     ...(updatedAt ? { updatedAt } : {}),
     expiresAt,
@@ -546,6 +566,15 @@ export function renderListingPage(listing: PublicSeoListing): string {
       }]
       : []),
     { icon: homeIcon, label: type },
+    // Shown only once it is displayable. Below the threshold the count alone
+    // would invite a reader to infer a rating from one or two reviews, which is
+    // exactly what the threshold exists to prevent.
+    ...(listing.ratingAverage !== undefined
+      ? [{
+        icon: homeIcon,
+        label: `${listing.ratingAverage.toFixed(1)} from ${listing.ratingCount ?? 0} tenant review${listing.ratingCount === 1 ? '' : 's'}`,
+      }]
+      : []),
   ];
   const galleryCount = Math.min(listing.imageCount, 3);
   const galleryClass = galleryCount <= 1

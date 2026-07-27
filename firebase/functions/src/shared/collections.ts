@@ -33,6 +33,16 @@ export const COLLECTIONS = {
   tenantPortals: 'tenantPortals',
   clientPortals: 'clientPortals',
   landlordPortals: 'landlordPortals',
+  // Reputation. `landlordReviews` is canonical and carries the reviewer's UID,
+  // so it is admin-only; everything a browser sees comes from the two `public*`
+  // mirrors, which are keyed by the same opaque `landlordToken` the public
+  // listing exposes rather than by the landlord's UID.
+  landlordReviews: 'landlordReviews',
+  landlordRatings: 'landlordRatings',
+  publicReviews: 'publicReviews',
+  publicLandlordRatings: 'publicLandlordRatings',
+  /** Landlord-to-Nyumba product feedback. Never public, never reciprocal. */
+  platformFeedback: 'platformFeedback',
 } as const;
 
 export const TENANT_PORTAL_SECTIONS = {
@@ -43,6 +53,7 @@ export const TENANT_PORTAL_SECTIONS = {
   maintenance: 'maintenance',
   notices: 'notices',
   documents: 'documents',
+  reviews: 'reviews',
 } as const;
 
 export const CLIENT_PORTAL_SECTIONS = {
@@ -53,4 +64,5 @@ export const CLIENT_PORTAL_SECTIONS = {
 export const LANDLORD_PORTAL_SECTIONS = {
   tenancies: 'tenancies',
   payments: 'payments',
+  reviews: 'reviews',
 } as const;

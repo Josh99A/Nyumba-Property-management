@@ -20,6 +20,7 @@ import '../../auth/application/session_controller.dart';
 import '../domain/application.dart';
 import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
+import '../../reviews/presentation/public_reviews_section.dart';
 import 'listing_visuals.dart';
 import 'marketplace_navigation.dart';
 
@@ -33,8 +34,15 @@ class ListingDetailScreen extends ConsumerWidget {
     final listings = ref.watch(publicListingsProvider);
     final session = ref.watch(sessionControllerProvider);
     final navigationAction = marketplaceNavigationAction(session);
+    final listing = _listingIn(listings.value ?? const <Listing>[]);
     return Scaffold(
       backgroundColor: context.nyumba.softIvory,
+      // On a phone the enquiry card sits below a long description, so the
+      // action that brought the visitor here would otherwise be several
+      // screens away from the photos.
+      bottomNavigationBar: context.isCompact && listing != null
+          ? _MobileEnquiryBar(listing: listing)
+          : null,
       appBar: AppBar(
         toolbarHeight: 70,
         backgroundColor: context.nyumba.surface,
@@ -69,15 +77,84 @@ class ListingDetailScreen extends ConsumerWidget {
           ),
         ),
         data: (items) {
-          Listing? listing;
-          for (final item in items) {
-            if (item.id == listingId) listing = item;
-          }
+          final listing = _listingIn(items);
           if (listing == null) {
             return _ListingNotFound(onBack: () => context.go('/explore'));
           }
           return _ListingDetails(listing: listing);
         },
+      ),
+    );
+  }
+
+  Listing? _listingIn(List<Listing> items) {
+    for (final item in items) {
+      if (item.id == listingId) return item;
+    }
+    return null;
+  }
+}
+
+/// Rent and the primary action, pinned to the bottom of the phone layout.
+class _MobileEnquiryBar extends StatelessWidget {
+  const _MobileEnquiryBar({required this.listing});
+
+  final Listing listing;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = appLocalizationsOf(context);
+    final rent = NumberFormat.currency(
+      locale: copy.localeName,
+      name: NyumbaMarket.currencyCode,
+      symbol: NyumbaMarket.currencySymbol,
+      decimalDigits: 0,
+    ).format(listing.monthlyRentMinor ~/ 100);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: context.nyumba.surface,
+        border: BorderDirectional(
+          top: BorderSide(color: context.nyumba.outline),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      copy.monthlyRentDisplay(rent),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: context.nyumba.terracottaDark,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      listingLocationFor(listing),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              AsyncActionButton.filled(
+                onPressed: () => _showApplication(context, listing),
+                showBusyIndicator: false,
+                child: const Text.localized('Apply'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -149,6 +226,15 @@ class _ListingDetails extends StatelessWidget {
                     ],
                   );
                 },
+              ),
+              const SizedBox(height: 26),
+              // Reputation sits below the listing, not beside it: it describes
+              // the landlord across every property they own, while everything
+              // above describes this one home.
+              PublicReviewsSection(
+                landlordToken: listing.publicContactToken ?? '',
+                ratingAverage: listing.ratingAverage,
+                ratingCount: listing.ratingCount,
               ),
             ],
           ),
@@ -223,7 +309,7 @@ class _ListingDescription extends StatelessWidget {
             if (listing.unitType != null)
               _Fact(
                 icon: Icons.apartment_outlined,
-                value: _displayEnum(listing.unitType!),
+                value: listingUnitTypeLabel(listing.unitType!),
               ),
             if (listing.floorAreaSquareMetres != null)
               _Fact(
@@ -379,7 +465,7 @@ class _ListingActions extends StatelessWidget {
             showBusyIndicator: false,
             icon: const Icon(Icons.description_outlined),
             child: Text.localized(
-              'Apply for this ${listing.unitType == null ? 'rental space' : _displayEnum(listing.unitType!).toLowerCase()}',
+              'Apply for this ${listing.unitType == null ? 'rental space' : listingUnitTypeLabel(listing.unitType!).toLowerCase()}',
             ),
           ),
           const SizedBox(height: 10),
@@ -499,16 +585,6 @@ class _DetailRow extends StatelessWidget {
       ),
     );
   }
-}
-
-String _displayEnum(String value) {
-  final spaced = value.replaceAllMapped(
-    RegExp(r'([a-z])([A-Z])'),
-    (match) => '${match.group(1)} ${match.group(2)}',
-  );
-  return spaced.isEmpty
-      ? value
-      : '${spaced[0].toUpperCase()}${spaced.substring(1)}';
 }
 
 class _ListingNotFound extends StatelessWidget {
@@ -660,7 +736,7 @@ class _ApplicationDialogState extends ConsumerState<_ApplicationDialog> {
 
     return AlertDialog(
       title: Text.localized(
-        'Apply for this ${widget.listing.unitType == null ? 'rental space' : _displayEnum(widget.listing.unitType!).toLowerCase()}',
+        'Apply for this ${widget.listing.unitType == null ? 'rental space' : listingUnitTypeLabel(widget.listing.unitType!).toLowerCase()}',
       ),
       content: SizedBox(
         width: 500,

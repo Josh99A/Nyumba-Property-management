@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
 import 'package:nyumba_property_management/core/presentation/action_failure.dart';
 
-Widget _host(Widget child) =>
-    MaterialApp(theme: NyumbaTheme.light, home: Scaffold(body: child));
+Widget _host(Widget child) => MaterialApp(
+  theme: NyumbaTheme.light,
+  home: Scaffold(body: child),
+);
 
 void main() {
   testWidgets('a failure leads with the plain sentence, not the exception', (

@@ -3117,7 +3117,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get propertyPhotoCreateGuidance =>
-      'Add 1–2 photos. The primary photo appears first.';
+      'Add 1–2 photos. Images are resized and compressed before upload, and the primary photo appears first.';
 
   @override
   String propertyPhotoCountGuidance(int count, int maximum) {
@@ -3126,11 +3126,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get propertyPhotoEditGuidance =>
-      'JPEG, PNG, or WebP; up to 5 MB each and 2 photos. The first photo is shown on the property card. Photos remain pending until upload is confirmed.';
+      'JPEG, PNG, or WebP; up to 5 MB each and 2 photos. Images are resized and compressed before upload. The first photo is shown on the property card. Photos remain pending until upload is confirmed.';
 
   @override
   String get listingPhotoGuidance =>
-      'JPEG, PNG, or WebP; up to 5 MB each and 5 photos. The first photo is the cover image. Photos remain pending until upload is confirmed.';
+      'JPEG, PNG, or WebP; up to 5 MB each and 5 photos. Images are resized and compressed before upload. The first photo is the cover image. Photos remain pending until upload is confirmed.';
 
   @override
   String listingPhotoPosition(String current, String total) {
@@ -3268,4 +3268,449 @@ class AppLocalizationsEn extends AppLocalizations {
   String listingAvailableFromDate(String date) {
     return 'Available $date';
   }
+
+  @override
+  String get imageLoading => 'Image loading';
+
+  @override
+  String get imageUnavailable => 'Image unavailable';
+
+  @override
+  String get filtersTitle => 'Filters';
+
+  @override
+  String get clearAllFilters => 'Clear all';
+
+  @override
+  String get sortResults => 'Sort results';
+
+  @override
+  String get removeFilter => 'Remove filter';
+
+  @override
+  String get allUnitTypes => 'All types';
+
+  @override
+  String photoCount(int count) {
+    return '$count photos';
+  }
+
+  @override
+  String showHomesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Show $count homes',
+      one: 'Show 1 home',
+      zero: 'No homes match',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reviewsTitle => 'Reviews';
+
+  @override
+  String get reviewsLandlordDescription =>
+      'Tenants can review you after 30 days in one of your units. Replying in public is usually more persuasive than disputing.';
+
+  @override
+  String get yourReviews => 'Your reviews';
+
+  @override
+  String get yourReviewsDescription =>
+      'Reviews you have written about your landlord. Published reviews appear on their listings without your name.';
+
+  @override
+  String get reviewModeration => 'Review moderation';
+
+  @override
+  String get reviewModerationDescription =>
+      'Reported reviews stay public until a decision is made. Hiding one removes it from the landlord\'s rating; publishing dismisses the report.';
+
+  @override
+  String get recentlyDecided => 'Recently decided';
+
+  @override
+  String get landlordFeedback => 'Landlord feedback';
+
+  @override
+  String get landlordFeedbackDescription =>
+      'Private product feedback from landlords. Never shown publicly and never visible to tenants.';
+
+  @override
+  String get landlordReviews => 'Landlord reviews';
+
+  @override
+  String get feedbackSection => 'Feedback';
+
+  @override
+  String get feedbackSectionDescription =>
+      'Tell the Nyumba team what is working and what is not. This is private — your tenants never see it.';
+
+  @override
+  String get reviewDimResponsiveness => 'Responsiveness';
+
+  @override
+  String get reviewDimMaintenance => 'Repairs and maintenance';
+
+  @override
+  String get reviewDimListingAccuracy => 'Listing was accurate';
+
+  @override
+  String get reviewDimDepositFairness => 'Deposit handled fairly';
+
+  @override
+  String get reviewFlagInaccurate => 'Factually inaccurate';
+
+  @override
+  String get reviewFlagAbusive => 'Abusive or harassing';
+
+  @override
+  String get reviewFlagNotMyTenant => 'Not written by my tenant';
+
+  @override
+  String get reviewFlagPersonalData => 'Contains personal information';
+
+  @override
+  String get reviewFlagSpam => 'Spam or advertising';
+
+  @override
+  String get ratingPoor => 'Poor';
+
+  @override
+  String get ratingBelowExpectations => 'Below expectations';
+
+  @override
+  String get ratingAcceptable => 'Acceptable';
+
+  @override
+  String get ratingGood => 'Good';
+
+  @override
+  String get ratingExcellent => 'Excellent';
+
+  @override
+  String get rateYourLandlord => 'Rate your landlord';
+
+  @override
+  String get editYourReview => 'Edit your review';
+
+  @override
+  String get reviewFormerLandlord => 'Review your former landlord';
+
+  @override
+  String get howWasThatRepair => 'How was that repair handled?';
+
+  @override
+  String get ratingCoversWholeTenancy =>
+      'Your rating covers the whole tenancy, not just this repair.';
+
+  @override
+  String get reviewWindowAfterMoveOut =>
+      'You can review for up to 90 days after moving out.';
+
+  @override
+  String get helpTheNextTenant => 'Help the next tenant know what to expect.';
+
+  @override
+  String get addMoreDetailOptional => 'Add more detail (optional)';
+
+  @override
+  String get whatShouldNextTenantKnow => 'What should the next tenant know?';
+
+  @override
+  String get postReview => 'Post review';
+
+  @override
+  String get notNow => 'Not now';
+
+  @override
+  String get writeAReview => 'Write a review';
+
+  @override
+  String get reviewVisibilityNotice =>
+      'Your name is never shown publicly — readers see \"Verified tenant\". Your landlord will be able to tell the review came from your tenancy, and can reply to it in public. You can edit or remove it for 14 days.';
+
+  @override
+  String get reviewEligibleAfter30Days =>
+      'You can review your landlord after 30 days in your home.';
+
+  @override
+  String get reviewsLoadFailedTenant =>
+      'Your reviews could not be loaded. They are safe — try again when you are back online.';
+
+  @override
+  String get noReviewWrittenYet => 'You have not written a review yet.';
+
+  @override
+  String get useCardAboveWhenReady =>
+      'Use the card above whenever you are ready.';
+
+  @override
+  String get reviewEligibilityExplainer =>
+      'You can review a landlord after 30 days in your home, and for up to 90 days after you move out.';
+
+  @override
+  String get reviewStatusPublished => 'Published';
+
+  @override
+  String get reviewStatusWithdrawnByYou => 'Removed by you';
+
+  @override
+  String get reviewStatusUnderReview => 'Under review';
+
+  @override
+  String get reviewStatusTakenDown => 'Taken down';
+
+  @override
+  String get reviewHiddenNoticeAuthor =>
+      'Nyumba has hidden this review while it is checked. You can still see it here.';
+
+  @override
+  String get replyFromLandlord => 'Reply from the landlord';
+
+  @override
+  String get editLabel => 'Edit';
+
+  @override
+  String get removeLabel => 'Remove';
+
+  @override
+  String get editWindowClosed => 'The 14-day edit window has closed.';
+
+  @override
+  String get reviewsLoadFailed => 'Reviews could not be loaded right now.';
+
+  @override
+  String get noReviewsYet => 'No reviews yet.';
+
+  @override
+  String get repairsDriveRatings =>
+      'Handling repairs quickly is the single biggest driver of the ratings tenants leave.';
+
+  @override
+  String get reviewHiddenFromPublic =>
+      'Hidden from the public while Nyumba checks it.';
+
+  @override
+  String get reviewReportedStillVisible =>
+      'You reported this review. It stays visible while we look at it.';
+
+  @override
+  String get yourPublicReply => 'Your public reply';
+
+  @override
+  String get replyPublicly => 'Reply publicly';
+
+  @override
+  String get editReply => 'Edit reply';
+
+  @override
+  String get reportLabel => 'Report';
+
+  @override
+  String get replyInPublic => 'Reply in public';
+
+  @override
+  String get replyPersuasionNotice =>
+      'Anyone reading this review will see your reply next to it. A calm, factual answer persuades far more readers than the review itself does.';
+
+  @override
+  String get yourReplyHint => 'Your reply';
+
+  @override
+  String get postReply => 'Post reply';
+
+  @override
+  String get reportThisReview => 'Report this review';
+
+  @override
+  String get reportNotTakedownNotice =>
+      'Nyumba will look at it. The review stays visible in the meantime — reporting is not a way to remove criticism.';
+
+  @override
+  String get reportsDoNotHide =>
+      'Nyumba will look at it. Reports do not hide a review.';
+
+  @override
+  String get sendReport => 'Send report';
+
+  @override
+  String get noTenantReviewedYet => 'No tenant has reviewed this landlord yet.';
+
+  @override
+  String get fromTenantsWhoLivedHere =>
+      'From tenants who actually lived in this landlord\'s units.';
+
+  @override
+  String get noWrittenReviewsYet =>
+      'No written reviews yet — only star ratings.';
+
+  @override
+  String get landlordReplied => 'Landlord replied';
+
+  @override
+  String get newOnNyumba => 'New on Nyumba';
+
+  @override
+  String get tooFewReviewsYet => 'Too few reviews yet';
+
+  @override
+  String get moderationQueueLoadFailed =>
+      'The moderation queue could not be loaded.';
+
+  @override
+  String get nothingAwaitingDecision => 'Nothing awaiting a decision.';
+
+  @override
+  String get keepPublished => 'Keep published';
+
+  @override
+  String get hidePendingAppeal => 'Hide pending appeal';
+
+  @override
+  String get decisionKept => 'Kept';
+
+  @override
+  String get decisionHidden => 'Hidden';
+
+  @override
+  String get decisionRemoved => 'Removed';
+
+  @override
+  String get decisionWithdrawn => 'Withdrawn';
+
+  @override
+  String get npsQuestion =>
+      'How likely are you to recommend Nyumba to another landlord?';
+
+  @override
+  String get npsNotLikely => 'Not likely';
+
+  @override
+  String get npsVeryLikely => 'Very likely';
+
+  @override
+  String get sendLabel => 'Send';
+
+  @override
+  String get sendFeedback => 'Send feedback';
+
+  @override
+  String get feedbackPrivacyNotice =>
+      'This goes straight to the Nyumba team. It is not published anywhere and your tenants never see it.';
+
+  @override
+  String get feedbackCategoryBug => 'Something is broken';
+
+  @override
+  String get feedbackCategoryFeature => 'I need a feature';
+
+  @override
+  String get feedbackCategoryEaseOfUse => 'Hard to use';
+
+  @override
+  String get feedbackCategoryValue => 'Pricing and value';
+
+  @override
+  String get feedbackCategorySupport => 'Support';
+
+  @override
+  String get feedbackHint => 'What happened, and what did you expect?';
+
+  @override
+  String get feedbackVersionNotice =>
+      'Your app version and device type are attached so we can reproduce it.';
+
+  @override
+  String get feedbackLoadFailed => 'Feedback could not be loaded.';
+
+  @override
+  String get noFeedbackYet => 'No feedback submitted yet.';
+
+  @override
+  String get noNpsResponsesYet => 'No NPS responses yet.';
+
+  @override
+  String get netPromoterScore => 'Net promoter score';
+
+  @override
+  String get listYourSpace => 'List your space';
+
+  @override
+  String get forTenants => 'For tenants';
+
+  @override
+  String get popularLocations => 'Popular locations';
+
+  @override
+  String get whyNyumba => 'Why Nyumba';
+
+  @override
+  String get benefitVerifiedLandlords => 'Verified, subscribed landlords only';
+
+  @override
+  String get benefitNoAgentFees => 'No agent fees, no dead adverts';
+
+  @override
+  String get benefitBrowseOffline => 'Browse and apply offline';
+
+  @override
+  String get benefitPublishInMinutes => 'Publish an available space in minutes';
+
+  @override
+  String get benefitRoutedEnquiries =>
+      'Enquiries reach you without sharing your number';
+
+  @override
+  String get benefitOneWorkspace =>
+      'Rent, invoices, and maintenance in one place';
+
+  @override
+  String reviewsSoFarBeforeRating(int count, int minimum) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reviews',
+      one: '1 review',
+    );
+    return '$_temp0 so far — a star rating appears at $minimum.';
+  }
+
+  @override
+  String get trustRealTenantReviews => 'Reviews from real tenants';
+
+  @override
+  String get benefitRealTenantReviews =>
+      'Ratings written by people who lived there';
+
+  @override
+  String get browseAllHomes => 'Browse all homes';
+
+  @override
+  String get viewAllHomes => 'View all homes';
+
+  @override
+  String get featuredHomes => 'Featured homes';
+
+  @override
+  String get featuredHomesDescription =>
+      'A few of the newest spaces published by verified Nyumba landlords.';
+
+  @override
+  String get searchHomesTitle => 'Search homes';
+
+  @override
+  String get backToHome => 'Back to home';
+
+  @override
+  String get refineYourSearch => 'Refine your search';
+
+  @override
+  String get noHomesListedTitle => 'No homes are listed right now';
+
+  @override
+  String get noHomesListedMessage =>
+      'Landlords add new rental spaces regularly - check back soon.';
 }

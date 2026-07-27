@@ -27,20 +27,23 @@ class _FixedSessionController extends SessionController {
 
 final _now = DateTime.utc(2026, 7, 20);
 
-Property _property({required String id, required String name, bool archived = false}) =>
-    Property(
-      id: id,
-      landlordId: 'landlord-uid',
-      name: name,
-      addressLine: 'Plot 12 Ntinda Road',
-      city: 'Kampala',
-      country: 'UG',
-      createdAt: _now,
-      updatedAt: _now,
-      isArchived: archived,
-      archivedAt: archived ? _now : null,
-      syncMetadata: const SyncMetadata.synced(serverRevision: '3'),
-    );
+Property _property({
+  required String id,
+  required String name,
+  bool archived = false,
+}) => Property(
+  id: id,
+  landlordId: 'landlord-uid',
+  name: name,
+  addressLine: 'Plot 12 Ntinda Road',
+  city: 'Kampala',
+  country: 'UG',
+  createdAt: _now,
+  updatedAt: _now,
+  isArchived: archived,
+  archivedAt: archived ? _now : null,
+  syncMetadata: const SyncMetadata.synced(serverRevision: '3'),
+);
 
 Unit _unit({
   required String id,

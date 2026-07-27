@@ -112,9 +112,60 @@ describe('public SEO handler', () => {
         'X-Content-Type-Options': 'nosniff',
       }),
     );
-    expect(PUBLIC_SEO_CACHE_CONTROL).toBe(
-      'public, max-age=60, s-maxage=300',
-    );
+    expect(PUBLIC_SEO_CACHE_CONTROL).toBe('public, max-age=60, s-maxage=60');
+  });
+
+  it('marks 404, 410, and media-error responses as not cacheable', async () => {
+    function response() {
+      const res = {
+        end: vi.fn(),
+        redirect: vi.fn(),
+        send: vi.fn(),
+        set: vi.fn(),
+        status: vi.fn(),
+        type: vi.fn(),
+      };
+      res.set.mockReturnValue(res);
+      res.status.mockReturnValue(res);
+      res.type.mockReturnValue(res);
+      return res;
+    }
+
+    async function call(
+      res: ReturnType<typeof response>,
+      request: { method: string; path: string },
+    ) {
+      await (publicSeo as unknown as (
+        request: { method: string; path: string },
+        response: ReturnType<typeof response>,
+      ) => Promise<void>)(request, res);
+    }
+
+    // A listing that does not exist at all.
+    mocks.documentGet.mockResolvedValue({ exists: false });
+    const missing = response();
+    await call(missing, { method: 'GET', path: '/listing/listing_9999' });
+    expect(missing.set).toHaveBeenCalledWith({ 'Cache-Control': 'no-store' });
+    expect(missing.status).toHaveBeenCalledWith(404);
+
+    // A listing that has since expired.
+    mocks.documentGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        ...document(0).data(),
+        expiresAt: new Date('2020-01-01T00:00:00.000Z'),
+      }),
+    });
+    const expired = response();
+    await call(expired, { method: 'GET', path: '/listing/listing_0000' });
+    expect(expired.set).toHaveBeenCalledWith({ 'Cache-Control': 'no-store' });
+    expect(expired.status).toHaveBeenCalledWith(410);
+
+    // An unsupported method.
+    const badMethod = response();
+    await call(badMethod, { method: 'POST', path: '/explore' });
+    expect(badMethod.set).toHaveBeenCalledWith({ 'Cache-Control': 'no-store' });
+    expect(badMethod.status).toHaveBeenCalledWith(405);
   });
 
   it('serves validated active-listing media without exposing its storage path', async () => {

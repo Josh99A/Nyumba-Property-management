@@ -1,11 +1,9 @@
-import 'dart:typed_data';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/config/market_config.dart';
+import '../../core/diagnostics/perf_trace.dart';
 import '../../core/documents/nyumba_document_service.dart';
 import '../../core/offline/offline_database.dart';
 import '../../core/offline/in_memory_sync_gateway.dart';
@@ -21,8 +19,11 @@ import '../../features/documents/data/sembast_lease_document_repository.dart';
 import '../../features/documents/domain/lease_document_repository.dart';
 import '../../features/finance/data/sembast_rent_payment_repository.dart';
 import '../../features/finance/domain/rent_payment_repository.dart';
+import '../../features/feedback/data/sembast_feedback_repository.dart';
 import '../../features/maintenance/data/sembast_maintenance_repository.dart';
 import '../../features/maintenance/domain/maintenance_repository.dart';
+import '../../features/reviews/data/sembast_review_repository.dart';
+import '../../features/reviews/domain/review_repository.dart';
 import '../../features/tenants/data/sembast_tenancy_repository.dart';
 import '../../features/tenants/domain/tenancy_repository.dart';
 import '../../features/notices/data/sembast_notice_repository.dart';
@@ -53,7 +54,15 @@ import '../../features/profile/domain/user_settings_repository.dart';
 import '../bootstrap/local_database_opener.dart';
 import '../bootstrap/resume_sync_trigger.dart';
 
-typedef PropertyMediaLoader = Future<Uint8List?> Function(String reference);
+/// Resolves a storage reference to a URL an image widget can fetch.
+///
+/// Media used to be pulled down as raw bytes through the Storage SDK. That put
+/// every photo outside both the browser's HTTP cache and any on-device disk
+/// cache, so a cold start re-downloaded the whole gallery over mobile data and
+/// the only thing standing between a user and that cost was an in-memory map
+/// that a profile switch discarded. Handing the image layer a URL instead lets
+/// the platform's own caches do their job.
+typedef PropertyMediaUrlResolver = Future<String?> Function(String reference);
 
 class AppDependencies {
   const AppDependencies({
@@ -74,10 +83,12 @@ class AppDependencies {
     required this.notifications,
     required this.subscriptionPlans,
     required this.staff,
+    required this.reviews,
+    required this.feedback,
     this.remotePullCoordinator,
     this.reconnectSyncTrigger,
     this.resumeSyncTrigger,
-    this.propertyMediaLoader,
+    this.propertyMediaUrlResolver,
   });
 
   final OfflineDatabase database;
@@ -97,10 +108,12 @@ class AppDependencies {
   final AppNotificationRepository notifications;
   final SubscriptionPlanRepository subscriptionPlans;
   final StaffRepository staff;
+  final ReviewRepository reviews;
+  final FeedbackRepository feedback;
   final RemotePullCoordinator? remotePullCoordinator;
   final ReconnectSyncTrigger? reconnectSyncTrigger;
   final ResumeSyncTrigger? resumeSyncTrigger;
-  final PropertyMediaLoader? propertyMediaLoader;
+  final PropertyMediaUrlResolver? propertyMediaUrlResolver;
 
   /// Closing quarantines the workspace: the database file and its unsynced
   /// outbox stay on disk untouched for the next sign-in of this account.
@@ -145,62 +158,52 @@ final appDependenciesProvider =
       AppDependenciesController.new,
     );
 
-final propertyMediaLoaderProvider = Provider<PropertyMediaLoader?>((ref) {
+final propertyMediaUrlResolverProvider = Provider<PropertyMediaUrlResolver?>((
+  ref,
+) {
   final dependencies = ref.watch(appDependenciesProvider);
   if (dependencies.isLoading || dependencies.hasError) return null;
-  return dependencies.value?.propertyMediaLoader;
+  return dependencies.value?.propertyMediaUrlResolver;
 });
 
-final _propertyMediaCacheProvider = Provider<_PropertyMediaCache?>((ref) {
-  final loader = ref.watch(propertyMediaLoaderProvider);
-  return loader == null ? null : _PropertyMediaCache(loader);
+final _propertyMediaUrlCacheProvider = Provider<_PropertyMediaUrlCache?>((ref) {
+  final resolver = ref.watch(propertyMediaUrlResolverProvider);
+  return resolver == null ? null : _PropertyMediaUrlCache(resolver);
 });
 
-final propertyMediaBytesProvider = FutureProvider.autoDispose
-    .family<Uint8List?, String>((ref, reference) {
-      final cache = ref.watch(_propertyMediaCacheProvider);
-      return cache == null ? Future<Uint8List?>.value() : cache.load(reference);
+/// The fetchable URL for a storage reference, or null when there is not one.
+final propertyMediaUrlProvider = FutureProvider.autoDispose
+    .family<String?, String>((ref, reference) {
+      final cache = ref.watch(_propertyMediaUrlCacheProvider);
+      return cache == null ? Future<String?>.value() : cache.resolve(reference);
     });
 
-final class _PropertyMediaCache {
-  _PropertyMediaCache(this._loader);
+/// Remembers resolved URLs so a rebuild never re-asks Storage for one.
+///
+/// This holds URL strings rather than image bytes. The bytes themselves are now
+/// cached by the image layer — in memory and, on mobile, on disk across app
+/// launches — which is both far larger and far longer-lived than the 24 MB
+/// in-memory buffer this replaced.
+final class _PropertyMediaUrlCache {
+  _PropertyMediaUrlCache(this._resolver);
 
-  static const _maximumBytes = 24 * 1024 * 1024;
+  final PropertyMediaUrlResolver _resolver;
+  final Map<String, String?> _values = <String, String?>{};
+  final Map<String, Future<String?>> _inFlight = <String, Future<String?>>{};
 
-  final PropertyMediaLoader _loader;
-  final Map<String, Uint8List> _values = <String, Uint8List>{};
-  final Map<String, Future<Uint8List?>> _inFlight =
-      <String, Future<Uint8List?>>{};
-  int _storedBytes = 0;
-
-  Future<Uint8List?> load(String reference) {
-    final cached = _values.remove(reference);
-    if (cached != null) {
-      // A Dart map preserves insertion order; reinserting promotes this entry
-      // to most recently used before the next size-based eviction.
-      _values[reference] = cached;
-      return Future<Uint8List?>.value(cached);
+  Future<String?> resolve(String reference) {
+    if (_values.containsKey(reference)) {
+      return Future<String?>.value(_values[reference]);
     }
     return _inFlight.putIfAbsent(reference, () async {
       try {
-        final bytes = await _loader(reference);
-        if (bytes != null) _store(reference, bytes);
-        return bytes;
+        final url = await _resolver(reference);
+        _values[reference] = url;
+        return url;
       } finally {
         _inFlight.remove(reference);
       }
     });
-  }
-
-  void _store(String reference, Uint8List bytes) {
-    if (bytes.lengthInBytes > _maximumBytes) return;
-    while (_storedBytes + bytes.lengthInBytes > _maximumBytes &&
-        _values.isNotEmpty) {
-      final oldestKey = _values.keys.first;
-      _storedBytes -= _values.remove(oldestKey)!.lengthInBytes;
-    }
-    _values[reference] = bytes;
-    _storedBytes += bytes.lengthInBytes;
   }
 }
 
@@ -368,22 +371,39 @@ Future<AppDependencies> createAppDependencies({
     database: database,
   );
   final staff = SembastStaffRepository(database);
+  final feedback = SembastFeedbackRepository(database: database);
   // Public browsing is unauthenticated but still server-backed: `publicListings`
   // is world-readable, so an anonymous visitor reads the real catalogue.
   final usesFirebase = Firebase.apps.isNotEmpty;
+  // Built here rather than inside the pull block below because the review
+  // repository needs it too: public reviews are fetched per landlord on demand
+  // rather than watched for the workspace lifetime. Null in demo builds, where
+  // the repository falls back to whatever the local mirror already holds.
+  final pullGateway = usesFirebase ? FirestoreRemotePullGateway() : null;
+  final reviews = SembastReviewRepository(
+    database: database,
+    pullGateway: pullGateway,
+  );
   final isAuthenticated = session != null;
   final usesRemoteGateway = usesFirebase && isAuthenticated;
   final gateway = usesRemoteGateway
       ? await FirebaseRemoteSyncGateway.create(actorUid: session.userId)
       : InMemorySyncGateway();
-  final PropertyMediaLoader? propertyMediaLoader = usesFirebase
-      ? (reference) {
+  // Always let Storage mint the URL, including for the public listing prefix.
+  // A hand-built `?alt=media` URL looks equivalent and is not: that endpoint
+  // serves an object only to a request carrying the object's download token or
+  // an SDK call the rules authorise, and a constructed URL has neither — every
+  // such fetch came back 403, so no photo rendered. The round trip this costs
+  // is paid once per distinct reference, because the result is memoised, while
+  // the bytes behind the URL still land in the platform's HTTP and disk caches.
+  final PropertyMediaUrlResolver? propertyMediaUrlResolver = usesFirebase
+      ? (reference) => traceAsync(PerfNames.mediaUrlResolve, () async {
           final storage = FirebaseStorage.instance;
           final object = reference.startsWith('gs://')
               ? storage.refFromURL(reference)
               : storage.ref(reference);
-          return object.getData(NyumbaMarket.maxImageSizeBytes);
-        }
+          return object.getDownloadURL();
+        })
       : null;
   // Connectivity gating and reconnect-triggered flushes only make sense when
   // pushes actually cross the network. The in-memory gateway works offline;
@@ -410,7 +430,7 @@ Future<AppDependencies> createAppDependencies({
   if (usesFirebase) {
     remotePullCoordinator = RemotePullCoordinator(
       database: database,
-      gateway: FirestoreRemotePullGateway(),
+      gateway: pullGateway!,
     );
     remotePullCoordinator.watch(
       OfflineEntityType.publicListing,
@@ -448,6 +468,12 @@ Future<AppDependencies> createAppDependencies({
         OfflineEntityType.property,
         OfflineEntityType.unit,
         OfflineEntityType.listing,
+        // Both are readable unfiltered here because their canonical document
+        // shape *is* what the Dart mapper expects — they were designed that way
+        // rather than reshaped afterwards, which is what excluded the types
+        // named in the comment above.
+        OfflineEntityType.landlordReview,
+        OfflineEntityType.platformFeedback,
       ]) {
         remotePullCoordinator.watch(type, administrativeScope: true);
       }
@@ -479,6 +505,14 @@ Future<AppDependencies> createAppDependencies({
           OfflineEntityType.staffInvite,
           landlordId: session.effectiveWorkspaceId,
         );
+        // Owner-only, and not in `workspacePulls` above because no staff
+        // permission opens it: the reviews section of landlordPortals is closed
+        // to staff in Firestore Rules. A public reply is the owner's voice about
+        // their own reputation, not a delegable workspace task.
+        remotePullCoordinator.watch(
+          OfflineEntityType.landlordReview,
+          landlordId: session.effectiveWorkspaceId,
+        );
       }
       for (final pull in workspacePulls.entries) {
         if (!session.can(pull.value)) continue;
@@ -488,7 +522,25 @@ Future<AppDependencies> createAppDependencies({
         );
       }
     } else if (session.role == AppRole.tenant) {
-      // Deliberately empty. The tenantPortals projections are security
+      // Reviews are the one tenant projection this client can read, and the
+      // reason is worth stating: its Firestore shape and its Dart mapper were
+      // designed together, in one change, with a test on each side pinning the
+      // field list (`reviews-projection.test.ts` and
+      // `landlord_review_mapper_test.dart`). Nothing was reshaped after the
+      // fact, so nothing mismatches.
+      //
+      // It is also the projection a tenant most needs pulled: a review written
+      // on a phone that is later replaced would otherwise be invisible to its
+      // own author, who would then write a second one — except the server keys
+      // reviews by lease and would reject it as a duplicate, leaving them
+      // unable to see or edit what they wrote.
+      remotePullCoordinator.watch(
+        OfflineEntityType.landlordReview,
+        tenantUid: session.userId,
+      );
+
+      // Everything else is still deliberately absent. The tenantPortals
+      // projections are security
       // whitelists over single canonical documents, and none of them carries
       // the shape its Dart mapper demands: MaintenanceRequestMapper requires
       // reference/landlordId/location/reporterName, NoticeMapper requires
@@ -538,9 +590,11 @@ Future<AppDependencies> createAppDependencies({
     notifications: notifications,
     subscriptionPlans: subscriptionPlans,
     staff: staff,
+    reviews: reviews,
+    feedback: feedback,
     remotePullCoordinator: remotePullCoordinator,
     reconnectSyncTrigger: reconnectSyncTrigger,
     resumeSyncTrigger: resumeSyncTrigger,
-    propertyMediaLoader: propertyMediaLoader,
+    propertyMediaUrlResolver: propertyMediaUrlResolver,
   );
 }

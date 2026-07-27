@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -214,10 +214,6 @@ void main() {
     const primary = 'uploads/landlord/command/primary.png';
     const secondary = 'uploads/landlord/command/secondary.png';
     final requested = <String>[];
-    final png = base64Decode(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ'
-      'AAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-    );
     final property = Property(
       id: 'property-1',
       landlordId: 'landlord-1',
@@ -234,10 +230,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          propertyMediaLoaderProvider.overrideWith(
+          propertyMediaUrlResolverProvider.overrideWith(
             (ref) => (reference) async {
               requested.add(reference);
-              return png;
+              return 'https://example.test/${Uri.encodeComponent(reference)}';
             },
           ),
         ],
@@ -256,22 +252,175 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(requested, <String>[primary]);
-    final image = tester.widget<Image>(
+    final image = tester.widget<CachedNetworkImage>(
       find.descendant(
         of: find.byKey(const Key('property-image')),
-        matching: find.byType(Image),
+        matching: find.byType(CachedNetworkImage),
       ),
     );
-    final resized = image.image as ResizeImage;
-    expect(resized.width, 1600);
-    expect(resized.imageProvider, isA<MemoryImage>());
+    expect(
+      image.imageUrl,
+      'https://example.test/${Uri.encodeComponent(primary)}',
+    );
+    // The decode budget, not the source resolution, is what bounds Flutter's
+    // image cache.
+    expect(image.memCacheWidth, 1600);
   });
 
-  testWidgets('Storage media shows a useful image while bytes are loading', (
+  testWidgets('a grid tile asks for the thumbnail delivery copy', (
+    tester,
+  ) async {
+    const full =
+        'private/landlords/l1/properties/p1/0-abcdef0123456789-full.webp';
+    final requested = <String>[];
+    final property = Property(
+      id: 'property-thumb',
+      landlordId: 'landlord-1',
+      name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue',
+      city: 'Kampala',
+      country: 'Uganda',
+      imageUrls: const <String>[full],
+      createdAt: now,
+      updatedAt: now,
+      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          propertyMediaUrlResolverProvider.overrideWith(
+            (ref) => (reference) async {
+              requested.add(reference);
+              return 'https://example.test/${Uri.encodeComponent(reference)}';
+            },
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              height: 160,
+              child: propertyImage(
+                property,
+                cacheWidth: 640,
+                preferThumbnail: true,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(requested, <String>[
+      'private/landlords/l1/properties/p1/0-abcdef0123456789-thumb.webp',
+    ]);
+  });
+
+  testWidgets('every storage reference is resolved through Storage itself', (
+    tester,
+  ) async {
+    // Public listing media is not an exception. A hand-built `?alt=media` URL
+    // for the `public/` prefix carries no download token, and Storage answers
+    // those with 403 — so the public marketplace rendered no photos at all.
+    // Every reference, public or private, must go through the resolver.
+    const publicRef = 'public/listings/listing_1/0-abcdef0123456789-full.webp';
+    final requested = <String>[];
+    final property = Property(
+      id: 'property-public',
+      landlordId: 'landlord-1',
+      name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue',
+      city: 'Kampala',
+      country: 'Uganda',
+      imageUrls: const <String>[publicRef],
+      createdAt: now,
+      updatedAt: now,
+      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          propertyMediaUrlResolverProvider.overrideWith(
+            (ref) => (reference) async {
+              requested.add(reference);
+              return 'https://example.test/tokened';
+            },
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              height: 160,
+              child: propertyImage(property),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(requested, <String>[publicRef]);
+    expect(
+      tester
+          .widget<CachedNetworkImage>(find.byType(CachedNetworkImage))
+          .imageUrl,
+      'https://example.test/tokened',
+    );
+  });
+
+  testWidgets('a staged upload with no thumbnail falls back to itself', (
+    tester,
+  ) async {
+    const staged = 'uploads/landlord/command/primary.png';
+    final requested = <String>[];
+    final property = Property(
+      id: 'property-staged',
+      landlordId: 'landlord-1',
+      name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue',
+      city: 'Kampala',
+      country: 'Uganda',
+      imageUrls: const <String>[staged],
+      createdAt: now,
+      updatedAt: now,
+      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          propertyMediaUrlResolverProvider.overrideWith(
+            (ref) => (reference) async {
+              requested.add(reference);
+              return 'https://example.test/x';
+            },
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              height: 160,
+              child: propertyImage(property, preferThumbnail: true),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(requested, <String>[staged]);
+  });
+
+  testWidgets('Storage media uses neutral loading and unavailable states', (
     tester,
   ) async {
     const primary = 'uploads/landlord/command/primary.png';
-    final pending = Completer<Uint8List?>();
+    final pending = Completer<String?>();
     final property = Property(
       id: 'property-loading',
       landlordId: 'landlord-1',
@@ -288,7 +437,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          propertyMediaLoaderProvider.overrideWith(
+          propertyMediaUrlResolverProvider.overrideWith(
             (ref) =>
                 (_) => pending.future,
           ),
@@ -307,26 +456,23 @@ void main() {
     await tester.pump();
 
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    expect(
-      tester
-          .widgetList<Image>(find.byType(Image))
-          .any((image) => image.image is AssetImage),
-      isTrue,
-    );
+    expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+    expect(find.byType(Image), findsNothing);
 
     pending.complete(null);
     await tester.pumpAndSettle();
+
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.byIcon(Icons.image_not_supported_outlined), findsOneWidget);
+    expect(find.bySemanticsLabel('Image unavailable'), findsOneWidget);
+    expect(find.byType(Image), findsNothing);
   });
 
-  testWidgets('recent Storage bytes survive a brief card removal', (
+  testWidgets('a resolved media URL survives a brief card removal', (
     tester,
   ) async {
     const primary = 'uploads/landlord/command/primary.png';
     final requested = <String>[];
-    final png = base64Decode(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ'
-      'AAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-    );
     final property = Property(
       id: 'property-cache',
       landlordId: 'landlord-1',
@@ -344,10 +490,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          propertyMediaLoaderProvider.overrideWith(
+          propertyMediaUrlResolverProvider.overrideWith(
             (ref) => (reference) async {
               requested.add(reference);
-              return png;
+              return 'https://example.test/${Uri.encodeComponent(reference)}';
             },
           ),
         ],

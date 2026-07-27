@@ -1,5 +1,4 @@
-import 'dart:convert';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -57,10 +56,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          propertyMediaLoaderProvider.overrideWith(
+          propertyMediaUrlResolverProvider.overrideWith(
             (ref) => (value) async {
               requested.add(value);
-              return base64Decode(_onePixelPng);
+              return 'https://example.test/${Uri.encodeComponent(value)}';
             },
           ),
         ],
@@ -80,10 +79,34 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(requested, <String>[primary]);
-    expect(find.byType(Image), findsOneWidget);
-    final image = tester.widget<Image>(find.byType(Image)).image as ResizeImage;
-    expect(image.width, 1600);
-    expect(image.imageProvider, isA<MemoryImage>());
+    final image = tester.widget<CachedNetworkImage>(
+      find.byType(CachedNetworkImage),
+    );
+    expect(
+      image.imageUrl,
+      'https://example.test/${Uri.encodeComponent(primary)}',
+    );
+    expect(image.memCacheWidth, 1600);
+  });
+
+  testWidgets('a missing listing photo never substitutes another home', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            height: 240,
+            child: listingImage(_listing(imageUrls: const <String>[])),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.image_not_supported_outlined), findsOneWidget);
+    expect(find.bySemanticsLabel('Image unavailable'), findsOneWidget);
+    expect(find.byType(Image), findsNothing);
   });
 
   testWidgets('carousel stays directional and overflow-free in Arabic RTL', (

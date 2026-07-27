@@ -22,6 +22,8 @@ import '../../notices/application/notice_providers.dart';
 import '../../notices/domain/notice.dart';
 import '../../tenants/application/tenancy_providers.dart';
 import '../../tenants/domain/tenancy.dart';
+import '../../reviews/application/review_prompt_policy.dart';
+import '../../reviews/presentation/review_prompt.dart';
 import 'widgets/tenant_components.dart';
 
 /// The tenant landing page, derived entirely from this device's records.
@@ -113,6 +115,41 @@ class _NoTenancyHome extends StatelessWidget {
   }
 }
 
+/// Fires the end-of-tenancy prompt once the lease has actually ended.
+///
+/// The natural moment to review a whole tenancy, and the only one at which
+/// deposit handling is knowable. It is also the last time this tenant has any
+/// reason to open the app, so an ask that never happens here is a review lost.
+/// Stateful only to keep it to one attempt per visit.
+class _EndOfTenancyPrompt extends ConsumerStatefulWidget {
+  const _EndOfTenancyPrompt({required this.hasEnded});
+
+  final bool hasEnded;
+
+  @override
+  ConsumerState<_EndOfTenancyPrompt> createState() =>
+      _EndOfTenancyPromptState();
+}
+
+class _EndOfTenancyPromptState extends ConsumerState<_EndOfTenancyPrompt> {
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.hasEnded) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      maybePromptForReview(
+        context,
+        ref,
+        trigger: ReviewPromptTrigger.tenancyEnded,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
 class _TenantHomeLoaded extends ConsumerWidget {
   const _TenantHomeLoaded({
     required this.firstName,
@@ -142,6 +179,7 @@ class _TenantHomeLoaded extends ConsumerWidget {
       title: 'Hello, $firstName',
       description: 'Here is what is happening with your home.',
       children: [
+        _EndOfTenancyPrompt(hasEnded: tenancy.status == TenancyStatus.ended),
         TenantBalanceHero(
           amount: tenancy.balanceMinor ~/ 100,
           dueLabel:
@@ -150,6 +188,10 @@ class _TenantHomeLoaded extends ConsumerWidget {
           paid: paid,
           onPay: () async => context.go('/tenant/payments'),
         ),
+        const SizedBox(height: 18),
+        // The always-available way in. Not gated on prompt history: dismissing
+        // an interruption means "not now", not "hide the feature".
+        const ReviewPromptCard(),
         const SizedBox(height: 18),
         LayoutBuilder(
           builder: (context, constraints) {

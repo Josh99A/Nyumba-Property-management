@@ -6,7 +6,7 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { collection, doc, getDoc, getDocs, limit, query, setDoc, Timestamp, where } from 'firebase/firestore';
-import { getBytes, ref, uploadBytes } from 'firebase/storage';
+import { getBytes, listAll, ref, uploadBytes } from 'firebase/storage';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -31,6 +31,20 @@ beforeEach(async () => {
       setDoc(doc(db, 'publicListings/expired_123'), { status: 'published', expiresAt: past }),
       setDoc(doc(db, 'publicListings/malformed_1'), { status: 'published', expiresAt: '2100-01-01' }),
       setDoc(doc(db, 'properties/landlord_one'), { landlordId: 'landlord_1' }),
+      // Reputation. The canonical review names its author, the two public
+      // mirrors name nobody, and the whole point of the split is that only the
+      // mirrors are reachable without a UID.
+      setDoc(doc(db, 'landlordReviews/lease_1'), {
+        landlordId: 'landlord_1', reviewerUid: 'tenant_1', overall: 4, status: 'published',
+      }),
+      setDoc(doc(db, 'landlordRatings/landlord_1'), { count: 4, average: 4.25 }),
+      setDoc(doc(db, 'publicReviews/lease_1'), {
+        landlordToken: 'token_abc', overall: 4, status: 'published',
+      }),
+      setDoc(doc(db, 'publicLandlordRatings/token_abc'), { count: 4, average: 4.25 }),
+      setDoc(doc(db, 'platformFeedback/feedback_1'), {
+        actorUid: 'landlord_1', kind: 'nps', score: 3,
+      }),
       setDoc(doc(db, 'properties/landlord_two'), { landlordId: 'landlord_2' }),
       setDoc(doc(db, 'payments/payment_one'), { landlordId: 'landlord_1' }),
       setDoc(doc(db, 'staffInvites/invite_1'), {
@@ -194,6 +208,65 @@ describe('Firestore rules matrix', () => {
     await assertFails(getDoc(doc(superAdminDb, 'backendJobs/job_123456')));
   });
 
+  it('exposes reputation only through the anonymous mirrors', async () => {
+    const anonymous = env.unauthenticatedContext().firestore();
+    // A browser must be able to read a published review and a landlord's
+    // aggregate without signing in — anonymous browsing is a supported mode.
+    await assertSucceeds(getDoc(doc(anonymous, 'publicReviews/lease_1')));
+    await assertSucceeds(getDoc(doc(anonymous, 'publicLandlordRatings/token_abc')));
+    // ...but never the canonical review, which names the tenant who wrote it.
+    await assertFails(getDoc(doc(anonymous, 'landlordReviews/lease_1')));
+    // Enumerating every landlord's rating would let anyone build a leaderboard
+    // of the platform's worst-rated landlords keyed by an opaque token they
+    // could then match back to listings.
+    await assertFails(getDocs(query(collection(anonymous, 'publicLandlordRatings'), limit(10))));
+    // The list rule reads `resource.data.status`, which Firestore can only
+    // satisfy when the query itself constrains it — an unconstrained list is
+    // denied outright rather than filtered. This is the same query
+    // `fetchPublicReviews` issues, so the two cannot drift.
+    const publishedFor = (token: string, rows: number) => query(
+      collection(anonymous, 'publicReviews'),
+      where('status', '==', 'published'),
+      where('landlordToken', '==', token),
+      limit(rows),
+    );
+    await assertSucceeds(getDocs(publishedFor('token_abc', 50)));
+    // Rules cap the page at 50 so no single read can drain the corpus.
+    await assertFails(getDocs(publishedFor('token_abc', 51)));
+    await assertFails(getDocs(query(collection(anonymous, 'publicReviews'), limit(10))));
+
+    // A landlord sees their own totals — including below the public display
+    // threshold, so a rating never appears on their listings unannounced.
+    const landlordDb = env.authenticatedContext('landlord_1').firestore();
+    await assertSucceeds(getDoc(doc(landlordDb, 'landlordRatings/landlord_1')));
+    // The canonical review stays closed even to its subject: they read their
+    // copy from landlordPortals, which withholds the reviewer's UID.
+    await assertFails(getDoc(doc(landlordDb, 'landlordReviews/lease_1')));
+    await assertFails(getDoc(doc(env.authenticatedContext('landlord_2').firestore(), 'landlordRatings/landlord_1')));
+
+    // No client may write any of it, including the review's own author.
+    const tenantDb = env.authenticatedContext('tenant_1').firestore();
+    for (const path of [
+      'landlordReviews/lease_1',
+      'landlordRatings/landlord_1',
+      'publicReviews/lease_1',
+      'publicLandlordRatings/token_abc',
+    ]) {
+      await assertFails(setDoc(doc(tenantDb, path), { overall: 5 }));
+    }
+
+    const adminDb = env.authenticatedContext('admin_123', { platformAdmin: true }).firestore();
+    await assertSucceeds(getDoc(doc(adminDb, 'landlordReviews/lease_1')));
+  });
+
+  it('keeps landlord feedback private to the platform team', async () => {
+    // Not even the author reads it back: nothing in the app renders it, and a
+    // readable path would make one landlord's complaints enumerable by another.
+    await assertFails(getDoc(doc(env.authenticatedContext('landlord_1').firestore(), 'platformFeedback/feedback_1')));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'platformFeedback/feedback_1')));
+    await assertSucceeds(getDoc(doc(env.authenticatedContext('admin_123', { platformAdmin: true }).firestore(), 'platformFeedback/feedback_1')));
+  });
+
   it('allows both administrator claims to read canonical private media', async () => {
     const path = 'private/landlords/landlord_1/document.pdf';
     const adminStorage = env.authenticatedContext('admin_123', { platformAdmin: true }).storage();
@@ -203,5 +276,32 @@ describe('Firestore rules matrix', () => {
     await assertSucceeds(getBytes(ref(adminStorage, path)));
     await assertSucceeds(getBytes(ref(superAdminStorage, path)));
     await assertFails(getBytes(ref(tenantStorage, path)));
+  });
+
+  it('allows anonymous get on public listing media, published or stale, but denies anonymous list', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await Promise.all([
+        uploadBytes(
+          ref(context.storage(), 'public/listings/published_1/photo.jpg'),
+          new Uint8Array([1, 2, 3]),
+          { contentType: 'image/jpeg' },
+        ),
+        // `expired_123` matches the seeded Firestore doc whose expiresAt is in
+        // the past: the rule does not check Firestore at all, so a stale
+        // object is gettable until the cleanup sweep deletes it — that is the
+        // documented, intentional gap. What must not be true is that it can
+        // also be enumerated.
+        uploadBytes(
+          ref(context.storage(), 'public/listings/expired_123/photo.jpg'),
+          new Uint8Array([1, 2, 3]),
+          { contentType: 'image/jpeg' },
+        ),
+      ]);
+    });
+
+    const anonymousStorage = env.unauthenticatedContext().storage();
+    await assertSucceeds(getBytes(ref(anonymousStorage, 'public/listings/published_1/photo.jpg')));
+    await assertSucceeds(getBytes(ref(anonymousStorage, 'public/listings/expired_123/photo.jpg')));
+    await assertFails(listAll(ref(anonymousStorage, 'public/listings/published_1')));
   });
 });

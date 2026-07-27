@@ -54,6 +54,122 @@ const TENANT_NOTICE_FIELDS = [
   'title', 'body', 'publishState', 'publishedAt',
 ] as const;
 
+/**
+ * Review read models.
+ *
+ * Unlike the whitelists above these are *shaped*, not merely filtered: the
+ * canonical review stores raw dimension scores while every reader wants them as
+ * a map, and the public copy must carry no identity at all. Building them by
+ * hand is what lets the tenant, landlord, and anonymous views diverge without
+ * three near-identical field lists drifting apart.
+ *
+ * The field names are the Flutter client's, not Firestore's, and they are
+ * load-bearing — `LandlordReviewMapper.fromJson` reads exactly these. A rename
+ * on either side is a FormatException on a screen far from the change, which is
+ * how every earlier tenant projection failed. `reviews_projection.test.ts`
+ * pins the contract.
+ */
+export interface ReviewDimensionScores {
+  responsiveness: number | null;
+  maintenance: number | null;
+  listingAccuracy: number | null;
+  depositFairness: number | null;
+}
+
+export interface ReviewRecord extends Record<string, unknown> {
+  id: string;
+  version: number;
+  landlordId: string;
+  reviewerUid: string;
+  propertyName: string;
+  unitLabel: string;
+  overall: number;
+  dimensions: ReviewDimensionScores;
+  body: string | null;
+  status: 'published' | 'withdrawn' | 'hidden' | 'removed';
+  flagState: 'none' | 'pending' | 'upheld' | 'dismissed';
+  landlordResponse: string | null;
+  respondedAt: unknown;
+  editableUntil: unknown;
+  stayMonths: number;
+  createdAt: unknown;
+  updatedAt: unknown;
+  isDeleted: boolean;
+}
+
+const REVIEW_SHARED_FIELDS = (review: ReviewRecord) => ({
+  id: review.id,
+  version: review.version,
+  overall: review.overall,
+  responsiveness: review.dimensions.responsiveness,
+  maintenance: review.dimensions.maintenance,
+  listingAccuracy: review.dimensions.listingAccuracy,
+  depositFairness: review.dimensions.depositFairness,
+  body: review.body,
+  status: review.status,
+  landlordResponse: review.landlordResponse,
+  respondedAt: review.respondedAt ?? null,
+  stayMonths: review.stayMonths,
+  createdAt: review.createdAt,
+  updatedAt: review.updatedAt,
+});
+
+/**
+ * The author's own copy.
+ *
+ * Carries `editableUntil` and the moderation state because a tenant is entitled
+ * to know their review was hidden and until when they may still change it —
+ * a review that silently vanishes is worse than one that was never accepted.
+ */
+export const tenantReviewProjection = (review: ReviewRecord) => ({
+  ...REVIEW_SHARED_FIELDS(review),
+  landlordId: review.landlordId,
+  propertyName: review.propertyName,
+  unitLabel: review.unitLabel,
+  reviewerLabel: 'You',
+  editableUntil: review.editableUntil,
+  flagState: review.flagState,
+  isDeleted: review.isDeleted,
+});
+
+/**
+ * The reviewed landlord's copy.
+ *
+ * Deliberately names the property and unit. A review is keyed by one of the
+ * landlord's own leases, so pretending they cannot tell who wrote it would be
+ * theatre; the anonymity this system offers is toward the *public*, and the
+ * composer tells the tenant exactly that before they submit.
+ */
+export const landlordReviewProjection = (review: ReviewRecord) => ({
+  ...REVIEW_SHARED_FIELDS(review),
+  landlordId: review.landlordId,
+  propertyName: review.propertyName,
+  unitLabel: review.unitLabel,
+  reviewerLabel: `Tenant of ${review.unitLabel}`,
+  editableUntil: null,
+  flagState: review.flagState,
+  isDeleted: review.isDeleted,
+});
+
+/**
+ * The anonymous copy.
+ *
+ * No UID, no name, no unit — a unit label on a four-unit property identifies
+ * the author outright. `stayMonths` is the only provenance a reader gets, and
+ * it is the one that matters: it says the reviewer actually lived there.
+ */
+export const publicReviewProjection = (review: ReviewRecord, landlordToken: string) => ({
+  ...REVIEW_SHARED_FIELDS(review),
+  landlordToken,
+  propertyName: review.propertyName,
+  unitLabel: '',
+  reviewerLabel: 'Verified tenant',
+  landlordId: landlordToken,
+  editableUntil: null,
+  flagState: 'none',
+  isDeleted: review.isDeleted,
+});
+
 const CLIENT_APPLICATION_FIELDS = [
   ...AGGREGATE_FIELDS,
   'listingId', 'displayName', 'email', 'phone', 'message', 'answers',
