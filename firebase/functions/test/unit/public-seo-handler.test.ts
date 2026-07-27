@@ -166,6 +166,20 @@ describe('public SEO handler', () => {
     await call(badMethod, { method: 'POST', path: '/explore' });
     expect(badMethod.set).toHaveBeenCalledWith({ 'Cache-Control': 'no-store' });
     expect(badMethod.status).toHaveBeenCalledWith(405);
+
+    // An active listing whose stored image metadata cannot be read.
+    mocks.documentGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        ...document(0).data(),
+        imagePaths: ['public/listings/listing_0000/0_living-room.png'],
+      }),
+    });
+    mocks.getMetadata.mockRejectedValue(new Error('object not found'));
+    const mediaError = response();
+    await call(mediaError, { method: 'GET', path: '/listing/listing_0000/media/0' });
+    expect(mediaError.set).toHaveBeenCalledWith({ 'Cache-Control': 'no-store' });
+    expect(mediaError.status).toHaveBeenCalledWith(404);
   });
 
   it('serves validated active-listing media without exposing its storage path', async () => {
