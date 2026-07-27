@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image_lib;
 import 'package:nyumba_property_management/core/presentation/image_picking.dart';
 
 const int _fiveMegabytes = 5 * 1024 * 1024;
@@ -117,5 +118,49 @@ void main() {
     expect(decodePhotoDataUri(image.dataUri), orderedEquals(original));
     expect(decodePhotoDataUri('https://example.com/home.png'), isNull);
     expect(decodePhotoDataUri('data:image/png;base64,not-base64'), isNull);
+  });
+
+  test(
+    'selected photos are bounded, recompressed, and stripped before upload',
+    () async {
+      final source = image_lib.Image(width: 2400, height: 1800)
+        ..textData = <String, String>{'Comment': 'private source metadata'};
+      final original = PickedImage(
+        name: 'large-home.png',
+        mimeType: 'image/png',
+        bytes: image_lib.encodePng(source),
+      );
+
+      final optimized = await optimizePickedImage(original);
+
+      expect(optimized, isNotNull);
+      expect(optimized!.name, 'large-home.jpg');
+      expect(optimized.mimeType, 'image/jpeg');
+      expect(optimized.bytes, hasLength(lessThan(_fiveMegabytes)));
+      final decoded = image_lib.decodeJpg(optimized.bytes);
+      expect(decoded, isNotNull);
+      expect(decoded!.width, 1920);
+      expect(decoded.height, 1440);
+      expect(decoded.exif.isEmpty, isTrue);
+      expect(decoded.textData, isNull);
+    },
+  );
+
+  test('an invalid image body is rejected during optimization', () async {
+    final outcome = await optimizePickedImages(
+      ImagePickOutcome(
+        images: [
+          PickedImage(
+            name: 'fake.png',
+            mimeType: 'image/png',
+            bytes: Uint8List.fromList(<int>[1, 2, 3]),
+          ),
+        ],
+      ),
+      maxBytes: _fiveMegabytes,
+    );
+
+    expect(outcome.images, isEmpty);
+    expect(outcome.problems.single, contains('"fake.png"'));
   });
 }

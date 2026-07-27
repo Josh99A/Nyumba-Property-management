@@ -37,14 +37,25 @@ service firebase.storage {
         && (validImageUpload() || validDocumentUpload());
     }
 
-    function publicListingIsReadable(listingId) {
-      let listing = firestore.get(
-        /databases/(default)/documents/publicListings/$(listingId)
-      );
-      return listing.data.status == 'published'
-        && listing.data.expiresAt is timestamp
-        && listing.data.expiresAt > request.time;
-    }
+    // Retiring a listing's media is a deletion, not a rule decision.
+    //
+    // This prefix used to be gated on a firestore.get of the listing's public
+    // projection. That cost a billed document read and its latency on *every
+    // image request* — fifty on a single marketplace page — in the critical
+    // path of first paint, and it could not be cached. It also could not
+    // enforce much: the delivery objects are served with a one-year immutable
+    // lifetime, so once a client or CDN has a photo the rule is never consulted
+    // again for it.
+    //
+    // Every route that retires a listing already enqueues `cleanupListingMedia`,
+    // which deletes this whole prefix: unpublish, purge, expiry sweep, listing
+    // retirement, and landlord suspension. Deleted objects are unreadable by
+    // anyone, which is a stronger guarantee than a rule a cache can skip.
+    //
+    // The residual exposure is the gap between a listing ceasing to be public
+    // and its cleanup job running — at most one hourly expiry sweep — during
+    // which someone already holding the exact object URL could refetch a photo
+    // that was, until then, deliberately published to a public marketplace.
 
     // Two-phase user staging area. A function validates checksum/type/ownership
     // and moves/copies accepted objects into a canonical private/public path.
@@ -57,7 +68,7 @@ service firebase.storage {
     // Server-projected listing assets. Uploading to staging never makes a file
     // public; publication must also create the Firestore public projection.
     match /public/listings/{listingId}/{allPaths=**} {
-      allow read: if publicListingIsReadable(listingId);
+      allow read: if true;
       allow write: if false;
     }
 

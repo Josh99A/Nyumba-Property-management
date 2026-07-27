@@ -133,8 +133,10 @@ void main() {
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.text('Save payment'), findsOneWidget);
-      expect(tester.widget<FilledButton>(find.byType(FilledButton)).enabled,
-          isFalse);
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).enabled,
+        isFalse,
+      );
 
       completer.complete();
       await tester.pumpAndSettle();
@@ -184,9 +186,8 @@ void main() {
       final completer = Completer<void>();
       await pumpButton(tester, onPressed: () => completer.future);
 
-      double currentScale() => tester
-          .widget<AnimatedScale>(find.byType(AnimatedScale))
-          .scale;
+      double currentScale() =>
+          tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale;
 
       expect(currentScale(), 1);
 
@@ -205,11 +206,7 @@ void main() {
     testWidgets('skips the press animation under reduced motion', (
       tester,
     ) async {
-      await pumpButton(
-        tester,
-        onPressed: () async {},
-        disableAnimations: true,
-      );
+      await pumpButton(tester, onPressed: () async {}, disableAnimations: true);
       expect(find.byType(AnimatedScale), findsNothing);
     });
 

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nyumba_property_management/core/diagnostics/perf_trace.dart';
 import 'package:nyumba_property_management/core/domain/domain_exception.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
@@ -324,6 +325,163 @@ void main() {
       expect(await second.outboxCount(), 0);
     },
   );
+
+  group('batched remote merge', () {
+    test('a whole snapshot commits in one transaction', () async {
+      PerfCounters.reset();
+
+      final results = await database.mergeRemoteEntities(<RemoteEntityMerge>[
+        for (var index = 0; index < 50; index++)
+          RemoteEntityMerge(
+            entityType: OfflineEntityType.property,
+            entityId: 'property-$index',
+            entity: <String, Object?>{
+              'id': 'property-$index',
+              'name': 'Server $index',
+              'version': 1,
+            },
+          ),
+      ]);
+
+      expect(results, hasLength(50));
+      expect(results, everyElement(RemoteMergeResult.applied));
+      expect(
+        PerfCounters.countOf(PerfNames.remoteMergeRecord),
+        50,
+        reason: 'every record is still considered',
+      );
+      expect(
+        PerfCounters.countOf(PerfNames.remoteMergeTransaction),
+        1,
+        reason: 'fifty records must not open fifty transactions',
+      );
+    });
+
+    test('a snapshot emits to watchers once, not once per record', () async {
+      final emissions = <int>[];
+      final subscription = database
+          .watchEntities(OfflineEntityType.property)
+          .listen((items) => emissions.add(items.length));
+      addTearDown(subscription.cancel);
+      // Let the initial (empty) emission land before merging.
+      await Future<void>.delayed(Duration.zero);
+      emissions.clear();
+
+      await database.mergeRemoteEntities(<RemoteEntityMerge>[
+        for (var index = 0; index < 20; index++)
+          RemoteEntityMerge(
+            entityType: OfflineEntityType.property,
+            entityId: 'property-$index',
+            entity: <String, Object?>{
+              'id': 'property-$index',
+              'name': 'Server $index',
+              'version': 1,
+            },
+          ),
+      ]);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(
+        emissions,
+        [20],
+        reason:
+            'one commit must produce one emission carrying every record, not '
+            'twenty partial rebuilds',
+      );
+    });
+
+    test(
+      'local pending edits still win over a batched server record',
+      () async {
+        await database.putEntityAndEnqueue(
+          entityType: OfflineEntityType.property,
+          entityId: 'property-1',
+          entity: _entityJson(id: 'property-1', name: 'Local edit'),
+          mutationId: 'property-update',
+          operation: OutboxOperation.update,
+          createdAt: now,
+        );
+
+        final results = await database.mergeRemoteEntities(<RemoteEntityMerge>[
+          RemoteEntityMerge(
+            entityType: OfflineEntityType.property,
+            entityId: 'property-1',
+            entity: <String, Object?>{
+              'id': 'property-1',
+              'name': 'Server wins?',
+              'version': 7,
+            },
+          ),
+          RemoteEntityMerge(
+            entityType: OfflineEntityType.property,
+            entityId: 'property-2',
+            entity: <String, Object?>{
+              'id': 'property-2',
+              'name': 'Untouched locally',
+              'version': 1,
+            },
+          ),
+        ]);
+
+        expect(results.first, RemoteMergeResult.conflicted);
+        expect(results.last, RemoteMergeResult.applied);
+        final held = await database.readEntity(
+          OfflineEntityType.property,
+          'property-1',
+        );
+        expect(held?['name'], 'Local edit');
+      },
+    );
+
+    test('one unmergeable record does not sink the rest of the batch', () async {
+      // A corrupt `syncMetadata` on the stored record throws while merging it.
+      await database.mergeRemoteEntities(<RemoteEntityMerge>[
+        RemoteEntityMerge(
+          entityType: OfflineEntityType.property,
+          entityId: 'corrupt',
+          entity: <String, Object?>{
+            'id': 'corrupt',
+            'name': 'Corrupt',
+            'version': 3,
+            'syncMetadata': 'not-a-map',
+          },
+        ),
+      ]);
+
+      final results = await database.mergeRemoteEntities(<RemoteEntityMerge>[
+        RemoteEntityMerge(
+          entityType: OfflineEntityType.property,
+          entityId: 'corrupt',
+          entity: <String, Object?>{
+            'id': 'corrupt',
+            'name': 'Corrupt again',
+            'version': 2,
+          },
+        ),
+        RemoteEntityMerge(
+          entityType: OfflineEntityType.property,
+          entityId: 'healthy',
+          entity: <String, Object?>{
+            'id': 'healthy',
+            'name': 'Healthy',
+            'version': 1,
+          },
+        ),
+      ]);
+
+      expect(results.last, RemoteMergeResult.applied);
+      expect(
+        await database.readEntity(OfflineEntityType.property, 'healthy'),
+        containsPair('name', 'Healthy'),
+      );
+    });
+
+    test('an empty snapshot opens no transaction at all', () async {
+      PerfCounters.reset();
+      expect(await database.mergeRemoteEntities(const []), isEmpty);
+      expect(PerfCounters.countOf(PerfNames.remoteMergeTransaction), 0);
+    });
+  });
 }
 
 Map<String, Object?> _entityJson({required String id, required String name}) =>

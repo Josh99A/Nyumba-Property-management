@@ -56,3 +56,16 @@ export function hashCanonicalCommand(command: {
   };
   return createHash('sha256').update(canonicalJson(body), 'utf8').digest('hex');
 }
+
+/**
+ * The opaque handle standing in for a landlord's UID on every public surface.
+ *
+ * Public listings never expose the owning UID, so the reputation mirrors
+ * (`publicReviews`, `publicLandlordRatings`) have to be keyed by the same
+ * derivation or a browser could not join a listing to its ratings — and keying
+ * them by UID instead would hand out the very identifier the listing
+ * projection exists to withhold. Deterministic, so no lookup is ever needed.
+ */
+export function landlordPublicToken(landlordId: string): string {
+  return createHash('sha256').update(landlordId).digest('hex').slice(0, 24);
+}

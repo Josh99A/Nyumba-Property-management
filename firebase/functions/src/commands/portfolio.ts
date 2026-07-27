@@ -1,3 +1,4 @@
+import type { Firestore, Timestamp, Transaction } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import { loadActiveLandlordContext, requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
@@ -5,6 +6,7 @@ import { COLLECTIONS } from '../shared/collections';
 import { COUNTRY, CURRENCY, MAX_PROPERTY_PHOTOS } from '../shared/config';
 import { DomainError } from '../shared/errors';
 import {
+  createJob,
   idSchema,
   longText,
   nonNegativeMoney,
@@ -34,6 +36,30 @@ function validateStagedPaths(uid: string, paths: string[]): void {
   }
 }
 
+/**
+ * Queues the delivery copies for a property's photos.
+ *
+ * Enqueued only when the command actually carried photos: an edit that renamed
+ * a property must not re-render media that has not changed. Clearing the photos
+ * enqueues a cleanup instead, so the delivery prefix never outlives the
+ * originals it was derived from.
+ */
+function enqueuePropertyMedia(
+  tx: Transaction,
+  db: Firestore,
+  commandId: string,
+  propertyId: string,
+  landlordId: string,
+  stagedImagePaths: string[],
+  now: Timestamp,
+): void {
+  if (stagedImagePaths.length === 0) {
+    createJob(tx, db, `${commandId}_media_cleanup`, 'cleanupPropertyMedia', { propertyId, landlordId }, now);
+    return;
+  }
+  createJob(tx, db, `${commandId}_media`, 'publishPropertyMedia', { propertyId, landlordId, stagedImagePaths }, now);
+}
+
 export const propertyCreate: CommandHandler<z.infer<typeof propertyCreateSchema>> = {
   payloadSchema: propertyCreateSchema,
   aggregateIdMode: 'required',
@@ -57,6 +83,7 @@ export const propertyCreate: CommandHandler<z.infer<typeof propertyCreateSchema>
       country: COUNTRY,
       ...propertyFields,
     });
+    enqueuePropertyMedia(tx, db, cmd.commandId, cmd.aggregateId!, landlord.landlordId, cmd.payload.stagedImagePaths ?? [], now);
     return {
       status: 'applied',
       aggregateId: cmd.aggregateId!,
@@ -92,6 +119,17 @@ export const propertyUpdate: CommandHandler<z.infer<typeof propertyUpdateSchema>
     }
     const changes = Object.fromEntries(Object.entries(cmd.payload).filter(([, value]) => value !== undefined));
     tx.update(ref, { ...changes, ...bumpVersion(current, now) });
+    if (cmd.payload.stagedImagePaths) {
+      enqueuePropertyMedia(
+        tx,
+        db,
+        cmd.commandId,
+        cmd.aggregateId!,
+        String(current.landlordId),
+        cmd.payload.stagedImagePaths,
+        now,
+      );
+    }
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: current.version + 1, changedFields: Object.keys(changes) };
   },
 };

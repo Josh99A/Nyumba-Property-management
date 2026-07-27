@@ -41,6 +41,12 @@ const _expectedCommands = <(OfflineEntityType, OutboxOperation), String>{
   (OfflineEntityType.notice, OutboxOperation.create): 'notice.publish',
   (OfflineEntityType.notification, OutboxOperation.update):
       'notification.markRead',
+  // `update` is deliberately absent: a review carries five different edits and
+  // the operation alone cannot name which, so it dispatches on a payload
+  // discriminator instead. The pinned cases are further down.
+  (OfflineEntityType.landlordReview, OutboxOperation.create): 'review.submit',
+  (OfflineEntityType.platformFeedback, OutboxOperation.create):
+      'feedback.submit',
 };
 
 /// Aggregates that never enqueue, so the gateway is never asked about them.
@@ -74,6 +80,9 @@ const _neverEnqueued = <OfflineEntityType, String>{
       'Server-owned staff access projection. Only staff commands can write it.',
   OfflineEntityType.planCatalog:
       'Published server-owned entitlements. Clients only pull this catalogue.',
+  OfflineEntityType.publicReview:
+      'The anonymous mirror of a review. Written only by the review commands '
+      'on the server; the client fetches it per landlord and never authors one.',
 };
 
 RemoteMutation _mutationFor(
@@ -465,6 +474,112 @@ void main() {
       } on RemoteSyncException catch (error) {
         expect(error.retryable, isFalse);
       }
+    });
+
+    // A review can change in five ways but the outbox has five generic
+    // operations shared across every aggregate, so `update` alone cannot say
+    // which command is meant. The repository stamps `pendingAction` and the
+    // gateway reads it back. Getting this wrong sends, say, a withdrawal to
+    // review.respond, which fails zod server-side and dies permanentlyFailed —
+    // invisible to the tenant who thought they had removed their review.
+    test('a review edit dispatches on its pending action', () {
+      Map<String, Object?> envelopeFor(Map<String, Object?> extra) =>
+          gateway.buildEnvelope(
+            _mutationFor(
+              OfflineEntityType.landlordReview,
+              OutboxOperation.update,
+              payload: <String, Object?>{'_expectedVersion': 3, ...extra},
+            ),
+          );
+
+      expect(
+        envelopeFor(<String, Object?>{
+          'pendingAction': 'edit',
+          'overall': 4,
+          'responsiveness': 5,
+          'body': '  Repairs were quick.  ',
+        }),
+        containsPair('type', 'review.update'),
+      );
+      expect(
+        envelopeFor(<String, Object?>{
+          'pendingAction': 'edit',
+          'overall': 4,
+          'responsiveness': 5,
+          'body': '  Repairs were quick.  ',
+        })['payload'],
+        const <String, Object?>{
+          'overall': 4,
+          'responsiveness': 5,
+          // Trimmed at the boundary so whitespace never reaches longText.
+          'body': 'Repairs were quick.',
+        },
+      );
+
+      expect(
+        envelopeFor(const <String, Object?>{'pendingAction': 'withdraw'}),
+        containsPair('type', 'review.withdraw'),
+      );
+      expect(
+        envelopeFor(const <String, Object?>{
+          'pendingAction': 'respond',
+          'landlordResponse': 'We replaced the tap the same week.',
+        }),
+        containsPair('type', 'review.respond'),
+      );
+      expect(
+        envelopeFor(const <String, Object?>{
+          'pendingAction': 'flag',
+          'flagReasonCode': 'notMyTenant',
+        }),
+        containsPair('type', 'review.flag'),
+      );
+      // A reader's report and a landlord's flag carry the same payload but are
+      // different commands: only the landlord's is authorized by ownership.
+      expect(
+        envelopeFor(const <String, Object?>{
+          'pendingAction': 'report',
+          'flagReasonCode': 'abusive',
+        }),
+        containsPair('type', 'review.report'),
+      );
+      expect(
+        envelopeFor(const <String, Object?>{
+          'pendingAction': 'moderate',
+          'moderationDecision': 'hide',
+        }),
+        containsPair('type', 'review.moderate'),
+      );
+    });
+
+    test('a review edit with no pending action fails without retrying', () {
+      // Non-retryable on purpose: no amount of retrying supplies the missing
+      // discriminator, and eight attempts would just delay the failure.
+      try {
+        gateway.buildEnvelope(
+          _mutationFor(
+            OfflineEntityType.landlordReview,
+            OutboxOperation.update,
+          ),
+        );
+        fail('Expected a review update with no action to throw.');
+      } on RemoteSyncException catch (error) {
+        expect(error.retryable, isFalse);
+      }
+    });
+
+    test('an empty review body is omitted rather than sent blank', () {
+      // `longText` rejects an empty string, so a star-only review must send no
+      // body key at all instead of ''.
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.landlordReview,
+          OutboxOperation.create,
+          payload: const <String, Object?>{'overall': 5, 'body': '   '},
+        ),
+      );
+      expect(envelope['type'], 'review.submit');
+      expect(envelope['payload'], const <String, Object?>{'overall': 5});
     });
   });
 }

@@ -26,7 +26,11 @@ import '../features/marketplace/presentation/listing_detail_screen.dart';
 import '../features/marketplace/presentation/public_listings_screen.dart';
 import '../features/portfolio/presentation/properties_screen.dart';
 import '../features/portfolio/presentation/property_detail_screen.dart';
+import '../features/admin/presentation/admin_feedback_screen.dart';
+import '../features/admin/presentation/admin_reviews_screen.dart';
 import '../features/profile/presentation/profile_settings_screen.dart';
+import '../features/reviews/presentation/landlord_reviews_screen.dart';
+import '../features/reviews/presentation/tenant_reviews_screen.dart';
 import '../features/staff/presentation/team_screen.dart';
 import '../features/subscriptions/presentation/landlord_subscription_screen.dart';
 import '../features/tenant_portal/presentation/tenant_documents_screen.dart';
@@ -187,6 +191,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 _transitionPage(state: state, child: const DocumentsScreen()),
           ),
           GoRoute(
+            path: '/reviews',
+            pageBuilder: (context, state) => _transitionPage(
+              state: state,
+              child: const LandlordReviewsScreen(),
+            ),
+          ),
+          GoRoute(
             path: '/team',
             pageBuilder: (context, state) =>
                 _transitionPage(state: state, child: const TeamScreen()),
@@ -222,6 +233,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 pageBuilder: (context, state) => _transitionPage(
                   state: state,
                   child: const TenantDocumentsScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'reviews',
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const TenantReviewsScreen(),
                 ),
               ),
             ],
@@ -273,6 +291,20 @@ final routerProvider = Provider<GoRouter>((ref) {
                 pageBuilder: (context, state) => _transitionPage(
                   state: state,
                   child: const AdminPortfolioScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'reviews',
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const AdminReviewsScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'feedback',
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const AdminFeedbackScreen(),
                 ),
               ),
             ],

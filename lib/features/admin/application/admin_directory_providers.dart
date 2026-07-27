@@ -392,12 +392,8 @@ class AdminAccountCommands {
   Future<void> deleteUser({
     required PlatformAccount account,
     required String reasonCode,
-  }) => _userLifecycle(
-    'user.delete',
-    account,
-    reasonCode,
-    superAdminOnly: true,
-  );
+  }) =>
+      _userLifecycle('user.delete', account, reasonCode, superAdminOnly: true);
 
   /// Changes an account's ordinary role (`landlord`/`tenant`/`client`).
   /// Administrator privileges cannot be granted here by design.

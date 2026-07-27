@@ -1,5 +1,10 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
+import 'package:image/image.dart' as image_lib;
+
+import '../config/market_config.dart';
 
 export 'picked_file.dart';
 
@@ -101,13 +106,14 @@ Future<ImagePickOutcome> pickImages({
   if (files == null) return const ImagePickOutcome(cancelled: true);
   if (files.isEmpty) return const ImagePickOutcome(cancelled: true);
 
-  return validatePickedFiles(
+  final validated = validatePickedFiles(
     files,
     remainingSlots: remainingSlots,
     maxBytes: maxBytes,
     limit: limit,
     subject: subject,
   );
+  return optimizePickedImages(validated, maxBytes: maxBytes);
 }
 
 /// Decides which of [files] Nyumba will accept, and writes a plain-language
@@ -150,18 +156,17 @@ ImagePickOutcome validatePickedFiles(
 
     final mimeType = _mimeTypeFor(file.name);
     if (mimeType == null) {
-      problems.add(
-        '"${file.name}" was not added because it is not a '
-        '$supportedPhotoFormats image.',
-      );
+      problems.add(_unsupportedImageProblem(file.name));
       continue;
     }
 
     if (bytes.lengthInBytes > maxBytes) {
       problems.add(
-        '"${file.name}" is ${_megabytes(bytes.lengthInBytes)} — too large. '
-        'Photos must be under ${_megabytes(maxBytes)}. Resize it and try '
-        'again.',
+        _oversizedImageProblem(
+          file.name,
+          bytes: bytes.lengthInBytes,
+          maxBytes: maxBytes,
+        ),
       );
       continue;
     }
@@ -187,19 +192,154 @@ ImagePickOutcome validatePickedFiles(
   );
 }
 
+/// Resizes and recompresses accepted photos before they enter the offline
+/// aggregate. Every outbox retry therefore reuses the same smaller payload.
+Future<ImagePickOutcome> optimizePickedImages(
+  ImagePickOutcome outcome, {
+  required int maxBytes,
+}) async {
+  if (outcome.images.isEmpty) return outcome;
+
+  final optimized = <PickedImage>[];
+  final problems = <String>[...outcome.problems];
+  for (final source in outcome.images) {
+    final image = await optimizePickedImage(source);
+    if (image == null) {
+      problems.add(_unsupportedImageProblem(source.name));
+      continue;
+    }
+    if (image.bytes.lengthInBytes > maxBytes) {
+      problems.add(
+        _oversizedImageProblem(
+          source.name,
+          bytes: image.bytes.lengthInBytes,
+          maxBytes: maxBytes,
+        ),
+      );
+      continue;
+    }
+    optimized.add(image);
+  }
+
+  return ImagePickOutcome(
+    images: List.unmodifiable(optimized),
+    problems: List.unmodifiable(problems),
+    cancelled: outcome.cancelled,
+  );
+}
+
+/// Produces a consistently small, correctly oriented JPEG and removes source
+/// metadata before the bytes are persisted or uploaded.
+Future<PickedImage?> optimizePickedImage(PickedImage source) async {
+  try {
+    final bytes = await compute(
+      _optimizeImageBytes,
+      source.bytes,
+      debugLabel: 'optimize-${source.name}',
+    );
+    if (bytes == null) return null;
+    return PickedImage(
+      name: _jpegName(source.name),
+      mimeType: 'image/jpeg',
+      bytes: bytes,
+    );
+  } on Object {
+    return null;
+  }
+}
+
+Uint8List? _optimizeImageBytes(Uint8List bytes) {
+  final decoded = image_lib.decodeImage(bytes);
+  if (decoded == null) return null;
+
+  var optimized = image_lib.bakeOrientation(decoded);
+  final scale = math.min(
+    NyumbaMarket.maxOptimizedImageWidth / optimized.width,
+    NyumbaMarket.maxOptimizedImageHeight / optimized.height,
+  );
+  if (scale < 1) {
+    optimized = image_lib.copyResize(
+      optimized,
+      width: math.max(1, (optimized.width * scale).round()),
+      height: math.max(1, (optimized.height * scale).round()),
+      interpolation: image_lib.Interpolation.average,
+    );
+  }
+
+  optimized
+    ..exif = image_lib.ExifData()
+    ..iccProfile = null
+    ..textData = null
+    ..extraChannels = null
+    ..backgroundColor = image_lib.ColorRgb8(255, 255, 255);
+
+  return image_lib.encodeJpg(
+    optimized,
+    quality: NyumbaMarket.optimizedImageJpegQuality,
+    chroma: image_lib.JpegChroma.yuv420,
+  );
+}
+
+final RegExp _photoDataUri = RegExp(
+  r'^data:image\/(?:jpeg|png|webp);base64,(.+)$',
+);
+
+/// Decoded staged photos, keyed by the exact `data:` URI they came from.
+///
+/// This is called from `build`, so without memoisation every rebuild re-ran the
+/// regex and allocated a fresh byte list. A fresh list is a fresh `MemoryImage`
+/// identity, which means Flutter's image cache misses and the JPEG is decoded
+/// again — on every frame, for every staged photo, exactly while a landlord is
+/// working through the photo picker.
+final Map<String, Uint8List> _decodedPhotoCache = <String, Uint8List>{};
+int _decodedPhotoBytes = 0;
+
+/// Staged photos are bounded by the picker (five per listing, two per
+/// property), so this only has to survive an editing session, not a catalogue.
+const int _decodedPhotoCacheMaxBytes = 32 * 1024 * 1024;
+
 /// Decodes an image reference stored as a `data:` URI back into bytes, or null
 /// when the reference points somewhere else (an https URL, say) or is
 /// malformed.
+///
+/// Repeated calls for the same URI return the *same* list instance, which is
+/// what lets the image cache recognise it as already decoded.
 Uint8List? decodePhotoDataUri(String value) {
-  final match = RegExp(
-    r'^data:image\/(?:jpeg|png|webp);base64,(.+)$',
-  ).firstMatch(value);
+  final cached = _decodedPhotoCache.remove(value);
+  if (cached != null) {
+    // Reinserting promotes this entry to most-recently-used: a Dart map
+    // preserves insertion order, so the eviction below drops the coldest first.
+    _decodedPhotoCache[value] = cached;
+    return cached;
+  }
+
+  final match = _photoDataUri.firstMatch(value);
   if (match == null) return null;
+  final Uint8List bytes;
   try {
-    return base64Decode(match.group(1)!);
+    bytes = base64Decode(match.group(1)!);
   } on FormatException {
     return null;
   }
+
+  if (bytes.lengthInBytes <= _decodedPhotoCacheMaxBytes) {
+    while (_decodedPhotoBytes + bytes.lengthInBytes >
+            _decodedPhotoCacheMaxBytes &&
+        _decodedPhotoCache.isNotEmpty) {
+      final coldest = _decodedPhotoCache.keys.first;
+      _decodedPhotoBytes -= _decodedPhotoCache.remove(coldest)!.lengthInBytes;
+    }
+    _decodedPhotoCache[value] = bytes;
+    _decodedPhotoBytes += bytes.lengthInBytes;
+  }
+  return bytes;
+}
+
+/// Drops every memoised staged photo. For tests and sign-out.
+@visibleForTesting
+void clearDecodedPhotoCache() {
+  _decodedPhotoCache.clear();
+  _decodedPhotoBytes = 0;
 }
 
 String? _mimeTypeFor(String fileName) {
@@ -212,6 +352,24 @@ String? _mimeTypeFor(String fileName) {
     _ => null,
   };
 }
+
+String _jpegName(String fileName) {
+  final dot = fileName.lastIndexOf('.');
+  final stem = dot <= 0 ? fileName : fileName.substring(0, dot);
+  return '$stem.jpg';
+}
+
+String _unsupportedImageProblem(String name) =>
+    '"$name" was not added because it is not a '
+    '$supportedPhotoFormats image.';
+
+String _oversizedImageProblem(
+  String name, {
+  required int bytes,
+  required int maxBytes,
+}) =>
+    '"$name" is ${_megabytes(bytes)} — too large. '
+    'Photos must be under ${_megabytes(maxBytes)}. Resize it and try again.';
 
 String _megabytes(int bytes) {
   final value = bytes / (1024 * 1024);

@@ -162,10 +162,10 @@ void main() {
         .read(adminAccountCommandsProvider)
         .restoreUser(account: landlord(), reasonCode: 'APPEAL_APPROVED');
 
-    expect(
-      sent.map((envelope) => envelope['type']),
-      ['user.archive', 'user.restore'],
-    );
+    expect(sent.map((envelope) => envelope['type']), [
+      'user.archive',
+      'user.restore',
+    ]);
   });
 
   test('an ordinary admin cannot permanently delete an account', () {
@@ -187,22 +187,25 @@ void main() {
       role: AppRole.superAdmin,
     );
 
-    test('a super admin purge carries the aggregate version and reason', () async {
-      final (container, sent) = harness(session: superAdmin);
-      await container
-          .read(adminPurgeCommandsProvider)
-          .deleteProperty(
-            propertyId: 'property-1',
-            expectedVersion: 4,
-            reasonCode: 'DATA_RETENTION',
-          );
+    test(
+      'a super admin purge carries the aggregate version and reason',
+      () async {
+        final (container, sent) = harness(session: superAdmin);
+        await container
+            .read(adminPurgeCommandsProvider)
+            .deleteProperty(
+              propertyId: 'property-1',
+              expectedVersion: 4,
+              reasonCode: 'DATA_RETENTION',
+            );
 
-      final envelope = sent.single;
-      expect(envelope['type'], 'property.delete');
-      expect(envelope['aggregateId'], 'property-1');
-      expect(envelope['expectedVersion'], 4);
-      expect(envelope['payload'], {'reasonCode': 'DATA_RETENTION'});
-    });
+        final envelope = sent.single;
+        expect(envelope['type'], 'property.delete');
+        expect(envelope['aggregateId'], 'property-1');
+        expect(envelope['expectedVersion'], 4);
+        expect(envelope['payload'], {'reasonCode': 'DATA_RETENTION'});
+      },
+    );
 
     test('every purge maps to its own command', () async {
       final (container, sent) = harness(session: superAdmin);

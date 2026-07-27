@@ -177,8 +177,7 @@ class _AdminSubscriptionsScreenState
             accounts: withSubscription
                 .where(
                   (a) =>
-                      a.subscriptionStatus ==
-                      PlatformSubscriptionStatus.active,
+                      a.subscriptionStatus == PlatformSubscriptionStatus.active,
                 )
                 .toList(growable: false),
             onDowngrade: _downgrade,
@@ -430,10 +429,7 @@ class _AdminSubscriptionsScreenState
       try {
         await ref
             .read(adminAccountCommandsProvider)
-            .deactivateSubscription(
-              account: account,
-              reasonCode: reasonCode,
-            );
+            .deactivateSubscription(account: account, reasonCode: reasonCode);
         if (mounted) {
           showAdminMessage(
             context,
@@ -714,9 +710,7 @@ class _ActiveSubscriptionsPanel extends StatelessWidget {
                               children: [
                                 Text.localized(
                                   account.displayName,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.labelLarge,
+                                  style: Theme.of(context).textTheme.labelLarge,
                                 ),
                                 Text.localized(
                                   _statusLine(account),
@@ -858,8 +852,7 @@ class _ServerCatalogPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final catalog = ref.watch(publicPlanCatalogProvider);
     final role = ref.watch(sessionControllerProvider)?.role;
-    final canEditPlans =
-        role == AppRole.admin || role == AppRole.superAdmin;
+    final canEditPlans = role == AppRole.admin || role == AppRole.superAdmin;
     return AdminPanel(
       title: 'Server plan catalog',
       subtitle: canEditPlans
@@ -1014,8 +1007,7 @@ class _PlanEditDialogState extends ConsumerState<_PlanEditDialog> {
     try {
       await ref.read(updatePlanCatalogProvider)(
         current: plan,
-        monthlyPriceMinor:
-            monthly != null && monthly != plan.monthlyPriceMinor
+        monthlyPriceMinor: monthly != null && monthly != plan.monthlyPriceMinor
             ? monthly
             : null,
         yearlyPriceMinor: yearly != null && yearly != plan.yearlyPriceMinor

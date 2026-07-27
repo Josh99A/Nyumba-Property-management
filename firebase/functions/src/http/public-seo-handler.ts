@@ -25,7 +25,17 @@ const PUBLIC_IMAGE_CONTENT_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
-export const PUBLIC_SEO_CACHE_CONTROL = 'public, max-age=60, s-maxage=300';
+/**
+ * Listings live for 30 days, so a five-minute edge lifetime made the CDN miss
+ * far more often than the content actually changed — every miss paying for a
+ * cold function invocation and a paged Firestore scan. An hour at the edge with
+ * a day of `stale-while-revalidate` means a miss serves the previous render
+ * immediately and refreshes behind the request, so a visitor never waits on the
+ * regeneration. The browser lifetime stays short: a landlord who republishes
+ * wants to see it on reload.
+ */
+export const PUBLIC_SEO_CACHE_CONTROL =
+  'public, max-age=60, s-maxage=3600, stale-while-revalidate=86400';
 
 interface HeaderResponse {
   set(headers: Record<string, string>): unknown;

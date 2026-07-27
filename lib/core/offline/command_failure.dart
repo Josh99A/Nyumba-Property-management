@@ -53,9 +53,8 @@ final class CommandFailureDescriptor {
   final List<String> rejectedFields;
 }
 
-typedef CommandFailureLocalizer = String Function(
-  CommandFailureDescriptor failure,
-);
+typedef CommandFailureLocalizer =
+    String Function(CommandFailureDescriptor failure);
 
 /// Converts a remote failure into a stable descriptor without embedding
 /// English presentation copy in the offline/application boundary.
@@ -82,8 +81,8 @@ CommandFailureDescriptor describeCommandFailure(RemoteSyncException error) {
     'REQUIRES_ONLINE' => CommandFailureCode.requiresOnline,
     'VALIDATION_FAILED' => _validationCode(error.reason, error.rejectedFields),
     'INTERNAL_RETRYABLE' => CommandFailureCode.internalRetryable,
-    'unavailable' || 'network-request-failed' =>
-      CommandFailureCode.networkUnavailable,
+    'unavailable' ||
+    'network-request-failed' => CommandFailureCode.networkUnavailable,
     'deadline-exceeded' => CommandFailureCode.deadlineExceeded,
     _ => CommandFailureCode.unknown,
   };
@@ -100,8 +99,7 @@ CommandFailureCode _validationCode(String? reason, List<String> fields) {
     return CommandFailureCode.validationFields;
   }
   return switch (reason) {
-    'subscriptionAlreadyActive' =>
-      CommandFailureCode.subscriptionAlreadyActive,
+    'subscriptionAlreadyActive' => CommandFailureCode.subscriptionAlreadyActive,
     'subscriptionNotActive' => CommandFailureCode.subscriptionNotActive,
     'tierUnchanged' => CommandFailureCode.tierUnchanged,
     'accountSuspended' =>
@@ -109,8 +107,7 @@ CommandFailureCode _validationCode(String? reason, List<String> fields) {
     'landlordAccountMissing' => CommandFailureCode.landlordAccountMissing,
     'accountApprovalStatusInvalid' =>
       CommandFailureCode.accountApprovalStatusInvalid,
-    'invalidApprovalTransition' =>
-      CommandFailureCode.invalidApprovalTransition,
+    'invalidApprovalTransition' => CommandFailureCode.invalidApprovalTransition,
     'alreadyArchived' => CommandFailureCode.alreadyArchived,
     'notArchived' => CommandFailureCode.notArchived,
     'roleUnchanged' => CommandFailureCode.roleUnchanged,
@@ -120,8 +117,9 @@ CommandFailureCode _validationCode(String? reason, List<String> fields) {
     'yearlyPriceExceedsMonthlyTimesTwelve' =>
       CommandFailureCode.yearlyPriceExceedsMonthlyTimesTwelve,
     'unknownCommandType' => CommandFailureCode.unknownCommandType,
-    'envelopeInvalid' || 'envelopeTooLarge' || 'envelopeNotAnObject' =>
-      CommandFailureCode.envelopeInvalid,
+    'envelopeInvalid' ||
+    'envelopeTooLarge' ||
+    'envelopeNotAnObject' => CommandFailureCode.envelopeInvalid,
     null => CommandFailureCode.validationGeneric,
     // An unrecognised backend token must not be interpolated into user-facing
     // copy. It remains a stable generic rejection descriptor instead.

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' hide Text, Tooltip;
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
@@ -41,7 +43,23 @@ class PropertiesScreen extends ConsumerStatefulWidget {
 
 class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
   bool _createOpened = false;
+
+  /// Long enough to swallow a burst of typing, short enough to feel immediate.
+  static const _searchDebounceDelay = Duration(milliseconds: 250);
+
+  /// Rebuilds the list once the user pauses, not once per keystroke.
+  ///
+  /// Each rebuild re-filters the whole portfolio and lays out every visible
+  /// card, so typing a six-letter search used to do that six times in as many
+  /// frames.
+  void _onSearchChanged() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(_searchDebounceDelay, () {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -54,6 +72,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -71,137 +90,199 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
           AppResource.property,
           CrudOperation.create,
         );
-    return SingleChildScrollView(
-      padding: EdgeInsetsDirectional.fromSTEB(
-        context.pageGutter,
-        26,
-        context.pageGutter,
-        40,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1360),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              PageHeader(
-                title: 'Properties and rental spaces',
-                description:
-                    'Every rentable space has its own rent, occupancy, lease, and maintenance history.',
-                primaryAction: canCreate
-                    ? AsyncActionButton.filled(
-                        onPressed: _createProperty,
-                        showBusyIndicator: false,
-                        icon: const Icon(Icons.add_rounded),
-                        child: const Text.localized('Add property'),
-                      )
-                    : null,
+    // Grouped once rather than re-scanning every unit for every card: the
+    // filter below runs on each rebuild, and `where` per property made that
+    // properties x units on every keystroke.
+    final unitsByProperty = <String, List<Unit>>{};
+    for (final unit in units) {
+      (unitsByProperty[unit.propertyId] ??= <Unit>[]).add(unit);
+    }
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1360),
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsetsDirectional.fromSTEB(
+                context.pageGutter,
+                26,
+                context.pageGutter,
+                0,
               ),
-              const SizedBox(height: 22),
-              _PortfolioUsage(units: units),
-              const SizedBox(height: 18),
-              Row(
+              sliver: SliverList.list(
                 children: [
-                  Expanded(
-                    child: Text.localized(
-                      'Your properties',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
+                  PageHeader(
+                    title: 'Properties and rental spaces',
+                    description:
+                        'Every rentable space has its own rent, occupancy, lease, and maintenance history.',
+                    primaryAction: canCreate
+                        ? AsyncActionButton.filled(
+                            onPressed: _createProperty,
+                            showBusyIndicator: false,
+                            icon: const Icon(Icons.add_rounded),
+                            child: const Text.localized('Add property'),
+                          )
+                        : null,
                   ),
-                  SizedBox(
-                    width: context.isCompact ? 190 : 300,
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        hintText: context.tr('Search properties'),
-                        prefixIcon: Icon(Icons.search_rounded),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              propertiesValue.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(40),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (error, stack) => NyumbaStatusMessage.fromError(
-                  error,
-                  localizations: appLocalizationsOf(context),
-                  subject: appLocalizationsOf(
-                    context,
-                  ).statusSubjectYourProperties,
-                  onRetry: () => ref.invalidate(portfolioPropertiesProvider),
-                ),
-                data: (allProperties) {
-                  final query = _searchController.text.trim().toLowerCase();
-                  final properties = allProperties.where((property) {
-                    return query.isEmpty ||
-                        property.name.toLowerCase().contains(query) ||
-                        property.city.toLowerCase().contains(query) ||
-                        property.addressLine.toLowerCase().contains(query);
-                  }).toList();
-                  if (properties.isEmpty) {
-                    return NyumbaSurface(
-                      child: Padding(
-                        padding: const EdgeInsets.all(34),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.apartment_outlined,
-                              size: 44,
-                              color: context.nyumba.mutedInk,
-                            ),
-                            const SizedBox(height: 12),
-                            Text.localized(
-                              query.isEmpty
-                                  ? 'Add your first property'
-                                  : 'No properties match your search.',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          ],
+                  const SizedBox(height: 22),
+                  _PortfolioUsage(units: units),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text.localized(
+                          'Your properties',
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
                       ),
-                    );
-                  }
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      final columns = constraints.maxWidth >= 1050
-                          ? 3
-                          : constraints.maxWidth >= 650
-                          ? 2
-                          : 1;
-                      const gap = 18.0;
-                      final width =
-                          (constraints.maxWidth - gap * (columns - 1)) /
-                          columns;
-                      return Wrap(
-                        spacing: gap,
-                        runSpacing: gap,
-                        children: [
-                          for (final property in properties)
-                            SizedBox(
-                              width: width,
-                              child: _PropertyCard(
-                                property: property,
-                                units: units
-                                    .where(
-                                      (unit) => unit.propertyId == property.id,
-                                    )
-                                    .toList(),
+                      SizedBox(
+                        width: context.isCompact ? 190 : 300,
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (_) => _onSearchChanged(),
+                          decoration: InputDecoration(
+                            hintText: context.tr('Search properties'),
+                            prefixIcon: Icon(Icons.search_rounded),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+            SliverPadding(
+              padding: EdgeInsetsDirectional.fromSTEB(
+                context.pageGutter,
+                0,
+                context.pageGutter,
+                40,
+              ),
+              sliver: SliverMainAxisGroup(
+                slivers: propertiesValue.when(
+                  loading: () => const [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    ),
+                  ],
+                  error: (error, stack) => [
+                    SliverToBoxAdapter(
+                      child: NyumbaStatusMessage.fromError(
+                        error,
+                        localizations: appLocalizationsOf(context),
+                        subject: appLocalizationsOf(
+                          context,
+                        ).statusSubjectYourProperties,
+                        onRetry: () =>
+                            ref.invalidate(portfolioPropertiesProvider),
+                      ),
+                    ),
+                  ],
+                  data: (allProperties) {
+                    final query = _searchController.text.trim().toLowerCase();
+                    final properties = allProperties.where((property) {
+                      return query.isEmpty ||
+                          property.name.toLowerCase().contains(query) ||
+                          property.city.toLowerCase().contains(query) ||
+                          property.addressLine.toLowerCase().contains(query);
+                    }).toList();
+                    if (properties.isEmpty) {
+                      return [
+                        SliverToBoxAdapter(
+                          child: NyumbaSurface(
+                            child: Padding(
+                              padding: const EdgeInsets.all(34),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.apartment_outlined,
+                                    size: 44,
+                                    color: context.nyumba.mutedInk,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text.localized(
+                                    query.isEmpty
+                                        ? 'Add your first property'
+                                        : 'No properties match your search.',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                ],
                               ),
                             ),
-                        ],
-                      );
-                    },
-                  );
-                },
+                          ),
+                        ),
+                      ];
+                    }
+                    return [
+                      // Built a row at a time so cards below the fold are never
+                      // constructed — and never start downloading their photo —
+                      // until they scroll into view. Rows rather than a SliverGrid
+                      // because a card's height follows its unit count, which a
+                      // fixed grid extent would clip.
+                      SliverLayoutBuilder(
+                        builder: (context, constraints) {
+                          final columns = constraints.crossAxisExtent >= 1050
+                              ? 3
+                              : constraints.crossAxisExtent >= 650
+                              ? 2
+                              : 1;
+                          const gap = 18.0;
+                          final rows =
+                              (properties.length + columns - 1) ~/ columns;
+                          return SliverList.builder(
+                            itemCount: rows,
+                            itemBuilder: (context, rowIndex) {
+                              final first = rowIndex * columns;
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: rowIndex == rows - 1 ? 0 : gap,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (
+                                      var column = 0;
+                                      column < columns;
+                                      column++
+                                    ) ...[
+                                      if (column > 0)
+                                        const SizedBox(width: gap),
+                                      Expanded(
+                                        child:
+                                            first + column < properties.length
+                                            ? _PropertyCard(
+                                                property:
+                                                    properties[first + column],
+                                                units:
+                                                    unitsByProperty[properties[first +
+                                                            column]
+                                                        .id] ??
+                                                    const <Unit>[],
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ];
+                  },
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -685,7 +766,11 @@ class _PropertyCard extends StatelessWidget {
                 ),
                 child: AspectRatio(
                   aspectRatio: 3 / 1.45,
-                  child: propertyImage(property, cacheWidth: 960),
+                  child: propertyImage(
+                    property,
+                    cacheWidth: 640,
+                    preferThumbnail: true,
+                  ),
                 ),
               ),
               if (pending)

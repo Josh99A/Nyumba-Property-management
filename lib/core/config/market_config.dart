@@ -56,6 +56,9 @@ abstract final class NyumbaMarket {
   static const int maxPropertyPhotos = 2;
   static const int maxListingPhotos = 5;
   static const int maxImageSizeBytes = 5 * 1024 * 1024; // 5 MB
+  static const int maxOptimizedImageWidth = 1920;
+  static const int maxOptimizedImageHeight = 1440;
+  static const int optimizedImageJpegQuality = 82;
   static const int maxDocumentSizeBytes = 10 * 1024 * 1024; // 10 MB
   static const List<String> allowedImageTypes = [
     'image/jpeg',

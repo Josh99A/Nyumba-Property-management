@@ -13,6 +13,16 @@ import {
 } from './billing';
 import { noticePublish, platformBroadcast } from './communication';
 import { documentDelete, documentFinalizeUpload } from './documents';
+import { feedbackSubmit } from './feedback';
+import {
+  reviewFlag,
+  reviewModerate,
+  reviewReport,
+  reviewRespond,
+  reviewSubmit,
+  reviewUpdate,
+  reviewWithdraw,
+} from './reviews';
 import {
   landlordOnboard,
   profileRegisterDevice,
@@ -106,4 +116,14 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['document.delete', documentDelete],
   ['document.purge', documentPurge],
   ['report.request', reportRequest],
+  // Reputation. `review.*` is keyed by lease ID, so the aggregate ID is itself
+  // the eligibility proof; see commands/reviews.ts.
+  ['review.submit', reviewSubmit],
+  ['review.update', reviewUpdate],
+  ['review.withdraw', reviewWithdraw],
+  ['review.respond', reviewRespond],
+  ['review.flag', reviewFlag],
+  ['review.report', reviewReport],
+  ['review.moderate', reviewModerate],
+  ['feedback.submit', feedbackSubmit],
 ]);

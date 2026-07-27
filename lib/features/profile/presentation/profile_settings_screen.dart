@@ -17,6 +17,8 @@ import '../../../core/presentation/surface.dart';
 import '../../auth/application/app_lock_controller.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/presentation/app_role_localizations.dart';
+import '../../feedback/application/feedback_providers.dart';
+import '../../feedback/presentation/feedback_sheet.dart';
 import '../application/profile_use_cases.dart';
 import '../domain/user_settings.dart';
 
@@ -454,6 +456,11 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         ),
       ),
       const SizedBox(height: 18),
+      // The always-available feedback route. Deliberately a permanent entry
+      // point rather than only a prompt: the NPS popup produces a number, but
+      // someone who came here on purpose has something specific to report.
+      const _FeedbackSection(),
+      const SizedBox(height: 18),
       NyumbaSurface(
         padding: const EdgeInsets.all(22),
         child: const Column(
@@ -664,4 +671,48 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     value: value,
     onChanged: onChanged,
   );
+}
+
+/// Settings entry point for landlord-to-Nyumba feedback.
+///
+/// Separate from the review system entirely: nothing here is public, tenants
+/// never see it, and there is no moderation or eligibility gate. The two were
+/// deliberately not built as one feature — a form whose whole job is to be
+/// frictionless must not inherit the machinery that keeps a public, adversarial
+/// rating system honest.
+class _FeedbackSection extends ConsumerWidget {
+  const _FeedbackSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final version = ref.watch(appVersionProvider).value;
+    return NyumbaSurface(
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const NyumbaSectionHeader(
+            title: 'Feedback',
+            subtitle:
+                'Tell the Nyumba team what is working and what is not. This is '
+                'private — your tenants never see it.',
+          ),
+          const SizedBox(height: 14),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: AsyncActionButton.tonal(
+              showBusyIndicator: false,
+              icon: const Icon(Icons.forum_outlined, size: 18),
+              // Disabled until the version resolves rather than sending
+              // "unknown": a report we cannot tie to a build is far less useful.
+              enabled: version != null,
+              onPressed: () async =>
+                  showFeedbackSheet(context, appVersion: version!),
+              child: const Text.localized('Send feedback'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

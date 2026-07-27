@@ -5619,7 +5619,7 @@ abstract class AppLocalizations {
   /// No description provided for @propertyPhotoCreateGuidance.
   ///
   /// In en, this message translates to:
-  /// **'Add 1–2 photos. The primary photo appears first.'**
+  /// **'Add 1–2 photos. Images are resized and compressed before upload, and the primary photo appears first.'**
   String get propertyPhotoCreateGuidance;
 
   /// No description provided for @propertyPhotoCountGuidance.
@@ -5631,13 +5631,13 @@ abstract class AppLocalizations {
   /// No description provided for @propertyPhotoEditGuidance.
   ///
   /// In en, this message translates to:
-  /// **'JPEG, PNG, or WebP; up to 5 MB each and 2 photos. The first photo is shown on the property card. Photos remain pending until upload is confirmed.'**
+  /// **'JPEG, PNG, or WebP; up to 5 MB each and 2 photos. Images are resized and compressed before upload. The first photo is shown on the property card. Photos remain pending until upload is confirmed.'**
   String get propertyPhotoEditGuidance;
 
   /// No description provided for @listingPhotoGuidance.
   ///
   /// In en, this message translates to:
-  /// **'JPEG, PNG, or WebP; up to 5 MB each and 5 photos. The first photo is the cover image. Photos remain pending until upload is confirmed.'**
+  /// **'JPEG, PNG, or WebP; up to 5 MB each and 5 photos. Images are resized and compressed before upload. The first photo is the cover image. Photos remain pending until upload is confirmed.'**
   String get listingPhotoGuidance;
 
   /// No description provided for @listingPhotoPosition.
@@ -5837,6 +5837,726 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Available {date}'**
   String listingAvailableFromDate(String date);
+
+  /// No description provided for @imageLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Image loading'**
+  String get imageLoading;
+
+  /// No description provided for @imageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Image unavailable'**
+  String get imageUnavailable;
+
+  /// No description provided for @filtersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get filtersTitle;
+
+  /// No description provided for @clearAllFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get clearAllFilters;
+
+  /// No description provided for @sortResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort results'**
+  String get sortResults;
+
+  /// No description provided for @removeFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove filter'**
+  String get removeFilter;
+
+  /// No description provided for @allUnitTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'All types'**
+  String get allUnitTypes;
+
+  /// Number of photos attached to a public listing.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} photos'**
+  String photoCount(int count);
+
+  /// Confirm button in the mobile filter sheet, previewing the number of matching homes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No homes match} =1{Show 1 home} other{Show {count} homes}}'**
+  String showHomesCount(int count);
+
+  /// No description provided for @reviewsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews'**
+  String get reviewsTitle;
+
+  /// No description provided for @reviewsLandlordDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenants can review you after 30 days in one of your units. Replying in public is usually more persuasive than disputing.'**
+  String get reviewsLandlordDescription;
+
+  /// No description provided for @yourReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reviews'**
+  String get yourReviews;
+
+  /// No description provided for @yourReviewsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews you have written about your landlord. Published reviews appear on their listings without your name.'**
+  String get yourReviewsDescription;
+
+  /// No description provided for @reviewModeration.
+  ///
+  /// In en, this message translates to:
+  /// **'Review moderation'**
+  String get reviewModeration;
+
+  /// No description provided for @reviewModerationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported reviews stay public until a decision is made. Hiding one removes it from the landlord\'s rating; publishing dismisses the report.'**
+  String get reviewModerationDescription;
+
+  /// No description provided for @recentlyDecided.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently decided'**
+  String get recentlyDecided;
+
+  /// No description provided for @landlordFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Landlord feedback'**
+  String get landlordFeedback;
+
+  /// No description provided for @landlordFeedbackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Private product feedback from landlords. Never shown publicly and never visible to tenants.'**
+  String get landlordFeedbackDescription;
+
+  /// No description provided for @landlordReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Landlord reviews'**
+  String get landlordReviews;
+
+  /// No description provided for @feedbackSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback'**
+  String get feedbackSection;
+
+  /// No description provided for @feedbackSectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell the Nyumba team what is working and what is not. This is private — your tenants never see it.'**
+  String get feedbackSectionDescription;
+
+  /// No description provided for @reviewDimResponsiveness.
+  ///
+  /// In en, this message translates to:
+  /// **'Responsiveness'**
+  String get reviewDimResponsiveness;
+
+  /// No description provided for @reviewDimMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Repairs and maintenance'**
+  String get reviewDimMaintenance;
+
+  /// No description provided for @reviewDimListingAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'Listing was accurate'**
+  String get reviewDimListingAccuracy;
+
+  /// No description provided for @reviewDimDepositFairness.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposit handled fairly'**
+  String get reviewDimDepositFairness;
+
+  /// No description provided for @reviewFlagInaccurate.
+  ///
+  /// In en, this message translates to:
+  /// **'Factually inaccurate'**
+  String get reviewFlagInaccurate;
+
+  /// No description provided for @reviewFlagAbusive.
+  ///
+  /// In en, this message translates to:
+  /// **'Abusive or harassing'**
+  String get reviewFlagAbusive;
+
+  /// No description provided for @reviewFlagNotMyTenant.
+  ///
+  /// In en, this message translates to:
+  /// **'Not written by my tenant'**
+  String get reviewFlagNotMyTenant;
+
+  /// No description provided for @reviewFlagPersonalData.
+  ///
+  /// In en, this message translates to:
+  /// **'Contains personal information'**
+  String get reviewFlagPersonalData;
+
+  /// No description provided for @reviewFlagSpam.
+  ///
+  /// In en, this message translates to:
+  /// **'Spam or advertising'**
+  String get reviewFlagSpam;
+
+  /// No description provided for @ratingPoor.
+  ///
+  /// In en, this message translates to:
+  /// **'Poor'**
+  String get ratingPoor;
+
+  /// No description provided for @ratingBelowExpectations.
+  ///
+  /// In en, this message translates to:
+  /// **'Below expectations'**
+  String get ratingBelowExpectations;
+
+  /// No description provided for @ratingAcceptable.
+  ///
+  /// In en, this message translates to:
+  /// **'Acceptable'**
+  String get ratingAcceptable;
+
+  /// No description provided for @ratingGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get ratingGood;
+
+  /// No description provided for @ratingExcellent.
+  ///
+  /// In en, this message translates to:
+  /// **'Excellent'**
+  String get ratingExcellent;
+
+  /// No description provided for @rateYourLandlord.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate your landlord'**
+  String get rateYourLandlord;
+
+  /// No description provided for @editYourReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit your review'**
+  String get editYourReview;
+
+  /// No description provided for @reviewFormerLandlord.
+  ///
+  /// In en, this message translates to:
+  /// **'Review your former landlord'**
+  String get reviewFormerLandlord;
+
+  /// No description provided for @howWasThatRepair.
+  ///
+  /// In en, this message translates to:
+  /// **'How was that repair handled?'**
+  String get howWasThatRepair;
+
+  /// No description provided for @ratingCoversWholeTenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Your rating covers the whole tenancy, not just this repair.'**
+  String get ratingCoversWholeTenancy;
+
+  /// No description provided for @reviewWindowAfterMoveOut.
+  ///
+  /// In en, this message translates to:
+  /// **'You can review for up to 90 days after moving out.'**
+  String get reviewWindowAfterMoveOut;
+
+  /// No description provided for @helpTheNextTenant.
+  ///
+  /// In en, this message translates to:
+  /// **'Help the next tenant know what to expect.'**
+  String get helpTheNextTenant;
+
+  /// No description provided for @addMoreDetailOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Add more detail (optional)'**
+  String get addMoreDetailOptional;
+
+  /// No description provided for @whatShouldNextTenantKnow.
+  ///
+  /// In en, this message translates to:
+  /// **'What should the next tenant know?'**
+  String get whatShouldNextTenantKnow;
+
+  /// No description provided for @postReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Post review'**
+  String get postReview;
+
+  /// No description provided for @notNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get notNow;
+
+  /// No description provided for @writeAReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a review'**
+  String get writeAReview;
+
+  /// No description provided for @reviewVisibilityNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name is never shown publicly — readers see \"Verified tenant\". Your landlord will be able to tell the review came from your tenancy, and can reply to it in public. You can edit or remove it for 14 days.'**
+  String get reviewVisibilityNotice;
+
+  /// No description provided for @reviewEligibleAfter30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'You can review your landlord after 30 days in your home.'**
+  String get reviewEligibleAfter30Days;
+
+  /// No description provided for @reviewsLoadFailedTenant.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reviews could not be loaded. They are safe — try again when you are back online.'**
+  String get reviewsLoadFailedTenant;
+
+  /// No description provided for @noReviewWrittenYet.
+  ///
+  /// In en, this message translates to:
+  /// **'You have not written a review yet.'**
+  String get noReviewWrittenYet;
+
+  /// No description provided for @useCardAboveWhenReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the card above whenever you are ready.'**
+  String get useCardAboveWhenReady;
+
+  /// No description provided for @reviewEligibilityExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'You can review a landlord after 30 days in your home, and for up to 90 days after you move out.'**
+  String get reviewEligibilityExplainer;
+
+  /// No description provided for @reviewStatusPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Published'**
+  String get reviewStatusPublished;
+
+  /// No description provided for @reviewStatusWithdrawnByYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed by you'**
+  String get reviewStatusWithdrawnByYou;
+
+  /// No description provided for @reviewStatusUnderReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Under review'**
+  String get reviewStatusUnderReview;
+
+  /// No description provided for @reviewStatusTakenDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Taken down'**
+  String get reviewStatusTakenDown;
+
+  /// No description provided for @reviewHiddenNoticeAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba has hidden this review while it is checked. You can still see it here.'**
+  String get reviewHiddenNoticeAuthor;
+
+  /// No description provided for @replyFromLandlord.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply from the landlord'**
+  String get replyFromLandlord;
+
+  /// No description provided for @editLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editLabel;
+
+  /// No description provided for @removeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get removeLabel;
+
+  /// No description provided for @editWindowClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'The 14-day edit window has closed.'**
+  String get editWindowClosed;
+
+  /// No description provided for @reviewsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews could not be loaded right now.'**
+  String get reviewsLoadFailed;
+
+  /// No description provided for @noReviewsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No reviews yet.'**
+  String get noReviewsYet;
+
+  /// No description provided for @repairsDriveRatings.
+  ///
+  /// In en, this message translates to:
+  /// **'Handling repairs quickly is the single biggest driver of the ratings tenants leave.'**
+  String get repairsDriveRatings;
+
+  /// No description provided for @reviewHiddenFromPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden from the public while Nyumba checks it.'**
+  String get reviewHiddenFromPublic;
+
+  /// No description provided for @reviewReportedStillVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'You reported this review. It stays visible while we look at it.'**
+  String get reviewReportedStillVisible;
+
+  /// No description provided for @yourPublicReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Your public reply'**
+  String get yourPublicReply;
+
+  /// No description provided for @replyPublicly.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply publicly'**
+  String get replyPublicly;
+
+  /// No description provided for @editReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit reply'**
+  String get editReply;
+
+  /// No description provided for @reportLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get reportLabel;
+
+  /// No description provided for @replyInPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply in public'**
+  String get replyInPublic;
+
+  /// No description provided for @replyPersuasionNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone reading this review will see your reply next to it. A calm, factual answer persuades far more readers than the review itself does.'**
+  String get replyPersuasionNotice;
+
+  /// No description provided for @yourReplyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reply'**
+  String get yourReplyHint;
+
+  /// No description provided for @postReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Post reply'**
+  String get postReply;
+
+  /// No description provided for @reportThisReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Report this review'**
+  String get reportThisReview;
+
+  /// No description provided for @reportNotTakedownNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba will look at it. The review stays visible in the meantime — reporting is not a way to remove criticism.'**
+  String get reportNotTakedownNotice;
+
+  /// No description provided for @reportsDoNotHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba will look at it. Reports do not hide a review.'**
+  String get reportsDoNotHide;
+
+  /// No description provided for @sendReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Send report'**
+  String get sendReport;
+
+  /// No description provided for @noTenantReviewedYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No tenant has reviewed this landlord yet.'**
+  String get noTenantReviewedYet;
+
+  /// No description provided for @fromTenantsWhoLivedHere.
+  ///
+  /// In en, this message translates to:
+  /// **'From tenants who actually lived in this landlord\'s units.'**
+  String get fromTenantsWhoLivedHere;
+
+  /// No description provided for @noWrittenReviewsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No written reviews yet — only star ratings.'**
+  String get noWrittenReviewsYet;
+
+  /// No description provided for @landlordReplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Landlord replied'**
+  String get landlordReplied;
+
+  /// No description provided for @newOnNyumba.
+  ///
+  /// In en, this message translates to:
+  /// **'New on Nyumba'**
+  String get newOnNyumba;
+
+  /// No description provided for @tooFewReviewsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Too few reviews yet'**
+  String get tooFewReviewsYet;
+
+  /// No description provided for @moderationQueueLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The moderation queue could not be loaded.'**
+  String get moderationQueueLoadFailed;
+
+  /// No description provided for @nothingAwaitingDecision.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing awaiting a decision.'**
+  String get nothingAwaitingDecision;
+
+  /// No description provided for @keepPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep published'**
+  String get keepPublished;
+
+  /// No description provided for @hidePendingAppeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide pending appeal'**
+  String get hidePendingAppeal;
+
+  /// No description provided for @decisionKept.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept'**
+  String get decisionKept;
+
+  /// No description provided for @decisionHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden'**
+  String get decisionHidden;
+
+  /// No description provided for @decisionRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed'**
+  String get decisionRemoved;
+
+  /// No description provided for @decisionWithdrawn.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawn'**
+  String get decisionWithdrawn;
+
+  /// No description provided for @npsQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'How likely are you to recommend Nyumba to another landlord?'**
+  String get npsQuestion;
+
+  /// No description provided for @npsNotLikely.
+  ///
+  /// In en, this message translates to:
+  /// **'Not likely'**
+  String get npsNotLikely;
+
+  /// No description provided for @npsVeryLikely.
+  ///
+  /// In en, this message translates to:
+  /// **'Very likely'**
+  String get npsVeryLikely;
+
+  /// No description provided for @sendLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get sendLabel;
+
+  /// No description provided for @sendFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Send feedback'**
+  String get sendFeedback;
+
+  /// No description provided for @feedbackPrivacyNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'This goes straight to the Nyumba team. It is not published anywhere and your tenants never see it.'**
+  String get feedbackPrivacyNotice;
+
+  /// No description provided for @feedbackCategoryBug.
+  ///
+  /// In en, this message translates to:
+  /// **'Something is broken'**
+  String get feedbackCategoryBug;
+
+  /// No description provided for @feedbackCategoryFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'I need a feature'**
+  String get feedbackCategoryFeature;
+
+  /// No description provided for @feedbackCategoryEaseOfUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard to use'**
+  String get feedbackCategoryEaseOfUse;
+
+  /// No description provided for @feedbackCategoryValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Pricing and value'**
+  String get feedbackCategoryValue;
+
+  /// No description provided for @feedbackCategorySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get feedbackCategorySupport;
+
+  /// No description provided for @feedbackHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What happened, and what did you expect?'**
+  String get feedbackHint;
+
+  /// No description provided for @feedbackVersionNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your app version and device type are attached so we can reproduce it.'**
+  String get feedbackVersionNotice;
+
+  /// No description provided for @feedbackLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback could not be loaded.'**
+  String get feedbackLoadFailed;
+
+  /// No description provided for @noFeedbackYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No feedback submitted yet.'**
+  String get noFeedbackYet;
+
+  /// No description provided for @noNpsResponsesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No NPS responses yet.'**
+  String get noNpsResponsesYet;
+
+  /// No description provided for @netPromoterScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Net promoter score'**
+  String get netPromoterScore;
+
+  /// No description provided for @listYourSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'List your space'**
+  String get listYourSpace;
+
+  /// No description provided for @forTenants.
+  ///
+  /// In en, this message translates to:
+  /// **'For tenants'**
+  String get forTenants;
+
+  /// No description provided for @popularLocations.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular locations'**
+  String get popularLocations;
+
+  /// No description provided for @whyNyumba.
+  ///
+  /// In en, this message translates to:
+  /// **'Why Nyumba'**
+  String get whyNyumba;
+
+  /// No description provided for @benefitVerifiedLandlords.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified, subscribed landlords only'**
+  String get benefitVerifiedLandlords;
+
+  /// No description provided for @benefitNoAgentFees.
+  ///
+  /// In en, this message translates to:
+  /// **'No agent fees, no dead adverts'**
+  String get benefitNoAgentFees;
+
+  /// No description provided for @benefitBrowseOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse and apply offline'**
+  String get benefitBrowseOffline;
+
+  /// No description provided for @benefitPublishInMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish an available space in minutes'**
+  String get benefitPublishInMinutes;
+
+  /// No description provided for @benefitRoutedEnquiries.
+  ///
+  /// In en, this message translates to:
+  /// **'Enquiries reach you without sharing your number'**
+  String get benefitRoutedEnquiries;
+
+  /// No description provided for @benefitOneWorkspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent, invoices, and maintenance in one place'**
+  String get benefitOneWorkspace;
 }
 
 class _AppLocalizationsDelegate

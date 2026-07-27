@@ -1,24 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../core/localization/nyumba_localizations.dart';
+import '../../../core/media/media_reference.dart';
+import '../../../core/presentation/media_placeholder.dart';
+import '../../../core/presentation/remote_media_image.dart';
 import '../domain/listing.dart';
 import 'listing_photo_picker.dart';
-
-String listingAssetFor(Listing listing) {
-  final title = listing.title.toLowerCase();
-  if (title.contains('sunset')) {
-    return 'assets/listings/sunset-apartments.png';
-  }
-  if (title.contains('riverside')) {
-    return 'assets/listings/riverside-heights.png';
-  }
-  if (title.contains('nyumbani')) {
-    return 'assets/listings/nyumbani-gardens.png';
-  }
-  return 'assets/listings/kilimani-garden-court.png';
-}
 
 String listingLocationFor(Listing listing) {
   final parts = <String>[
@@ -34,17 +21,39 @@ String listingLocationFor(Listing listing) {
   return parts.isEmpty ? 'Location available on request' : parts.join(', ');
 }
 
+/// Reader-facing label for a stored unit type token, which reaches the public
+/// screens either as a camelCase enum name (`selfContained`) or as free text a
+/// landlord typed.
+String listingUnitTypeLabel(String unitType) {
+  final spaced = unitType.trim().replaceAllMapped(
+    RegExp(r'([a-z])([A-Z])'),
+    (match) => '${match.group(1)} ${match.group(2)}',
+  );
+  return spaced.isEmpty
+      ? unitType
+      : '${spaced[0].toUpperCase()}${spaced.substring(1)}';
+}
+
+/// Renders a listing photo at the size the caller will actually display.
+///
+/// [cacheWidth] is a decode budget in device pixels, and [preferThumbnail] asks
+/// for the server's grid-sized delivery copy where one exists. A card that
+/// leaves both at their detail-view defaults downloads and decodes several
+/// times the pixels it can show.
 Widget listingImage(
   Listing listing, {
   int index = 0,
   BoxFit fit = BoxFit.cover,
   FilterQuality filterQuality = FilterQuality.medium,
   int cacheWidth = 1600,
+  bool preferThumbnail = false,
 }) {
   final reference = index >= 0 && index < listing.imageUrls.length
       ? listing.imageUrls[index]
       : null;
-  final localBytes = reference == null ? null : listingPhotoBytes(reference);
+  if (reference == null) return const MediaPlaceholder.unavailable();
+
+  final localBytes = listingPhotoBytes(reference);
   if (localBytes != null) {
     return Image.memory(
       localBytes,
@@ -52,104 +61,32 @@ Widget listingImage(
       filterQuality: filterQuality,
       cacheWidth: cacheWidth,
       semanticLabel: listing.title,
-      errorBuilder: (_, _, _) => _fallback(listing, fit, filterQuality),
+      errorBuilder: (_, _, _) => const MediaPlaceholder.unavailable(),
     );
   }
-  final uri = reference == null ? null : Uri.tryParse(reference);
+
+  final uri = Uri.tryParse(reference);
   if (uri != null && (uri.scheme == 'https' || uri.scheme == 'http')) {
-    return Image.network(
-      reference!,
-      fit: fit,
-      filterQuality: filterQuality,
-      cacheWidth: cacheWidth,
+    return networkMediaImage(
+      url: reference,
       semanticLabel: listing.title,
-      loadingBuilder: (context, child, progress) => progress == null
-          ? child
-          : _loadingPlaceholder(listing, fit, filterQuality, progress),
-      errorBuilder: (_, _, _) => _fallback(listing, fit, filterQuality),
-    );
-  }
-  if (reference != null && _isStorageReference(reference)) {
-    return _StorageListingImage(
-      listing: listing,
-      reference: reference,
       fit: fit,
       filterQuality: filterQuality,
       cacheWidth: cacheWidth,
     );
   }
-  return _fallback(listing, fit, filterQuality);
-}
 
-bool _isStorageReference(String reference) =>
-    reference.startsWith('uploads/') ||
-    reference.startsWith('public/listings/') ||
-    reference.startsWith('private/landlords/') ||
-    reference.startsWith('gs://');
-
-Widget _fallback(Listing listing, BoxFit fit, FilterQuality filterQuality) =>
-    Image.asset(
-      listingAssetFor(listing),
+  if (isStorageReference(reference)) {
+    return RemoteMediaImage(
+      reference: mediaReferenceFor(reference, preferThumbnail: preferThumbnail),
+      semanticLabel: listing.title,
       fit: fit,
       filterQuality: filterQuality,
-    );
-
-class _StorageListingImage extends ConsumerWidget {
-  const _StorageListingImage({
-    required this.listing,
-    required this.reference,
-    required this.fit,
-    required this.filterQuality,
-    required this.cacheWidth,
-  });
-
-  final Listing listing;
-  final String reference;
-  final BoxFit fit;
-  final FilterQuality filterQuality;
-  final int cacheWidth;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bytes = ref.watch(propertyMediaBytesProvider(reference));
-    return bytes.when(
-      data: (value) => value == null
-          ? _fallback(listing, fit, filterQuality)
-          : Image.memory(
-              value,
-              fit: fit,
-              filterQuality: filterQuality,
-              cacheWidth: cacheWidth,
-              semanticLabel: listing.title,
-              errorBuilder: (_, _, _) => _fallback(listing, fit, filterQuality),
-            ),
-      error: (_, _) => _fallback(listing, fit, filterQuality),
-      loading: () => _loadingPlaceholder(listing, fit, filterQuality, null),
+      cacheWidth: cacheWidth,
     );
   }
+  return const MediaPlaceholder.unavailable();
 }
-
-Widget _loadingPlaceholder(
-  Listing listing,
-  BoxFit fit,
-  FilterQuality filterQuality,
-  ImageChunkEvent? progress,
-) => Stack(
-  fit: StackFit.expand,
-  children: [
-    ExcludeSemantics(child: _fallback(listing, fit, filterQuality)),
-    Align(
-      alignment: Alignment.bottomCenter,
-      child: LinearProgressIndicator(
-        minHeight: 3,
-        value: progress?.expectedTotalBytes == null
-            ? null
-            : progress!.cumulativeBytesLoaded / progress.expectedTotalBytes!,
-        backgroundColor: Colors.transparent,
-      ),
-    ),
-  ],
-);
 
 /// Responsive listing gallery used by the public advert detail experience.
 ///

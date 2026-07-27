@@ -77,8 +77,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                 error: (error, stack) => NyumbaStatusMessage.fromError(
                   error,
                   localizations: appLocalizationsOf(context),
-                  subject: appLocalizationsOf(context)
-                      .statusSubjectMaintenanceRequests,
+                  subject: appLocalizationsOf(
+                    context,
+                  ).statusSubjectMaintenanceRequests,
                   onRetry: () => ref.invalidate(maintenanceRequestsProvider),
                 ),
                 data: (requests) => _buildLoaded(context, requests, outbox),

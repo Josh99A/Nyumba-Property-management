@@ -113,7 +113,7 @@ describe('public SEO handler', () => {
       }),
     );
     expect(PUBLIC_SEO_CACHE_CONTROL).toBe(
-      'public, max-age=60, s-maxage=300',
+      'public, max-age=60, s-maxage=3600, stale-while-revalidate=86400',
     );
   });
 

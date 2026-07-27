@@ -34,6 +34,12 @@ class _FakeGateway implements RemotePullGateway {
     controllers[entityType] = controller;
     return controller.stream;
   }
+
+  @override
+  Future<List<RemoteRecord>> fetchPublicReviews(
+    String landlordToken, {
+    int limit = 20,
+  }) async => const <RemoteRecord>[];
 }
 
 void main() {

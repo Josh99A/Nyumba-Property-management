@@ -37,7 +37,28 @@ enum OfflineEntityType {
   staffInvite('staff_invites', 87),
   subscriptionPlan('subscription_plans', 90),
   planCatalog('plan_catalog', 92),
-  adminAction('admin_actions', 95);
+  adminAction('admin_actions', 95),
+
+  /// A tenant's review of a landlord, keyed by the lease it describes.
+  ///
+  /// One store serves both the author's copy (`tenantPortals/{uid}/reviews`) and
+  /// the reviewed landlord's (`landlordPortals/{uid}/reviews`). They are the same
+  /// shape and a given account is only ever one of the two parties for a given
+  /// lease, so they cannot collide — and the workspace is already scoped per
+  /// account *and* active role.
+  landlordReview('landlord_reviews', 96),
+
+  /// The anonymous mirror browsed from the marketplace.
+  ///
+  /// Separate from [landlordReview] for the same reason [publicListing] is
+  /// separate from [listing]: the two projections share document IDs but
+  /// deliberately differ — the public copy carries no reviewer identity and no
+  /// unit label — so merging them lets whichever listener arrives last erase the
+  /// other's fields.
+  publicReview('public_reviews', 97),
+
+  /// Landlord-to-Nyumba product feedback. Write-only; nothing pulls it back.
+  platformFeedback('platform_feedback', 98);
 
   const OfflineEntityType(this.storeName, this.syncPriority);
 

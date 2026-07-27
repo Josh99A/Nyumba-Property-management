@@ -3181,7 +3181,7 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get propertyPhotoCreateGuidance =>
-      'Yongerako ebifaananyi 1–2. Ekifaananyi ekikulu kye kisooka okulabika.';
+      'Yongerako ebifaananyi 1–2. Ebifaananyi bikendeezebwa nga tebinnatikkibwa, era ekifaananyi ekikulu kye kisooka okulabika.';
 
   @override
   String propertyPhotoCountGuidance(int count, int maximum) {
@@ -3190,11 +3190,11 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get propertyPhotoEditGuidance =>
-      'JPEG, PNG, oba WebP; buli kifaananyi tekisukka MB 5 era ebifaananyi byonna tebisinga 2. Ekifaananyi ekisooka kye kirabika ku kaadi y’eky’obugagga. Ebifaananyi bisigala nga birindirira okutuusa okutikka bwe kukakasibwa.';
+      'JPEG, PNG, oba WebP; buli kifaananyi tekisukka MB 5 era ebifaananyi byonna tebisinga 2. Ebifaananyi bikendeezebwa nga tebinnatikkibwa. Ekifaananyi ekisooka kye kirabika ku kaadi y’eky’obugagga. Ebifaananyi bisigala nga birindirira okutuusa okutikka bwe kukakasibwa.';
 
   @override
   String get listingPhotoGuidance =>
-      'JPEG, PNG, oba WebP; buli kifaananyi tekisukka MB 5 era ebifaananyi byonna tebisinga 5. Ekifaananyi ekisooka kye kifaananyi ekikulu. Ebifaananyi bisigala nga birindirira okutuusa okutikka bwe kukakasibwa.';
+      'JPEG, PNG, oba WebP; buli kifaananyi tekisukka MB 5 era ebifaananyi byonna tebisinga 5. Ebifaananyi bikendeezebwa nga tebinnatikkibwa. Ekifaananyi ekisooka kye kifaananyi ekikulu. Ebifaananyi bisigala nga birindirira okutuusa okutikka bwe kukakasibwa.';
 
   @override
   String listingPhotoPosition(String current, String total) {
@@ -3337,4 +3337,411 @@ class AppLocalizationsLg extends AppLocalizations {
   String listingAvailableFromDate(String date) {
     return 'Kiriwo okuva $date';
   }
+
+  @override
+  String get imageLoading => 'Ekifaananyi kikyatikkibwa';
+
+  @override
+  String get imageUnavailable => 'Ekifaananyi tekiriiwo';
+
+  @override
+  String get filtersTitle => 'Okusunsula';
+
+  @override
+  String get clearAllFilters => 'Gyawo byonna';
+
+  @override
+  String get sortResults => 'Tegeka ebizuuliddwa';
+
+  @override
+  String get removeFilter => 'Ggyawo akasunsula';
+
+  @override
+  String get allUnitTypes => 'Ebika byonna';
+
+  @override
+  String photoCount(int count) {
+    return 'Ebifaananyi $count';
+  }
+
+  @override
+  String showHomesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Laga amaka $count',
+      one: 'Laga maka 1',
+      zero: 'Tewali maka gakwatagana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reviewsTitle => 'Endowooza';
+
+  @override
+  String get reviewsLandlordDescription =>
+      'Abapangisa basobola okukuwa endowooza oluvannyuma lw\'ennaku 30 mu kamu ku bisenge byo. Okuddamu mu lujjudde kutera okukkiriza abasoma okusinga okuwakanya.';
+
+  @override
+  String get yourReviews => 'Endowooza zo';
+
+  @override
+  String get yourReviewsDescription =>
+      'Endowooza z\'owadde ku nnyini nnyumba yo. Endowooza ezifulumiziddwa zirabika ku bulangirira bwe nga teririna linnya lyo.';
+
+  @override
+  String get reviewModeration => 'Okukebera endowooza';
+
+  @override
+  String get reviewModerationDescription =>
+      'Endowooza ezirooposeddwa zisigala mu lujjudde okutuusa nga salawo. Okukweka kugiggya ku bbaluwa y\'ebbeeyi ya nnyini nnyumba; okufulumya kusaanyawo alipoota.';
+
+  @override
+  String get recentlyDecided => 'Ezisaliddwawo gyebuvuddeko';
+
+  @override
+  String get landlordFeedback => 'Endowooza za bannyini nnyumba';
+
+  @override
+  String get landlordFeedbackDescription =>
+      'Endowooza ez\'ekyama ku kintu okuva eri bannyini nnyumba. Tezirabika mu lujjudde era abapangisa tebazirabako.';
+
+  @override
+  String get landlordReviews => 'Endowooza ku nnyini nnyumba';
+
+  @override
+  String get feedbackSection => 'Endowooza';
+
+  @override
+  String get feedbackSectionDescription =>
+      'Tegeeza ttiimu ya Nyumba ekikola n\'ekitakola. Kino kya kyama — abapangisa bo tebakirabako.';
+
+  @override
+  String get reviewDimResponsiveness => 'Obwangu mu kuddamu';
+
+  @override
+  String get reviewDimMaintenance => 'Okuddaabiriza n\'okulongoosa';
+
+  @override
+  String get reviewDimListingAccuracy => 'Obulangirira bwali butuufu';
+
+  @override
+  String get reviewDimDepositFairness =>
+      'Ssente ez\'okusooka zaakolebwako bulungi';
+
+  @override
+  String get reviewFlagInaccurate => 'Si bituufu';
+
+  @override
+  String get reviewFlagAbusive => 'Kuvuma oba kutiisatiisa';
+
+  @override
+  String get reviewFlagNotMyTenant => 'Tekyawandiikibwa mupangisa wange';
+
+  @override
+  String get reviewFlagPersonalData => 'Kirimu ebikwata ku muntu';
+
+  @override
+  String get reviewFlagSpam => 'Bubaka obutaliimu oba okulanga';
+
+  @override
+  String get ratingPoor => 'Kibi';
+
+  @override
+  String get ratingBelowExpectations => 'Wansi w\'ebyasuubirwa';
+
+  @override
+  String get ratingAcceptable => 'Kikkirizibwa';
+
+  @override
+  String get ratingGood => 'Kirungi';
+
+  @override
+  String get ratingExcellent => 'Kirungi nnyo';
+
+  @override
+  String get rateYourLandlord => 'Wa nnyini nnyumba yo endowooza';
+
+  @override
+  String get editYourReview => 'Kyusa endowooza yo';
+
+  @override
+  String get reviewFormerLandlord =>
+      'Wa nnyini nnyumba wo eyaggwaako endowooza';
+
+  @override
+  String get howWasThatRepair => 'Okuddaabiriza okwo kwakolebwa kutya?';
+
+  @override
+  String get ratingCoversWholeTenancy =>
+      'Endowooza yo ekwata ku bupangisa bwonna, si ku kuddaabiriza kuno kwokka.';
+
+  @override
+  String get reviewWindowAfterMoveOut =>
+      'Osobola okuwa endowooza okumala ennaku 90 oluvannyuma lw\'okuvaamu.';
+
+  @override
+  String get helpTheNextTenant =>
+      'Yamba omupangisa addako okumanya ky\'asuubira.';
+
+  @override
+  String get addMoreDetailOptional => 'Yongerako ebisingawo (tekyetaagisa)';
+
+  @override
+  String get whatShouldNextTenantKnow =>
+      'Omupangisa addako asaanidde okumanya ki?';
+
+  @override
+  String get postReview => 'Weereza endowooza';
+
+  @override
+  String get notNow => 'Si kaakati';
+
+  @override
+  String get writeAReview => 'Wandiika endowooza';
+
+  @override
+  String get reviewVisibilityNotice =>
+      'Erinnya lyo terirabika mu lujjudde — abasoma balaba \"Omupangisa akakasiddwa\". Nnyini nnyumba yo ajja kutegeera nti endowooza evudde mu bupangisa bwo, era asobola okuddamu mu lujjudde. Osobola okugikyusa oba okugiggyawo okumala ennaku 14.';
+
+  @override
+  String get reviewEligibleAfter30Days =>
+      'Osobola okuwa nnyini nnyumba yo endowooza oluvannyuma lw\'ennaku 30 mu maka go.';
+
+  @override
+  String get reviewsLoadFailedTenant =>
+      'Endowooza zo tezisobodde kujjibwa. Ziri bulungi — ddamu ogezeeko ng\'okomyewo ku yintaneeti.';
+
+  @override
+  String get noReviewWrittenYet => 'Tonnawandiika ndowooza.';
+
+  @override
+  String get useCardAboveWhenReady =>
+      'Kozesa kaadi eri waggulu ng\'oli mwetegefu.';
+
+  @override
+  String get reviewEligibilityExplainer =>
+      'Osobola okuwa nnyini nnyumba endowooza oluvannyuma lw\'ennaku 30 mu maka go, era okumala ennaku 90 oluvannyuma lw\'okuvaamu.';
+
+  @override
+  String get reviewStatusPublished => 'Kifulumiziddwa';
+
+  @override
+  String get reviewStatusWithdrawnByYou => 'Wagiggyawo';
+
+  @override
+  String get reviewStatusUnderReview => 'Kikeberebwa';
+
+  @override
+  String get reviewStatusTakenDown => 'Kiggiddwawo';
+
+  @override
+  String get reviewHiddenNoticeAuthor =>
+      'Nyumba ekwese endowooza eno nga bagikebera. Okyagirabira wano.';
+
+  @override
+  String get replyFromLandlord => 'Okuddamu okuva eri nnyini nnyumba';
+
+  @override
+  String get editLabel => 'Kyusa';
+
+  @override
+  String get removeLabel => 'Ggyawo';
+
+  @override
+  String get editWindowClosed =>
+      'Ebbanga ly\'ennaku 14 ery\'okukyusa liweddeko.';
+
+  @override
+  String get reviewsLoadFailed => 'Endowooza tezisobodde kujjibwa kaakati.';
+
+  @override
+  String get noReviewsYet => 'Tewali ndowooza nnaku.';
+
+  @override
+  String get repairsDriveRatings =>
+      'Okuddaabiriza mangu kye kisinga okukwasa endowooza abapangisa ze bawa.';
+
+  @override
+  String get reviewHiddenFromPublic =>
+      'Kikwekeddwa eri abantu nga Nyumba ekikebera.';
+
+  @override
+  String get reviewReportedStillVisible =>
+      'Waalooposa endowooza eno. Esigala erabika nga tugyekenneenya.';
+
+  @override
+  String get yourPublicReply => 'Okuddamu kwo okw\'olujjudde';
+
+  @override
+  String get replyPublicly => 'Ddamu mu lujjudde';
+
+  @override
+  String get editReply => 'Kyusa okuddamu';
+
+  @override
+  String get reportLabel => 'Loopa';
+
+  @override
+  String get replyInPublic => 'Ddamu mu lujjudde';
+
+  @override
+  String get replyPersuasionNotice =>
+      'Buli asoma endowooza eno ajja kulaba okuddamu kwo okuliraanye. Okuddamu okuteefu era okw\'amazima kukkiriza abasoma bangi okusinga endowooza yennyini.';
+
+  @override
+  String get yourReplyHint => 'Okuddamu kwo';
+
+  @override
+  String get postReply => 'Weereza okuddamu';
+
+  @override
+  String get reportThisReview => 'Loopa endowooza eno';
+
+  @override
+  String get reportNotTakedownNotice =>
+      'Nyumba ejja kugyekenneenya. Endowooza esigala erabika mu kiseera ekyo — okuloopa si ngeri ya kuggyawo kunenya.';
+
+  @override
+  String get reportsDoNotHide =>
+      'Nyumba ejja kugyekenneenya. Okuloopa tekukweka ndowooza.';
+
+  @override
+  String get sendReport => 'Weereza alipoota';
+
+  @override
+  String get noTenantReviewedYet =>
+      'Tewali mupangisa awadde nnyini nnyumba ono ndowooza.';
+
+  @override
+  String get fromTenantsWhoLivedHere =>
+      'Okuva mu bapangisa abaabeeranga mu bisenge bya nnyini nnyumba ono.';
+
+  @override
+  String get noWrittenReviewsYet =>
+      'Tewali ndowooza ziwandiike — mpozzi obubonero bwa nnyeenyezi.';
+
+  @override
+  String get landlordReplied => 'Nnyini nnyumba addemu';
+
+  @override
+  String get newOnNyumba => 'Mupya ku Nyumba';
+
+  @override
+  String get tooFewReviewsYet => 'Endowooza zikyali ntono';
+
+  @override
+  String get moderationQueueLoadFailed =>
+      'Olukalala lw\'okukebera terusobodde kujjibwa.';
+
+  @override
+  String get nothingAwaitingDecision => 'Tewali kirindiridde kusalibwawo.';
+
+  @override
+  String get keepPublished => 'Sigaza mu lujjudde';
+
+  @override
+  String get hidePendingAppeal => 'Kweka nga tulindiridde okujulira';
+
+  @override
+  String get decisionKept => 'Kisigazidwa';
+
+  @override
+  String get decisionHidden => 'Kikwekeddwa';
+
+  @override
+  String get decisionRemoved => 'Kiggiddwawo';
+
+  @override
+  String get decisionWithdrawn => 'Kijjiddwawo';
+
+  @override
+  String get npsQuestion =>
+      'Oyinza otya okusemba Nyumba eri nnyini nnyumba omulala?';
+
+  @override
+  String get npsNotLikely => 'Sisobola';
+
+  @override
+  String get npsVeryLikely => 'Nsobola nnyo';
+
+  @override
+  String get sendLabel => 'Weereza';
+
+  @override
+  String get sendFeedback => 'Weereza endowooza';
+
+  @override
+  String get feedbackPrivacyNotice =>
+      'Kino kigenda butereevu eri ttiimu ya Nyumba. Tekifulumizibwa wamu era abapangisa bo tebakirabako.';
+
+  @override
+  String get feedbackCategoryBug => 'Waliwo ekitakola';
+
+  @override
+  String get feedbackCategoryFeature => 'Njagala ekintu ekipya';
+
+  @override
+  String get feedbackCategoryEaseOfUse => 'Kizibu okukozesa';
+
+  @override
+  String get feedbackCategoryValue => 'Ebbeeyi n\'omugaso';
+
+  @override
+  String get feedbackCategorySupport => 'Obuyambi';
+
+  @override
+  String get feedbackHint => 'Kiki ekyabaddewo, era wali osuubira ki?';
+
+  @override
+  String get feedbackVersionNotice =>
+      'Ekifaananyi kya app yo n\'ekyuma ky\'okozesa biteekeddwako tusobole okukiddamu.';
+
+  @override
+  String get feedbackLoadFailed => 'Endowooza tezisobodde kujjibwa.';
+
+  @override
+  String get noFeedbackYet => 'Tewannabaawo ndowooza eweereddwayo.';
+
+  @override
+  String get noNpsResponsesYet => 'Tewannabaawo bizzeemu bya NPS.';
+
+  @override
+  String get netPromoterScore => 'Ebbaluwa ya NPS';
+
+  @override
+  String get listYourSpace => 'Wandiisa ekifo kyo';
+
+  @override
+  String get forTenants => 'Eri abapangisa';
+
+  @override
+  String get popularLocations => 'Ebifo ebyettanirwa';
+
+  @override
+  String get whyNyumba => 'Lwaki Nyumba';
+
+  @override
+  String get benefitVerifiedLandlords =>
+      'Bannannyini nnyumba abakakasiddwa bokka';
+
+  @override
+  String get benefitNoAgentFees =>
+      'Tewali ssente za bakalimagezi, era tewali matangazo agakadde';
+
+  @override
+  String get benefitBrowseOffline => 'Noonya era osabe nga toli ku mutimbagano';
+
+  @override
+  String get benefitPublishInMinutes =>
+      'Fulumya ekifo ekiriwo mu ddakiika ntono';
+
+  @override
+  String get benefitRoutedEnquiries =>
+      'Ebibuuzo bikutuukako nga tewali kugaba namba yo';
+
+  @override
+  String get benefitOneWorkspace =>
+      'Obupangisa, ebbaluwa z\'ensimbi, n\'okuddaabiriza mu kifo kimu';
 }

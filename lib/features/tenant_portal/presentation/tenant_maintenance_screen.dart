@@ -20,6 +20,8 @@ import '../../../core/presentation/sync_state_badge.dart';
 import '../../auth/application/session_controller.dart';
 import '../../maintenance/application/maintenance_providers.dart';
 import '../../maintenance/domain/maintenance_request.dart';
+import '../../reviews/application/review_prompt_policy.dart';
+import '../../reviews/presentation/review_prompt.dart';
 import '../../tenants/application/tenancy_providers.dart';
 import 'widgets/tenant_components.dart';
 
@@ -43,8 +45,37 @@ class _TenantMaintenanceScreenState
     extends ConsumerState<TenantMaintenanceScreen> {
   String _filter = 'All';
   String _query = '';
+  bool _promptChecked = false;
 
   String get _tenantId => ref.read(sessionControllerProvider)?.userId ?? '';
+
+  /// The best moment in the product to ask for a review.
+  ///
+  /// A resolved repair is the tenant's most direct evidence of how their
+  /// landlord actually behaves, and they are already looking at it — so the ask
+  /// reads as "how did that go?" rather than as a survey. Everything about
+  /// whether to actually show it (eligibility, the 30-day interval, the
+  /// two-dismissal opt-out) belongs to ReviewPromptPolicy, not here; this only
+  /// reports that the moment occurred.
+  ///
+  /// Guarded by [_promptChecked] so it fires once per visit rather than on
+  /// every rebuild of a screen with a search field on it.
+  void _maybePromptAfterResolution(List<MaintenanceRequest> requests) {
+    if (_promptChecked) return;
+    final hasResolved = requests.any(
+      (request) => request.status == MaintenanceStatus.resolved,
+    );
+    if (!hasResolved) return;
+    _promptChecked = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      maybePromptForReview(
+        context,
+        ref,
+        trigger: ReviewPromptTrigger.maintenanceResolved,
+      );
+    });
+  }
 
   List<MaintenanceRequest> _applyFilters(List<MaintenanceRequest> requests) {
     final query = _query.trim().toLowerCase();
@@ -73,6 +104,9 @@ class _TenantMaintenanceScreenState
     );
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
+    _maybePromptAfterResolution(
+      requestsValue.value ?? const <MaintenanceRequest>[],
+    );
     return TenantPage(
       title: 'Maintenance',
       description:

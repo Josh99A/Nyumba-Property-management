@@ -10,8 +10,10 @@ import {
 } from '../shared/config';
 import {
   cleanupListingMedia,
+  cleanupPropertyMedia,
   movePrivateDocument,
   publishListingMedia,
+  publishPropertyMedia,
   purgeDocument,
   purgeStorageObjects,
 } from './media-publication';
@@ -21,8 +23,11 @@ import {
   deliverContactRequest,
   notifyLandlordApplication,
   notifyLandlordPaymentDeclared,
+  notifyLandlordReview,
   notifyTenantPaymentRejected,
+  notifyTenantReviewResponse,
 } from './notifications';
+import { refreshLandlordRatingBadges } from './rating-badges';
 import { EMAIL_SECRETS } from '../shared/email';
 import {
   sendLandlordApprovedEmail,
@@ -52,6 +57,8 @@ type JobProcessor = (payload: Record<string, unknown>) => Promise<void>;
 const processors = new Map<string, JobProcessor>([
   ['publishListingMedia', publishListingMedia],
   ['cleanupListingMedia', cleanupListingMedia],
+  ['publishPropertyMedia', publishPropertyMedia],
+  ['cleanupPropertyMedia', cleanupPropertyMedia],
   ['movePrivateDocument', movePrivateDocument],
   ['purgeDocument', purgeDocument],
   ['purgeStorageObjects', purgeStorageObjects],
@@ -64,6 +71,9 @@ const processors = new Map<string, JobProcessor>([
   ['deliverContactRequest', deliverContactRequest],
   ['notifyLandlordPaymentDeclared', notifyLandlordPaymentDeclared],
   ['notifyTenantPaymentRejected', notifyTenantPaymentRejected],
+  ['notifyLandlordReview', notifyLandlordReview],
+  ['notifyTenantReviewResponse', notifyTenantReviewResponse],
+  ['refreshLandlordRatingBadges', refreshLandlordRatingBadges],
   ['generateReport', generateReport],
   ['setAuthUserDisabled', setAuthUserDisabled],
   ['deleteAuthUser', deleteAuthUser],

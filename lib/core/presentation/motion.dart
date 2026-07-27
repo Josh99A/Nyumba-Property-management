@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' hide Text, Tooltip;
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
@@ -56,6 +58,11 @@ class _FadeSlideInState extends State<FadeSlideIn>
   );
   bool _scheduled = false;
 
+  /// Held so it can be cancelled: inside a lazily-built list a child is
+  /// routinely disposed before its staggered entrance ever starts, and an
+  /// uncancellable `Future.delayed` would outlive it every time.
+  Timer? _entrance;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -69,13 +76,14 @@ class _FadeSlideInState extends State<FadeSlideIn>
       _controller.forward();
       return;
     }
-    Future<void>.delayed(widget.delay, () {
+    _entrance = Timer(widget.delay, () {
       if (mounted) _controller.forward();
     });
   }
 
   @override
   void dispose() {
+    _entrance?.cancel();
     _controller.dispose();
     super.dispose();
   }

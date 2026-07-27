@@ -45,6 +45,8 @@ final class Listing {
     this.contactPhone,
     this.contactEmail,
     this.publicContactToken,
+    this.ratingAverage,
+    this.ratingCount = 0,
     this.publishedAt,
     this.expiresAt,
     this.projectionVersion,
@@ -97,6 +99,16 @@ final class Listing {
   final String? contactPhone;
   final String? contactEmail;
   final String? publicContactToken;
+
+  /// The owning landlord's reputation, stamped onto the public projection at
+  /// publish time and refreshed by a job when a review lands.
+  ///
+  /// Denormalized because Firestore cannot join: a marketplace grid renders
+  /// fifty cards, and a rating lookup per card is fifty extra reads on every
+  /// scroll. Null [ratingAverage] with a non-zero [ratingCount] is a real and
+  /// meaningful state — reviews exist but not enough to display an average.
+  final double? ratingAverage;
+  final int ratingCount;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? publishedAt;
@@ -292,6 +304,8 @@ final class Listing {
     bool clearContactEmail = false,
     String? publicContactToken,
     bool clearPublicContactToken = false,
+    double? ratingAverage,
+    int? ratingCount,
     DateTime? updatedAt,
     DateTime? publishedAt,
     bool clearPublishedAt = false,
@@ -361,6 +375,8 @@ final class Listing {
     contactEmail: clearContactEmail
         ? null
         : (contactEmail ?? this.contactEmail),
+    ratingAverage: ratingAverage ?? this.ratingAverage,
+    ratingCount: ratingCount ?? this.ratingCount,
     publicContactToken: clearPublicContactToken
         ? null
         : (publicContactToken ?? this.publicContactToken),

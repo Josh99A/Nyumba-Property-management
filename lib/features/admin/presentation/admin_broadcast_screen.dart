@@ -182,8 +182,7 @@ class _AdminBroadcastScreenState extends ConsumerState<AdminBroadcastScreen> {
       );
     }
     final role = ref.watch(sessionControllerProvider)?.role;
-    final canBroadcast =
-        role == AppRole.admin || role == AppRole.superAdmin;
+    final canBroadcast = role == AppRole.admin || role == AppRole.superAdmin;
     return AdminPage(
       title: 'Announcements',
       description:
@@ -259,9 +258,7 @@ class _AdminBroadcastScreenState extends ConsumerState<AdminBroadcastScreen> {
             builder: (context, constraints) {
               final audiencePicker = DropdownButtonFormField<String>(
                 initialValue: _audience,
-                decoration: InputDecoration(
-                  labelText: context.tr('Audience'),
-                ),
+                decoration: InputDecoration(labelText: context.tr('Audience')),
                 items: [
                   for (final audience in broadcastAudiences)
                     DropdownMenuItem(
@@ -295,9 +292,7 @@ class _AdminBroadcastScreenState extends ConsumerState<AdminBroadcastScreen> {
                 'user' => DropdownButtonFormField<String>(
                   initialValue: _targetUid,
                   isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: context.tr('Account'),
-                  ),
+                  decoration: InputDecoration(labelText: context.tr('Account')),
                   items: [
                     for (final account in selectableAccounts)
                       DropdownMenuItem(
@@ -363,7 +358,8 @@ class _BroadcastHistoryPanel extends StatelessWidget {
     final items = broadcasts.value ?? const <PlatformBroadcast>[];
     return AdminPanel(
       title: 'Broadcast history',
-      subtitle: 'Server-owned records; delivery counts fill in as fanout '
+      subtitle:
+          'Server-owned records; delivery counts fill in as fanout '
           'completes',
       child: broadcasts.isLoading && items.isEmpty
           ? const Padding(
