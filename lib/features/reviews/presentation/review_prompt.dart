@@ -263,7 +263,31 @@ class AuthoredReviewTile extends ConsumerWidget {
                 ),
                 AsyncActionButton(
                   style: AsyncActionStyle.text,
-                  onPressed: () => ref.read(withdrawReviewProvider)(review.id),
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text.localized('Remove this review?'),
+                        content: const Text.localized(
+                          'This cannot be undone. The review will no longer be visible to '
+                          'anyone, including your landlord.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext, false),
+                            child: const Text.localized('Keep review'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(dialogContext, true),
+                            child: const Text.localized('Remove'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true) {
+                      await ref.read(withdrawReviewProvider)(review.id);
+                    }
+                  },
                   child: Text.localized('Remove'),
                 ),
               ] else
