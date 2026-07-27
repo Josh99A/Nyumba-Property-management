@@ -147,6 +147,55 @@ class ListingQuery {
 
   ListingQuery cleared() => ListingQuery(sort: sort);
 
+  /// The query as URL parameters, omitting anything left at its default.
+  ///
+  /// A search is a place, not a mode: it should survive a reload, come back
+  /// intact from the browser's back button, and be shareable as a link. That
+  /// requires the state to live in the address bar rather than only in the
+  /// widget, and omitting defaults keeps the shared URL readable.
+  Map<String, String> toQueryParameters() => <String, String>{
+    if (text.trim().isNotEmpty) _textParam: text.trim(),
+    if (price != PriceBand.any) _priceParam: price.name,
+    if (bedrooms != BedroomsFilter.any) _bedroomsParam: bedrooms.name,
+    if (unitType != anyUnitType) _unitTypeParam: unitType,
+    if (sort != ListingSort.newest) _sortParam: sort.name,
+  };
+
+  /// Rebuilds a query from URL parameters, ignoring anything unrecognised.
+  ///
+  /// Lenient by design: these values arrive from a URL a stranger may have
+  /// edited or a link that outlived the enum value it named, and the right
+  /// answer to `?price=nonsense` is the unfiltered marketplace, not an error
+  /// page.
+  factory ListingQuery.fromQueryParameters(Map<String, String> parameters) {
+    T? byName<T extends Enum>(List<T> values, String? name) {
+      if (name == null) return null;
+      for (final value in values) {
+        if (value.name == name) return value;
+      }
+      return null;
+    }
+
+    final type = parameters[_unitTypeParam]?.trim();
+    return ListingQuery(
+      text: parameters[_textParam]?.trim() ?? '',
+      price: byName(PriceBand.values, parameters[_priceParam]) ?? PriceBand.any,
+      bedrooms:
+          byName(BedroomsFilter.values, parameters[_bedroomsParam]) ??
+          BedroomsFilter.any,
+      unitType: type == null || type.isEmpty ? anyUnitType : type,
+      sort:
+          byName(ListingSort.values, parameters[_sortParam]) ??
+          ListingSort.newest,
+    );
+  }
+
+  static const _textParam = 'q';
+  static const _priceParam = 'price';
+  static const _bedroomsParam = 'beds';
+  static const _unitTypeParam = 'type';
+  static const _sortParam = 'sort';
+
   /// Drops a unit type that no longer exists in the catalogue, so a filter a
   /// visitor cannot see or remove never silently empties the results.
   ListingQuery withinTypes(Set<String> availableTypes) =>

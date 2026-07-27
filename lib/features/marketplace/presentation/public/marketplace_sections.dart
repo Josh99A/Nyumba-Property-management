@@ -365,10 +365,14 @@ class MarketplaceAssuranceBand extends StatelessWidget {
         copy.trustDirectLandlordContact,
         copy.benefitNoAgentFees,
       ),
+      // Offline support used to sit here. It is a real strength of the app,
+      // but it answers a question nobody browsing for a home is asking; what
+      // a stranger deciding whether to trust this marketplace wants to know is
+      // whether the ratings come from anyone real.
       (
-        Icons.offline_pin_outlined,
-        copy.trustWorksOffline,
-        copy.benefitBrowseOffline,
+        Icons.reviews_outlined,
+        copy.trustRealTenantReviews,
+        copy.benefitRealTenantReviews,
       ),
     ];
 
@@ -439,55 +443,41 @@ class MarketplaceAssuranceBand extends StatelessWidget {
   }
 }
 
-/// Heading above the results grid: what is being shown, and how many.
-class MarketplaceResultsHeader extends StatelessWidget {
-  const MarketplaceResultsHeader({required this.resultSummary, super.key});
+/// Heading above the home's featured strip, with the way through to the full
+/// catalogue kept beside it rather than buried at the end of the section.
+class MarketplaceFeaturedHeader extends StatelessWidget {
+  const MarketplaceFeaturedHeader({
+    required this.resultSummary,
+    required this.onBrowseAll,
+    super.key,
+  });
 
   final String? resultSummary;
+  final VoidCallback onBrowseAll;
 
   @override
   Widget build(BuildContext context) {
     final copy = appLocalizationsOf(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Wrap(
+      spacing: 24,
+      runSpacing: 16,
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Wrap(
-          spacing: 24,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            MarketplaceSectionHeading(
-              eyebrow: copy.availableHomes,
-              title: copy.publicFreshSpaces,
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.cloud_done_outlined,
-                  size: 20,
-                  color: context.nyumba.sageDark,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  copy.savedForOfflineBrowsing,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: context.nyumba.sageDark,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        if (resultSummary != null) ...[
-          const SizedBox(height: 12),
-          Text(
-            resultSummary!,
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(color: context.nyumba.sageDark),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 660),
+          child: MarketplaceSectionHeading(
+            eyebrow: copy.featuredHomes,
+            title: copy.publicFreshSpaces,
+            subtitle: resultSummary ?? copy.featuredHomesDescription,
           ),
-        ],
+        ),
+        OutlinedButton.icon(
+          onPressed: onBrowseAll,
+          iconAlignment: IconAlignment.end,
+          icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+          label: Text(copy.viewAllHomes),
+        ),
       ],
     );
   }

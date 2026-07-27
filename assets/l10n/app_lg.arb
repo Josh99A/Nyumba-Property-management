@@ -1126,4 +1126,13 @@
     ,"benefitOneWorkspace": "Obupangisa, ebbaluwa z'ensimbi, n'okuddaabiriza mu kifo kimu"
     ,"reviewsSoFarBeforeRating": "{count, plural, =1{Endowooza 1} other{Endowooza {count}}} okutuusa kaakano — enkomo z'emmunyeenye zirabika nga zituuse ku {minimum}."
     ,"@reviewsSoFarBeforeRating": {"placeholders": {"count": {"type": "int"}, "minimum": {"type": "int"}}}
+    ,"trustRealTenantReviews": "Endowooza z'abapangisa ddala"
+    ,"benefitRealTenantReviews": "Ebiwandiikiddwa abo abaabeeranga eyo"
+    ,"browseAllHomes": "Noonya amaka gonna"
+    ,"viewAllHomes": "Laba amaka gonna"
+    ,"featuredHomes": "Amaka agalondeddwa"
+    ,"featuredHomesDescription": "Ebimu ku bifo ebipya ebifulumiziddwa bannannyini nnyumba abakakasiddwa."
+    ,"searchHomesTitle": "Noonya amaka"
+    ,"backToHome": "Ddayo ku luggya"
+    ,"refineYourSearch": "Longoosa okunoonya kwo"
 }

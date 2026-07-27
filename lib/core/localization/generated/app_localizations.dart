@@ -6563,6 +6563,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 review} other{{count} reviews}} so far — a star rating appears at {minimum}.'**
   String reviewsSoFarBeforeRating(int count, int minimum);
+
+  /// No description provided for @trustRealTenantReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews from real tenants'**
+  String get trustRealTenantReviews;
+
+  /// No description provided for @benefitRealTenantReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Ratings written by people who lived there'**
+  String get benefitRealTenantReviews;
+
+  /// No description provided for @browseAllHomes.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse all homes'**
+  String get browseAllHomes;
+
+  /// No description provided for @viewAllHomes.
+  ///
+  /// In en, this message translates to:
+  /// **'View all homes'**
+  String get viewAllHomes;
+
+  /// No description provided for @featuredHomes.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured homes'**
+  String get featuredHomes;
+
+  /// No description provided for @featuredHomesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A few of the newest spaces published by verified Nyumba landlords.'**
+  String get featuredHomesDescription;
+
+  /// No description provided for @searchHomesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search homes'**
+  String get searchHomesTitle;
+
+  /// No description provided for @backToHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to home'**
+  String get backToHome;
+
+  /// No description provided for @refineYourSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Refine your search'**
+  String get refineYourSearch;
 }
 
 class _AppLocalizationsDelegate

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
@@ -10,8 +11,10 @@ import 'package:nyumba_property_management/core/localization/luganda_localizatio
 import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
 import 'package:nyumba_property_management/features/auth/domain/user_session.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
+import 'package:nyumba_property_management/features/marketplace/presentation/public/listing_query.dart';
 import 'package:nyumba_property_management/features/marketplace/presentation/public/listing_result_card.dart';
 import 'package:nyumba_property_management/features/marketplace/presentation/public_listings_screen.dart';
+import 'package:nyumba_property_management/features/marketplace/presentation/public_search_screen.dart';
 
 final _publishedAt = DateTime.utc(2026, 7, 20);
 
@@ -21,133 +24,44 @@ class _VisitorSessionController extends SessionController {
 }
 
 void main() {
-  testWidgets('marketplace shows published homes and clears a search', (
-    tester,
-  ) async {
-    await _setViewport(tester, const Size(1280, 900));
-    await tester.pumpWidget(_testApp(locale: const Locale('en')));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpAndSettle();
+  group('landing page', () {
+    testWidgets('features a bounded sample and routes browsing to /search', (
+      tester,
+    ) async {
+      final copy = await AppLocalizations.delegate.load(const Locale('en'));
+      await _setViewport(tester, const Size(1280, 2400));
+      final harness = _harness(
+        listings: [
+          for (var index = 0; index < 12; index++)
+            _publishedListing(
+              id: 'listing_public_$index',
+              title: 'Listed home number $index',
+            ),
+        ],
+      );
+      await tester.pumpWidget(harness.app);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
-    expect(find.byType(Scaffold), findsOneWidget);
-    expect(find.text('Active listings'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      // The landing page is a sample, not the catalogue: it must never try to
+      // render every home.
+      final featured = find.byType(ListingResultCard).evaluate().length;
+      expect(featured, lessThan(12));
+      expect(featured, greaterThan(0));
 
-    await tester.enterText(find.byType(TextField).first, 'not-a-real-place');
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Search').first);
-    await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, copy.viewAllHomes));
+      await tester.pumpAndSettle();
 
-    expect(find.text('No homes match those filters'), findsOneWidget);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Clear filters'));
-    await tester.pumpAndSettle();
+      expect(find.byType(PublicSearchScreen), findsOneWidget);
+      expect(harness.router.state.uri.path, '/search');
+    });
 
-    await tester.scrollUntilVisible(
-      find.text('Modern two-bedroom home'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Modern two-bedroom home'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('marketplace stays overflow-free on a narrow Arabic screen', (
-    tester,
-  ) async {
-    final arabicCopy = await AppLocalizations.delegate.load(const Locale('ar'));
-    await _setViewport(tester, const Size(390, 844));
-    await tester.pumpWidget(_testApp(locale: const Locale('ar')));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpAndSettle();
-
-    expect(tester.takeException(), isNull);
-    expect(find.byType(Scaffold), findsOneWidget);
-    expect(
-      Directionality.of(tester.element(find.byType(Scaffold))),
-      TextDirection.rtl,
-    );
-    await tester.scrollUntilVisible(
-      find.text('Modern two-bedroom home'),
-      260,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Modern two-bedroom home'), findsOneWidget);
-    expect(find.text(arabicCopy.availableHomes), findsOneWidget);
-    expect(find.text(arabicCopy.listingAvailableNow), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('pinned filter bar applies and removes a filter on a phone', (
-    tester,
-  ) async {
-    final copy = await AppLocalizations.delegate.load(const Locale('en'));
-    await _setViewport(tester, const Size(390, 844));
-    await tester.pumpWidget(_testApp(locale: const Locale('en')));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(
-      find.byIcon(Icons.tune_rounded),
-      260,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.tune_rounded));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Any bedrooms').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('3+ bedrooms').last);
-    await tester.pumpAndSettle();
-
-    // The sheet previews the result before the visitor commits to it.
-    expect(find.text(copy.showHomesCount(0)), findsOneWidget);
-    await tester.tap(find.text(copy.showHomesCount(0)));
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(
-      find.text(copy.noHomesMatch),
-      -260,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text(copy.noHomesMatch), findsOneWidget);
-
-    // The chip sits above the results, and far enough down the page to be
-    // behind the pinned bar unless the list is nudged past it.
-    await tester.scrollUntilVisible(
-      find.byType(InputChip),
-      -160,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, 180));
-    await tester.pumpAndSettle();
-
-    expect(find.widgetWithText(InputChip, '3+ bedrooms'), findsOneWidget);
-    await tester.tap(
-      find.descendant(
-        of: find.widgetWithText(InputChip, '3+ bedrooms'),
-        matching: find.byIcon(Icons.close_rounded),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byType(InputChip), findsNothing);
-    await tester.scrollUntilVisible(
-      find.text('Modern two-bedroom home'),
-      260,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Modern two-bedroom home'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('a hero location shortcut searches that neighbourhood', (
-    tester,
-  ) async {
-    await _setViewport(tester, const Size(1280, 2400));
-    await tester.pumpWidget(
-      _testApp(
-        locale: const Locale('en'),
+    testWidgets('a hero location shortcut opens the search with that query', (
+      tester,
+    ) async {
+      await _setViewport(tester, const Size(1280, 2400));
+      final harness = _harness(
         listings: [
           _publishedListing(),
           _publishedListing(
@@ -156,115 +70,227 @@ void main() {
             neighborhood: 'Bugolobi',
           ),
         ],
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpWidget(harness.app);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Bugolobi townhouse'), findsOneWidget);
+      // The shortcuts come from the catalogue, so tapping one can never land
+      // on an empty result.
+      await tester.tap(find.widgetWithText(InkWell, 'Ntinda').first);
+      await tester.pumpAndSettle();
 
-    // The shortcuts come from the catalogue, so tapping one can never land on
-    // an empty result.
-    await tester.tap(find.widgetWithText(InkWell, 'Ntinda').first);
-    await tester.pumpAndSettle();
+      expect(harness.router.state.uri.path, '/search');
+      expect(harness.router.state.uri.queryParameters['q'], 'Ntinda');
+      expect(find.text('Modern two-bedroom home'), findsOneWidget);
+      expect(find.text('Bugolobi townhouse'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
 
-    expect(find.text('Modern two-bedroom home'), findsOneWidget);
-    expect(find.text('Bugolobi townhouse'), findsNothing);
-    expect(find.widgetWithText(InputChip, 'Ntinda'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    testWidgets('no longer advertises offline browsing', (tester) async {
+      final copy = await AppLocalizations.delegate.load(const Locale('en'));
+      await _setViewport(tester, const Size(1280, 2400));
+      await tester.pumpWidget(_harness().app);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+
+      expect(find.text(copy.trustWorksOffline), findsNothing);
+      expect(find.text(copy.benefitBrowseOffline), findsNothing);
+      expect(find.text(copy.trustRealTenantReviews), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
   });
 
-  testWidgets('typing defers filtering but never the field itself', (
-    tester,
-  ) async {
-    // Tall enough that the hero, the results header, and the first card are all
-    // on screen at once, so the card appearing and disappearing is observable
-    // without scrolling away from the search field.
-    await _setViewport(tester, const Size(1280, 2400));
-    await tester.pumpWidget(_testApp(locale: const Locale('en')));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpAndSettle();
+  group('search screen', () {
+    testWidgets('restores the filters a shared link carried', (tester) async {
+      await _setViewport(tester, const Size(1280, 2400));
+      final harness = _harness(
+        initialLocation: '/search?q=ntinda&beds=threePlus',
+        listings: [_publishedListing()],
+      );
+      await tester.pumpWidget(harness.app);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Modern two-bedroom home'), findsOneWidget);
+      // The seeded home has two bedrooms, so the linked filter excludes it —
+      // proving the URL, not the default, decided what is on screen.
+      expect(find.widgetWithText(InputChip, '3+ bedrooms'), findsOneWidget);
+      expect(find.widgetWithText(InputChip, 'ntinda'), findsOneWidget);
+      expect(find.text('Modern two-bedroom home'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
 
-    await tester.enterText(find.byType(TextField).first, 'not-a-real-place');
-    await tester.pump();
+    testWidgets('writes a changed filter back into the URL', (tester) async {
+      await _setViewport(tester, const Size(1280, 2400));
+      final harness = _harness(
+        initialLocation: '/search',
+        listings: [_publishedListing()],
+      );
+      await tester.pumpWidget(harness.app);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
 
-    // The text is on screen at once; the results have not been re-filtered yet.
-    expect(
-      tester.widget<TextField>(find.byType(TextField).first).controller?.text,
-      'not-a-real-place',
-    );
-    expect(
-      find.text('Modern two-bedroom home'),
-      findsOneWidget,
-      reason: 'filtering must not run on the first keystroke',
-    );
+      expect(harness.router.state.uri.queryParameters, isEmpty);
 
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Any bedrooms').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('3+ bedrooms').last);
+      await tester.pumpAndSettle();
 
-    expect(find.text('Modern two-bedroom home'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+      expect(harness.router.state.uri.queryParameters['beds'], 'threePlus');
+      expect(tester.takeException(), isNull);
+    });
 
-  testWidgets('a filter chip still applies immediately, without waiting', (
-    tester,
-  ) async {
-    await _setViewport(tester, const Size(1280, 2400));
-    await tester.pumpWidget(_testApp(locale: const Locale('en')));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpAndSettle();
+    testWidgets('stays overflow-free on a narrow Arabic screen', (
+      tester,
+    ) async {
+      final arabicCopy = await AppLocalizations.delegate.load(
+        const Locale('ar'),
+      );
+      await _setViewport(tester, const Size(390, 844));
+      await tester.pumpWidget(
+        _harness(initialLocation: '/search', locale: const Locale('ar')).app,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
 
-    // A dropdown selection is a finished decision, so it must not be debounced
-    // the way a half-typed word is.
-    await tester.tap(find.text('Any bedrooms').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('3+ bedrooms').last);
-    await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(
+        Directionality.of(tester.element(find.byType(PublicSearchScreen))),
+        TextDirection.rtl,
+      );
+      expect(find.text(arabicCopy.searchHomesTitle), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Modern two-bedroom home'),
+        260,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Modern two-bedroom home'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
 
-    expect(find.text('Modern two-bedroom home'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+    testWidgets('typing defers filtering but never the field itself', (
+      tester,
+    ) async {
+      await _setViewport(tester, const Size(1280, 2400));
+      await tester.pumpWidget(_harness(initialLocation: '/search').app);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
 
-  testWidgets('results below the fold are not built until scrolled to', (
-    tester,
-  ) async {
-    await _setViewport(tester, const Size(390, 844));
-    await tester.pumpWidget(
-      _testApp(
-        locale: const Locale('en'),
-        listings: [
-          for (var index = 0; index < 30; index++)
-            _publishedListing(
-              id: 'listing_public_$index',
-              title: 'Listed home number $index',
-            ),
-        ],
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpAndSettle();
+      expect(find.text('Modern two-bedroom home'), findsOneWidget);
 
-    // The whole grid used to be laid out on first paint, which started every
-    // card's photo download at once. Only a fraction may exist now.
-    final built = find.byType(ListingResultCard).evaluate().length;
-    expect(
-      built,
-      lessThan(30),
-      reason: 'the grid must not build all thirty cards up front',
-    );
+      await tester.enterText(find.byType(TextField).first, 'not-a-real-place');
+      await tester.pump();
 
-    await tester.scrollUntilVisible(
-      find.text('Listed home number 29'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    // Settles the entry animations of the rows that scrolling just built.
-    await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField).first).controller?.text,
+        'not-a-real-place',
+      );
+      expect(
+        find.text('Modern two-bedroom home'),
+        findsOneWidget,
+        reason: 'filtering must not run on the first keystroke',
+      );
 
-    expect(find.text('Listed home number 29'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Modern two-bedroom home'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('clears a search that matched nothing', (tester) async {
+      final copy = await AppLocalizations.delegate.load(const Locale('en'));
+      await _setViewport(tester, const Size(1280, 2400));
+      await tester.pumpWidget(
+        _harness(initialLocation: '/search?q=not-a-real-place').app,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+
+      expect(find.text(copy.noHomesMatch), findsOneWidget);
+      await tester.tap(find.widgetWithText(OutlinedButton, copy.clearFilters));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Modern two-bedroom home'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('results below the fold are not built until scrolled to', (
+      tester,
+    ) async {
+      await _setViewport(tester, const Size(390, 844));
+      await tester.pumpWidget(
+        _harness(
+          initialLocation: '/search',
+          listings: [
+            for (var index = 0; index < 30; index++)
+              _publishedListing(
+                id: 'listing_public_$index',
+                title: 'Listed home number $index',
+              ),
+          ],
+        ).app,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+
+      // The whole grid used to be laid out on first paint, which started every
+      // card's photo download at once. Only a fraction may exist now.
+      expect(
+        find.byType(ListingResultCard).evaluate().length,
+        lessThan(30),
+        reason: 'the grid must not build all thirty cards up front',
+      );
+
+      await tester.scrollUntilVisible(
+        find.text('Listed home number 29'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Listed home number 29'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the mobile filter sheet applies and a chip removes it', (
+      tester,
+    ) async {
+      final copy = await AppLocalizations.delegate.load(const Locale('en'));
+      await _setViewport(tester, const Size(390, 844));
+      await tester.pumpWidget(_harness(initialLocation: '/search').app);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.tune_rounded));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Any bedrooms').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('3+ bedrooms').last);
+      await tester.pumpAndSettle();
+
+      // The sheet previews the result before the visitor commits to it.
+      expect(find.text(copy.showHomesCount(0)), findsOneWidget);
+      await tester.tap(find.text(copy.showHomesCount(0)));
+      await tester.pumpAndSettle();
+
+      expect(find.text(copy.noHomesMatch), findsOneWidget);
+      expect(find.widgetWithText(InputChip, '3+ bedrooms'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(InputChip, '3+ bedrooms'),
+          matching: find.byIcon(Icons.close_rounded),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(InputChip), findsNothing);
+      expect(find.text('Modern two-bedroom home'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
   });
 }
 
@@ -277,31 +303,62 @@ Future<void> _setViewport(WidgetTester tester, Size size) async {
   });
 }
 
-Widget _testApp({required Locale locale, List<Listing>? listings}) =>
-    ProviderScope(
-      overrides: [
-        sessionControllerProvider.overrideWith(_VisitorSessionController.new),
-        publicListingsProvider.overrideWith(
-          (ref) => Stream.value(listings ?? <Listing>[_publishedListing()]),
-        ),
-        cloudStatusProvider.overrideWith(
-          (ref) => Stream.value(CloudStatus.live),
-        ),
-      ],
-      child: MaterialApp(
-        locale: locale,
-        theme: NyumbaTheme.light,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: const [
-          ...LugandaLocalizations.delegates,
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        home: const PublicListingsScreen(),
+/// The two public screens plus the routing between them, which is now part of
+/// what these tests are checking.
+({Widget app, GoRouter router}) _harness({
+  String initialLocation = '/explore',
+  List<Listing>? listings,
+  Locale locale = const Locale('en'),
+}) {
+  final catalogue = listings ?? <Listing>[_publishedListing()];
+  final router = GoRouter(
+    initialLocation: initialLocation,
+    routes: [
+      GoRoute(
+        path: '/explore',
+        builder: (context, state) => const PublicListingsScreen(),
       ),
-    );
+      GoRoute(
+        path: '/search',
+        builder: (context, state) => PublicSearchScreen(
+          initialQuery: ListingQuery.fromQueryParameters(
+            state.uri.queryParameters,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/listing/:listingId',
+        builder: (context, state) =>
+            Scaffold(body: Text(state.pathParameters['listingId'] ?? '')),
+      ),
+      GoRoute(
+        path: '/sign-in',
+        builder: (context, state) => const Scaffold(body: Text('sign in')),
+      ),
+    ],
+  );
+  final app = ProviderScope(
+    overrides: [
+      sessionControllerProvider.overrideWith(_VisitorSessionController.new),
+      publicListingsProvider.overrideWith((ref) => Stream.value(catalogue)),
+      cloudStatusProvider.overrideWith((ref) => Stream.value(CloudStatus.live)),
+    ],
+    child: MaterialApp.router(
+      locale: locale,
+      theme: NyumbaTheme.light,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        ...LugandaLocalizations.delegates,
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      routerConfig: router,
+    ),
+  );
+  return (app: app, router: router);
+}
 
 Listing _publishedListing({
   String id = 'listing_public_1',

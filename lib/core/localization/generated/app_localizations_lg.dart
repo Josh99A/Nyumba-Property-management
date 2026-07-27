@@ -3755,4 +3755,32 @@ class AppLocalizationsLg extends AppLocalizations {
     );
     return '$_temp0 okutuusa kaakano — enkomo z\'emmunyeenye zirabika nga zituuse ku $minimum.';
   }
+
+  @override
+  String get trustRealTenantReviews => 'Endowooza z\'abapangisa ddala';
+
+  @override
+  String get benefitRealTenantReviews => 'Ebiwandiikiddwa abo abaabeeranga eyo';
+
+  @override
+  String get browseAllHomes => 'Noonya amaka gonna';
+
+  @override
+  String get viewAllHomes => 'Laba amaka gonna';
+
+  @override
+  String get featuredHomes => 'Amaka agalondeddwa';
+
+  @override
+  String get featuredHomesDescription =>
+      'Ebimu ku bifo ebipya ebifulumiziddwa bannannyini nnyumba abakakasiddwa.';
+
+  @override
+  String get searchHomesTitle => 'Noonya amaka';
+
+  @override
+  String get backToHome => 'Ddayo ku luggya';
+
+  @override
+  String get refineYourSearch => 'Longoosa okunoonya kwo';
 }

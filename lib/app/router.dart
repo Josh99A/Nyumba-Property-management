@@ -23,7 +23,9 @@ import '../features/finance/presentation/finance_screen.dart';
 import '../features/maintenance/presentation/maintenance_screen.dart';
 import '../features/marketplace/presentation/landlord_listings_screen.dart';
 import '../features/marketplace/presentation/listing_detail_screen.dart';
+import '../features/marketplace/presentation/public/listing_query.dart';
 import '../features/marketplace/presentation/public_listings_screen.dart';
+import '../features/marketplace/presentation/public_search_screen.dart';
 import '../features/portfolio/presentation/properties_screen.dart';
 import '../features/portfolio/presentation/property_detail_screen.dart';
 import '../features/admin/presentation/admin_feedback_screen.dart';
@@ -118,6 +120,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/explore',
         pageBuilder: (context, state) =>
             _transitionPage(state: state, child: const PublicListingsScreen()),
+      ),
+      GoRoute(
+        path: '/search',
+        pageBuilder: (context, state) => _transitionPage(
+          state: state,
+          // Parsed here rather than inside the screen so a linked, reloaded, or
+          // back-navigated search restores exactly the filters it was shared
+          // with.
+          child: PublicSearchScreen(
+            initialQuery: ListingQuery.fromQueryParameters(
+              state.uri.queryParameters,
+            ),
+          ),
+        ),
       ),
       GoRoute(
         path: '/listing/:listingId',
@@ -328,6 +344,7 @@ String? redirectForSession(UserSession? session, String path) {
       path == '/sign-in' ||
       path == '/sign-up' ||
       path == '/explore' ||
+      path == '/search' ||
       path.startsWith('/listing/');
   if (session == null) return publicPath ? null : '/sign-in';
 

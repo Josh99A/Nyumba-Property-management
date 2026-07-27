@@ -3677,4 +3677,33 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0 so far — a star rating appears at $minimum.';
   }
+
+  @override
+  String get trustRealTenantReviews => 'Reviews from real tenants';
+
+  @override
+  String get benefitRealTenantReviews =>
+      'Ratings written by people who lived there';
+
+  @override
+  String get browseAllHomes => 'Browse all homes';
+
+  @override
+  String get viewAllHomes => 'View all homes';
+
+  @override
+  String get featuredHomes => 'Featured homes';
+
+  @override
+  String get featuredHomesDescription =>
+      'A few of the newest spaces published by verified Nyumba landlords.';
+
+  @override
+  String get searchHomesTitle => 'Search homes';
+
+  @override
+  String get backToHome => 'Back to home';
+
+  @override
+  String get refineYourSearch => 'Refine your search';
 }

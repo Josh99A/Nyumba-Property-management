@@ -1137,4 +1137,13 @@
     ,"benefitOneWorkspace": "Rent, invoices, and maintenance in one place"
     ,"reviewsSoFarBeforeRating": "{count, plural, =1{1 review} other{{count} reviews}} so far — a star rating appears at {minimum}."
     ,"@reviewsSoFarBeforeRating": {"description": "Shown while a landlord has some reviews but not enough to display a star average yet.", "placeholders": {"count": {"type": "int"}, "minimum": {"type": "int"}}}
+    ,"trustRealTenantReviews": "Reviews from real tenants"
+    ,"benefitRealTenantReviews": "Ratings written by people who lived there"
+    ,"browseAllHomes": "Browse all homes"
+    ,"viewAllHomes": "View all homes"
+    ,"featuredHomes": "Featured homes"
+    ,"featuredHomesDescription": "A few of the newest spaces published by verified Nyumba landlords."
+    ,"searchHomesTitle": "Search homes"
+    ,"backToHome": "Back to home"
+    ,"refineYourSearch": "Refine your search"
 }

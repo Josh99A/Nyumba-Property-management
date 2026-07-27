@@ -3732,4 +3732,33 @@ class AppLocalizationsSw extends AppLocalizations {
     );
     return '$_temp0 hadi sasa — ukadiriaji wa nyota huonekana ukifika $minimum.';
   }
+
+  @override
+  String get trustRealTenantReviews => 'Maoni kutoka kwa wapangaji halisi';
+
+  @override
+  String get benefitRealTenantReviews =>
+      'Ukadiriaji ulioandikwa na walioishi humo';
+
+  @override
+  String get browseAllHomes => 'Vinjari nyumba zote';
+
+  @override
+  String get viewAllHomes => 'Tazama nyumba zote';
+
+  @override
+  String get featuredHomes => 'Nyumba zilizoangaziwa';
+
+  @override
+  String get featuredHomesDescription =>
+      'Baadhi ya nafasi mpya zilizochapishwa na wamiliki waliothibitishwa wa Nyumba.';
+
+  @override
+  String get searchHomesTitle => 'Tafuta nyumba';
+
+  @override
+  String get backToHome => 'Rudi mwanzo';
+
+  @override
+  String get refineYourSearch => 'Boresha utafutaji wako';
 }

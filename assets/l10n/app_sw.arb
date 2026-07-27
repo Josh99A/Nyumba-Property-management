@@ -1126,4 +1126,13 @@
     ,"benefitOneWorkspace": "Kodi, ankara, na matengenezo mahali pamoja"
     ,"reviewsSoFarBeforeRating": "{count, plural, =1{Maoni 1} other{Maoni {count}}} hadi sasa — ukadiriaji wa nyota huonekana ukifika {minimum}."
     ,"@reviewsSoFarBeforeRating": {"placeholders": {"count": {"type": "int"}, "minimum": {"type": "int"}}}
+    ,"trustRealTenantReviews": "Maoni kutoka kwa wapangaji halisi"
+    ,"benefitRealTenantReviews": "Ukadiriaji ulioandikwa na walioishi humo"
+    ,"browseAllHomes": "Vinjari nyumba zote"
+    ,"viewAllHomes": "Tazama nyumba zote"
+    ,"featuredHomes": "Nyumba zilizoangaziwa"
+    ,"featuredHomesDescription": "Baadhi ya nafasi mpya zilizochapishwa na wamiliki waliothibitishwa wa Nyumba."
+    ,"searchHomesTitle": "Tafuta nyumba"
+    ,"backToHome": "Rudi mwanzo"
+    ,"refineYourSearch": "Boresha utafutaji wako"
 }

@@ -136,6 +136,59 @@ void main() {
       expect(query.withinTypes({'bungalow'}).unitType, 'bungalow');
     });
 
+    test('survives a round trip through URL parameters', () {
+      const query = ListingQuery(
+        text: 'ntinda',
+        price: PriceBand.from500kTo1m,
+        bedrooms: BedroomsFilter.two,
+        unitType: 'apartment',
+        sort: ListingSort.priceHighToLow,
+      );
+
+      final restored = ListingQuery.fromQueryParameters(
+        query.toQueryParameters(),
+      );
+
+      expect(restored, query);
+    });
+
+    test('a default query writes no parameters at all', () {
+      expect(const ListingQuery().toQueryParameters(), isEmpty);
+      expect(
+        ListingQuery.fromQueryParameters(const <String, String>{}),
+        const ListingQuery(),
+      );
+    });
+
+    test('an unreadable parameter falls back rather than failing', () {
+      // These arrive from a URL a stranger may have edited, or from a link
+      // that outlived the enum value it names.
+      final restored = ListingQuery.fromQueryParameters(const {
+        'q': '  ntinda  ',
+        'price': 'nonsense',
+        'beds': '',
+        'sort': 'byVibes',
+      });
+
+      expect(restored.text, 'ntinda');
+      expect(restored.price, PriceBand.any);
+      expect(restored.bedrooms, BedroomsFilter.any);
+      expect(restored.sort, ListingSort.newest);
+    });
+
+    test('popularLocationsIn ranks by listing count and caps the row', () {
+      final locations = ListingQuery.popularLocationsIn([
+        _listing(id: 'a', neighborhood: 'Kololo'),
+        _listing(id: 'b', neighborhood: 'Ntinda'),
+        _listing(id: 'c', neighborhood: 'Ntinda'),
+        _listing(id: 'd', neighborhood: 'Ntinda'),
+        _listing(id: 'e', neighborhood: 'Bugolobi'),
+        _listing(id: 'f', neighborhood: 'Bugolobi'),
+      ], limit: 2);
+
+      expect(locations, ['Ntinda', 'Bugolobi']);
+    });
+
     test('unitTypesIn lists each published type once, sorted', () {
       final types = ListingQuery.unitTypesIn([
         _listing(id: 'a', unitType: 'house'),

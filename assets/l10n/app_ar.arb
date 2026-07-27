@@ -1126,4 +1126,13 @@
     ,"benefitOneWorkspace": "الإيجار والفواتير والصيانة في مكان واحد"
     ,"reviewsSoFarBeforeRating": "{count, plural, =0{لا مراجعات بعد} =1{مراجعة واحدة حتى الآن} =2{مراجعتان حتى الآن} few{{count} مراجعات حتى الآن} many{{count} مراجعة حتى الآن} other{{count} مراجعة حتى الآن}} — يظهر تقييم النجوم عندما يصل إلى {minimum}."
     ,"@reviewsSoFarBeforeRating": {"placeholders": {"count": {"type": "int"}, "minimum": {"type": "int"}}}
+    ,"trustRealTenantReviews": "مراجعات من مستأجرين حقيقيين"
+    ,"benefitRealTenantReviews": "تقييمات كتبها من سكنوا هناك"
+    ,"browseAllHomes": "تصفّح كل المنازل"
+    ,"viewAllHomes": "عرض كل المنازل"
+    ,"featuredHomes": "منازل مختارة"
+    ,"featuredHomesDescription": "بعض أحدث المساحات التي نشرها مُلّاك موثّقون."
+    ,"searchHomesTitle": "البحث عن منازل"
+    ,"backToHome": "العودة إلى الرئيسية"
+    ,"refineYourSearch": "نقّح بحثك"
 }

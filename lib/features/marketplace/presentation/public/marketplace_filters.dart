@@ -285,6 +285,7 @@ class MarketplaceFilterBar extends SliverPersistentHeaderDelegate {
     required this.onChanged,
     required this.onSearchChanged,
     required this.extent,
+    this.onSearchSubmitted,
   });
 
   final ListingQuery query;
@@ -299,6 +300,11 @@ class MarketplaceFilterBar extends SliverPersistentHeaderDelegate {
   final List<String> availableUnitTypes;
   final ValueChanged<ListingQuery> onChanged;
   final ValueChanged<String> onSearchChanged;
+
+  /// Invoked when the visitor presses enter, so a screen that mirrors the
+  /// query into its URL can commit immediately instead of waiting out the
+  /// keystroke debounce.
+  final VoidCallback? onSearchSubmitted;
   final double extent;
 
   static double extentFor(BuildContext context) => context.isCompact ? 76 : 82;
@@ -344,6 +350,7 @@ class MarketplaceFilterBar extends SliverPersistentHeaderDelegate {
                   value: searchText,
                   style: ListingSearchStyle.dense,
                   onChanged: onSearchChanged,
+                  onSubmitted: onSearchSubmitted,
                 );
                 if (constraints.maxWidth < _inlineFiltersMinWidth) {
                   return Row(

@@ -3654,4 +3654,32 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0 — يظهر تقييم النجوم عندما يصل إلى $minimum.';
   }
+
+  @override
+  String get trustRealTenantReviews => 'مراجعات من مستأجرين حقيقيين';
+
+  @override
+  String get benefitRealTenantReviews => 'تقييمات كتبها من سكنوا هناك';
+
+  @override
+  String get browseAllHomes => 'تصفّح كل المنازل';
+
+  @override
+  String get viewAllHomes => 'عرض كل المنازل';
+
+  @override
+  String get featuredHomes => 'منازل مختارة';
+
+  @override
+  String get featuredHomesDescription =>
+      'بعض أحدث المساحات التي نشرها مُلّاك موثّقون.';
+
+  @override
+  String get searchHomesTitle => 'البحث عن منازل';
+
+  @override
+  String get backToHome => 'العودة إلى الرئيسية';
+
+  @override
+  String get refineYourSearch => 'نقّح بحثك';
 }
