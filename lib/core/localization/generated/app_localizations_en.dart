@@ -3706,4 +3706,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refineYourSearch => 'Refine your search';
+
+  @override
+  String get noHomesListedTitle => 'No homes are listed right now';
+
+  @override
+  String get noHomesListedMessage =>
+      'Landlords add new rental spaces regularly - check back soon.';
 }

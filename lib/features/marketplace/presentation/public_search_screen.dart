@@ -210,11 +210,10 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
       return [
         _boxed(
           inset,
-          const MarketplaceEmptyState(
+          MarketplaceEmptyState(
             icon: Icons.home_outlined,
-            title: 'No homes are listed right now',
-            message:
-                'Landlords add new rental spaces regularly — check back soon.',
+            title: copy.noHomesListedTitle,
+            message: copy.noHomesListedMessage,
           ),
         ),
       ];

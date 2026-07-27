@@ -112,7 +112,7 @@ describe('public SEO handler', () => {
         'X-Content-Type-Options': 'nosniff',
       }),
     );
-    expect(PUBLIC_SEO_CACHE_CONTROL).toBe('public, max-age=60, s-maxage=3600');
+    expect(PUBLIC_SEO_CACHE_CONTROL).toBe('public, max-age=60, s-maxage=60');
   });
 
   it('marks 404, 410, and media-error responses as not cacheable', async () => {

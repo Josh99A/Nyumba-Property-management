@@ -3682,4 +3682,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get refineYourSearch => 'نقّح بحثك';
+
+  @override
+  String get noHomesListedTitle => 'لا توجد منازل مدرجة الآن';
+
+  @override
+  String get noHomesListedMessage =>
+      'يضيف الملاك مساحات إيجار جديدة بانتظام - تحقق مرة أخرى قريبا.';
 }

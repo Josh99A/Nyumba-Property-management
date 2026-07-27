@@ -3783,4 +3783,11 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get refineYourSearch => 'Longoosa okunoonya kwo';
+
+  @override
+  String get noHomesListedTitle => 'Tewali maka gafulumiziddwa kaakano';
+
+  @override
+  String get noHomesListedMessage =>
+      'Bannannyini nnyumba bongera okuwandiika ebifo ebipya bulijjo - ddayo oluvannyuma.';
 }

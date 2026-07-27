@@ -150,12 +150,10 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                       ),
                     ),
                     data: (_) => featured.isEmpty
-                        ? const MarketplaceEmptyState(
+                        ? MarketplaceEmptyState(
                             icon: Icons.home_outlined,
-                            title: 'No homes are listed right now',
-                            message:
-                                'Landlords add new rental spaces regularly — '
-                                'check back soon.',
+                            title: copy.noHomesListedTitle,
+                            message: copy.noHomesListedMessage,
                           )
                         : ListingResultsGrid(
                             listings: featured,

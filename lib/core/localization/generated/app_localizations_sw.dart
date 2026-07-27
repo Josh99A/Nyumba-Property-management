@@ -3761,4 +3761,11 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get refineYourSearch => 'Boresha utafutaji wako';
+
+  @override
+  String get noHomesListedTitle => 'Hakuna nyumba zilizoorodheshwa kwa sasa';
+
+  @override
+  String get noHomesListedMessage =>
+      'Wamiliki huongeza nafasi mpya mara kwa mara - rudi baadaye.';
 }

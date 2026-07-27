@@ -6617,6 +6617,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refine your search'**
   String get refineYourSearch;
+
+  /// No description provided for @noHomesListedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No homes are listed right now'**
+  String get noHomesListedTitle;
+
+  /// No description provided for @noHomesListedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Landlords add new rental spaces regularly - check back soon.'**
+  String get noHomesListedMessage;
 }
 
 class _AppLocalizationsDelegate

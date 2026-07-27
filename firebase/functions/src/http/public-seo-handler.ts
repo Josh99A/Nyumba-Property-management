@@ -26,16 +26,18 @@ const PUBLIC_IMAGE_CONTENT_TYPES = new Set([
   'image/webp',
 ]);
 /**
- * Listings live for 30 days, so a five-minute edge lifetime made the CDN miss
- * far more often than the content actually changed — every miss paying for a
- * cold function invocation and a paged Firestore scan. An hour at the edge
- * keeps that down without the risk a `stale-while-revalidate` window carries
- * here: this response's status can flip from 200 to 410 the moment a listing
- * unpublishes or expires, and SWR's whole contract is serving the previous
- * (now wrong) render while it revalidates in the background. The browser
- * lifetime stays short: a landlord who republishes wants to see it on reload.
+ * A shared cache stores a response under the headers it had *at fetch time*;
+ * nothing this handler does on a later request can shorten a copy it already
+ * handed out. An `s-maxage` longer than the browser lifetime was an invitation
+ * to keep serving an unpublished or expired listing as a 200 for however much
+ * longer that edge copy had left — up to the full hour this used to allow.
+ * Matching `s-maxage` to `max-age` bounds a shared cache to the same window a
+ * browser already accepts, so the worst case is "one more minute," not "up to
+ * an hour," on every response this handler returns — including the sitemap
+ * and the explore page, which read as stale-active-listing lists under the
+ * same shared-cache lifetime for the same reason.
  */
-export const PUBLIC_SEO_CACHE_CONTROL = 'public, max-age=60, s-maxage=3600';
+export const PUBLIC_SEO_CACHE_CONTROL = 'public, max-age=60, s-maxage=60';
 
 /**
  * A 404, 410, 405, or media error must not outlive the state change that
