@@ -5,13 +5,17 @@ import 'package:nyumba_property_management/core/localization/nyumba_localization
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/localization/command_failure_localizations.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/domain/domain_exception.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/config/market_config.dart';
+import '../../../core/offline/offline_entity.dart';
+import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/page_header.dart';
@@ -31,6 +35,7 @@ import '../../subscriptions/presentation/upgrade_prompt.dart';
 import '../domain/application.dart';
 import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
+import 'listing_publication.dart';
 import 'listing_visuals.dart';
 import 'listing_photo_picker.dart';
 
@@ -55,7 +60,44 @@ class _LandlordListingsScreenState
     final outbox = ref.watch(outboxEntriesProvider);
     final applicationsValue = ref.watch(rentalApplicationsProvider);
     final applications = applicationsValue.value ?? const <RentalApplication>[];
-    final pendingCount = outbox.value?.length ?? 0;
+    // Scoped to listings: the outbox is workspace-wide, so a global count put
+    // "Sync 3" on this page when the three changes were rent payments.
+    final listingEntries = (outbox.value ?? const <OutboxEntry>[])
+        .where((entry) => entry.entityType == OfflineEntityType.listing)
+        .toList(growable: false);
+    // Separated because only one of these is the user's problem. Uploading
+    // work clears itself; a refused or blocked entry never will, and the sync
+    // button cannot move it — [SyncEngine] does not re-claim either state.
+    final stuckCount = listingEntries
+        .where(
+          (entry) =>
+              entry.state == OutboxState.permanentlyFailed ||
+              entry.state == OutboxState.blocked,
+        )
+        .length;
+    final uploadingCount = listingEntries.length - stuckCount;
+    final copy = appLocalizationsOf(context);
+    // Resolved once for the whole page so the banner, the filter chips and the
+    // cards can never disagree about which adverts are actually live.
+    final publications = <String, ListingPublication>{
+      for (final listing in listingsValue.value ?? const <Listing>[])
+        listing.id: resolveListingPublication(
+          listing: listing,
+          outbox: listingEntries,
+          copy: copy,
+        ),
+    };
+    final attentionCount = publications.values
+        .where((publication) => publication.needsAttention)
+        .length;
+    // The "Needs attention" chip only exists while there is something to
+    // show for it. Without this, resolving the last failure leaves the
+    // filter selected on a chip that just vanished from the Wrap, landing on
+    // an empty "No listings match this filter" state with nothing visibly
+    // selected.
+    if (attentionCount == 0 && _filter == 'Needs attention') {
+      _filter = 'All';
+    }
     final session = ref.watch(sessionControllerProvider);
     bool allows(CrudOperation operation) =>
         session != null &&
@@ -109,28 +151,61 @@ class _LandlordListingsScreenState
                             child: const Text.localized('Create listing'),
                           )
                         : null,
-                    secondaryAction: OutlinedButton.icon(
-                      onPressed: pendingCount == 0 || _syncing ? null : _sync,
-                      icon: _syncing
-                          ? const SizedBox.square(
-                              dimension: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.sync_rounded),
-                      label: Text.localized(
-                        pendingCount == 0
-                            ? 'Everything synced'
-                            : 'Sync $pendingCount',
-                      ),
-                    ),
+                    // Offered only when pressing it would do something. Adverts
+                    // push themselves the moment you publish, so a permanent
+                    // "Sync" button invites work the app already did, and
+                    // pointing it at stuck entries would do nothing at all.
+                    secondaryAction: uploadingCount > 0
+                        ? OutlinedButton.icon(
+                            onPressed: _syncing ? null : _sync,
+                            icon: _syncing
+                                ? const SizedBox.square(
+                                    dimension: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.sync_rounded),
+                            label: const Text.localized('Sync now'),
+                          )
+                        : null,
                   ),
                   const SizedBox(height: 22),
-                  if (pendingCount > 0)
+                  if (attentionCount > 0)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 18),
                       child: NyumbaSurface(
-                        backgroundColor: context.nyumba.goldTint,
-                        borderColor: context.nyumba.goldBorder,
+                        backgroundColor: context.nyumba.dangerTint,
+                        borderColor: context.nyumba.dangerBorder,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 11,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline_rounded,
+                              color: context.nyumba.danger,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text.localized(
+                                attentionCount == 1
+                                    ? 'One advert did not go through. Open the card marked in red to see why and try again.'
+                                    : '$attentionCount adverts did not go through. Open the cards marked in red to see why and try again.',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (uploadingCount > 0 && stuckCount == 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 18),
+                      child: NyumbaSurface(
+                        backgroundColor: context.nyumba.navyTint,
+                        borderColor: context.nyumba.navyBorder,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 11,
@@ -139,12 +214,14 @@ class _LandlordListingsScreenState
                           children: [
                             Icon(
                               Icons.cloud_upload_outlined,
-                              color: context.nyumba.terracottaDark,
+                              color: context.nyumba.midnightNavy,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text.localized(
-                                '$pendingCount local ${pendingCount == 1 ? 'change is' : 'changes are'} waiting to sync. Pending listings are never public before server acknowledgement.',
+                                uploadingCount == 1
+                                    ? 'One change is still uploading. An advert appears in search once the server has it.'
+                                    : '$uploadingCount changes are still uploading. An advert appears in search once the server has it.',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ),
@@ -160,11 +237,12 @@ class _LandlordListingsScreenState
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final filter in const [
+                      for (final filter in <String>[
                         'All',
+                        if (attentionCount > 0) 'Needs attention',
                         'Published',
                         'Draft',
-                        'Publishing',
+                        'Going live',
                         'Paused',
                       ])
                         ChoiceChip(
@@ -208,15 +286,23 @@ class _LandlordListingsScreenState
                     ),
                   ],
                   data: (allListings) {
+                    ListingPublication publicationOf(Listing listing) =>
+                        publications[listing.id] ??
+                        resolveListingPublication(
+                          listing: listing,
+                          outbox: listingEntries,
+                          copy: copy,
+                        );
                     final listings = allListings.where((listing) {
-                      final publishing =
-                          listing.status == ListingStatus.published &&
-                          listing.syncMetadata.state != EntitySyncState.synced;
+                      final publication = publicationOf(listing);
                       return switch (_filter) {
-                        'Published' => listing.isPublic,
+                        'Needs attention' => publication.needsAttention,
+                        'Published' => publication.isLive,
                         'Draft' => listing.status == ListingStatus.draft,
-                        'Publishing' => publishing,
-                        'Paused' => listing.status == ListingStatus.paused,
+                        'Going live' => publication.inFlight,
+                        'Paused' =>
+                          listing.status == ListingStatus.paused &&
+                              !publication.inFlight,
                         _ => true,
                       };
                     }).toList();
@@ -273,6 +359,9 @@ class _LandlordListingsScreenState
                                             ? _listingCard(
                                                 listings[first + column],
                                                 applicationsByListing,
+                                                publication: publicationOf(
+                                                  listings[first + column],
+                                                ),
                                                 canUpdate: canUpdate,
                                                 canUnpublish: canUnpublish,
                                               )
@@ -300,18 +389,49 @@ class _LandlordListingsScreenState
   Widget _listingCard(
     Listing listing,
     Map<String, int> applicationsByListing, {
+    required ListingPublication publication,
     required bool canUpdate,
     required bool canUnpublish,
   }) => _LandlordListingCard(
     listing: listing,
+    publication: publication,
     applicationCount: applicationsByListing[listing.id] ?? 0,
     onPublish: () => _publish(listing),
     onEdit: () => _editListing(listing),
     onUnpublish: () => _unpublish(listing),
+    onRetry: publication.canRetry
+        ? () => _retry(listing, publication.mutationId!)
+        : null,
     canPublish: canUpdate,
     canEdit: canUpdate,
     canUnpublish: canUnpublish,
   );
+
+  /// Recovery for an advert the server refused. The failed command is put back
+  /// in the queue and pushed straight away, so the landlord finds out in the
+  /// same breath whether whatever they fixed was enough.
+  Future<void> _retry(Listing listing, String mutationId) async {
+    try {
+      final requeued = await ref.read(retryMutationProvider)(mutationId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text.localized(
+            requeued
+                ? 'Trying ${listing.title} again.'
+                : 'That change is no longer waiting — nothing to retry.',
+          ),
+        ),
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text.localized('Could not try again: ${_reason(error)}'),
+        ),
+      );
+    }
+  }
 
   Future<void> _publish(Listing listing) async {
     // Both the domain and the server refuse a photoless advert, but their
@@ -371,21 +491,41 @@ class _LandlordListingsScreenState
       await ref.read(publishListingProvider)(listing.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text.localized(
-              'Publication request saved locally. It will become public after server validation.',
-            ),
-          ),
+          SnackBar(content: Text.localized(_publishConfirmation(listing))),
         );
       }
     } on Object catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text.localized('Could not publish: $error')),
+          SnackBar(
+            content: Text.localized('Could not publish: ${_reason(error)}'),
+          ),
         );
       }
     }
   }
+
+  /// The rule that was broken, without the exception's class name and field
+  /// path in front of it — `DomainValidationException: unit.status: …` is a
+  /// stack trace wearing a sentence's clothes.
+  static String _reason(Object error) => switch (error) {
+    DomainValidationException(:final errors) => errors.values.join(' '),
+    _ => error.toString(),
+  };
+
+  /// Answers the question the landlord actually asked — "is my advert up?" —
+  /// instead of describing the queue. Publishing pushes immediately, so with a
+  /// live link the only honest promise is "in a moment"; without one, the
+  /// useful thing to say is what has to happen first.
+  String _publishConfirmation(Listing listing) =>
+      switch (ref.read(cloudStatusProvider).value) {
+        CloudStatus.local =>
+          'Saved on this device. Adverts go public only once this app is connected to the server.',
+        CloudStatus.failed || CloudStatus.connecting || null =>
+          '${listing.title} goes live as soon as you are back online.',
+        CloudStatus.live =>
+          'Publishing ${listing.title} now — the card shows Published the moment tenants can see it.',
+      };
 
   Future<void> _editListing(Listing listing) async {
     final formKey = GlobalKey<FormState>();
@@ -551,8 +691,9 @@ class _LandlordListingsScreenState
       builder: (context) => AlertDialog(
         title: Text.localized('Unpublish ${listing.title}?'),
         content: const Text.localized(
-          'The listing stays marked as unpublishing until the server removes '
-          'its public projection.',
+          'Tenants stop seeing this advert as soon as the server confirms, '
+          'and the card tells you when that has happened. You can publish it '
+          'again at any time.',
         ),
         actions: [
           TextButton(
@@ -571,16 +712,18 @@ class _LandlordListingsScreenState
       await ref.read(unpublishListingProvider)(listing.id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text.localized(
-            'Unpublish request saved locally and awaiting server confirmation.',
+            ref.read(cloudStatusProvider).value == CloudStatus.live
+                ? 'Taking ${listing.title} out of search now.'
+                : '${listing.title} comes out of search as soon as you are back online.',
           ),
         ),
       );
     } on Object catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text.localized('Could not unpublish: $error')),
+        SnackBar(content: Text.localized('Could not unpublish: ${_reason(error)}')),
       );
     }
   }
@@ -1314,41 +1457,33 @@ String? _optionalCoordinateValidator(
 class _LandlordListingCard extends StatelessWidget {
   const _LandlordListingCard({
     required this.listing,
+    required this.publication,
     required this.applicationCount,
     required this.onPublish,
     required this.onEdit,
     required this.onUnpublish,
+    required this.onRetry,
     required this.canPublish,
     required this.canEdit,
     required this.canUnpublish,
   });
 
   final Listing listing;
+  final ListingPublication publication;
   final int applicationCount;
   final VoidCallback onPublish;
   final VoidCallback onEdit;
   final VoidCallback onUnpublish;
+
+  /// Null when there is no refused command to re-queue.
+  final Future<void> Function()? onRetry;
   final bool canPublish;
   final bool canEdit;
   final bool canUnpublish;
 
   @override
   Widget build(BuildContext context) {
-    final publishing =
-        listing.status == ListingStatus.published &&
-        listing.syncMetadata.state != EntitySyncState.synced;
-    final unpublishing =
-        listing.status == ListingStatus.paused &&
-        listing.syncMetadata.state != EntitySyncState.synced;
-    final (label, tone) = publishing
-        ? ('Publishing', BadgeTone.warning)
-        : unpublishing
-        ? ('Unpublishing', BadgeTone.warning)
-        : listing.isPublic
-        ? ('Published', BadgeTone.success)
-        : listing.status == ListingStatus.paused
-        ? ('Paused', BadgeTone.neutral)
-        : ('Draft', BadgeTone.neutral);
+    final removing = publication.state == ListingPublicationState.removing;
     final currency = NumberFormat.currency(
       locale: 'en_UG',
       symbol: 'UGX ',
@@ -1378,7 +1513,14 @@ class _LandlordListingCard extends StatelessWidget {
               PositionedDirectional(
                 start: 12,
                 top: 12,
-                child: StatusBadge(label: label, tone: tone),
+                child: Tooltip(
+                  message: publication.detail,
+                  child: StatusBadge(
+                    label: publication.label,
+                    tone: publication.tone,
+                    icon: publication.icon,
+                  ),
+                ),
               ),
             ],
           ),
@@ -1400,6 +1542,14 @@ class _LandlordListingCard extends StatelessWidget {
                     color: context.nyumba.midnightNavy,
                   ),
                 ),
+                if (publication.needsAttention) ...[
+                  const SizedBox(height: 14),
+                  _PublicationFailure(
+                    publication: publication,
+                    onRetry: onRetry,
+                    onEdit: canEdit ? onEdit : null,
+                  ),
+                ],
                 const SizedBox(height: 16),
                 const Divider(),
                 const SizedBox(height: 10),
@@ -1416,11 +1566,14 @@ class _LandlordListingCard extends StatelessWidget {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const Spacer(),
+                    // A paused advert can only be republished once its removal
+                    // has settled; publishing over an in-flight unpublish would
+                    // race the server for the same aggregate.
                     if (canPublish &&
+                        !publication.needsAttention &&
                         (listing.status == ListingStatus.draft ||
                             (listing.status == ListingStatus.paused &&
-                                listing.syncMetadata.state ==
-                                    EntitySyncState.synced)))
+                                !publication.inFlight)))
                       TextButton(
                         onPressed: onPublish,
                         child: const Text.localized('Publish'),
@@ -1437,8 +1590,9 @@ class _LandlordListingCard extends StatelessWidget {
                               title: Text(listing.title),
                               content: Text.localized(
                                 '${listingLocationFor(listing)}\n\n'
-                                '$applicationCount application${applicationCount == 1 ? '' : 's'}\n'
-                                '${listing.isPublic ? 'Server-confirmed public listing.' : 'Awaiting server acknowledgement.'}',
+                                '$applicationCount application${applicationCount == 1 ? '' : 's'}\n\n'
+                                '${publication.detail}'
+                                '${publication.failure == null ? '' : '\n\n${localizeCommandFailure(appLocalizationsOf(context), publication.failure!)}'}',
                               ),
                               actions: [
                                 FilledButton(
@@ -1455,24 +1609,36 @@ class _LandlordListingCard extends StatelessWidget {
                         }
                       },
                       itemBuilder: (context) => [
-                        if (listing.isPublic)
-                          const PopupMenuItem(
-                            value: 'view',
-                            child: Text.localized('View public listing'),
+                        // Named for what it opens: the same page tenants get
+                        // once it is live, and a preview of it before then.
+                        PopupMenuItem(
+                          value: 'view',
+                          child: Text.localized(
+                            publication.isLive
+                                ? 'View public listing'
+                                : 'Preview advert',
                           ),
+                        ),
                         const PopupMenuItem(
                           value: 'details',
                           child: Text.localized('Listing details'),
                         ),
+                        // A refused publication leaves the advert reading as
+                        // published locally, which used to hide Edit and left
+                        // the landlord no way to fix whatever the server
+                        // objected to.
                         if (canEdit &&
-                            listing.status != ListingStatus.published &&
-                            !unpublishing)
+                            (listing.status != ListingStatus.published ||
+                                publication.needsAttention) &&
+                            !removing)
                           const PopupMenuItem(
                             value: 'edit',
                             child: Text.localized('Edit listing'),
                           ),
                         if (listing.status == ListingStatus.published &&
-                            canUnpublish)
+                            canUnpublish &&
+                            !publication.needsAttention &&
+                            !removing)
                           const PopupMenuItem(
                             value: 'unpublish',
                             child: Text.localized('Unpublish listing'),
@@ -1484,6 +1650,73 @@ class _LandlordListingCard extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The card's account of a refused advert: what happened, the server's own
+/// reason, and the two ways out.
+///
+/// The reason is shown verbatim rather than summarised because only the server
+/// knows whether this was a plan limit, a missing photo or an occupied rental
+/// space, and each has a different fix.
+class _PublicationFailure extends StatelessWidget {
+  const _PublicationFailure({
+    required this.publication,
+    required this.onRetry,
+    required this.onEdit,
+  });
+
+  final ListingPublication publication;
+  final Future<void> Function()? onRetry;
+  final VoidCallback? onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final failure = publication.failure;
+    return NyumbaSurface(
+      backgroundColor: context.nyumba.dangerTint,
+      borderColor: context.nyumba.dangerBorder,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text.localized(
+            publication.detail,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (failure != null) ...[
+            const SizedBox(height: 7),
+            // The line that has to earn its place: what is wrong, and what to
+            // do about it, in the reader's language.
+            Text(
+              localizeCommandFailure(appLocalizationsOf(context), failure),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: context.nyumba.danger,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (onRetry != null || onEdit != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                if (onRetry != null)
+                  AsyncActionButton.text(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    child: const Text.localized('Try again'),
+                  ),
+                if (onEdit != null)
+                  TextButton(
+                    onPressed: onEdit,
+                    child: const Text.localized('Edit advert'),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );

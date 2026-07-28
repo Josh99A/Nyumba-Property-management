@@ -3690,6 +3690,204 @@ abstract class AppLocalizations {
   /// **'Change at least one detail before saving.'**
   String get legacy_4134f7a8316a;
 
+  /// Server refused listing.publish because the advert carries no photo.
+  ///
+  /// In en, this message translates to:
+  /// **'This advert has no photo of the rental space. Add at least one photo, then publish it again.'**
+  String get listingRejectedMissingPhotos;
+
+  /// Server refused listing.publish because a required public field was blank.
+  ///
+  /// In en, this message translates to:
+  /// **'This advert is missing details tenants need. Fill in the title, description, rent, type, city and neighbourhood, then publish it again.'**
+  String get listingRejectedMissingPublicFields;
+
+  /// Server refused listing.publish because the unit is occupied or already advertised.
+  ///
+  /// In en, this message translates to:
+  /// **'That rental space is not vacant, or another advert is already running for it. Mark it vacant, or unpublish the other advert, then try again.'**
+  String get listingRejectedUnitUnavailable;
+
+  /// Server refused an edit to a listing that is already public.
+  ///
+  /// In en, this message translates to:
+  /// **'A published advert cannot be changed. Unpublish it, make your changes, then publish it again.'**
+  String get listingRejectedPublishedIsImmutable;
+
+  /// Server refused listing.unpublish because the listing was not published.
+  ///
+  /// In en, this message translates to:
+  /// **'This advert is not public, so there is nothing to take down.'**
+  String get listingRejectedNotPublished;
+
+  /// Badge label: this listing's mutation is queued behind another that must land first.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting on another change'**
+  String get listingStatusBlockedLabel;
+
+  /// Explains a listing whose change is blocked behind another queued mutation.
+  ///
+  /// In en, this message translates to:
+  /// **'An earlier change has to reach the server before this advert can be sent. Clear that one first and this follows on its own.'**
+  String get listingStatusBlockedDetail;
+
+  /// Badge label: a remote change could not be applied over an unsynced local edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs review'**
+  String get listingStatusConflictedLabel;
+
+  /// Explains a listing in conflict between a local edit and a remote change.
+  ///
+  /// In en, this message translates to:
+  /// **'This advert changed on the server while you were editing it, so your version was not applied. Open it and decide which to keep.'**
+  String get listingStatusConflictedDetail;
+
+  /// Badge label: the advert is live and tenants can find it.
+  ///
+  /// In en, this message translates to:
+  /// **'Published'**
+  String get listingStatusPublishedLabel;
+
+  /// Explains a listing that is currently published.
+  ///
+  /// In en, this message translates to:
+  /// **'Live in search. Tenants can see this advert and enquire.'**
+  String get listingStatusPublishedDetail;
+
+  /// Badge label: the advert is out of search but can be republished.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get listingStatusPausedLabel;
+
+  /// Explains a listing that is paused.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of search. Publish it again whenever you are ready.'**
+  String get listingStatusPausedDetail;
+
+  /// Badge label: the advert is finished and will not be republished.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get listingStatusClosedLabel;
+
+  /// Explains a listing that is closed.
+  ///
+  /// In en, this message translates to:
+  /// **'This advert is finished and no longer appears in search.'**
+  String get listingStatusClosedDetail;
+
+  /// Badge label: the advert has never been published.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get listingStatusDraftLabel;
+
+  /// Explains a listing that is still a draft.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see this. Publish it when it is ready.'**
+  String get listingStatusDraftDetail;
+
+  /// Badge label: the first attempt to publish this advert is in flight.
+  ///
+  /// In en, this message translates to:
+  /// **'Going live…'**
+  String get listingStatusGoingLiveLabel;
+
+  /// Explains a listing whose publish is in flight and has not yet failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading now. This badge turns green the moment tenants can see it.'**
+  String get listingStatusGoingLiveDetail;
+
+  /// Badge label: an unpublish is on its way to the server.
+  ///
+  /// In en, this message translates to:
+  /// **'Removing…'**
+  String get listingStatusRemovingLabel;
+
+  /// Explains a listing whose unpublish is in flight.
+  ///
+  /// In en, this message translates to:
+  /// **'Taking this advert out of search. Tenants stop seeing it once the server confirms.'**
+  String get listingStatusRemovingDetail;
+
+  /// Badge label: a local edit is on its way to the server.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get listingStatusSavingLabel;
+
+  /// Explains a listing whose edit is in flight.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending your changes. Nothing about who can see this advert changes.'**
+  String get listingStatusSavingDetail;
+
+  /// Badge label: a delivery already failed at least once and a retry is scheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrying…'**
+  String get listingStatusRetryingLabel;
+
+  /// First sentence explaining a listing mutation that bounced and is retrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not reach the server on the last try and is still trying.'**
+  String get listingRetryingLead;
+
+  /// Second sentence, shown when the retrying mutation is a publish for an already-published listing.
+  ///
+  /// In en, this message translates to:
+  /// **'The advert goes live as soon as it gets through.'**
+  String get listingRetryingPublishedTail;
+
+  /// Second sentence, shown when the retrying mutation is not a publish for an already-published listing.
+  ///
+  /// In en, this message translates to:
+  /// **'Your change lands as soon as it gets through.'**
+  String get listingRetryingPendingTail;
+
+  /// Badge label: the server permanently refused this advert's publish.
+  ///
+  /// In en, this message translates to:
+  /// **'Not published'**
+  String get listingStatusNotPublishedLabel;
+
+  /// Explains a listing whose publish was permanently refused.
+  ///
+  /// In en, this message translates to:
+  /// **'This advert was refused, so no tenant can see it.'**
+  String get listingStatusNotPublishedDetail;
+
+  /// Badge label: the server permanently refused this advert's unpublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Still public'**
+  String get listingStatusStillPublicLabel;
+
+  /// Explains a listing whose unpublish was permanently refused.
+  ///
+  /// In en, this message translates to:
+  /// **'Taking this advert down was refused, so tenants may still be seeing it.'**
+  String get listingStatusStillPublicDetail;
+
+  /// Badge label: the server permanently refused an edit to this listing.
+  ///
+  /// In en, this message translates to:
+  /// **'Not saved'**
+  String get listingStatusNotSavedLabel;
+
+  /// Explains a listing whose edit was permanently refused.
+  ///
+  /// In en, this message translates to:
+  /// **'Your last change was refused and was not saved.'**
+  String get listingStatusNotSavedDetail;
+
   /// No description provided for @legacy_87a2131e6d61.
   ///
   /// In en, this message translates to:

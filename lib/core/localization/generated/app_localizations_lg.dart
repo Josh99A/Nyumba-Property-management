@@ -1974,6 +1974,125 @@ class AppLocalizationsLg extends AppLocalizations {
       'Kyusa waakiri ekimu ku bikwata ku nsonga nga tonnatereka.';
 
   @override
+  String get listingRejectedMissingPhotos =>
+      'Ekirango kino tekirina kifaananyi kya kifo ekipangisibwa. Yongerako waakiri ekifaananyi kimu, oluvannyuma oddemu okirangirire.';
+
+  @override
+  String get listingRejectedMissingPublicFields =>
+      'Ekirango kino kibulako ebikwata ku nsonga abapangisa bye beetaaga. Jjuza omutwe, ennyinyonnyola, obupangisa, ekika, ekibuga n\'ekitundu, oluvannyuma oddemu okirangirire.';
+
+  @override
+  String get listingRejectedUnitUnavailable =>
+      'Ekifo ekyo tekiri kyereere, oba waliwo ekirango ekirala ekikyekutte. Kisseeko nti kyereere, oba ggyawo ekirango ekirala, olwo oddemu ogezeeko.';
+
+  @override
+  String get listingRejectedPublishedIsImmutable =>
+      'Ekirango ekirangiddwa tekiyinza kukyusibwa. Kiggyeewo mu lujjudde, okyuse by\'oyagala, oluvannyuma oddemu okirangirire.';
+
+  @override
+  String get listingRejectedNotPublished =>
+      'Ekirango kino tekiri mu lujjudde, n\'olwekyo tewali kya kuggyawo.';
+
+  @override
+  String get listingStatusBlockedLabel => 'Kirindiridde enkyukakyuka endala';
+
+  @override
+  String get listingStatusBlockedDetail =>
+      'Enkyukakyuka eyasooka erina okutuuka ku sava nga ekirango kino tekinnaweerezebwa. Sooka oggyeewo eyo, era kino kirijja kigoberere kyokka.';
+
+  @override
+  String get listingStatusConflictedLabel => 'Kyetaaga okukebejebwa';
+
+  @override
+  String get listingStatusConflictedDetail =>
+      'Ekirango kino kyakyusibwa ku sava ng\'okyakirongoosa, n\'olwekyo enkyukakyuka yo teyakolebwa. Kizigule olondemu ky\'oyagala okukuuma.';
+
+  @override
+  String get listingStatusPublishedLabel => 'Kirangiddwa';
+
+  @override
+  String get listingStatusPublishedDetail =>
+      'Kiri mu lujjudde. Abapangisa basobola okulaba ekirango kino ne babuuza.';
+
+  @override
+  String get listingStatusPausedLabel => 'Kiyimirizibbwa';
+
+  @override
+  String get listingStatusPausedDetail =>
+      'Tekiri mu lujjudde. Kiddemu okirangirire buli lw\'onaaba oyagadde.';
+
+  @override
+  String get listingStatusClosedLabel => 'Kiggaddwawo';
+
+  @override
+  String get listingStatusClosedDetail =>
+      'Ekirango kino kimaze era tekikyalabika mu lujjudde.';
+
+  @override
+  String get listingStatusDraftLabel => 'Enkuma';
+
+  @override
+  String get listingStatusDraftDetail =>
+      'Ggwe wekka gw\'osobola okukiraba. Kirangirire nga kimaze okuteekateekebwa.';
+
+  @override
+  String get listingStatusGoingLiveLabel => 'Kirangirira…';
+
+  @override
+  String get listingStatusGoingLiveDetail =>
+      'Kiweerezebwa kaakano. Akabonero kano kajja kufuuka akaakiragala amangu ddala nga abapangisa basobola okukiraba.';
+
+  @override
+  String get listingStatusRemovingLabel => 'Kiggibwawo…';
+
+  @override
+  String get listingStatusRemovingDetail =>
+      'Ekirango kino kiggibwa mu lujjudde. Abapangisa bajja kulekera awo okukiraba nga sava emaze okukikakasa.';
+
+  @override
+  String get listingStatusSavingLabel => 'Kitereka…';
+
+  @override
+  String get listingStatusSavingDetail =>
+      'Enkyukakyuka zo ziweerezebwa. Tewali kikyusa ku ani asobola okulaba ekirango kino.';
+
+  @override
+  String get listingStatusRetryingLabel => 'Kigezaako nate…';
+
+  @override
+  String get listingRetryingLead =>
+      'Nyumba teyayinza kutuuka ku sava mu kugezaako okwasembayo era ekyagenda mu maaso okugezaako.';
+
+  @override
+  String get listingRetryingPublishedTail =>
+      'Ekirango kirangibwa amangu nga kituuse.';
+
+  @override
+  String get listingRetryingPendingTail =>
+      'Enkyukakyuka yo etuuka amangu nga esobodde okuyita.';
+
+  @override
+  String get listingStatusNotPublishedLabel => 'Tekirangiddwa';
+
+  @override
+  String get listingStatusNotPublishedDetail =>
+      'Ekirango kino kyagaanibwa, n\'olwekyo tewali mupangisa asobola okukiraba.';
+
+  @override
+  String get listingStatusStillPublicLabel => 'Kikyali mu lujjudde';
+
+  @override
+  String get listingStatusStillPublicDetail =>
+      'Okuggyawo ekirango kino kwagaanibwa, n\'olwekyo abapangisa bayinza okuba nga bakyakiraba.';
+
+  @override
+  String get listingStatusNotSavedLabel => 'Tekitereke';
+
+  @override
+  String get listingStatusNotSavedDetail =>
+      'Enkyukakyuka yo eyasembayo yagaanibwa era teyatereke.';
+
+  @override
   String get legacy_87a2131e6d61 =>
       'Obuyinza obw’enjawulo obw’abakozi buli ku pulaani ya Premium. Yongera omutindo gwa pulaani yo osobole okuteekateeka buli mukozi ky’asobola okukola.';
 

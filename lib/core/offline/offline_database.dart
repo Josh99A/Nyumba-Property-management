@@ -744,6 +744,8 @@ final class OfflineDatabase {
     required bool permanent,
     required DateTime failedAt,
     DateTime? retryAt,
+    String? errorReason,
+    List<String> errorFields = const <String>[],
   }) => database.transaction((transaction) async {
     final record = _outboxStore.record(mutationId);
     final raw = await record.get(transaction);
@@ -758,6 +760,8 @@ final class OfflineDatabase {
       clearNextAttemptAt: permanent,
       clearClaimedAt: true,
       lastError: error,
+      errorReason: errorReason,
+      errorFields: errorFields,
     );
     await record.put(transaction, failed.toJson());
 

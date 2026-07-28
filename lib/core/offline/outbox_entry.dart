@@ -26,6 +26,8 @@ final class OutboxEntry {
     this.nextAttemptAt,
     this.claimedAt,
     this.lastError,
+    this.errorReason,
+    this.errorFields = const <String>[],
   }) : payload = Map.unmodifiable(payload),
        idempotencyKey = idempotencyKey ?? id;
 
@@ -41,7 +43,21 @@ final class OutboxEntry {
   final String idempotencyKey;
   final DateTime? nextAttemptAt;
   final DateTime? claimedAt;
+
+  /// The stable domain error code of the last failure (`VALIDATION_FAILED`,
+  /// `PERMISSION_DENIED`, …), or a transport description.
   final String? lastError;
+
+  /// The server's machine-readable explanation of that code, when it sent one.
+  ///
+  /// Persisted alongside the code because the code alone cannot be turned into
+  /// a useful sentence: every listing rejection is `VALIDATION_FAILED`, and
+  /// only the reason distinguishes "add a photo" from "that space is not
+  /// vacant". Dropping it here is what left the UI saying "validation failed".
+  final String? errorReason;
+
+  /// Payload fields the server's schema rejected, when it named them.
+  final List<String> errorFields;
 
   AggregateReference get aggregate =>
       AggregateReference(type: entityType, id: entityId);
@@ -57,6 +73,8 @@ final class OutboxEntry {
     bool clearClaimedAt = false,
     String? lastError,
     bool clearLastError = false,
+    String? errorReason,
+    List<String>? errorFields,
   }) => OutboxEntry(
     id: id,
     entityType: entityType,
@@ -73,6 +91,15 @@ final class OutboxEntry {
         : (nextAttemptAt ?? this.nextAttemptAt),
     claimedAt: clearClaimedAt ? null : (claimedAt ?? this.claimedAt),
     lastError: clearLastError ? null : (lastError ?? this.lastError),
+    // The explanation belongs to the code it arrived with. A new code always
+    // replaces it, so a stale reason can never be read against a later,
+    // different failure.
+    errorReason: clearLastError || lastError != null
+        ? errorReason
+        : (errorReason ?? this.errorReason),
+    errorFields: clearLastError || lastError != null
+        ? (errorFields ?? const <String>[])
+        : (errorFields ?? this.errorFields),
   );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -89,6 +116,8 @@ final class OutboxEntry {
     'nextAttemptAt': nextAttemptAt?.toUtc().toIso8601String(),
     'claimedAt': claimedAt?.toUtc().toIso8601String(),
     'lastError': lastError,
+    'errorReason': errorReason,
+    'errorFields': errorFields,
   };
 
   factory OutboxEntry.fromJson(Map<String, Object?> json) {
@@ -130,6 +159,16 @@ final class OutboxEntry {
       nextAttemptAt: optionalDate('nextAttemptAt'),
       claimedAt: optionalDate('claimedAt'),
       lastError: json['lastError'] as String?,
+      errorReason: json['errorReason'] as String?,
+      // Absent on entries written before failures carried an explanation, and
+      // an empty list is the honest reading of "no fields were named".
+      errorFields: switch (json['errorFields']) {
+        final List<Object?> fields => <String>[
+          for (final field in fields)
+            if (field != null) field.toString(),
+        ],
+        _ => const <String>[],
+      },
     );
   }
 }

@@ -69,6 +69,36 @@ void main() {
     );
   });
 
+  test('a rejection keeps the reason the server sent with it', () async {
+    await _enqueuePropertyAndUnit(database, now);
+    final engine = SyncEngine(
+      database: database,
+      gateway: _RejectingGateway(
+        const RemoteSyncException(
+          'VALIDATION_FAILED',
+          retryable: false,
+          details: <String, Object?>{
+            'reason': 'listingMissingPhotos',
+            'fields': <String>['stagedImagePaths'],
+          },
+        ),
+      ),
+      clock: FixedClock(now.add(const Duration(minutes: 1))),
+    );
+
+    await engine.syncPending();
+    final failed = (await database.readOutbox()).singleWhere(
+      (item) => item.id == 'property-create',
+    );
+
+    // The code alone cannot be turned into advice — every listing rejection
+    // is VALIDATION_FAILED. Losing the reason here is what reached the
+    // landlord as a bare "validation failed" with nothing to act on.
+    expect(failed.lastError, 'VALIDATION_FAILED');
+    expect(failed.errorReason, 'listingMissingPhotos');
+    expect(failed.errorFields, <String>['stagedImagePaths']);
+  });
+
   test('successful upload acknowledgement replaces local photo data', () async {
     await database.putEntityAndEnqueue(
       entityType: OfflineEntityType.listing,
@@ -152,9 +182,18 @@ final class _RecordingGateway implements RemoteSyncGateway {
 }
 
 final class _RejectingGateway implements RemoteSyncGateway {
+  const _RejectingGateway([
+    this.error = const RemoteSyncException(
+      'permission denied',
+      retryable: false,
+    ),
+  ]);
+
+  final RemoteSyncException error;
+
   @override
   Future<RemoteWriteResult> push(RemoteMutation mutation) async {
-    throw const RemoteSyncException('permission denied', retryable: false);
+    throw error;
   }
 }
 

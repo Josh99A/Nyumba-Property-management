@@ -1911,6 +1911,124 @@ class AppLocalizationsAr extends AppLocalizations {
   String get legacy_4134f7a8316a => 'غيّر تفصيلاً واحدًا على الأقل قبل الحفظ.';
 
   @override
+  String get listingRejectedMissingPhotos =>
+      'لا يحتوي هذا الإعلان على صورة للمساحة المؤجَّرة. أضف صورة واحدة على الأقل، ثم انشره مرة أخرى.';
+
+  @override
+  String get listingRejectedMissingPublicFields =>
+      'ينقص هذا الإعلان تفاصيل يحتاجها المستأجرون. املأ العنوان والوصف والإيجار والنوع والمدينة والحي، ثم انشره مرة أخرى.';
+
+  @override
+  String get listingRejectedUnitUnavailable =>
+      'تلك المساحة ليست شاغرة، أو هناك إعلان آخر قائم لها. اجعلها شاغرة، أو ألغِ نشر الإعلان الآخر، ثم حاول مرة أخرى.';
+
+  @override
+  String get listingRejectedPublishedIsImmutable =>
+      'لا يمكن تعديل إعلان منشور. ألغِ نشره، وأجرِ تغييراتك، ثم انشره مرة أخرى.';
+
+  @override
+  String get listingRejectedNotPublished =>
+      'هذا الإعلان غير منشور، لذا لا يوجد ما يُزال.';
+
+  @override
+  String get listingStatusBlockedLabel => 'بانتظار تغيير آخر';
+
+  @override
+  String get listingStatusBlockedDetail =>
+      'يجب أن يصل تغيير سابق إلى الخادم قبل إرسال هذا الإعلان. عالِج ذلك التغيير أولاً، وسيتبعه هذا تلقائيًا.';
+
+  @override
+  String get listingStatusConflictedLabel => 'يحتاج إلى مراجعة';
+
+  @override
+  String get listingStatusConflictedDetail =>
+      'تغيّر هذا الإعلان على الخادم أثناء تعديلك له، لذا لم يُطبَّق إصدارك. افتحه وقرر أيهما تريد الإبقاء عليه.';
+
+  @override
+  String get listingStatusPublishedLabel => 'منشور';
+
+  @override
+  String get listingStatusPublishedDetail =>
+      'ظاهر في نتائج البحث. يمكن للمستأجرين رؤية هذا الإعلان والاستفسار عنه.';
+
+  @override
+  String get listingStatusPausedLabel => 'متوقف مؤقتًا';
+
+  @override
+  String get listingStatusPausedDetail =>
+      'غير ظاهر في نتائج البحث. انشره مرة أخرى متى شئت.';
+
+  @override
+  String get listingStatusClosedLabel => 'مُغلق';
+
+  @override
+  String get listingStatusClosedDetail =>
+      'انتهى هذا الإعلان ولم يعد يظهر في نتائج البحث.';
+
+  @override
+  String get listingStatusDraftLabel => 'مسودة';
+
+  @override
+  String get listingStatusDraftDetail =>
+      'أنت وحدك من يراه. انشره عندما يصبح جاهزًا.';
+
+  @override
+  String get listingStatusGoingLiveLabel => 'جارٍ النشر…';
+
+  @override
+  String get listingStatusGoingLiveDetail =>
+      'يُرفع الآن. سيتحول هذا الوسم إلى الأخضر بمجرد أن يتمكن المستأجرون من رؤيته.';
+
+  @override
+  String get listingStatusRemovingLabel => 'جارٍ الإزالة…';
+
+  @override
+  String get listingStatusRemovingDetail =>
+      'يُزال هذا الإعلان من نتائج البحث. يتوقف المستأجرون عن رؤيته بمجرد تأكيد الخادم.';
+
+  @override
+  String get listingStatusSavingLabel => 'جارٍ الحفظ…';
+
+  @override
+  String get listingStatusSavingDetail =>
+      'يجري إرسال تغييراتك. لا يتغيّر شيء بشأن من يمكنه رؤية هذا الإعلان.';
+
+  @override
+  String get listingStatusRetryingLabel => 'إعادة المحاولة…';
+
+  @override
+  String get listingRetryingLead =>
+      'تعذّر على Nyumba الوصول إلى الخادم في المحاولة الأخيرة، وما زالت المحاولة مستمرة.';
+
+  @override
+  String get listingRetryingPublishedTail =>
+      'سيُنشر الإعلان بمجرد أن تصل التغييرات.';
+
+  @override
+  String get listingRetryingPendingTail =>
+      'سيصل تغييرك بمجرد أن يمر عبر الخادم.';
+
+  @override
+  String get listingStatusNotPublishedLabel => 'غير منشور';
+
+  @override
+  String get listingStatusNotPublishedDetail =>
+      'رُفض هذا الإعلان، لذا لا يمكن لأي مستأجر رؤيته.';
+
+  @override
+  String get listingStatusStillPublicLabel => 'لا يزال ظاهرًا للعامة';
+
+  @override
+  String get listingStatusStillPublicDetail =>
+      'رُفض إلغاء نشر هذا الإعلان، لذا قد يظل المستأجرون يرونه.';
+
+  @override
+  String get listingStatusNotSavedLabel => 'لم يُحفظ';
+
+  @override
+  String get listingStatusNotSavedDetail => 'رُفض آخر تغيير أجريته ولم يُحفظ.';
+
+  @override
   String get legacy_87a2131e6d61 =>
       'أذونات الموظفين المخصصة ميزة ضمن خطة Premium. رقِّ خطتك لتخصيص ما يمكن لكل عضو في الفريق القيام به.';
 

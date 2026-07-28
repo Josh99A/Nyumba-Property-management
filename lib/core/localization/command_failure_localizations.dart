@@ -41,6 +41,14 @@ String localizeCommandFailure(
   CommandFailureCode.amountExceedsBalance => copy.legacy_26124c0ce6a9,
   CommandFailureCode.leaseNotActive => copy.legacy_b85cb4bf091b,
   CommandFailureCode.noFieldsToUpdate => copy.legacy_4134f7a8316a,
+  CommandFailureCode.listingMissingPhotos => copy.listingRejectedMissingPhotos,
+  CommandFailureCode.listingMissingPublicFields =>
+    copy.listingRejectedMissingPublicFields,
+  CommandFailureCode.listingUnitUnavailable =>
+    copy.listingRejectedUnitUnavailable,
+  CommandFailureCode.listingPublishedIsImmutable =>
+    copy.listingRejectedPublishedIsImmutable,
+  CommandFailureCode.listingNotPublished => copy.listingRejectedNotPublished,
   CommandFailureCode.yearlyPriceExceedsMonthlyTimesTwelve =>
     copy.legacy_ad65b6dfeb97,
   CommandFailureCode.unknownCommandType => copy.legacy_e9b3d6e695b4,
