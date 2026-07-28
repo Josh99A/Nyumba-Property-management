@@ -4,6 +4,7 @@ This directory is environment-neutral and contains no project IDs or secrets.
 
 - `firestore.rules`: deny-by-default, read-scoped Firestore Rules; client canonical writes use callable commands.
 - `storage.rules`: two-phase private upload staging and server-owned public/private paths.
+- `functions/scripts/apply-storage-cors.mjs`: applies the bucket CORS policy the web build needs — see below.
 - `firestore.indexes.json`: baseline indexes for sync and core screens. Add only query-backed indexes discovered in emulator tests.
 - `functions/COMMANDS.md`: Cloud Functions module handoff and links to the command contract.
 - `firebase.json`: rules/index configuration plus local emulator ports.
@@ -14,6 +15,44 @@ Functions before Hosting whenever those rewrites change; the CI workflow
 enforces that dependency. The renderer is a read-only consumer of the
 server-owned `publicListings` whitelist and must never read private listing,
 property, or unit collections.
+
+## Storage CORS (required for the web build)
+
+`firebase deploy --only storage` deploys Storage *Rules*. It does not touch the
+bucket's CORS policy, which is a Cloud Storage setting and is unset by default.
+Rules and CORS answer different questions — rules decide whether a caller may
+read an object, CORS decides whether a *browser* will hand the bytes to page
+JavaScript once it has them.
+
+The web client downloads photo bytes over `fetch`/XHR, so without this policy
+every image fails with `No 'Access-Control-Allow-Origin' header is present`
+even though the download URL is valid and the rules allow the read. Android and
+iOS never see this: CORS is a browser mechanism, so those builds render the same
+URLs fine, which is why the symptom looks platform-specific.
+
+Apply it once per bucket, and again whenever an origin is added. Bucket and
+origins come from the environment, so no deployment identifier is committed
+here; `--dry-run` prints the policy without touching the bucket:
+
+```bash
+cd firebase/functions
+STORAGE_BUCKET="<projectId>.firebasestorage.app" \
+WEB_ORIGINS="https://<app-origin>,https://<projectId>.web.app,http://localhost:8087" \
+  node scripts/apply-storage-cors.mjs
+```
+
+Verify with a GET carrying an allowed `Origin`, which is the request the
+browser actually makes. `curl -I` would send `HEAD` and prove less than it
+looks like it does. A configured bucket echoes the origin back:
+
+```bash
+curl -sS -D - -o /dev/null -H "Origin: https://<app-origin>" "<download-url>"
+```
+
+```text
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: https://<app-origin>
+```
 
 ## Verification and deployment limitations
 
