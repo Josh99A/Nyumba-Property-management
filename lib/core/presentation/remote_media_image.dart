@@ -59,6 +59,8 @@ class RemoteMediaImage extends ConsumerWidget {
           fit: fit,
           filterQuality: filterQuality,
           cacheWidth: cacheWidth,
+          // The storage path, not the resolved URL: see [networkMediaImage].
+          logLabel: reference,
         );
       },
       // Storage refusing or failing to mint a URL used to render a placeholder
@@ -83,12 +85,17 @@ void _logMediaFailure(String reference, String reason, Object? error) {
 }
 
 /// A cached network image wearing the app's neutral loading and error states.
+///
+/// [logLabel] is what a fetch failure is allowed to name. Callers that resolved
+/// [url] from Storage must pass the reference they started from, because the
+/// resolved URL is not safe to write down — see [_redactedMediaLabel].
 Widget networkMediaImage({
   required String url,
   required String semanticLabel,
   required BoxFit fit,
   required FilterQuality filterQuality,
   required int cacheWidth,
+  String? logLabel,
 }) => CachedNetworkImage(
   imageUrl: url,
   fit: fit,
@@ -114,10 +121,29 @@ Widget networkMediaImage({
   // — on web specifically — a cross-origin fetch the bucket never allowed.
   // Distinct from the resolution failure above and worth telling apart.
   errorWidget: (_, failedUrl, error) {
-    _logMediaFailure(failedUrl, 'image fetch failed', error);
+    _logMediaFailure(
+      logLabel ?? redactedMediaLabel(failedUrl),
+      'image fetch failed',
+      error,
+    );
     return const MediaPlaceholder.unavailable();
   },
 );
+
+/// [url] with any query string or fragment removed.
+///
+/// A Firebase download URL carries `?alt=media&token=…`, and that token *is*
+/// the credential: anyone holding the full URL can read the object without
+/// authenticating, and it does not expire. Writing one into `developer.log`
+/// therefore leaks a durable, replayable read grant into device and crash logs.
+/// The path alone identifies the object well enough to diagnose a failed fetch.
+@visibleForTesting
+String redactedMediaLabel(String url) {
+  final cut = url.indexOf(_queryOrFragment);
+  return cut < 0 ? url : url.substring(0, cut);
+}
+
+final RegExp _queryOrFragment = RegExp(r'[?#]');
 
 /// Whether [reference] is something [RemoteMediaImage] can fetch.
 bool isRemoteMediaReference(String reference) {

@@ -3356,6 +3356,18 @@ class AppLocalizationsLg extends AppLocalizations {
       'Yongerako ekifaananyi kimu eky\'ekifo kino eky\'okupangisa nga tonnakifulumya.';
 
   @override
+  String get listingPhotosLabelRequired => 'Ebifaananyi by\'ekifo (byetaagisa)';
+
+  @override
+  String get listingPhotoRequiredTitle => 'Sooka oyongereko ekifaananyi';
+
+  @override
+  String get listingPhotoRequiredDismiss => 'Si kakano';
+
+  @override
+  String get listingPhotoRequiredConfirm => 'Yongerako ebifaananyi';
+
+  @override
   String get filtersTitle => 'Okusunsula';
 
   @override

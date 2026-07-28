@@ -3262,6 +3262,18 @@ class AppLocalizationsAr extends AppLocalizations {
       'أضف صورة واحدة على الأقل لوحدة الإيجار هذه قبل نشرها.';
 
   @override
+  String get listingPhotosLabelRequired => 'صور الوحدة (مطلوبة)';
+
+  @override
+  String get listingPhotoRequiredTitle => 'أضف صورة أولاً';
+
+  @override
+  String get listingPhotoRequiredDismiss => 'ليس الآن';
+
+  @override
+  String get listingPhotoRequiredConfirm => 'إضافة صور';
+
+  @override
   String get filtersTitle => 'عوامل التصفية';
 
   @override

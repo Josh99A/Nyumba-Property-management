@@ -321,22 +321,23 @@ class _LandlordListingsScreenState
     if (!listing.hasPhotos) {
       final addNow = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text.localized('Add a photo first'),
-          content: Text.localized(
-            appLocalizationsOf(context).listingPhotosRequiredToPublish,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text.localized('Not now'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text.localized('Add photos'),
-            ),
-          ],
-        ),
+        builder: (context) {
+          final copy = appLocalizationsOf(context);
+          return AlertDialog(
+            title: Text(copy.listingPhotoRequiredTitle),
+            content: Text(copy.listingPhotosRequiredToPublish),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(copy.listingPhotoRequiredDismiss),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(copy.listingPhotoRequiredConfirm),
+              ),
+            ],
+          );
+        },
       );
       if (addNow == true && mounted) await _editListing(listing);
       return;
@@ -931,7 +932,7 @@ class _ListingFields {
     Align(
       alignment: AlignmentDirectional.centerStart,
       child: PhotoEditorField(
-        label: 'Listing photos (required)',
+        label: appLocalizationsOf(context).listingPhotosLabelRequired,
         photos: photos,
         limit: listingPhotoLimit,
         pick: pickListingPhotos,
@@ -944,10 +945,8 @@ class _ListingFields {
     // done anything wrong yet, they are being told what publishing will need.
     if (photos.isEmpty) ...[
       const SizedBox(height: 8),
-      Text.localized(
-        'Photograph this rental space itself, not just the building. '
-        'Adverts showing the actual unit get far more enquiries, and you '
-        'cannot publish without at least one photo.',
+      Text(
+        appLocalizationsOf(context).listingPhotosRequiredNudge,
         style: Theme.of(
           context,
         ).textTheme.bodySmall?.copyWith(color: context.nyumba.warning),

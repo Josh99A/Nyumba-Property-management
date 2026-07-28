@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
+import 'package:nyumba_property_management/core/presentation/remote_media_image.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
 import 'package:nyumba_property_management/features/marketplace/presentation/listing_visuals.dart';
 
@@ -14,6 +15,29 @@ const _dataUri = 'data:image/png;base64,$_onePixelPng';
 final _now = DateTime.utc(2026, 7, 24);
 
 void main() {
+  test('a failed fetch is never logged with its access token', () {
+    // A Firebase download URL's `token` query parameter *is* the credential:
+    // it grants read access without authentication and does not expire, so a
+    // copy in a device or crash log is a durable, replayable grant. Only the
+    // object path may be written down.
+    const url =
+        'https://firebasestorage.googleapis.com/v0/b/nyumba.appspot.com/o/'
+        'public%2Flistings%2Fl1%2F0-abc-full.webp'
+        '?alt=media&token=6f1a0c9e-0000-4c1a-9d3e-2b7f5a8c4d10';
+
+    final redacted = redactedMediaLabel(url);
+
+    expect(redacted, isNot(contains('token')));
+    expect(redacted, isNot(contains('alt=media')));
+    // Still identifies the object well enough to diagnose the failure.
+    expect(redacted, contains('0-abc-full.webp'));
+    // A bare path is already safe and must survive untouched.
+    expect(
+      redactedMediaLabel('public/listings/l1/0-abc-full.webp'),
+      'public/listings/l1/0-abc-full.webp',
+    );
+  });
+
   testWidgets('carousel navigates all five listing photos', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

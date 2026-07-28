@@ -3287,6 +3287,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add at least one photo of this rental space before publishing it.';
 
   @override
+  String get listingPhotosLabelRequired => 'Listing photos (required)';
+
+  @override
+  String get listingPhotoRequiredTitle => 'Add a photo first';
+
+  @override
+  String get listingPhotoRequiredDismiss => 'Not now';
+
+  @override
+  String get listingPhotoRequiredConfirm => 'Add photos';
+
+  @override
   String get filtersTitle => 'Filters';
 
   @override

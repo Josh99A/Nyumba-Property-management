@@ -3339,6 +3339,18 @@ class AppLocalizationsSw extends AppLocalizations {
       'Ongeza angalau picha moja ya nafasi hii ya kupanga kabla ya kuichapisha.';
 
   @override
+  String get listingPhotosLabelRequired => 'Picha za nafasi (zinahitajika)';
+
+  @override
+  String get listingPhotoRequiredTitle => 'Ongeza picha kwanza';
+
+  @override
+  String get listingPhotoRequiredDismiss => 'Si sasa';
+
+  @override
+  String get listingPhotoRequiredConfirm => 'Ongeza picha';
+
+  @override
   String get filtersTitle => 'Vichujio';
 
   @override

@@ -65,6 +65,24 @@ void main() {
     expect(iconTheme.color, Colors.white);
   });
 
+  testWidgets('the selected-language tick follows the menu, not the band', (
+    tester,
+  ) async {
+    await pumpTopBar(tester);
+
+    await tester.tap(find.byIcon(Icons.translate_rounded));
+    await tester.pumpAndSettle();
+
+    // The menu inherits the theme of the button it hangs off — white icons, for
+    // the navy band — but it lands on its own light surface, where a white tick
+    // is invisible. Only the selected language draws one, so this is unique.
+    final tick = find.byIcon(Icons.check_rounded);
+    expect(tick, findsOneWidget);
+    final scheme = Theme.of(tester.element(tick)).colorScheme;
+    expect(tester.widget<Icon>(tick).color, scheme.onSurface);
+    expect(_contrast(scheme.onSurface, scheme.surface), greaterThan(4.5));
+  });
+
   testWidgets('light theme keeps the cloud badge readable on the navy band', (
     tester,
   ) async {

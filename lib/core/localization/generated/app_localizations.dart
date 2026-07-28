@@ -5868,6 +5868,30 @@ abstract class AppLocalizations {
   /// **'Add at least one photo of this rental space before publishing it.'**
   String get listingPhotosRequiredToPublish;
 
+  /// No description provided for @listingPhotosLabelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Listing photos (required)'**
+  String get listingPhotosLabelRequired;
+
+  /// No description provided for @listingPhotoRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a photo first'**
+  String get listingPhotoRequiredTitle;
+
+  /// No description provided for @listingPhotoRequiredDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get listingPhotoRequiredDismiss;
+
+  /// No description provided for @listingPhotoRequiredConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photos'**
+  String get listingPhotoRequiredConfirm;
+
   /// No description provided for @filtersTitle.
   ///
   /// In en, this message translates to:
