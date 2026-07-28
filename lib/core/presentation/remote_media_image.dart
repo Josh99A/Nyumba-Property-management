@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,19 +43,43 @@ class RemoteMediaImage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final url = ref.watch(propertyMediaUrlProvider(reference));
     return url.when(
-      data: (value) => value == null
-          ? const MediaPlaceholder.unavailable()
-          : networkMediaImage(
-              url: value,
-              semanticLabel: semanticLabel,
-              fit: fit,
-              filterQuality: filterQuality,
-              cacheWidth: cacheWidth,
-            ),
-      error: (_, _) => const MediaPlaceholder.unavailable(),
+      data: (value) {
+        if (value == null) {
+          // Not an error as far as the provider is concerned, but from here it
+          // is indistinguishable from one: the caller asked for a photo and is
+          // getting a grey box. Named so the two causes can be told apart in a
+          // log — a null URL means no resolver (Firebase absent, or
+          // dependencies still failing), not a rejected fetch.
+          _logMediaFailure(reference, 'no download URL resolved', null);
+          return const MediaPlaceholder.unavailable();
+        }
+        return networkMediaImage(
+          url: value,
+          semanticLabel: semanticLabel,
+          fit: fit,
+          filterQuality: filterQuality,
+          cacheWidth: cacheWidth,
+        );
+      },
+      // Storage refusing or failing to mint a URL used to render a placeholder
+      // and say nothing anywhere, which makes "images are blank" impossible to
+      // diagnose from a running app: an unauthorized read, a missing object,
+      // and an offline device all look identical on screen.
+      error: (error, stackTrace) {
+        _logMediaFailure(reference, 'download URL lookup failed', error);
+        return const MediaPlaceholder.unavailable();
+      },
       loading: () => const MediaPlaceholder.loading(),
     );
   }
+}
+
+void _logMediaFailure(String reference, String reason, Object? error) {
+  developer.log(
+    '$reason for "$reference"',
+    name: 'remote_media_image',
+    error: error,
+  );
 }
 
 /// A cached network image wearing the app's neutral loading and error states.
@@ -84,7 +110,13 @@ Widget networkMediaImage({
   // unsettled for anything rendering an image.
   progressIndicatorBuilder: (context, _, progress) =>
       MediaPlaceholder.loading(progress: progress.progress ?? 0),
-  errorWidget: (_, _, _) => const MediaPlaceholder.unavailable(),
+  // The URL resolved but its bytes did not arrive: a 403/404 on the object, or
+  // — on web specifically — a cross-origin fetch the bucket never allowed.
+  // Distinct from the resolution failure above and worth telling apart.
+  errorWidget: (_, failedUrl, error) {
+    _logMediaFailure(failedUrl, 'image fetch failed', error);
+    return const MediaPlaceholder.unavailable();
+  },
 );
 
 /// Whether [reference] is something [RemoteMediaImage] can fetch.
