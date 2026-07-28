@@ -324,6 +324,29 @@ class ManualSync {
   }
 }
 
+/// Re-queues one mutation the server permanently refused, then pushes.
+///
+/// A permanently failed entry is never claimed again by [SyncEngine], which is
+/// what stops a doomed command from being retried forever. The cost of that is
+/// that recovery has to be explicit: without this, a rejected publication is
+/// stuck for good and the only way out is deleting the advert.
+final retryMutationProvider = Provider<RetryMutation>(RetryMutation.new);
+
+class RetryMutation {
+  const RetryMutation(this._ref);
+
+  final Ref _ref;
+
+  /// Returns false when the entry has already gone — a pull may have resolved
+  /// it, in which case there is nothing to retry and nothing to report.
+  Future<bool> call(String mutationId) async {
+    final deps = await _ref.read(appDependenciesProvider.future);
+    if (!await deps.database.retryMutation(mutationId)) return false;
+    await deps.syncEngine.syncPending();
+    return true;
+  }
+}
+
 Future<AppDependencies> createAppDependencies({
   String scope = 'anonymous',
   UserSession? session,

@@ -1962,6 +1962,26 @@ class AppLocalizationsSw extends AppLocalizations {
       'Badilisha angalau jambo moja kabla ya kuhifadhi.';
 
   @override
+  String get listingRejectedMissingPhotos =>
+      'Tangazo hili halina picha ya nafasi inayokodishwa. Ongeza angalau picha moja, kisha uchapishe tena.';
+
+  @override
+  String get listingRejectedMissingPublicFields =>
+      'Tangazo hili linakosa maelezo wanayohitaji wapangaji. Jaza kichwa, maelezo, kodi, aina, jiji na mtaa, kisha uchapishe tena.';
+
+  @override
+  String get listingRejectedUnitUnavailable =>
+      'Nafasi hiyo haiko wazi, au tangazo jingine tayari linaendelea kwa ajili yake. Iweke kuwa wazi, au ondoa tangazo lingine, kisha ujaribu tena.';
+
+  @override
+  String get listingRejectedPublishedIsImmutable =>
+      'Tangazo lililochapishwa haliwezi kubadilishwa. Liondoe hadharani, fanya mabadiliko yako, kisha ulichapishe tena.';
+
+  @override
+  String get listingRejectedNotPublished =>
+      'Tangazo hili haliko hadharani, kwa hivyo hakuna cha kuondoa.';
+
+  @override
   String get legacy_87a2131e6d61 =>
       'Ruhusa maalum za wafanyakazi ni kipengele cha Premium. Boresha mpango wako ili ubainishe kile ambacho kila mshiriki wa timu anaweza kufanya.';
 

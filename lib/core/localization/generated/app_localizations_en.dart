@@ -1926,6 +1926,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get legacy_4134f7a8316a => 'Change at least one detail before saving.';
 
   @override
+  String get listingRejectedMissingPhotos =>
+      'This advert has no photo of the rental space. Add at least one photo, then publish it again.';
+
+  @override
+  String get listingRejectedMissingPublicFields =>
+      'This advert is missing details tenants need. Fill in the title, description, rent, type, city and neighbourhood, then publish it again.';
+
+  @override
+  String get listingRejectedUnitUnavailable =>
+      'That rental space is not vacant, or another advert is already running for it. Mark it vacant, or unpublish the other advert, then try again.';
+
+  @override
+  String get listingRejectedPublishedIsImmutable =>
+      'A published advert cannot be changed. Unpublish it, make your changes, then publish it again.';
+
+  @override
+  String get listingRejectedNotPublished =>
+      'This advert is not public, so there is nothing to take down.';
+
+  @override
   String get legacy_87a2131e6d61 =>
       'Custom staff permissions are a Premium feature. Upgrade your plan to tailor what each team member can do.';
 

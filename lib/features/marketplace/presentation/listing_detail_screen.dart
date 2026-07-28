@@ -34,7 +34,16 @@ class ListingDetailScreen extends ConsumerWidget {
     final listings = ref.watch(publicListingsProvider);
     final session = ref.watch(sessionControllerProvider);
     final navigationAction = marketplaceNavigationAction(session);
-    final listing = _listingIn(listings.value ?? const <Listing>[]);
+    // An advert that has not been acknowledged yet is absent from the public
+    // catalogue by design, which used to make its own landlord's "view" action
+    // land on "listing not found". Their own copy is in this workspace, so the
+    // page can show them exactly what tenants will get, clearly marked as not
+    // live yet. Nothing leaks: this store holds only records this workspace
+    // authored or was served privately, so it is empty for a visitor.
+    final ownListings = ref.watch(landlordListingsProvider);
+    final listing =
+        _listingIn(listings.value ?? const <Listing>[]) ??
+        _listingIn(ownListings.value ?? const <Listing>[]);
     return Scaffold(
       backgroundColor: context.nyumba.softIvory,
       // On a phone the enquiry card sits below a long description, so the
@@ -77,11 +86,16 @@ class ListingDetailScreen extends ConsumerWidget {
           ),
         ),
         data: (items) {
-          final listing = _listingIn(items);
+          final published = _listingIn(items);
+          final listing =
+              published ?? _listingIn(ownListings.value ?? const <Listing>[]);
           if (listing == null) {
             return _ListingNotFound(onBack: () => context.go('/explore'));
           }
-          return _ListingDetails(listing: listing);
+          return _ListingDetails(
+            listing: listing,
+            preview: published == null,
+          );
         },
       ),
     );
@@ -161,9 +175,13 @@ class _MobileEnquiryBar extends StatelessWidget {
 }
 
 class _ListingDetails extends StatelessWidget {
-  const _ListingDetails({required this.listing});
+  const _ListingDetails({required this.listing, this.preview = false});
 
   final Listing listing;
+
+  /// True when the public catalogue does not hold this advert yet, so what is
+  /// on screen is the landlord's own copy rather than what tenants can see.
+  final bool preview;
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +212,33 @@ class _ListingDetails extends StatelessWidget {
                 label: const Text.localized('Available homes'),
               ),
               const SizedBox(height: 10),
+              if (preview) ...[
+                NyumbaSurface(
+                  backgroundColor: context.nyumba.navyTint,
+                  borderColor: context.nyumba.navyBorder,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 11,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.visibility_outlined,
+                        color: context.nyumba.midnightNavy,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text.localized(
+                          'Preview — not live yet. This is how the advert will '
+                          'look to tenants once the server has it.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
               Hero(
                 tag: 'listing-image-${listing.id}',
                 child: ListingPhotoCarousel(

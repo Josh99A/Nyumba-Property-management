@@ -1974,6 +1974,26 @@ class AppLocalizationsLg extends AppLocalizations {
       'Kyusa waakiri ekimu ku bikwata ku nsonga nga tonnatereka.';
 
   @override
+  String get listingRejectedMissingPhotos =>
+      'Ekirango kino tekirina kifaananyi kya kifo ekipangisibwa. Yongerako waakiri ekifaananyi kimu, oluvannyuma oddemu okirangirire.';
+
+  @override
+  String get listingRejectedMissingPublicFields =>
+      'Ekirango kino kibulako ebikwata ku nsonga abapangisa bye beetaaga. Jjuza omutwe, ennyinyonnyola, obupangisa, ekika, ekibuga n\'ekitundu, oluvannyuma oddemu okirangirire.';
+
+  @override
+  String get listingRejectedUnitUnavailable =>
+      'Ekifo ekyo tekiri kyereere, oba waliwo ekirango ekirala ekikyekutte. Kisseeko nti kyereere, oba ggyawo ekirango ekirala, olwo oddemu ogezeeko.';
+
+  @override
+  String get listingRejectedPublishedIsImmutable =>
+      'Ekirango ekirangiddwa tekiyinza kukyusibwa. Kiggyeewo mu lujjudde, okyuse by\'oyagala, oluvannyuma oddemu okirangirire.';
+
+  @override
+  String get listingRejectedNotPublished =>
+      'Ekirango kino tekiri mu lujjudde, n\'olwekyo tewali kya kuggyawo.';
+
+  @override
   String get legacy_87a2131e6d61 =>
       'Obuyinza obw’enjawulo obw’abakozi buli ku pulaani ya Premium. Yongera omutindo gwa pulaani yo osobole okuteekateeka buli mukozi ky’asobola okukola.';
 

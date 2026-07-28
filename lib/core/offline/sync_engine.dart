@@ -146,6 +146,13 @@ final class SyncEngine {
           permanent: permanent,
           failedAt: now,
           retryAt: retryAt,
+          // Kept with the code rather than collapsed into it: `VALIDATION_FAILED`
+          // is the same string whether the advert wants a photo or the rental
+          // space is occupied, and only these say which.
+          errorReason: error is RemoteSyncException ? error.reason : null,
+          errorFields: error is RemoteSyncException
+              ? error.rejectedFields
+              : const <String>[],
         );
         if (permanent) {
           permanentlyFailed++;

@@ -1911,6 +1911,26 @@ class AppLocalizationsAr extends AppLocalizations {
   String get legacy_4134f7a8316a => 'غيّر تفصيلاً واحدًا على الأقل قبل الحفظ.';
 
   @override
+  String get listingRejectedMissingPhotos =>
+      'لا يحتوي هذا الإعلان على صورة للمساحة المؤجَّرة. أضف صورة واحدة على الأقل، ثم انشره مرة أخرى.';
+
+  @override
+  String get listingRejectedMissingPublicFields =>
+      'ينقص هذا الإعلان تفاصيل يحتاجها المستأجرون. املأ العنوان والوصف والإيجار والنوع والمدينة والحي، ثم انشره مرة أخرى.';
+
+  @override
+  String get listingRejectedUnitUnavailable =>
+      'تلك المساحة ليست شاغرة، أو هناك إعلان آخر قائم لها. اجعلها شاغرة، أو ألغِ نشر الإعلان الآخر، ثم حاول مرة أخرى.';
+
+  @override
+  String get listingRejectedPublishedIsImmutable =>
+      'لا يمكن تعديل إعلان منشور. ألغِ نشره، وأجرِ تغييراتك، ثم انشره مرة أخرى.';
+
+  @override
+  String get listingRejectedNotPublished =>
+      'هذا الإعلان غير منشور، لذا لا يوجد ما يُزال.';
+
+  @override
   String get legacy_87a2131e6d61 =>
       'أذونات الموظفين المخصصة ميزة ضمن خطة Premium. رقِّ خطتك لتخصيص ما يمكن لكل عضو في الفريق القيام به.';
 

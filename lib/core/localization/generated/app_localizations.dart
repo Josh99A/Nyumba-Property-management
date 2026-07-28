@@ -3690,6 +3690,36 @@ abstract class AppLocalizations {
   /// **'Change at least one detail before saving.'**
   String get legacy_4134f7a8316a;
 
+  /// Server refused listing.publish because the advert carries no photo.
+  ///
+  /// In en, this message translates to:
+  /// **'This advert has no photo of the rental space. Add at least one photo, then publish it again.'**
+  String get listingRejectedMissingPhotos;
+
+  /// Server refused listing.publish because a required public field was blank.
+  ///
+  /// In en, this message translates to:
+  /// **'This advert is missing details tenants need. Fill in the title, description, rent, type, city and neighbourhood, then publish it again.'**
+  String get listingRejectedMissingPublicFields;
+
+  /// Server refused listing.publish because the unit is occupied or already advertised.
+  ///
+  /// In en, this message translates to:
+  /// **'That rental space is not vacant, or another advert is already running for it. Mark it vacant, or unpublish the other advert, then try again.'**
+  String get listingRejectedUnitUnavailable;
+
+  /// Server refused an edit to a listing that is already public.
+  ///
+  /// In en, this message translates to:
+  /// **'A published advert cannot be changed. Unpublish it, make your changes, then publish it again.'**
+  String get listingRejectedPublishedIsImmutable;
+
+  /// Server refused listing.unpublish because the listing was not published.
+  ///
+  /// In en, this message translates to:
+  /// **'This advert is not public, so there is nothing to take down.'**
+  String get listingRejectedNotPublished;
+
   /// No description provided for @legacy_87a2131e6d61.
   ///
   /// In en, this message translates to:

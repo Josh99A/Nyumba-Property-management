@@ -35,6 +35,11 @@ enum CommandFailureCode {
   amountExceedsBalance,
   leaseNotActive,
   noFieldsToUpdate,
+  listingMissingPhotos,
+  listingMissingPublicFields,
+  listingUnitUnavailable,
+  listingPublishedIsImmutable,
+  listingNotPublished,
   yearlyPriceExceedsMonthlyTimesTwelve,
   unknownCommandType,
   envelopeInvalid,
@@ -58,8 +63,26 @@ typedef CommandFailureLocalizer =
 
 /// Converts a remote failure into a stable descriptor without embedding
 /// English presentation copy in the offline/application boundary.
-CommandFailureDescriptor describeCommandFailure(RemoteSyncException error) {
-  final code = switch (error.message) {
+CommandFailureDescriptor describeCommandFailure(RemoteSyncException error) =>
+    describeStoredCommandFailure(
+      code: error.message,
+      reason: error.reason,
+      fields: error.rejectedFields,
+    );
+
+/// The same resolution for a failure that was persisted rather than caught.
+///
+/// A background sync failure is reported long after the exception is gone, so
+/// the outbox entry keeps the code, the reason and the rejected fields and
+/// replays them through here. Without the reason every listing rejection
+/// resolves to the same generic "not accepted" copy, which is what made a
+/// refused advert unfixable.
+CommandFailureDescriptor describeStoredCommandFailure({
+  required String code,
+  String? reason,
+  List<String> fields = const <String>[],
+}) {
+  final failureCode = switch (code) {
     'UNAUTHENTICATED' => CommandFailureCode.unauthenticated,
     'APP_CHECK_REQUIRED' => CommandFailureCode.appCheckRequired,
     'PERMISSION_DENIED' => CommandFailureCode.permissionDenied,
@@ -79,7 +102,7 @@ CommandFailureDescriptor describeCommandFailure(RemoteSyncException error) {
     'IDEMPOTENCY_KEY_REUSED' => CommandFailureCode.idempotencyKeyReused,
     'RATE_LIMITED' => CommandFailureCode.rateLimited,
     'REQUIRES_ONLINE' => CommandFailureCode.requiresOnline,
-    'VALIDATION_FAILED' => _validationCode(error.reason, error.rejectedFields),
+    'VALIDATION_FAILED' => _validationCode(reason, fields),
     'INTERNAL_RETRYABLE' => CommandFailureCode.internalRetryable,
     'unavailable' ||
     'network-request-failed' => CommandFailureCode.networkUnavailable,
@@ -87,9 +110,9 @@ CommandFailureDescriptor describeCommandFailure(RemoteSyncException error) {
     _ => CommandFailureCode.unknown,
   };
   return CommandFailureDescriptor(
-    code,
-    rejectedFields: code == CommandFailureCode.validationFields
-        ? List.unmodifiable(error.rejectedFields)
+    failureCode,
+    rejectedFields: failureCode == CommandFailureCode.validationFields
+        ? List.unmodifiable(fields)
         : const [],
   );
 }
@@ -114,6 +137,13 @@ CommandFailureCode _validationCode(String? reason, List<String> fields) {
     'amountExceedsBalance' => CommandFailureCode.amountExceedsBalance,
     'leaseNotActive' => CommandFailureCode.leaseNotActive,
     'noFieldsToUpdate' => CommandFailureCode.noFieldsToUpdate,
+    'listingMissingPhotos' => CommandFailureCode.listingMissingPhotos,
+    'listingMissingPublicFields' =>
+      CommandFailureCode.listingMissingPublicFields,
+    'unitUnavailable' => CommandFailureCode.listingUnitUnavailable,
+    'publishedListingIsImmutable' =>
+      CommandFailureCode.listingPublishedIsImmutable,
+    'listingNotPublished' => CommandFailureCode.listingNotPublished,
     'yearlyPriceExceedsMonthlyTimesTwelve' =>
       CommandFailureCode.yearlyPriceExceedsMonthlyTimesTwelve,
     'unknownCommandType' => CommandFailureCode.unknownCommandType,
