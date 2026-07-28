@@ -4,7 +4,7 @@ This directory is environment-neutral and contains no project IDs or secrets.
 
 - `firestore.rules`: deny-by-default, read-scoped Firestore Rules; client canonical writes use callable commands.
 - `storage.rules`: two-phase private upload staging and server-owned public/private paths.
-- `storage.cors.json`: bucket CORS policy. Required by the web build — see below.
+- `functions/scripts/apply-storage-cors.mjs`: applies the bucket CORS policy the web build needs — see below.
 - `firestore.indexes.json`: baseline indexes for sync and core screens. Add only query-backed indexes discovered in emulator tests.
 - `functions/COMMANDS.md`: Cloud Functions module handoff and links to the command contract.
 - `firebase.json`: rules/index configuration plus local emulator ports.
@@ -30,16 +30,28 @@ even though the download URL is valid and the rules allow the read. Android and
 iOS never see this: CORS is a browser mechanism, so those builds render the same
 URLs fine, which is why the symptom looks platform-specific.
 
-Apply it once per bucket, and again whenever an origin is added:
+Apply it once per bucket, and again whenever an origin is added. Bucket and
+origins come from the environment, so no deployment identifier is committed
+here; `--dry-run` prints the policy without touching the bucket:
 
 ```bash
-gcloud storage buckets update gs://nyumba-property-management.firebasestorage.app --cors-file=firebase/storage.cors.json
+cd firebase/functions
+STORAGE_BUCKET="<projectId>.firebasestorage.app" \
+WEB_ORIGINS="https://<app-origin>,https://<projectId>.web.app,http://localhost:8087" \
+  node scripts/apply-storage-cors.mjs
 ```
 
-Verify with a preflight-style request; a configured bucket echoes the origin:
+Verify with a GET carrying an allowed `Origin`, which is the request the
+browser actually makes. `curl -I` would send `HEAD` and prove less than it
+looks like it does. A configured bucket echoes the origin back:
 
 ```bash
-curl -sS -I -H "Origin: https://nyumba.online" "https://firebasestorage.googleapis.com/v0/b/nyumba-property-management.firebasestorage.app/o/<url-encoded-object>?alt=media&token=<token>"
+curl -sS -D - -o /dev/null -H "Origin: https://<app-origin>" "<download-url>"
+```
+
+```
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: https://<app-origin>
 ```
 
 ## Verification and deployment limitations
