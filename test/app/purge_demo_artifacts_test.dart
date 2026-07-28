@@ -63,6 +63,10 @@ void main() {
             monthlyRentMinor: demoUnit.monthlyRentMinor,
             city: 'Kampala',
             contactPhone: '+256 700 000 000',
+            // Publication requires at least one photo of the rental space.
+            imageUrls: const [
+              'public/listings/demo/0-abcdef0123456789-full.webp',
+            ],
           ),
         );
         await listings.publish(draft.id);

@@ -600,7 +600,7 @@ describe('command router', () => {
         bedrooms: 1,
         bathrooms: 1,
         amenities: [],
-        stagedImagePaths: [],
+        stagedImagePaths: [`uploads/${superAdmin.uid}/staff-cover.jpg`],
       },
     ), now)).toMatchObject({ status: 'applied' });
     expect(await executeCommandCore(db, superAdmin, envelope(
@@ -620,7 +620,7 @@ describe('command router', () => {
         bedrooms: 1,
         bathrooms: 1,
         amenities: [],
-        stagedImagePaths: [],
+        stagedImagePaths: [`uploads/${superAdmin.uid}/staff-cover.jpg`],
       },
     ), now)).toMatchObject({ status: 'applied', serverVersion: 2 });
     expect(await executeCommandCore(db, superAdmin, envelope(
@@ -670,7 +670,7 @@ describe('command router', () => {
       id: 'listing_1234', landlordId: landlord.uid, unitId: 'unit_123456', publicationState: 'draft',
       title: 'Sunny apartment', description: 'A good home', monthlyRentMinor: 100_000,
       unitType: 'apartment', city: 'Kampala', neighborhood: 'Ntinda', district: 'Kampala',
-      bedrooms: 1, bathrooms: 1, amenities: [], stagedImagePaths: [],
+      bedrooms: 1, bathrooms: 1, amenities: [], stagedImagePaths: ['uploads/landlord_1234/cover.jpg'],
       approximateLocation: { lat: 0.3162345, lng: 32.5811789 },
       exactAddress: 'PRIVATE ROAD', contactPhone: '+256700000000',
       version: 1, createdAt: now, updatedAt: now, isDeleted: false,
@@ -683,6 +683,37 @@ describe('command router', () => {
     expect(publicData).not.toHaveProperty('contactPhone');
     expect(publicData.approximateLocation).toEqual({ lat: 0.316, lng: 32.581 });
     expect((publicData.expiresAt as Timestamp).toMillis() - now.toMillis()).toBe(30 * 24 * 60 * 60 * 1000);
+  });
+
+  it('refuses to publish an advert that has no photo', async () => {
+    await seedLandlord();
+    await db.doc('units/unit_123456').set({
+      id: 'unit_123456', landlordId: landlord.uid, propertyId: 'property_1234', label: 'PRIVATE A1',
+      occupancyStatus: 'vacant', activePublicListingId: null,
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    // Complete in every other respect: the photo is the only thing missing, so
+    // a rejection here can only be the photo rule.
+    await db.doc('privateListings/listing_nophoto').set({
+      id: 'listing_nophoto', landlordId: landlord.uid, unitId: 'unit_123456', publicationState: 'draft',
+      title: 'Sunny apartment', description: 'A good home', monthlyRentMinor: 100_000,
+      unitType: 'apartment', city: 'Kampala', neighborhood: 'Ntinda', district: 'Kampala',
+      bedrooms: 1, bathrooms: 1, amenities: [], stagedImagePaths: [],
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    const result = await executeCommandCore(
+      db,
+      landlord,
+      envelope('command_nophoto', 'listing.publish', 'listing_nophoto', 1, {}),
+      now,
+    );
+    expect(result).toMatchObject({
+      status: 'rejected',
+      error: { code: 'VALIDATION_FAILED', details: { reason: 'listingMissingPhotos' } },
+    });
+    // Nothing may reach the public catalogue, and the unit stays advertisable.
+    expect((await db.doc('publicListings/listing_nophoto').get()).exists).toBe(false);
+    expect((await db.doc('units/unit_123456').get()).data()?.activePublicListingId).toBeNull();
   });
 
   it('retires a public listing when a landlord makes its unit unavailable', async () => {

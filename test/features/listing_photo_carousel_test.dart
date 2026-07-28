@@ -104,6 +104,33 @@ void main() {
       ),
     );
 
+    // An advert with no photos is empty, not broken: it earns the neutral
+    // "no photos yet" state rather than the failure glyph, which on a public
+    // card reads to a renter as a defect in the app.
+    expect(find.byIcon(Icons.home_work_outlined), findsOneWidget);
+    expect(find.bySemanticsLabel('No photos yet'), findsOneWidget);
+    expect(find.byType(Image), findsNothing);
+  });
+
+  testWidgets('a photo that will not resolve still reports as unavailable', (
+    tester,
+  ) async {
+    // The other half of the distinction above. This listing claims a photo, so
+    // a blank tile here really is a fault and must keep saying so.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            height: 240,
+            child: listingImage(
+              _listing(imageUrls: const <String>['not-a-usable-reference']),
+            ),
+          ),
+        ),
+      ),
+    );
+
     expect(find.byIcon(Icons.image_not_supported_outlined), findsOneWidget);
     expect(find.bySemanticsLabel('Image unavailable'), findsOneWidget);
     expect(find.byType(Image), findsNothing);

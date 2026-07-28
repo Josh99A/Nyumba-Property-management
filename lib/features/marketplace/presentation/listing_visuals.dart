@@ -48,6 +48,10 @@ Widget listingImage(
   int cacheWidth = 1600,
   bool preferThumbnail = false,
 }) {
+  // An advert with no photos is empty, not broken. Only a reference that exists
+  // and then fails to resolve earns the "unavailable" treatment.
+  if (!listing.hasPhotos) return const MediaPlaceholder.none();
+
   final reference = index >= 0 && index < listing.imageUrls.length
       ? listing.imageUrls[index]
       : null;

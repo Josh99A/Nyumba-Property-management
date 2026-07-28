@@ -314,6 +314,34 @@ class _LandlordListingsScreenState
   );
 
   Future<void> _publish(Listing listing) async {
+    // Both the domain and the server refuse a photoless advert, but their
+    // rejection reads as a raw validation exception. Naming the missing thing
+    // here — and opening the editor on it — is the difference between a
+    // landlord fixing this in one tap and not knowing what went wrong.
+    if (!listing.hasPhotos) {
+      final addNow = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text.localized('Add a photo first'),
+          content: Text.localized(
+            appLocalizationsOf(context).listingPhotosRequiredToPublish,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text.localized('Not now'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text.localized('Add photos'),
+            ),
+          ],
+        ),
+      );
+      if (addNow == true && mounted) await _editListing(listing);
+      return;
+    }
+
     // At the plan's active-listing limit, prompt for an upgrade instead of
     // queueing a publication the server would reject. Only a confirmed
     // entitlement blocks locally; an unknown plan leaves the server to judge.
@@ -895,6 +923,36 @@ class _ListingFields {
           ? context.tr('Add a little more detail')
           : null,
     ),
+    const SizedBox(height: 14),
+    // Photos sit third, directly under the copy they illustrate, because they
+    // are the field a renter actually decides on. Buried at the far end of the
+    // form — after twenty other inputs — this was routinely never reached, and
+    // adverts went public showing an empty tile.
+    Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: PhotoEditorField(
+        label: 'Listing photos (required)',
+        photos: photos,
+        limit: listingPhotoLimit,
+        pick: pickListingPhotos,
+        onChanged: (problems) => setDialogState(() => photoProblems = problems),
+        helperText: appLocalizationsOf(context).listingPhotoGuidance,
+      ),
+    ),
+    // A draft saves happily without photos; only publication is blocked. The
+    // tone is therefore a warning rather than an error — the landlord has not
+    // done anything wrong yet, they are being told what publishing will need.
+    if (photos.isEmpty) ...[
+      const SizedBox(height: 8),
+      Text.localized(
+        'Photograph this rental space itself, not just the building. '
+        'Adverts showing the actual unit get far more enquiries, and you '
+        'cannot publish without at least one photo.',
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: context.nyumba.warning),
+      ),
+    ],
     if (includeRentAndCity) ...[
       const SizedBox(height: 14),
       Row(
@@ -1120,18 +1178,6 @@ class _ListingFields {
       maxLines: 3,
       decoration: InputDecoration(
         labelText: context.tr('Viewing instructions'),
-      ),
-    ),
-    const SizedBox(height: 14),
-    Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: PhotoEditorField(
-        label: 'Listing photos',
-        photos: photos,
-        limit: listingPhotoLimit,
-        pick: pickListingPhotos,
-        onChanged: (problems) => setDialogState(() => photoProblems = problems),
-        helperText: appLocalizationsOf(context).listingPhotoGuidance,
       ),
     ),
     const SizedBox(height: 14),

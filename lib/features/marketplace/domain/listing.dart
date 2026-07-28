@@ -116,6 +116,14 @@ final class Listing {
   final int? projectionVersion;
   final SyncMetadata syncMetadata;
 
+  /// Whether this advert carries any photo at all.
+  ///
+  /// Publication now requires one, so this is only true for adverts published
+  /// before that rule — but those stay live until their landlord next touches
+  /// them, and the public surfaces have to render them as an empty advert
+  /// rather than a broken one.
+  bool get hasPhotos => imageUrls.isNotEmpty;
+
   /// Locally requested publication is not a public listing until the server
   /// has acknowledged and merged the canonical state.
   bool get isPublic =>
@@ -246,8 +254,26 @@ final class Listing {
     });
   }
 
-  Listing publish({required DateTime at}) {
+  /// What a landlord must satisfy to *take* a listing public.
+  ///
+  /// Deliberately separate from [validateForPublishing], which is a
+  /// representation invariant re-run on every published record — including the
+  /// ones pulled back from the server. Adding the photo requirement there would
+  /// apply it retroactively, and listings published before the rule existed
+  /// would stop decoding and disappear from the catalogue. Gating the
+  /// transition instead binds every new publication without invalidating the
+  /// records that predate it.
+  void validateReadyToPublish() {
     validateForPublishing();
+    DomainValidation.check(<String, String?>{
+      'imageUrls': imageUrls.isEmpty
+          ? 'at least one photo is required before publishing'
+          : null,
+    });
+  }
+
+  Listing publish({required DateTime at}) {
+    validateReadyToPublish();
     return copyWith(
       status: ListingStatus.published,
       publishedAt: at.toUtc(),

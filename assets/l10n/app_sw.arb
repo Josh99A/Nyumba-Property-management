@@ -1004,6 +1004,9 @@
     ,"@listingAvailableFromDate": {"placeholders": {"date": {"type": "String"}}}
     ,"imageLoading": "Picha inapakia"
     ,"imageUnavailable": "Picha haipatikani"
+    ,"imageNone": "Hakuna picha bado"
+    ,"listingPhotosRequiredNudge": "Piga picha ya nafasi hii ya kupanga yenyewe, si jengo tu. Matangazo yanayoonyesha chumba halisi hupata maulizo mengi zaidi, na huwezi kuchapisha bila angalau picha moja."
+    ,"listingPhotosRequiredToPublish": "Ongeza angalau picha moja ya nafasi hii ya kupanga kabla ya kuichapisha."
     ,"filtersTitle": "Vichujio"
     ,"clearAllFilters": "Futa zote"
     ,"sortResults": "Panga matokeo"

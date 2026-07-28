@@ -3,12 +3,14 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/luganda_localizations.dart';
 import 'package:nyumba_property_management/core/presentation/image_picking.dart';
 import 'package:nyumba_property_management/core/presentation/photo_editor_field.dart';
+import 'package:nyumba_property_management/core/presentation/remote_media_image.dart';
 
 /// A 1x1 transparent PNG, small enough to inline and real enough to decode.
 final _pngBytes = base64Decode(
@@ -86,10 +88,30 @@ void main() {
       expect(set.picked, hasLength(1));
     });
 
+    testWidgets('a photo that has already synced is fetched, not written off', (
+      tester,
+    ) async {
+      // Once the server has rendered its delivery copies, the record holds a
+      // storage path rather than the `data:` URI the landlord uploaded. Reading
+      // "does not decode as a data URI" as "broken" showed a landlord's working
+      // photo set as a row of broken-image chips every time they reopened it.
+      final set = EditablePhotoSet(
+        existing: ['public/listings/listing-1/0-abcdef0123456789-full.webp'],
+      );
+      await _pump(tester, photos: set, limit: 5);
+
+      expect(find.byType(RemoteMediaImage), findsOneWidget);
+      expect(find.byIcon(Icons.broken_image_outlined), findsNothing);
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+
+      expect(set.existing, isEmpty);
+    });
+
     testWidgets('a photo that will not decode stays removable', (tester) async {
-      // An https URL or a corrupt data URI must not silently vanish from the
+      // A corrupt or unrecognisable reference must not silently vanish from the
       // editor — that would strand it on the record with no way to drop it.
-      final set = EditablePhotoSet(existing: ['https://example.test/a.png']);
+      final set = EditablePhotoSet(existing: ['not-a-usable-reference']);
       await _pump(tester, photos: set, limit: 5);
 
       expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
@@ -128,27 +150,31 @@ Future<void> _pump(
   required int limit,
 }) async {
   await tester.pumpWidget(
-    MaterialApp(
-      theme: NyumbaTheme.light,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: const [
-        ...LugandaLocalizations.delegates,
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      home: Scaffold(
-        body: StatefulBuilder(
-          builder: (context, setState) => PhotoEditorField(
-            label: 'Photos',
-            photos: photos,
-            limit: limit,
-            // The chooser is never opened in these tests; removal and the
-            // limit are what this widget owns.
-            pick: ({required int remainingSlots}) async =>
-                const ImagePickOutcome(cancelled: true),
-            onChanged: (_) => setState(() {}),
+    // A saved photo is fetched through the media providers once it has synced,
+    // so the field needs a scope even when this test never resolves one.
+    ProviderScope(
+      child: MaterialApp(
+        theme: NyumbaTheme.light,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          ...LugandaLocalizations.delegates,
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => PhotoEditorField(
+              label: 'Photos',
+              photos: photos,
+              limit: limit,
+              // The chooser is never opened in these tests; removal and the
+              // limit are what this widget owns.
+              pick: ({required int remainingSlots}) async =>
+                  const ImagePickOutcome(cancelled: true),
+              onChanged: (_) => setState(() {}),
+            ),
           ),
         ),
       ),

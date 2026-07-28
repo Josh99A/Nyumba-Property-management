@@ -136,6 +136,10 @@ void main() {
           city: property.city,
           neighborhood: 'Ntinda',
           contactPhone: '+256700000001',
+          // Publication requires at least one photo of the rental space.
+          imageUrls: const [
+            'public/listings/listing-b1/0-abcdef0123456789-full.webp',
+          ],
         ),
       );
       await _acknowledgeAll(database, now);
