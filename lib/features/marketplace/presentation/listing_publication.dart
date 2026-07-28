@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/sync_metadata.dart';
+import '../../../core/localization/generated/app_localizations.dart';
 import '../../../core/offline/command_failure.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
@@ -117,6 +118,7 @@ final class ListingPublication {
 ListingPublication resolveListingPublication({
   required Listing listing,
   required List<OutboxEntry> outbox,
+  required AppLocalizations copy,
 }) {
   OutboxEntry? failed;
   OutboxEntry? blocked;
@@ -143,6 +145,7 @@ ListingPublication resolveListingPublication({
   if (failed != null) {
     return _failed(
       listing,
+      copy: copy,
       operation: failed.operation,
       failure: _describe(failed),
       mutationId: failed.id,
@@ -151,16 +154,14 @@ ListingPublication resolveListingPublication({
   if (blocked != null) {
     return ListingPublication(
       state: ListingPublicationState.blocked,
-      label: 'Waiting on another change',
+      label: copy.listingStatusBlockedLabel,
       tone: BadgeTone.warning,
       icon: Icons.block_rounded,
-      detail:
-          'An earlier change has to reach the server before this advert can '
-          'be sent. Clear that one first and this follows on its own.',
+      detail: copy.listingStatusBlockedDetail,
       failure: _describe(blocked),
     );
   }
-  if (pending != null) return _inFlight(listing, pending);
+  if (pending != null) return _inFlight(listing, pending, copy);
 
   // No durable intent is left, so the entity's own metadata is the record of
   // what happened — including a failure whose outbox entry has been cleared.
@@ -170,6 +171,7 @@ ListingPublication resolveListingPublication({
     final code = listing.syncMetadata.lastError;
     return _failed(
       listing,
+      copy: copy,
       failure: code == null
           ? null
           : describeStoredCommandFailure(code: code),
@@ -178,43 +180,41 @@ ListingPublication resolveListingPublication({
   if (listing.syncMetadata.state == EntitySyncState.conflicted) {
     return ListingPublication(
       state: ListingPublicationState.conflicted,
-      label: 'Needs review',
+      label: copy.listingStatusConflictedLabel,
       tone: BadgeTone.danger,
       icon: Icons.fork_right_rounded,
-      detail:
-          'This advert changed on the server while you were editing it, so '
-          'your version was not applied. Open it and decide which to keep.',
+      detail: copy.listingStatusConflictedDetail,
     );
   }
 
   return switch (listing.status) {
-    ListingStatus.published => const ListingPublication(
+    ListingStatus.published => ListingPublication(
       state: ListingPublicationState.live,
-      label: 'Published',
+      label: copy.listingStatusPublishedLabel,
       tone: BadgeTone.success,
       icon: Icons.check_circle_outline_rounded,
-      detail: 'Live in search. Tenants can see this advert and enquire.',
+      detail: copy.listingStatusPublishedDetail,
     ),
-    ListingStatus.paused => const ListingPublication(
+    ListingStatus.paused => ListingPublication(
       state: ListingPublicationState.paused,
-      label: 'Paused',
+      label: copy.listingStatusPausedLabel,
       tone: BadgeTone.neutral,
       icon: Icons.pause_circle_outline_rounded,
-      detail: 'Out of search. Publish it again whenever you are ready.',
+      detail: copy.listingStatusPausedDetail,
     ),
-    ListingStatus.closed => const ListingPublication(
+    ListingStatus.closed => ListingPublication(
       state: ListingPublicationState.paused,
-      label: 'Closed',
+      label: copy.listingStatusClosedLabel,
       tone: BadgeTone.neutral,
       icon: Icons.inventory_2_outlined,
-      detail: 'This advert is finished and no longer appears in search.',
+      detail: copy.listingStatusClosedDetail,
     ),
-    ListingStatus.draft => const ListingPublication(
+    ListingStatus.draft => ListingPublication(
       state: ListingPublicationState.draft,
-      label: 'Draft',
+      label: copy.listingStatusDraftLabel,
       tone: BadgeTone.neutral,
       icon: Icons.edit_note_rounded,
-      detail: 'Only you can see this. Publish it when it is ready.',
+      detail: copy.listingStatusDraftDetail,
     ),
   };
 }
@@ -222,24 +222,27 @@ ListingPublication resolveListingPublication({
 /// In-flight work is deliberately calm on the first attempt and only escalates
 /// once delivery has actually failed. A publication that clears in a second
 /// does not deserve the same warning colour as one that cannot get out.
-ListingPublication _inFlight(Listing listing, OutboxEntry entry) {
+ListingPublication _inFlight(
+  Listing listing,
+  OutboxEntry entry,
+  AppLocalizations copy,
+) {
   final struggling = entry.attemptCount > 0;
   final (state, label, detail) = switch (entry.operation) {
     OutboxOperation.publish => (
       ListingPublicationState.goingLive,
-      'Going live…',
-      'Uploading now. This badge turns green the moment tenants can see it.',
+      copy.listingStatusGoingLiveLabel,
+      copy.listingStatusGoingLiveDetail,
     ),
     OutboxOperation.delete => (
       ListingPublicationState.removing,
-      'Removing…',
-      'Taking this advert out of search. Tenants stop seeing it once the '
-          'server confirms.',
+      copy.listingStatusRemovingLabel,
+      copy.listingStatusRemovingDetail,
     ),
     _ => (
       ListingPublicationState.saving,
-      'Saving…',
-      'Sending your changes. Nothing about who can see this advert changes.',
+      copy.listingStatusSavingLabel,
+      copy.listingStatusSavingDetail,
     ),
   };
   if (!struggling) {
@@ -255,12 +258,12 @@ ListingPublication _inFlight(Listing listing, OutboxEntry entry) {
     state: state == ListingPublicationState.goingLive
         ? ListingPublicationState.retrying
         : state,
-    label: 'Retrying…',
+    label: copy.listingStatusRetryingLabel,
     tone: BadgeTone.warning,
     icon: Icons.sync_problem_rounded,
     detail:
-        'Nyumba could not reach the server on the last try and is still '
-        'trying. ${listing.status == ListingStatus.published ? 'The advert goes live as soon as it gets through.' : 'Your change lands as soon as it gets through.'}',
+        '${copy.listingRetryingLead} '
+        '${listing.status == ListingStatus.published ? copy.listingRetryingPublishedTail : copy.listingRetryingPendingTail}',
     failure: _describe(entry),
   );
 }
@@ -283,6 +286,7 @@ CommandFailureDescriptor? _describe(OutboxEntry entry) {
 /// and telling its landlord it is "published" is the whole problem.
 ListingPublication _failed(
   Listing listing, {
+  required AppLocalizations copy,
   OutboxOperation? operation,
   CommandFailureDescriptor? failure,
   String? mutationId,
@@ -296,15 +300,14 @@ ListingPublication _failed(
       };
   final (label, detail) = switch (intent) {
     OutboxOperation.publish => (
-      'Not published',
-      'This advert was refused, so no tenant can see it.',
+      copy.listingStatusNotPublishedLabel,
+      copy.listingStatusNotPublishedDetail,
     ),
     OutboxOperation.delete => (
-      'Still public',
-      'Taking this advert down was refused, so tenants may still be seeing '
-          'it.',
+      copy.listingStatusStillPublicLabel,
+      copy.listingStatusStillPublicDetail,
     ),
-    _ => ('Not saved', 'Your last change was refused and was not saved.'),
+    _ => (copy.listingStatusNotSavedLabel, copy.listingStatusNotSavedDetail),
   };
   return ListingPublication(
     state: ListingPublicationState.failed,

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
+import 'package:nyumba_property_management/core/localization/generated/app_localizations_en.dart';
 import 'package:nyumba_property_management/core/offline/command_failure.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
 import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
@@ -9,6 +10,7 @@ import 'package:nyumba_property_management/features/marketplace/presentation/lis
 
 void main() {
   final now = DateTime.utc(2026, 7, 28);
+  final copy = AppLocalizationsEn();
 
   test('a refused publication is never reported as still publishing', () {
     final listing = _listing(
@@ -29,10 +31,11 @@ void main() {
           createdAt: now,
         ),
       ],
+      copy: copy,
     );
 
     expect(publication.state, ListingPublicationState.failed);
-    expect(publication.label, 'Not published');
+    expect(publication.label, copy.listingStatusNotPublishedLabel);
     expect(publication.tone, BadgeTone.danger);
     expect(publication.needsAttention, isTrue);
     expect(publication.inFlight, isFalse);
@@ -59,9 +62,10 @@ void main() {
           createdAt: now,
         ),
       ],
+      copy: copy,
     );
 
-    expect(publication.label, 'Still public');
+    expect(publication.label, copy.listingStatusStillPublicLabel);
     expect(publication.needsAttention, isTrue);
   });
 
@@ -82,9 +86,10 @@ void main() {
     final firstTry = resolveListingPublication(
       listing: listing,
       outbox: [pending(attemptCount: 0, state: OutboxState.pending)],
+      copy: copy,
     );
     expect(firstTry.state, ListingPublicationState.goingLive);
-    expect(firstTry.label, 'Going live…');
+    expect(firstTry.label, copy.listingStatusGoingLiveLabel);
     // The happy path resolves in a round-trip, so it must not wear the same
     // colour as work that is actually in trouble.
     expect(firstTry.tone, BadgeTone.info);
@@ -94,6 +99,7 @@ void main() {
     final bouncing = resolveListingPublication(
       listing: listing,
       outbox: [pending(attemptCount: 3, state: OutboxState.retryScheduled)],
+      copy: copy,
     );
     expect(bouncing.state, ListingPublicationState.retrying);
     expect(bouncing.tone, BadgeTone.warning);
@@ -113,6 +119,7 @@ void main() {
     final publication = resolveListingPublication(
       listing: listing,
       outbox: const [],
+      copy: copy,
     );
 
     expect(publication.state, ListingPublicationState.failed);
@@ -129,6 +136,7 @@ void main() {
         syncMetadata: SyncMetadata.synced(lastSyncedAt: now),
       ),
       outbox: const [],
+      copy: copy,
     );
 
     expect(live.state, ListingPublicationState.live);
@@ -159,6 +167,7 @@ void main() {
           createdAt: now,
         ),
       ],
+      copy: copy,
     );
 
     expect(publication.isLive, isTrue);

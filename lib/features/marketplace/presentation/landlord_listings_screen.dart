@@ -76,6 +76,7 @@ class _LandlordListingsScreenState
         )
         .length;
     final uploadingCount = listingEntries.length - stuckCount;
+    final copy = appLocalizationsOf(context);
     // Resolved once for the whole page so the banner, the filter chips and the
     // cards can never disagree about which adverts are actually live.
     final publications = <String, ListingPublication>{
@@ -83,11 +84,20 @@ class _LandlordListingsScreenState
         listing.id: resolveListingPublication(
           listing: listing,
           outbox: listingEntries,
+          copy: copy,
         ),
     };
     final attentionCount = publications.values
         .where((publication) => publication.needsAttention)
         .length;
+    // The "Needs attention" chip only exists while there is something to
+    // show for it. Without this, resolving the last failure leaves the
+    // filter selected on a chip that just vanished from the Wrap, landing on
+    // an empty "No listings match this filter" state with nothing visibly
+    // selected.
+    if (attentionCount == 0 && _filter == 'Needs attention') {
+      _filter = 'All';
+    }
     final session = ref.watch(sessionControllerProvider);
     bool allows(CrudOperation operation) =>
         session != null &&
@@ -281,6 +291,7 @@ class _LandlordListingsScreenState
                         resolveListingPublication(
                           listing: listing,
                           outbox: listingEntries,
+                          copy: copy,
                         );
                     final listings = allListings.where((listing) {
                       final publication = publicationOf(listing);
@@ -415,7 +426,9 @@ class _LandlordListingsScreenState
     } on Object catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text.localized('Could not try again: $error')),
+        SnackBar(
+          content: Text.localized('Could not try again: ${_reason(error)}'),
+        ),
       );
     }
   }
@@ -1624,7 +1637,8 @@ class _LandlordListingCard extends StatelessWidget {
                           ),
                         if (listing.status == ListingStatus.published &&
                             canUnpublish &&
-                            !publication.needsAttention)
+                            !publication.needsAttention &&
+                            !removing)
                           const PopupMenuItem(
                             value: 'unpublish',
                             child: Text.localized('Unpublish listing'),

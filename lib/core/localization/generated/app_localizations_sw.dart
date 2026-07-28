@@ -1982,6 +1982,105 @@ class AppLocalizationsSw extends AppLocalizations {
       'Tangazo hili haliko hadharani, kwa hivyo hakuna cha kuondoa.';
 
   @override
+  String get listingStatusBlockedLabel => 'Inasubiri mabadiliko mengine';
+
+  @override
+  String get listingStatusBlockedDetail =>
+      'Mabadiliko ya awali lazima yafike kwenye seva kabla tangazo hili kutumwa. Ondoa hilo kwanza, na hili litafuata lenyewe.';
+
+  @override
+  String get listingStatusConflictedLabel => 'Yanahitaji ukaguzi';
+
+  @override
+  String get listingStatusConflictedDetail =>
+      'Tangazo hili lilibadilika kwenye seva ulipokuwa unalihariri, kwa hivyo toleo lako halikutumika. Lifungue na uamue lipi la kuweka.';
+
+  @override
+  String get listingStatusPublishedLabel => 'Yamechapishwa';
+
+  @override
+  String get listingStatusPublishedDetail =>
+      'Yanaonekana kwenye utafutaji. Wapangaji wanaweza kuona tangazo hili na kuuliza.';
+
+  @override
+  String get listingStatusPausedLabel => 'Yamesitishwa';
+
+  @override
+  String get listingStatusPausedDetail =>
+      'Hayaonekani kwenye utafutaji. Yachapishe tena wakati wowote utakapokuwa tayari.';
+
+  @override
+  String get listingStatusClosedLabel => 'Yamefungwa';
+
+  @override
+  String get listingStatusClosedDetail =>
+      'Tangazo hili limekamilika na halionekani tena kwenye utafutaji.';
+
+  @override
+  String get listingStatusDraftLabel => 'Rasimu';
+
+  @override
+  String get listingStatusDraftDetail =>
+      'Wewe pekee ndiye unayeliona. Lichapishe litakapokuwa tayari.';
+
+  @override
+  String get listingStatusGoingLiveLabel => 'Linaanza kuonekana…';
+
+  @override
+  String get listingStatusGoingLiveDetail =>
+      'Linapakiwa sasa. Alama hii itageuka kijani mara tu wapangaji watakapoweza kuliona.';
+
+  @override
+  String get listingStatusRemovingLabel => 'Linaondolewa…';
+
+  @override
+  String get listingStatusRemovingDetail =>
+      'Tangazo hili linaondolewa kwenye utafutaji. Wapangaji wataacha kuliona mara seva itakapothibitisha.';
+
+  @override
+  String get listingStatusSavingLabel => 'Linahifadhiwa…';
+
+  @override
+  String get listingStatusSavingDetail =>
+      'Mabadiliko yako yanatumwa. Hakuna kinachobadilika kuhusu nani anayeweza kuona tangazo hili.';
+
+  @override
+  String get listingStatusRetryingLabel => 'Inajaribu tena…';
+
+  @override
+  String get listingRetryingLead =>
+      'Nyumba haikuweza kufikia seva jaribio la mwisho na bado inajaribu.';
+
+  @override
+  String get listingRetryingPublishedTail =>
+      'Tangazo litaonekana mara tu litakapofika.';
+
+  @override
+  String get listingRetryingPendingTail =>
+      'Mabadiliko yako yatafika mara tu yatakapopita.';
+
+  @override
+  String get listingStatusNotPublishedLabel => 'Halijachapishwa';
+
+  @override
+  String get listingStatusNotPublishedDetail =>
+      'Tangazo hili lilikataliwa, kwa hivyo hakuna mpangaji anayeweza kuliona.';
+
+  @override
+  String get listingStatusStillPublicLabel => 'Bado linaonekana hadharani';
+
+  @override
+  String get listingStatusStillPublicDetail =>
+      'Kuondoa tangazo hili kulikataliwa, kwa hivyo wapangaji wanaweza kuwa bado wanaliona.';
+
+  @override
+  String get listingStatusNotSavedLabel => 'Halijahifadhiwa';
+
+  @override
+  String get listingStatusNotSavedDetail =>
+      'Mabadiliko yako ya mwisho yalikataliwa na hayakuhifadhiwa.';
+
+  @override
   String get legacy_87a2131e6d61 =>
       'Ruhusa maalum za wafanyakazi ni kipengele cha Premium. Boresha mpango wako ili ubainishe kile ambacho kila mshiriki wa timu anaweza kufanya.';
 

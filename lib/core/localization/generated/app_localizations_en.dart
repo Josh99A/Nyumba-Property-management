@@ -1946,6 +1946,105 @@ class AppLocalizationsEn extends AppLocalizations {
       'This advert is not public, so there is nothing to take down.';
 
   @override
+  String get listingStatusBlockedLabel => 'Waiting on another change';
+
+  @override
+  String get listingStatusBlockedDetail =>
+      'An earlier change has to reach the server before this advert can be sent. Clear that one first and this follows on its own.';
+
+  @override
+  String get listingStatusConflictedLabel => 'Needs review';
+
+  @override
+  String get listingStatusConflictedDetail =>
+      'This advert changed on the server while you were editing it, so your version was not applied. Open it and decide which to keep.';
+
+  @override
+  String get listingStatusPublishedLabel => 'Published';
+
+  @override
+  String get listingStatusPublishedDetail =>
+      'Live in search. Tenants can see this advert and enquire.';
+
+  @override
+  String get listingStatusPausedLabel => 'Paused';
+
+  @override
+  String get listingStatusPausedDetail =>
+      'Out of search. Publish it again whenever you are ready.';
+
+  @override
+  String get listingStatusClosedLabel => 'Closed';
+
+  @override
+  String get listingStatusClosedDetail =>
+      'This advert is finished and no longer appears in search.';
+
+  @override
+  String get listingStatusDraftLabel => 'Draft';
+
+  @override
+  String get listingStatusDraftDetail =>
+      'Only you can see this. Publish it when it is ready.';
+
+  @override
+  String get listingStatusGoingLiveLabel => 'Going live…';
+
+  @override
+  String get listingStatusGoingLiveDetail =>
+      'Uploading now. This badge turns green the moment tenants can see it.';
+
+  @override
+  String get listingStatusRemovingLabel => 'Removing…';
+
+  @override
+  String get listingStatusRemovingDetail =>
+      'Taking this advert out of search. Tenants stop seeing it once the server confirms.';
+
+  @override
+  String get listingStatusSavingLabel => 'Saving…';
+
+  @override
+  String get listingStatusSavingDetail =>
+      'Sending your changes. Nothing about who can see this advert changes.';
+
+  @override
+  String get listingStatusRetryingLabel => 'Retrying…';
+
+  @override
+  String get listingRetryingLead =>
+      'Nyumba could not reach the server on the last try and is still trying.';
+
+  @override
+  String get listingRetryingPublishedTail =>
+      'The advert goes live as soon as it gets through.';
+
+  @override
+  String get listingRetryingPendingTail =>
+      'Your change lands as soon as it gets through.';
+
+  @override
+  String get listingStatusNotPublishedLabel => 'Not published';
+
+  @override
+  String get listingStatusNotPublishedDetail =>
+      'This advert was refused, so no tenant can see it.';
+
+  @override
+  String get listingStatusStillPublicLabel => 'Still public';
+
+  @override
+  String get listingStatusStillPublicDetail =>
+      'Taking this advert down was refused, so tenants may still be seeing it.';
+
+  @override
+  String get listingStatusNotSavedLabel => 'Not saved';
+
+  @override
+  String get listingStatusNotSavedDetail =>
+      'Your last change was refused and was not saved.';
+
+  @override
   String get legacy_87a2131e6d61 =>
       'Custom staff permissions are a Premium feature. Upgrade your plan to tailor what each team member can do.';
 
