@@ -19,9 +19,9 @@ migrate_working_dir/
 .idea/
 
 # The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code which you may wish to be included in version control. Kept local
+# here: the launch entries name personal device ids and ports.
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -32,6 +32,8 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+# Per-developer DevTools extension enablement, regenerated on demand.
+devtools_options.yaml
 
 # Symbolication related
 app.*.symbols
