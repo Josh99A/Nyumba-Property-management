@@ -1015,6 +1015,13 @@
     ,"@listingAvailableFromDate": {"placeholders": {"date": {"type": "String"}}}
     ,"imageLoading": "Image loading"
     ,"imageUnavailable": "Image unavailable"
+    ,"imageNone": "No photos yet"
+    ,"listingPhotosRequiredNudge": "Photograph this rental space itself, not just the building. Adverts showing the actual unit get far more enquiries, and you cannot publish without at least one photo."
+    ,"listingPhotosRequiredToPublish": "Add at least one photo of this rental space before publishing it."
+    ,"listingPhotosLabelRequired": "Listing photos (required)"
+    ,"listingPhotoRequiredTitle": "Add a photo first"
+    ,"listingPhotoRequiredDismiss": "Not now"
+    ,"listingPhotoRequiredConfirm": "Add photos"
     ,"filtersTitle": "Filters"
     ,"clearAllFilters": "Clear all"
     ,"sortResults": "Sort results"

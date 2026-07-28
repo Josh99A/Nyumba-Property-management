@@ -3276,6 +3276,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get imageUnavailable => 'Image unavailable';
 
   @override
+  String get imageNone => 'No photos yet';
+
+  @override
+  String get listingPhotosRequiredNudge =>
+      'Photograph this rental space itself, not just the building. Adverts showing the actual unit get far more enquiries, and you cannot publish without at least one photo.';
+
+  @override
+  String get listingPhotosRequiredToPublish =>
+      'Add at least one photo of this rental space before publishing it.';
+
+  @override
+  String get listingPhotosLabelRequired => 'Listing photos (required)';
+
+  @override
+  String get listingPhotoRequiredTitle => 'Add a photo first';
+
+  @override
+  String get listingPhotoRequiredDismiss => 'Not now';
+
+  @override
+  String get listingPhotoRequiredConfirm => 'Add photos';
+
+  @override
   String get filtersTitle => 'Filters';
 
   @override

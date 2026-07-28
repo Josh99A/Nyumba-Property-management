@@ -11,6 +11,7 @@ import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/luganda_localizations.dart';
+import 'package:nyumba_property_management/core/presentation/remote_media_image.dart';
 import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
 import 'package:nyumba_property_management/features/auth/domain/user_session.dart';
 import 'package:nyumba_property_management/features/marketplace/application/marketplace_use_cases.dart';
@@ -151,6 +152,96 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Edit listing'), findsNothing);
+  });
+
+  testWidgets('a synced photo reopens as a real thumbnail, not a broken chip', (
+    tester,
+  ) async {
+    // What a landlord's photo looks like after it has synced: the aggregate
+    // holds the server's delivery path, not the `data:` URI they uploaded.
+    // Treating "does not decode as a data URI" as "broken" showed a fully
+    // working photo set as a row of broken-image chips, so the fix is pinned
+    // on the storage-reference form specifically.
+    await _pump(
+      tester,
+      listings: [
+        listing.copyWith(
+          imageUrls: const [
+            'public/listings/listing-1/0-abcdef0123456789-full.webp',
+          ],
+        ),
+      ],
+      overrideUpdate: (ref) => _RecordingUpdateListing(ref),
+    );
+
+    await tester.tap(find.byTooltip('Listing actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit listing'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Photo 1'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(InputChip),
+        matching: find.byType(RemoteMediaImage),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.broken_image_outlined), findsNothing);
+  });
+
+  testWidgets('publishing without a photo explains itself and offers the fix', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      listings: [listing.copyWith(imageUrls: const <String>[])],
+      overrideUpdate: (ref) => _RecordingUpdateListing(ref),
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, 'Publish'));
+    await tester.pumpAndSettle();
+
+    // Not a raw validation exception in a snack bar.
+    expect(find.text('Add a photo first'), findsOneWidget);
+    expect(
+      find.text(
+        'Add at least one photo of this rental space before publishing it.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Add photos'));
+    await tester.pumpAndSettle();
+
+    // Straight into the editor, on the field that is missing.
+    expect(find.text('Listing photos (required)'), findsOneWidget);
+  });
+
+  testWidgets('the photo field leads the form and says it is required', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      listings: [listing.copyWith(imageUrls: const <String>[])],
+      overrideUpdate: (ref) => _RecordingUpdateListing(ref),
+    );
+
+    await tester.tap(find.byTooltip('Listing actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit listing'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Listing photos (required)'), findsOneWidget);
+    // The photo control must be reachable without scrolling past the rest of
+    // the form: burying it is what let adverts go public with an empty tile.
+    final photoField = tester.getTopLeft(
+      find.widgetWithText(TextFormField, 'Request a viewing through Nyumba.'),
+    );
+    expect(
+      tester.getTopLeft(find.text('Listing photos (required)')).dy,
+      lessThan(photoField.dy),
+    );
   });
 }
 

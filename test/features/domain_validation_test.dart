@@ -207,6 +207,70 @@ void main() {
       );
     });
 
+    test('a listing with no photo cannot be taken public', () {
+      final draft = Listing(
+        id: 'listing-no-photo',
+        unitId: 'unit-id',
+        propertyId: 'property-id',
+        landlordId: 'landlord-id',
+        title: 'Apartment A1',
+        description: 'A bright two-bedroom apartment.',
+        monthlyRentMinor: 4500000,
+        currency: 'UGX',
+        status: ListingStatus.draft,
+        unitType: 'apartment',
+        city: 'Kampala',
+        neighborhood: 'Ntinda',
+        contactPhone: '+256700000000',
+        createdAt: now,
+        updatedAt: now,
+        syncMetadata: const SyncMetadata.pending(),
+      );
+
+      // Complete in every other respect, so the rejection can only be the photo.
+      expect(draft.validateForPublishing, returnsNormally);
+      expect(
+        () => draft.publish(at: now),
+        throwsA(isA<DomainValidationException>()),
+      );
+      expect(
+        draft
+            .copyWith(imageUrls: const ['public/listings/l1/0-abcdef0123456789-full.webp'])
+            .publish(at: now)
+            .status,
+        ListingStatus.published,
+      );
+    });
+
+    test('an advert published before the photo rule still decodes', () {
+      // The rule gates the transition, not the record. Applying it to the
+      // representation would make listings published before it undecodable —
+      // they would vanish from the public catalogue rather than simply look
+      // empty, which is a far worse failure than the one being fixed.
+      expect(
+        () => Listing(
+          id: 'listing-legacy',
+          unitId: 'unit-id',
+          propertyId: 'property-id',
+          landlordId: 'landlord-id',
+          title: 'Apartment A1',
+          description: 'A bright two-bedroom apartment.',
+          monthlyRentMinor: 4500000,
+          currency: 'UGX',
+          status: ListingStatus.published,
+          unitType: 'apartment',
+          city: 'Kampala',
+          neighborhood: 'Ntinda',
+          contactPhone: '+256700000000',
+          createdAt: now,
+          updatedAt: now,
+          publishedAt: now,
+          syncMetadata: const SyncMetadata.synced(),
+        ),
+        returnsNormally,
+      );
+    });
+
     test('listing mapper validates listing status', () {
       final draft = Listing(
         id: 'listing-id',

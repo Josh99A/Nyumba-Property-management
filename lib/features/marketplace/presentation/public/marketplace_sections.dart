@@ -9,6 +9,44 @@ import '../../../../core/presentation/responsive.dart';
 import '../../../../core/presentation/surface.dart';
 import 'marketplace_top_bar.dart';
 
+/// A decorative asset decoded at the size it is actually painted.
+///
+/// Flutter's image cache is bounded in *decoded* bytes, so an asset decoded at
+/// its intrinsic size wastes memory and evicts the listing photos that matter.
+/// A constant `cacheWidth` cannot express this: these images are full-bleed or
+/// half-column, so their painted size depends on the viewport and the device
+/// pixel ratio, and a constant large enough for a desktop is a no-op on a
+/// phone — which is exactly what the painting library warns about.
+///
+/// Deliberately budgets width only. For a [BoxFit.cover] image in a box taller
+/// than the asset, matching the height instead would decode far more than the
+/// width needs; a background sitting under a near-opaque wash can afford to be
+/// upsampled slightly, and cannot afford to evict a screen of photos.
+class _FittedAsset extends StatelessWidget {
+  const _FittedAsset(this.asset);
+
+  final String asset;
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = MediaQuery.devicePixelRatioOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        return Image.asset(
+          asset,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+          excludeFromSemantics: true,
+          cacheWidth: width.isFinite && width > 0
+              ? (width * ratio).round()
+              : null,
+        );
+      },
+    );
+  }
+}
+
 /// Full-bleed section band: brand background, centred column, page gutters.
 ///
 /// Every public section repeats this shape, so it lives once here instead of
@@ -166,11 +204,8 @@ class MarketplaceHero extends StatelessWidget {
       background: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
+          const _FittedAsset(
             'assets/listings/generated-modern-apartment-exterior.png',
-            fit: BoxFit.cover,
-            filterQuality: FilterQuality.medium,
-            excludeFromSemantics: true,
           ),
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -549,15 +584,7 @@ class MarketplaceFeatureRow extends StatelessWidget {
 
     final image = ClipRRect(
       borderRadius: BorderRadius.circular(20),
-      child: AspectRatio(
-        aspectRatio: 4 / 3,
-        child: Image.asset(
-          imageAsset,
-          fit: BoxFit.cover,
-          filterQuality: FilterQuality.medium,
-          excludeFromSemantics: true,
-        ),
-      ),
+      child: AspectRatio(aspectRatio: 4 / 3, child: _FittedAsset(imageAsset)),
     );
 
     return MarketplaceBand(

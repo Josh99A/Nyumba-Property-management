@@ -5850,6 +5850,48 @@ abstract class AppLocalizations {
   /// **'Image unavailable'**
   String get imageUnavailable;
 
+  /// No description provided for @imageNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos yet'**
+  String get imageNone;
+
+  /// No description provided for @listingPhotosRequiredNudge.
+  ///
+  /// In en, this message translates to:
+  /// **'Photograph this rental space itself, not just the building. Adverts showing the actual unit get far more enquiries, and you cannot publish without at least one photo.'**
+  String get listingPhotosRequiredNudge;
+
+  /// No description provided for @listingPhotosRequiredToPublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one photo of this rental space before publishing it.'**
+  String get listingPhotosRequiredToPublish;
+
+  /// No description provided for @listingPhotosLabelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Listing photos (required)'**
+  String get listingPhotosLabelRequired;
+
+  /// No description provided for @listingPhotoRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a photo first'**
+  String get listingPhotoRequiredTitle;
+
+  /// No description provided for @listingPhotoRequiredDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get listingPhotoRequiredDismiss;
+
+  /// No description provided for @listingPhotoRequiredConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photos'**
+  String get listingPhotoRequiredConfirm;
+
   /// No description provided for @filtersTitle.
   ///
   /// In en, this message translates to:

@@ -1004,6 +1004,13 @@
     ,"@listingAvailableFromDate": {"placeholders": {"date": {"type": "String"}}}
     ,"imageLoading": "Ekifaananyi kikyatikkibwa"
     ,"imageUnavailable": "Ekifaananyi tekiriiwo"
+    ,"imageNone": "Tewali bifaananyi kakano"
+    ,"listingPhotosRequiredNudge": "Kuba ekifaananyi ky'ekifo kino eky'okupangisa, si kizimbe kyokka. Amatandiiko agalaga ekifo ddala gafuna ababuuza bangi, era tosobola kufulumya nga tolina wadde ekifaananyi kimu."
+    ,"listingPhotosRequiredToPublish": "Yongerako ekifaananyi kimu eky'ekifo kino eky'okupangisa nga tonnakifulumya."
+    ,"listingPhotosLabelRequired": "Ebifaananyi by'ekifo (byetaagisa)"
+    ,"listingPhotoRequiredTitle": "Sooka oyongereko ekifaananyi"
+    ,"listingPhotoRequiredDismiss": "Si kakano"
+    ,"listingPhotoRequiredConfirm": "Yongerako ebifaananyi"
     ,"filtersTitle": "Okusunsula"
     ,"clearAllFilters": "Gyawo byonna"
     ,"sortResults": "Tegeka ebizuuliddwa"

@@ -3328,6 +3328,29 @@ class AppLocalizationsSw extends AppLocalizations {
   String get imageUnavailable => 'Picha haipatikani';
 
   @override
+  String get imageNone => 'Hakuna picha bado';
+
+  @override
+  String get listingPhotosRequiredNudge =>
+      'Piga picha ya nafasi hii ya kupanga yenyewe, si jengo tu. Matangazo yanayoonyesha chumba halisi hupata maulizo mengi zaidi, na huwezi kuchapisha bila angalau picha moja.';
+
+  @override
+  String get listingPhotosRequiredToPublish =>
+      'Ongeza angalau picha moja ya nafasi hii ya kupanga kabla ya kuichapisha.';
+
+  @override
+  String get listingPhotosLabelRequired => 'Picha za nafasi (zinahitajika)';
+
+  @override
+  String get listingPhotoRequiredTitle => 'Ongeza picha kwanza';
+
+  @override
+  String get listingPhotoRequiredDismiss => 'Si sasa';
+
+  @override
+  String get listingPhotoRequiredConfirm => 'Ongeza picha';
+
+  @override
   String get filtersTitle => 'Vichujio';
 
   @override

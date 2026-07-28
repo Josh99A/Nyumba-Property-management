@@ -3251,6 +3251,29 @@ class AppLocalizationsAr extends AppLocalizations {
   String get imageUnavailable => 'الصورة غير متاحة';
 
   @override
+  String get imageNone => 'لا توجد صور بعد';
+
+  @override
+  String get listingPhotosRequiredNudge =>
+      'صوّر وحدة الإيجار نفسها، وليس المبنى فقط. الإعلانات التي تعرض الوحدة الفعلية تحصل على استفسارات أكثر بكثير، ولا يمكنك النشر بدون صورة واحدة على الأقل.';
+
+  @override
+  String get listingPhotosRequiredToPublish =>
+      'أضف صورة واحدة على الأقل لوحدة الإيجار هذه قبل نشرها.';
+
+  @override
+  String get listingPhotosLabelRequired => 'صور الوحدة (مطلوبة)';
+
+  @override
+  String get listingPhotoRequiredTitle => 'أضف صورة أولاً';
+
+  @override
+  String get listingPhotoRequiredDismiss => 'ليس الآن';
+
+  @override
+  String get listingPhotoRequiredConfirm => 'إضافة صور';
+
+  @override
   String get filtersTitle => 'عوامل التصفية';
 
   @override

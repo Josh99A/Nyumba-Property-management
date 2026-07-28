@@ -5,8 +5,10 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 
+import '../media/media_reference.dart';
 import 'async_action_button.dart';
 import 'image_picking.dart';
+import 'remote_media_image.dart';
 
 /// A photo set part-way through an edit: images already saved on the record,
 /// plus ones just chosen from disk.
@@ -113,6 +115,7 @@ class PhotoEditorField extends StatelessWidget {
                   // A saved photo has no filename to show, so it is numbered.
                   label: context.tr('Photo ${index + 1}'),
                   bytes: decodePhotoDataUri(uri),
+                  reference: uri,
                   onDeleted: () {
                     photos.existing.remove(uri);
                     onChanged(const <String>[]);
@@ -147,22 +150,33 @@ class _PhotoChip extends StatelessWidget {
     required this.label,
     required this.bytes,
     required this.onDeleted,
+    this.reference,
   });
 
   final String label;
+
+  /// Decoded bytes, for a photo still staged as a `data:` URI.
   final Uint8List? bytes;
+
+  /// The stored reference, for a photo that has already synced.
+  ///
+  /// Once the server has rendered its delivery copies the aggregate holds a
+  /// storage path, not a `data:` URI, so [bytes] is null for every photo a
+  /// landlord successfully uploaded. Reading that as "will not decode" is what
+  /// made a fully working photo set reopen as a row of broken-image chips.
+  final String? reference;
+
   final VoidCallback onDeleted;
+
+  /// Avatars are 32 logical pixels wide, so the thumbnail delivery copy decoded
+  /// at ~3x device pixel ratio is already more than this can show.
+  static const double _avatarExtent = 32;
+  static const int _avatarCacheWidth = 96;
 
   @override
   Widget build(BuildContext context) {
     return InputChip(
-      avatar: bytes == null
-          // A stored photo that will not decode still has to be removable,
-          // so it is shown as a placeholder rather than dropped silently.
-          ? const CircleAvatar(
-              child: Icon(Icons.broken_image_outlined, size: 16),
-            )
-          : CircleAvatar(backgroundImage: MemoryImage(bytes!)),
+      avatar: _avatar(context),
       label: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 150),
         child: Text(label, overflow: TextOverflow.ellipsis),
@@ -173,5 +187,29 @@ class _PhotoChip extends StatelessWidget {
       deleteButtonTooltipMessage: context.tr('Remove photo'),
       onDeleted: onDeleted,
     );
+  }
+
+  Widget _avatar(BuildContext context) {
+    if (bytes != null) {
+      return CircleAvatar(backgroundImage: MemoryImage(bytes!));
+    }
+    final stored = reference;
+    if (stored != null && isRemoteMediaReference(stored)) {
+      return ClipOval(
+        child: SizedBox.square(
+          dimension: _avatarExtent,
+          child: RemoteMediaImage(
+            reference: mediaReferenceFor(stored, preferThumbnail: true),
+            semanticLabel: label,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.low,
+            cacheWidth: _avatarCacheWidth,
+          ),
+        ),
+      );
+    }
+    // A stored photo that will not decode still has to be removable, so it is
+    // shown as a placeholder rather than dropped silently.
+    return const CircleAvatar(child: Icon(Icons.broken_image_outlined, size: 16));
   }
 }

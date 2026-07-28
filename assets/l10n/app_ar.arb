@@ -1004,6 +1004,13 @@
     ,"@listingAvailableFromDate": {"placeholders": {"date": {"type": "String"}}}
     ,"imageLoading": "جارٍ تحميل الصورة"
     ,"imageUnavailable": "الصورة غير متاحة"
+    ,"imageNone": "لا توجد صور بعد"
+    ,"listingPhotosRequiredNudge": "صوّر وحدة الإيجار نفسها، وليس المبنى فقط. الإعلانات التي تعرض الوحدة الفعلية تحصل على استفسارات أكثر بكثير، ولا يمكنك النشر بدون صورة واحدة على الأقل."
+    ,"listingPhotosRequiredToPublish": "أضف صورة واحدة على الأقل لوحدة الإيجار هذه قبل نشرها."
+    ,"listingPhotosLabelRequired": "صور الوحدة (مطلوبة)"
+    ,"listingPhotoRequiredTitle": "أضف صورة أولاً"
+    ,"listingPhotoRequiredDismiss": "ليس الآن"
+    ,"listingPhotoRequiredConfirm": "إضافة صور"
     ,"filtersTitle": "عوامل التصفية"
     ,"clearAllFilters": "مسح الكل"
     ,"sortResults": "ترتيب النتائج"

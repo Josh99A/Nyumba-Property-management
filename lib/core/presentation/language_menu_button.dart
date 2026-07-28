@@ -43,7 +43,15 @@ class LanguageMenuButton extends ConsumerWidget {
                 SizedBox(
                   width: 24,
                   child: language == selected
-                      ? const Icon(Icons.check_rounded, size: 19)
+                      // The menu opens with whatever theme the button sits
+                      // under, which on the public navy band paints icons
+                      // white — invisible once the menu lands on its own
+                      // light surface. The tick follows that surface instead.
+                      ? Icon(
+                          Icons.check_rounded,
+                          size: 19,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        )
                       : null,
                 ),
                 const SizedBox(width: 10),

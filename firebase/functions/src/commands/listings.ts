@@ -8,7 +8,7 @@ import {
 } from '../shared/accounts';
 import { landlordPublicToken } from '../shared/canonical';
 import { COLLECTIONS } from '../shared/collections';
-import { LISTING_LIFETIME_DAYS, MAX_LISTING_PHOTOS } from '../shared/config';
+import { LISTING_LIFETIME_DAYS, MAX_LISTING_PHOTOS, MIN_LISTING_PHOTOS } from '../shared/config';
 import { DomainError } from '../shared/errors';
 import { ratingBadge, readTotals } from '../shared/ratings';
 import {
@@ -123,6 +123,14 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
     const required: Array<keyof typeof listing> = ['title', 'description', 'monthlyRentMinor', 'unitType', 'city', 'neighborhood'];
     if (required.some((field) => listing[field] === undefined || listing[field] === '')) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'listingMissingPublicFields' });
+    }
+    // The authoritative half of the photo rule. The client refuses to publish a
+    // photoless advert too, but that check is a courtesy — this one is what
+    // actually keeps empty grey tiles out of the public catalogue, whatever the
+    // caller. Staged paths are the right thing to count: unpublishing sweeps the
+    // delivered copies, so a republish re-renders from these.
+    if ((listing.stagedImagePaths ?? []).length < MIN_LISTING_PHOTOS) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'listingMissingPhotos' });
     }
     // The public map location is intentionally approximate: coordinates are
     // coarsened to ~110 m so the exact address can never be recovered from

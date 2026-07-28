@@ -23,6 +23,13 @@ export const COUNTRY = 'Uganda';
 export const LISTING_LIFETIME_DAYS = 30;
 export const MAX_PROPERTY_PHOTOS = 2;
 export const MAX_LISTING_PHOTOS = 5;
+/**
+ * A public advert with no photo is indistinguishable from a broken one: the
+ * card renders an empty grey tile and renters skip it. Enforced at the publish
+ * transition rather than on the stored record, so adverts published before this
+ * rule keep working until their landlord next edits them.
+ */
+export const MIN_LISTING_PHOTOS = 1;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 export const MAX_PUBLIC_LISTING_IMAGE_WIDTH = 1_920;

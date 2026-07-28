@@ -23,10 +23,22 @@ const heroGradient = LinearGradient(
 /// teaching each of them about dark backgrounds, this swaps in the on-dark
 /// variants of the few tokens they read, so they keep their own logic and
 /// simply resolve to legible colours here.
+///
+/// Every override below has to be unconditional: the band is navy in both
+/// themes, so borrowing whatever the dark theme happens to resolve to only
+/// looks right half the time. The overrides that were once left out — the
+/// app bar's own foreground, the badge fills — read as invisible in light
+/// mode, where the underlying tokens are ink on near-white.
 class OnHeroSurface extends StatelessWidget {
   const OnHeroSurface({required this.child, super.key});
 
   final Widget child;
+
+  /// Chip fill and border for badges on the band. Tone stays in the
+  /// foreground; the fill is the same faint white wash whatever the tone, so
+  /// it sits on the gradient instead of punching a pale hole in it.
+  static const _chipFill = Color(0x1FFFFFFF);
+  static const _chipBorder = Color(0x59FFFFFF);
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +50,20 @@ class OnHeroSurface extends StatelessWidget {
           outline: const Color(0x66FFFFFF),
         ),
         iconTheme: theme.iconTheme.copyWith(color: Colors.white),
+        // `AppBar` resolves its title, toolbar text and action icons from the
+        // app bar theme rather than the ambient icon and text themes, so the
+        // white above never reaches them on its own.
+        appBarTheme: theme.appBarTheme.copyWith(
+          foregroundColor: Colors.white,
+          iconTheme: const IconThemeData(color: Colors.white),
+          actionsIconTheme: const IconThemeData(color: Colors.white),
+          titleTextStyle: theme.appBarTheme.titleTextStyle?.copyWith(
+            color: Colors.white,
+          ),
+          toolbarTextStyle: (theme.appBarTheme.toolbarTextStyle ??
+                  theme.textTheme.bodyMedium)
+              ?.copyWith(color: Colors.white),
+        ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: NyumbaColors.navyOnDark,
@@ -61,7 +87,17 @@ class OnHeroSurface extends StatelessWidget {
             midnightNavy: NyumbaColors.navyOnDark,
             sageDark: NyumbaColors.sageOnDark,
             terracottaDark: const Color(0xFFEBC383),
+            danger: const Color(0xFFE58974),
             outline: const Color(0x66FFFFFF),
+            navyTint: _chipFill,
+            navyBorder: _chipBorder,
+            sageTint: _chipFill,
+            sageBorder: _chipBorder,
+            goldTint: _chipFill,
+            goldBorder: _chipBorder,
+            dangerTint: _chipFill,
+            dangerBorder: _chipBorder,
+            neutralTint: _chipFill,
           ),
         ],
       ),
