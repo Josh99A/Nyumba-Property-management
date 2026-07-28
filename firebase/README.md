@@ -49,7 +49,7 @@ looks like it does. A configured bucket echoes the origin back:
 curl -sS -D - -o /dev/null -H "Origin: https://<app-origin>" "<download-url>"
 ```
 
-```
+```text
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: https://<app-origin>
 ```

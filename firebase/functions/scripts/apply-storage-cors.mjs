@@ -30,26 +30,94 @@
  * with permission to update the bucket.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const args = process.argv.slice(2);
+const VALUE_FLAGS = new Set(['bucket', 'origins']);
+const BOOLEAN_FLAGS = new Set(['dry-run']);
 
-function flag(name) {
-  const index = args.indexOf(`--${name}`);
-  if (index === -1) return undefined;
-  const value = args[index + 1];
-  if (!value || value.startsWith('--')) {
-    console.error(`--${name} needs a value.`);
-    process.exit(1);
+/**
+ * Parses argv strictly.
+ *
+ * This script updates a bucket in a real project, so an argument it does not
+ * understand is a stop condition rather than something to skip: with
+ * STORAGE_BUCKET exported, a typo like `--buket staging` would otherwise be
+ * ignored and the environment's bucket updated instead — the wrong bucket,
+ * silently, with a plausible-looking success message.
+ */
+function parseArguments(argv) {
+  const values = new Map();
+  const errors = [];
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token.startsWith('--')) {
+      errors.push(`unexpected argument: ${token}`);
+      continue;
+    }
+    const name = token.slice(2);
+    if (values.has(name)) {
+      errors.push(`repeated flag: --${name}`);
+      continue;
+    }
+    if (BOOLEAN_FLAGS.has(name)) {
+      values.set(name, true);
+      continue;
+    }
+    if (!VALUE_FLAGS.has(name)) {
+      errors.push(`unknown flag: --${name}`);
+      continue;
+    }
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith('--')) {
+      errors.push(`--${name} needs a value`);
+      continue;
+    }
+    values.set(name, value);
+    index += 1;
   }
-  return value;
+
+  return { values, errors };
 }
 
-const dryRun = args.includes('--dry-run');
-const bucket = flag('bucket') ?? process.env.STORAGE_BUCKET;
-const origins = (flag('origins') ?? process.env.WEB_ORIGINS ?? '')
+/**
+ * Whether [candidate] is not something Cloud Storage can match.
+ *
+ * Compared byte for byte against the browser's `Origin` header, which is
+ * always exactly scheme://host[:port] — no credentials, no path, no query. A
+ * near-miss here is accepted by the bucket and then never matches anything,
+ * which on the client is indistinguishable from CORS never having been
+ * configured at all.
+ */
+function isInvalidOrigin(candidate) {
+  let url;
+  try {
+    url = new URL(candidate);
+  } catch {
+    return true;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return true;
+  if (url.username !== '' || url.password !== '') return true;
+  if (url.pathname !== '/' || url.search !== '' || url.hash !== '') return true;
+  // Round-trip check: rejects a trailing slash, a default port written out,
+  // and any other spelling the browser would not send.
+  return url.origin !== candidate;
+}
+
+const { values, errors } = parseArguments(process.argv.slice(2));
+if (errors.length > 0) {
+  console.error(`${errors.join('\n')}\n`);
+  console.error(
+    'Usage: node scripts/apply-storage-cors.mjs '
+      + '[--bucket <bucket>] [--origins a,b] [--dry-run]',
+  );
+  process.exit(1);
+}
+
+const dryRun = values.get('dry-run') === true;
+const bucket = values.get('bucket') ?? process.env.STORAGE_BUCKET;
+const origins = (values.get('origins') ?? process.env.WEB_ORIGINS ?? '')
   .split(',')
   .map((origin) => origin.trim())
   .filter((origin) => origin.length > 0);
@@ -70,13 +138,11 @@ if (origins.length === 0) {
   process.exit(1);
 }
 
-const malformed = origins.filter((origin) => !/^https?:\/\/[^/]+$/.test(origin));
+const malformed = origins.filter(isInvalidOrigin);
 if (malformed.length > 0) {
-  // A trailing slash or a path silently never matches, which reads on the
-  // client as "CORS is still broken" long after this script reported success.
   console.error(
     `Not scheme://host origins: ${malformed.join(', ')}\n`
-      + 'Drop any trailing slash or path.',
+      + 'Drop any trailing slash, path, query, or credentials.',
   );
   process.exit(1);
 }
@@ -108,14 +174,20 @@ if (dryRun) {
   process.exit(0);
 }
 
-const file = join(mkdtempSync(join(tmpdir(), 'nyumba-cors-')), 'cors.json');
-writeFileSync(file, rendered, 'utf8');
-
-execFileSync(
-  process.platform === 'win32' ? 'gcloud.cmd' : 'gcloud',
-  ['storage', 'buckets', 'update', `gs://${bucket}`, `--cors-file=${file}`],
-  { stdio: 'inherit' },
-);
+// gcloud reads the policy from a file, so one has to exist for the length of
+// the call and no longer — including when the call throws.
+const directory = mkdtempSync(join(tmpdir(), 'nyumba-cors-'));
+try {
+  const file = join(directory, 'cors.json');
+  writeFileSync(file, rendered, 'utf8');
+  execFileSync(
+    process.platform === 'win32' ? 'gcloud.cmd' : 'gcloud',
+    ['storage', 'buckets', 'update', `gs://${bucket}`, `--cors-file=${file}`],
+    { stdio: 'inherit' },
+  );
+} finally {
+  rmSync(directory, { recursive: true, force: true });
+}
 
 console.log(
   '\nApplied. Verify with a GET carrying an allowed Origin — the response\n'
