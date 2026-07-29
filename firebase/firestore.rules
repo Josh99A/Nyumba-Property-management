@@ -359,6 +359,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Who holds an administrator claim, mirrored so notifications have an
+    // audience to resolve. Deliberately NOT an authorization source: every rule
+    // above still reads request.auth.token, so a stale or forged row here grants
+    // nothing. Admin-readable rather than public because it is a list of the
+    // people with the most access, and client-unwritable because the ops script
+    // is the only thing allowed to say who is on it.
+    match /platformStaff/{uid} {
+      allow read: if isPlatformAdmin();
+      allow write: if false;
+    }
+
     match /commandReceipts/{commandId} {
       allow read: if isPlatformAdmin()
         || (signedIn() && resource.data.actorUid == request.auth.uid);

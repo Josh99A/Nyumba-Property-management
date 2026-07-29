@@ -87,31 +87,34 @@ void main() {
     expect(await database.readOutbox(), isEmpty);
   });
 
-  test('a landlord reply advances the status the way the server will', () async {
-    final database = await openDatabase('support-reply.db');
-    addTearDown(database.close);
-    final repository = SembastSupportRepository(database: database);
-    final ticket = await openTicket(repository);
+  test(
+    'a landlord reply advances the status the way the server will',
+    () async {
+      final database = await openDatabase('support-reply.db');
+      addTearDown(database.close);
+      final repository = SembastSupportRepository(database: database);
+      final ticket = await openTicket(repository);
 
-    // Support answered, so the ball is with the landlord.
-    final answered = await repository.updateStatus(
-      ticketId: ticket.id,
-      status: SupportStatus.awaitingLandlord,
-    );
-    expect(answered.status, SupportStatus.awaitingLandlord);
+      // Support answered, so the ball is with the landlord.
+      final answered = await repository.updateStatus(
+        ticketId: ticket.id,
+        status: SupportStatus.awaitingLandlord,
+      );
+      expect(answered.status, SupportStatus.awaitingLandlord);
 
-    final replied = await repository.reply(
-      ticketId: ticket.id,
-      authorUid: 'landlord-1',
-      body: 'Here is the reference: ABC123.',
-    );
+      final replied = await repository.reply(
+        ticketId: ticket.id,
+        authorUid: 'landlord-1',
+        body: 'Here is the reference: ABC123.',
+      );
 
-    expect(replied.status, SupportStatus.inProgress);
-    expect(replied.messages, hasLength(2));
-    expect(replied.lastMessageAuthorRole, SupportAuthorRole.landlord);
-    expect(replied.pendingAction, SupportAction.reply);
-    expect(replied.awaitsSupport, isTrue);
-  });
+      expect(replied.status, SupportStatus.inProgress);
+      expect(replied.messages, hasLength(2));
+      expect(replied.lastMessageAuthorRole, SupportAuthorRole.landlord);
+      expect(replied.pendingAction, SupportAction.reply);
+      expect(replied.awaitsSupport, isTrue);
+    },
+  );
 
   test('an agent reply hands the thread back to the landlord', () async {
     final database = await openDatabase('support-agent-reply.db');

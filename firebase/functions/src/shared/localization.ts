@@ -9,7 +9,8 @@ export type NotificationTemplateKey =
   | 'new_review'
   | 'review_response'
   | 'support_reply'
-  | 'support_resolved';
+  | 'support_resolved'
+  | 'support_new_ticket';
 
 interface LocalizedNotification {
   title: string;
@@ -132,6 +133,27 @@ const NOTIFICATION_TEMPLATES: Record<
     ar: {
       title: 'ردّ دعم نيومبا',
       body: 'هناك ردّ جديد على محادثة الدعم الخاصة بك.',
+    },
+  },
+  // Read by administrators, not landlords, and still localized: an admin picks
+  // their own language like anyone else, and the template type is a closed
+  // union, so an English-only entry would not compile.
+  support_new_ticket: {
+    en: {
+      title: 'A landlord needs help',
+      body: 'There is a support conversation waiting for a reply.',
+    },
+    lg: {
+      title: 'Nnyini nnyumba yeetaaga obuyambi',
+      body: 'Waliwo emboozi y’obuyambi erindiridde okuddibwamu.',
+    },
+    sw: {
+      title: 'Mwenye nyumba anahitaji msaada',
+      body: 'Kuna mazungumzo ya msaada yanayosubiri jibu.',
+    },
+    ar: {
+      title: 'مالك عقار بحاجة إلى مساعدة',
+      body: 'هناك محادثة دعم تنتظر ردًّا.',
     },
   },
   support_resolved: {

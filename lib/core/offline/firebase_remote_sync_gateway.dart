@@ -455,13 +455,11 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         'reply' => _RemoteCommand('support.reply', <String, Object?>{
           'body': _latestSupportMessageBody(payload),
         }),
-        'updateStatus' => _RemoteCommand(
-          'support.updateStatus',
-          <String, Object?>{
+        'updateStatus' =>
+          _RemoteCommand('support.updateStatus', <String, Object?>{
             'status': payload['status'],
             if (payload['statusNote'] != null) 'note': payload['statusNote'],
-          },
-        ),
+          }),
         _ => throw RemoteSyncException(
           'Unsupported support action: $action.',
           retryable: false,

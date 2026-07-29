@@ -38,7 +38,7 @@ Each one changed a decision below. Read them first.
 
 | Constraint | Source | Consequence |
 |---|---|---|
-| Administrator identity is an Auth **custom claim**, granted only by an ops script. There is no queryable list of admins in Firestore. | `firebase/functions/scripts/grant-admin.mjs:35`, `shared/actor.ts:31` | "Notify every admin" cannot be a Firestore query. Phase 1 alerts a support mailbox by email; Phase 2 adds a `platformStaff/{uid}` roster written by the script. See [Alerting the team](#alerting-the-team). |
+| Administrator identity is an Auth **custom claim**, granted only by an ops script. There is no queryable list of admins in Firestore. | `firebase/functions/scripts/grant-admin.mjs:35`, `shared/actor.ts:31` | "Notify every admin" cannot be a Firestore query. Resolved by having the ops script mirror each claim into `platformStaff/{uid}` as it grants it — a directory, never an authority. See [Alerting the team](#alerting-the-team). |
 | A landlord pull reads either a canonical collection filtered by `landlordId`, or a `landlordPortals` projection — and only for types whose server shape the Dart mapper already accepts. | `lib/core/offline/remote_pull_gateway.dart:211` | `supportTickets` is greenfield on both sides, so the Firestore shape and the Dart mapper get written together in one commit, like `landlordReview` was. No projection needed. |
 | `firestore.rules` ends in a fail-closed `match /{document=**}`. | `firebase/firestore.rules:372` | The new collection needs an explicit block or it is unreadable by anyone. |
 | `_commandFor` keys on `(OfflineEntityType, OutboxOperation)`, and there are only five operations. | `lib/core/offline/firebase_remote_sync_gateway.dart:311` | Four support commands cannot each own an operation. Dispatch on a `pendingAction` payload discriminator, exactly like `reviewMutationCommand()` at line 411. |
@@ -225,27 +225,46 @@ operations. The repository stamps `pendingAction` on the record it enqueues.
 
 ## Alerting the team
 
-This is the part that needs a decision, because **there is no queryable list of
-administrators**. Admin rights are Auth custom claims set by
-`scripts/grant-admin.mjs`; nothing is written to Firestore. `fanoutBroadcast`
-can resolve `landlords` and `tenants` by querying `users`, but it has no
-equivalent for admins, and `auth.listUsers()` paging over the whole directory on
-every ticket is not a design, it is a workaround.
+The hard part was that **administrator rights are not queryable**. They are Auth
+custom claims set by `scripts/grant-admin.mjs`. `fanoutBroadcast` can resolve
+`landlords` and `tenants` by querying `users`, but there is no equivalent for
+admins, and `auth.listUsers()` paging over the whole directory on every ticket is
+not a design, it is a workaround.
 
-**Phase 1 — email a support mailbox.** New job `notifySupportTeam` sends one
-email to `SUPPORT_EMAIL` (`support@nyumba.online`, a new constant in
-`shared/config.ts`) through the existing Resend path, with the subject, category,
-plan tier, and a deep link to `/admin/support/{ticketId}`. Idempotency key
-`support_${ticketId}_${messageId}`, so a job retry cannot double-send. Reliable,
-no enumeration, and it works before anyone has the app open.
+The fix is to write the answer down when it changes rather than derive it on
+demand: the ops script now mirrors each claim into `platformStaff` at the moment
+it grants one.
 
-**Phase 2 — a real roster.** Extend `grant-admin.mjs` to write
-`platformStaff/{uid}` (`{ email, level: 'admin' | 'superAdmin', grantedAt }`) on
-grant and delete it on revoke, rules `allow read: if isPlatformAdmin(); allow
-write: if false`. That gives `notifySupportTeam` a queryable audience for
-`deliverUserNotification`, so admins get in-app inbox items and push like every
-other actor. Existing admins need one re-run of the script — call that out in the
-migration note.
+**Both channels, and the duplication is deliberate.** ✅ Implemented.
+
+`notifySupportTeam` emails `SUPPORT_EMAIL` (`support@nyumba.online`, a constant
+in `shared/config.ts`) through the existing Resend path, with the subject,
+category, plan tier, and a deep link to `/admin/support/{ticketId}`. Idempotency
+key `support_team_${ticketId}_${messageId}`, so a job retry cannot double-send.
+
+It *also* fans out an in-app inbox item and push to every administrator, using
+`platformStaff` as the audience. `scripts/grant-admin.mjs` writes
+`platformStaff/{uid}` (`{ uid, email, displayName, level, updatedAt }`) beside
+the claim it grants and deletes the row on revoke; rules are `allow read: if
+isPlatformAdmin(); allow write: if false`.
+
+The mailbox send is kept unconditionally rather than used as a fallback. An
+empty roster and a quiet week look identical from the outside, and this is the
+channel that carries "a paying customer is stuck" — a duplicate notification
+costs an agent two seconds, a missed one costs a customer.
+
+**The roster is a directory, never an authority.** Every rule still reads
+`request.auth.token`; nothing consults `platformStaff` to decide access. The
+mirror exists only because custom claims cannot be queried. `rules.test.ts`
+seeds a `platformStaff` row claiming `superAdmin` for an ordinary landlord and
+asserts they still cannot read feedback, reviews, audit logs, another landlord's
+properties, or the roster itself — so if any rule ever starts consulting it, the
+test fails rather than the boundary quietly moving.
+
+**Migration:** administrators granted before the mirror existed have no row and
+are invisible to the in-app fanout (the email still reaches them). Run
+`node scripts/grant-admin.mjs --backfill` once per project; it pages the Auth
+directory, derives each level from the claims themselves, and writes the rows.
 
 **Landlord direction** works today with no new infrastructure:
 `notifyLandlordSupportReply` calls `deliverUserNotification(ticket.landlordId,
@@ -492,10 +511,12 @@ pulls, landlord list + composer + thread, admin queue + thread, email alert to
 the support mailbox, landlord reply notifications, FAQ list, localization in all
 four locales, tests. Attachments moved to Phase 2 — see note 5 below.
 
-**Phase 2 — the desk.** `platformStaff` roster and in-app admin notifications,
-internal notes subcollection, canned replies, `support.rate` CSAT, and
-attachments (for support and maintenance together, since neither has a client
-upload path today).
+**Phase 2 — the desk.** Internal notes subcollection, canned replies,
+`support.rate` CSAT, and attachments (for support and maintenance together,
+since neither has a client upload path today). The `platformStaff` roster and
+in-app admin notifications were pulled forward into Phase 1 — see
+[Alerting the team](#alerting-the-team) — because leaving them out made an
+unmonitored mailbox a single point of failure for the whole feature.
 
 **Phase 3 — scale.** Admin queue paging (the `.limit(200)` administrative pull
 is the ceiling), first-response-time reporting on the admin overview,

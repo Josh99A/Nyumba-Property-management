@@ -28,8 +28,8 @@ String adminStatusLabel(SupportStatus status) => switch (status) {
 
 BadgeTone supportStatusTone(SupportStatus status) => switch (status) {
   SupportStatus.open => BadgeTone.neutral,
-  SupportStatus.inProgress || SupportStatus.awaitingLandlord =>
-    BadgeTone.warning,
+  SupportStatus.inProgress ||
+  SupportStatus.awaitingLandlord => BadgeTone.warning,
   SupportStatus.resolved => BadgeTone.success,
   SupportStatus.closed => BadgeTone.neutral,
 };
@@ -44,14 +44,15 @@ String supportCategoryLabel(SupportCategory category) => switch (category) {
 };
 
 /// Short enough for a queue row, where the full label would crowd out the name.
-String supportCategoryShortLabel(SupportCategory category) => switch (category) {
-  SupportCategory.billing => 'Billing',
-  SupportCategory.payments => 'Payments',
-  SupportCategory.tenants => 'Tenants',
-  SupportCategory.listings => 'Listings',
-  SupportCategory.account => 'Account',
-  SupportCategory.other => 'Other',
-};
+String supportCategoryShortLabel(SupportCategory category) =>
+    switch (category) {
+      SupportCategory.billing => 'Billing',
+      SupportCategory.payments => 'Payments',
+      SupportCategory.tenants => 'Tenants',
+      SupportCategory.listings => 'Listings',
+      SupportCategory.account => 'Account',
+      SupportCategory.other => 'Other',
+    };
 
 IconData supportCategoryIcon(SupportCategory category) => switch (category) {
   SupportCategory.billing => Icons.workspace_premium_outlined,

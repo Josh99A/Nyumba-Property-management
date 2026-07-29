@@ -152,10 +152,10 @@ void main() {
           },
         ],
       });
-      expect(
-        ticket.messages.map((message) => message.body),
-        <String>['First.', 'Second.'],
-      );
+      expect(ticket.messages.map((message) => message.body), <String>[
+        'First.',
+        'Second.',
+      ]);
     });
   });
 

@@ -618,10 +618,12 @@ class _PaymentStatusCard extends StatelessWidget {
                       AsyncActionButton(
                         style: AsyncActionStyle.text,
                         showBusyIndicator: false,
-                        icon: const Icon(Icons.support_agent_outlined, size: 18),
-                        onPressed: () async => context.go(
-                          '/support?compose=true',
+                        icon: const Icon(
+                          Icons.support_agent_outlined,
+                          size: 18,
                         ),
+                        onPressed: () async =>
+                            context.go('/support?compose=true'),
                         child: Text(copy.subscriptionContactSupport),
                       ),
                   ],

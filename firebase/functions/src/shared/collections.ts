@@ -49,6 +49,17 @@ export const COLLECTIONS = {
    * conversation, with a status and a reply they are waiting on.
    */
   supportTickets: 'supportTickets',
+  /**
+   * Queryable mirror of who holds an administrator claim.
+   *
+   * Authority still lives in Firebase Auth custom claims — this document grants
+   * nothing and is never read to authorize anything. It exists because claims
+   * are not queryable, so without it there is no way to ask "who should hear
+   * about this?" and every admin-facing notification would have to page the
+   * whole Auth directory. Written only by `scripts/grant-admin.mjs`, beside the
+   * claim it mirrors.
+   */
+  platformStaff: 'platformStaff',
 } as const;
 
 export const TENANT_PORTAL_SECTIONS = {

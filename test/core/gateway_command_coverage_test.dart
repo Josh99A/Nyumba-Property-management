@@ -343,7 +343,10 @@ void main() {
             'platform': 'android',
             'pendingAction': 'open',
             'messages': <Object?>[
-              <String, Object?>{'id': 'm1', 'body': 'My tenant paid on the 3rd.'},
+              <String, Object?>{
+                'id': 'm1',
+                'body': 'My tenant paid on the 3rd.',
+              },
             ],
             // Server-derived: the schema is strict, so sending either of these
             // would be rejected outright rather than ignored.
@@ -371,7 +374,10 @@ void main() {
             '_expectedVersion': 4,
             'pendingAction': 'reply',
             'messages': <Object?>[
-              <String, Object?>{'id': 'm1', 'body': 'My tenant paid on the 3rd.'},
+              <String, Object?>{
+                'id': 'm1',
+                'body': 'My tenant paid on the 3rd.',
+              },
               <String, Object?>{'id': 'm2', 'body': 'Could you send the ref?'},
               <String, Object?>{'id': 'm3', 'body': 'Here it is: ABC123.'},
             ],

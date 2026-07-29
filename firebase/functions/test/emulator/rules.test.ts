@@ -48,6 +48,14 @@ beforeEach(async () => {
       setDoc(doc(db, 'supportTickets/ticket_1'), {
         landlordId: 'landlord_1', status: 'open', isTerminal: false, subject: 'Billing',
       }),
+      // The queryable mirror of who holds an admin claim. `landlord_1` is listed
+      // deliberately: the tests below prove a row here grants them nothing.
+      setDoc(doc(db, 'platformStaff/admin_123'), {
+        uid: 'admin_123', email: 'ops@nyumba.test', level: 'platformAdmin',
+      }),
+      setDoc(doc(db, 'platformStaff/landlord_1'), {
+        uid: 'landlord_1', email: 'impostor@nyumba.test', level: 'superAdmin',
+      }),
       setDoc(doc(db, 'properties/landlord_two'), { landlordId: 'landlord_2' }),
       setDoc(doc(db, 'payments/payment_one'), { landlordId: 'landlord_1' }),
       setDoc(doc(db, 'staffInvites/invite_1'), {
@@ -292,6 +300,38 @@ describe('Firestore rules matrix', () => {
         limit(20),
       )),
     );
+  });
+
+  it('treats the platformStaff mirror as a directory, never as authority', async () => {
+    const impostor = env.authenticatedContext('landlord_1').firestore();
+    const admin = env
+      .authenticatedContext('admin_123', { platformAdmin: true })
+      .firestore();
+
+    // `landlord_1` has a platformStaff row claiming superAdmin and holds no
+    // claim. If any rule ever consulted this collection instead of the token,
+    // these would start passing — which is the whole failure this pins.
+    await assertFails(getDoc(doc(impostor, 'platformFeedback/feedback_1')));
+    await assertFails(getDoc(doc(impostor, 'landlordReviews/lease_1')));
+    await assertFails(getDoc(doc(impostor, 'auditLogs/audit_123')));
+    await assertFails(getDoc(doc(impostor, 'properties/landlord_two')));
+    // Not even the directory itself.
+    await assertFails(getDoc(doc(impostor, 'platformStaff/admin_123')));
+    await assertFails(
+      getDocs(query(collection(impostor, 'platformStaff'), limit(10))),
+    );
+
+    // A real claim reads it, because the fanout worker needs an audience and
+    // the admin console will eventually want to show who is on call.
+    await assertSucceeds(getDoc(doc(admin, 'platformStaff/admin_123')));
+    await assertSucceeds(
+      getDocs(query(collection(admin, 'platformStaff'), limit(10))),
+    );
+    // Nobody writes it from a client; the ops script uses the Admin SDK.
+    await assertFails(
+      setDoc(doc(admin, 'platformStaff/self_promoted'), { level: 'superAdmin' }),
+    );
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'platformStaff/admin_123')));
   });
 
   it('allows both administrator claims to read canonical private media', async () => {
