@@ -14,6 +14,14 @@ const String mediaThumbSuffix = 'thumb';
 /// Suffix of the detail-sized delivery copy.
 const String mediaFullSuffix = 'full';
 
+/// Width of the detail-sized delivery copy, in device pixels.
+///
+/// Mirrors `MAX_PUBLIC_LISTING_IMAGE_WIDTH` in
+/// `firebase/functions/src/shared/config.ts`. A decode budget above this only
+/// upsamples, so it is the ceiling every caller sizing itself from layout
+/// clamps to.
+const int mediaFullImageWidth = 1920;
+
 /// `{index}-{16 hex digest}-{variant}.webp`, anchored at the end of the path.
 final RegExp _deliveryObject = RegExp(
   r'^(?<prefix>.*/)(?<index>\d+)-(?<digest>[0-9a-f]{16})-'

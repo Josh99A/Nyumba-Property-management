@@ -24,12 +24,20 @@ class RemoteMediaImage extends ConsumerWidget {
     required this.filterQuality,
     required this.cacheWidth,
     super.key,
+    this.placeholder,
   });
 
   final String reference;
   final String semanticLabel;
   final BoxFit fit;
   final FilterQuality filterQuality;
+
+  /// Shown in place of the neutral loading state until the bytes arrive.
+  ///
+  /// Lets a caller that already has a cheaper copy of the same photo show it
+  /// rather than an empty box — see the detail carousel, which hands over the
+  /// grid thumbnail the renter's own tap just cached.
+  final Widget? placeholder;
 
   /// Decode width in device pixels.
   ///
@@ -59,6 +67,7 @@ class RemoteMediaImage extends ConsumerWidget {
           fit: fit,
           filterQuality: filterQuality,
           cacheWidth: cacheWidth,
+          placeholder: placeholder,
           // The storage path, not the resolved URL: see [networkMediaImage].
           logLabel: reference,
         );
@@ -71,7 +80,7 @@ class RemoteMediaImage extends ConsumerWidget {
         _logMediaFailure(reference, 'download URL lookup failed', error);
         return const MediaPlaceholder.unavailable();
       },
-      loading: () => const MediaPlaceholder.loading(),
+      loading: () => placeholder ?? const MediaPlaceholder.loading(),
     );
   }
 }
@@ -95,6 +104,7 @@ Widget networkMediaImage({
   required BoxFit fit,
   required FilterQuality filterQuality,
   required int cacheWidth,
+  Widget? placeholder,
   String? logLabel,
 }) => CachedNetworkImage(
   imageUrl: url,
@@ -110,13 +120,19 @@ Widget networkMediaImage({
     semanticLabel: semanticLabel,
     errorBuilder: (_, _, _) => const MediaPlaceholder.unavailable(),
   ),
+  // A caller-supplied stand-in replaces the progress bar rather than sitting
+  // behind it: the two are alternatives, and CachedNetworkImage asserts that
+  // only one is given.
+  placeholder: placeholder == null ? null : (context, _) => placeholder,
   // `progress` is null until the response declares a content length. Showing an
   // empty determinate bar rather than an indeterminate one keeps this honest
   // (nothing has arrived yet) and, unlike an indeterminate indicator, does not
   // schedule a frame forever — which would leave the widget tree permanently
   // unsettled for anything rendering an image.
-  progressIndicatorBuilder: (context, _, progress) =>
-      MediaPlaceholder.loading(progress: progress.progress ?? 0),
+  progressIndicatorBuilder: placeholder != null
+      ? null
+      : (context, _, progress) =>
+            MediaPlaceholder.loading(progress: progress.progress ?? 0),
   // The URL resolved but its bytes did not arrive: a 403/404 on the object, or
   // — on web specifically — a cross-origin fetch the bucket never allowed.
   // Distinct from the resolution failure above and worth telling apart.

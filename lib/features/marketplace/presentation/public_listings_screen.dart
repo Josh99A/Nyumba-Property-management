@@ -189,7 +189,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                 copy.benefitNoAgentFees,
                 copy.benefitRealTenantReviews,
               ],
-              imageAsset: 'assets/listings/generated-upscale-living-room.png',
+              imageAsset: 'assets/listings/generated-upscale-living-room.webp',
               imageFirst: true,
               background: context.nyumba.softIvory,
               action: FilledButton.icon(
@@ -214,7 +214,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
                 copy.benefitRoutedEnquiries,
                 copy.benefitOneWorkspace,
               ],
-              imageAsset: 'assets/listings/generated-open-plan-kitchen.png',
+              imageAsset: 'assets/listings/generated-open-plan-kitchen.webp',
               imageFirst: false,
               action: FilledButton.icon(
                 style: FilledButton.styleFrom(

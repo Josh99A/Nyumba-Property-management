@@ -164,7 +164,7 @@ class _CardMedia extends StatelessWidget {
                 listing,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.medium,
-                cacheWidth: 960,
+                cacheWidth: listingThumbnailCacheWidth,
                 preferThumbnail: true,
               ),
               PositionedDirectional(
