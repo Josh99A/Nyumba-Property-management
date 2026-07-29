@@ -65,12 +65,16 @@ gh secret set FIREBASE_SERVICE_ACCOUNT < path\to\service-account.json
 ### Secret-bound functions
 
 Deploying a function that references a Secret Manager secret (for example
-`RESEND_API_KEY` for Resend email) requires the deploy service account to
-hold **Secret Manager Viewer** on that secret, or the deploy fails with
-`secretmanager.secrets.get` denied. Grant it once per secret:
+`RESEND_API_KEY` for Resend email, or `MAPS_STATIC_API_KEY` for the public
+listing map) requires the deploy service account to hold **Secret Manager
+Viewer** on that secret, or the deploy fails with `secretmanager.secrets.get`
+denied. This grant is per-secret, not per-project: adding a new
+`defineSecret(...)` anywhere in `functions/src` needs its own grant below, or
+its first deploy fails exactly like this. Grant it once per secret:
 
 ```powershell
 gcloud secrets add-iam-policy-binding RESEND_API_KEY --project <project-id> --member="serviceAccount:<deploy-sa-email>" --role="roles/secretmanager.viewer"
+gcloud secrets add-iam-policy-binding MAPS_STATIC_API_KEY --project <project-id> --member="serviceAccount:<deploy-sa-email>" --role="roles/secretmanager.viewer"
 ```
 
 The functions *runtime* service account separately needs

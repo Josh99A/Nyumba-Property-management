@@ -190,7 +190,10 @@ final class SembastSupportRepository implements SupportRepository {
 
   @override
   Future<SupportTicket?> getById(String id) async {
-    final json = await _database.readEntity(OfflineEntityType.supportTicket, id);
+    final json = await _database.readEntity(
+      OfflineEntityType.supportTicket,
+      id,
+    );
     return json == null ? null : SupportTicketMapper.fromJson(json);
   }
 

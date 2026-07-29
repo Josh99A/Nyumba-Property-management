@@ -126,8 +126,9 @@ final class SupportTicketMapper {
           authorRole: _role(map['authorRole']),
           body: body,
           attachmentPaths: <String>[
-            for (final path in (map['attachmentPaths'] as List<Object?>? ??
-                const <Object?>[]))
+            for (final path
+                in (map['attachmentPaths'] as List<Object?>? ??
+                    const <Object?>[]))
               if (path is String) path,
           ],
           createdAt: parsed.toUtc(),

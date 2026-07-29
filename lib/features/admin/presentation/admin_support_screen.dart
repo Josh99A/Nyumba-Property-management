@@ -156,21 +156,24 @@ class _AdminSupportScreenState extends ConsumerState<AdminSupportScreen> {
     return filtered.isEmpty ? null : filtered.first;
   }
 
-  static Map<_Queue, int> _counts(List<SupportTicket> items) =>
-      <_Queue, int>{
-        for (final queue in _Queue.values) queue: _apply(queue, items).length,
-      };
+  static Map<_Queue, int> _counts(List<SupportTicket> items) => <_Queue, int>{
+    for (final queue in _Queue.values) queue: _apply(queue, items).length,
+  };
 
   /// Sorted by how long each side has been waiting, not by when the ticket
   /// arrived. A queue ordered newest-first is how the oldest ticket never gets
   /// answered.
   static List<SupportTicket> _apply(_Queue queue, List<SupportTicket> items) {
-    final matched = items.where((ticket) => switch (queue) {
-      _Queue.needsReply => ticket.awaitsSupport,
-      _Queue.open => !ticket.status.isTerminal,
-      _Queue.resolved => ticket.status.isTerminal,
-      _Queue.all => true,
-    }).toList();
+    final matched = items
+        .where(
+          (ticket) => switch (queue) {
+            _Queue.needsReply => ticket.awaitsSupport,
+            _Queue.open => !ticket.status.isTerminal,
+            _Queue.resolved => ticket.status.isTerminal,
+            _Queue.all => true,
+          },
+        )
+        .toList();
     matched.sort((left, right) {
       // Never-answered first, and among those the longest wait. A ticket with
       // no first response is a promise nobody has kept yet.

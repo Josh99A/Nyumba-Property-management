@@ -7,7 +7,8 @@ import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../feedback/application/feedback_providers.dart';
-import '../../feedback/presentation/feedback_sheet.dart' show currentPlatformName;
+import '../../feedback/presentation/feedback_sheet.dart'
+    show currentPlatformName;
 import '../application/support_providers.dart';
 import '../domain/support_ticket.dart';
 import 'support_visuals.dart';

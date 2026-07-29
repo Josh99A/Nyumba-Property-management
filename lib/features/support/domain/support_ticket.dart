@@ -155,8 +155,7 @@ final class SupportTicket {
   bool get awaitsSupport =>
       lastMessageAuthorRole == SupportAuthorRole.landlord && !status.isTerminal;
 
-  SupportMessage? get latestMessage =>
-      messages.isEmpty ? null : messages.last;
+  SupportMessage? get latestMessage => messages.isEmpty ? null : messages.last;
 
   /// Mirrors `SUPPORT_REOPEN_WINDOW_DAYS`. Past it, a landlord starts a new
   /// conversation rather than reviving one nobody has looked at in a fortnight.

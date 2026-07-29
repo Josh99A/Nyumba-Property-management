@@ -111,9 +111,9 @@ class _SupportThreadViewState extends ConsumerState<SupportThreadView> {
         if (_error != null) ...[
           Text.localized(
             _error!,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: context.nyumba.danger,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: context.nyumba.danger),
           ),
           const SizedBox(height: 8),
         ],
@@ -230,9 +230,7 @@ class _MessageBubble extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Row(
-      mainAxisAlignment: mine
-          ? MainAxisAlignment.end
-          : MainAxisAlignment.start,
+      mainAxisAlignment: mine ? MainAxisAlignment.end : MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (!mine) ...[
@@ -257,7 +255,9 @@ class _MessageBubble extends StatelessWidget {
               color: mine ? context.nyumba.navyTint : context.nyumba.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: mine ? context.nyumba.navyBorder : context.nyumba.outline,
+                color: mine
+                    ? context.nyumba.navyBorder
+                    : context.nyumba.outline,
               ),
             ),
             child: Column(
@@ -428,11 +428,11 @@ class _StatusActions extends StatelessWidget {
         if (ticket.status == SupportStatus.inProgress ||
             ticket.status == SupportStatus.awaitingLandlord)
           ('Mark resolved', SupportStatus.resolved),
-        if (!ticket.status.isTerminal || ticket.status == SupportStatus.resolved)
+        if (!ticket.status.isTerminal ||
+            ticket.status == SupportStatus.resolved)
           ('Close', SupportStatus.closed),
       ] else ...[
-        if (!ticket.status.isTerminal)
-          ('This is sorted', SupportStatus.closed),
+        if (!ticket.status.isTerminal) ('This is sorted', SupportStatus.closed),
         if (ticket.reopenableAt(DateTime.now().toUtc()))
           ('Reopen', SupportStatus.inProgress),
       ],

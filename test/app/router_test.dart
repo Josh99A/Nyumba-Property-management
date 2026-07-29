@@ -122,7 +122,10 @@ void main() {
         reason: role.name,
       );
     }
-    expect(redirectForSession(_sessionFor(AppRole.landlord), '/support'), isNull);
+    expect(
+      redirectForSession(_sessionFor(AppRole.landlord), '/support'),
+      isNull,
+    );
     // Administrators answer from their own console instead.
     expect(
       redirectForSession(_sessionFor(AppRole.admin), '/admin/support'),
