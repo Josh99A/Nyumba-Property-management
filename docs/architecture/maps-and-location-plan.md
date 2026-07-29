@@ -1,8 +1,14 @@
 # Maps and location — implementation plan
 
-Status: **plan, not yet implemented.** This document is normative for the work
-once it starts; update it with any decision that changes during
-implementation.
+Status: **Phases 0–4 implemented; Phase 3 shipped 2026-07-29.** Keys are
+provisioned and `publicSeo` is deployed with the map route. What remains is
+noted per phase in §9.
+
+This document is normative. Sections 1–8 are the *original plan* and are kept
+as written so the reasoning behind each decision stays reviewable; where
+implementation diverged, the per-phase entries in §9 are authoritative and say
+so explicitly. Section 1 in particular describes the state *before* this work
+and is deliberately not updated.
 
 Goal: let a prospective tenant understand *where* a home is and get *directions
 to it*, let a landlord place that location without typing coordinates, and let
@@ -60,7 +66,7 @@ requires a pannable map.
 | Tier | Surfaces | Billing | Rationale |
 | --- | --- | --- | --- |
 | **Deep link** — "Get directions" hands off to the Google Maps app | every surface that has a location | none | uses the app the user already has, with their own traffic data and offline maps |
-| **Static map image** — marker/circle, tap to expand | listing detail, property detail, tenant home | Static Maps SKU, and see §2.2 — effectively one call per listing per day | renders inside the server-rendered HTML with no JavaScript, no layout shift, and caches for offline |
+| **Static map image** — marker/circle, tap to expand | listing detail, property detail, tenant home | Static Maps SKU, and see §2.2 — one call per listing per five-minute cache window | renders inside the server-rendered HTML with no JavaScript, no layout shift, and caches for offline |
 | **Interactive `GoogleMap`** | landlord pin picker, explore map view | full dynamic map load, low volume | panning is the point on exactly these two screens |
 
 ### 2.2 Static maps are proxied and CDN-cached, never called from the client
@@ -69,7 +75,7 @@ A Maps Static API key placed in an `<img src>` on a public page is a key handed
 to the internet. Instead, add a `staticMap` HTTP Function behind a Hosting
 rewrite:
 
-```
+```text
 /map/listing/{listingId}.png   ->  function staticMap (europe-west1)
 ```
 
@@ -82,13 +88,17 @@ The function:
   and returns `404`/`410` otherwise, with `X-Robots-Tag: noindex, nofollow`;
 - renders **only** the coarsened `approximateLocation` from `publicListings`,
   never the canonical listing or property;
-- returns `Cache-Control: public, max-age=86400, s-maxage=604800`.
+- returns `Cache-Control: public, max-age=300, s-maxage=300` — matched, so a
+  shared cache can never serve a delisted property's location for longer than
+  the window a browser already accepts. There is no purge mechanism, so this
+  window is also the exposure window after a listing is taken down.
 
-Because the URL is deterministic and the coordinate is coarsened, Firebase
-Hosting's CDN collapses all traffic for a listing into roughly one upstream
-Google call per day regardless of how many people view it. This is the single
-largest cost decision in the feature, and it also makes the image work in the
-SEO HTML and cacheable by `cached_network_image` for offline viewing.
+Because the URL is deterministic per listing, Firebase Hosting's CDN collapses
+all traffic for that listing within one cache window into a single upstream
+Google call, however many people view it in that window. The window is short
+for the availability reason above, so this bounds cost by concurrency rather
+than eliminating it. The same proxy is what makes the image work in the SEO
+HTML and cacheable by `cached_network_image` for offline viewing.
 
 Private surfaces (property detail, tenant home, staff maintenance) use a
 sibling authenticated route that renders the **exact** coordinate and is
@@ -287,11 +297,16 @@ Shipped:
   expired, `noindex` headers and `no-store` on every error path.
 - The **Static Maps key stays in Secret Manager** (`MAPS_STATIC_API_KEY`),
   declared on the function's `secrets`. It never reaches a page.
-- `Cache-Control: public, max-age=86400, s-maxage=604800` on the rendered
-  image. The URL is deterministic per listing and the coordinate is coarsened,
-  so a stale copy cannot leak newer information — this one header is what
-  collapses all traffic for an advert into roughly one upstream Google call a
-  day. A failed render is `no-store`, so a hole is never cached.
+- `Cache-Control: public, max-age=300, s-maxage=300` on the rendered image.
+  This shipped as `86400`/`604800` on the argument that a coarsened coordinate
+  cannot go stale in a way that leaks anything. That argument addressed the
+  wrong risk: a shared cache serves what it stored, so a week-long `s-maxage`
+  kept a listing's location fetchable for up to seven days after it was
+  unpublished, deleted, or expired — exactly what the invariant recheck exists
+  to prevent. Now matched to `max-age`, per the rule `PUBLIC_SEO_CACHE_CONTROL`
+  already established. A failed render is `no-store`, so a hole is never
+  cached. The cost consequence is accepted; the fix if the bill matters is a
+  server-side render cache keyed by coordinate, never a longer public window.
 - The map is a **circle, never a marker**, drawn as an encoded path polygon at
   `MAPS_PUBLIC_PRIVACY_RADIUS_METRES` (250 m, mirrored in
   `lib/core/config/maps_config.dart`).

@@ -19,20 +19,28 @@ export const MAP_SECRETS = [MAPS_STATIC_API_KEY];
 /**
  * How long a rendered map may be cached.
  *
- * Deliberately far longer than the 60 seconds the SEO documents allow, and
- * safe for exactly the reason those are not: this image is a function of a
- * coarsened coordinate, so a stale copy cannot leak newer information. It can
- * only outlive the listing's availability — which the URL's own invariant
- * recheck handles on the next uncached request, and which costs a visitor
- * nothing because the page around the image is revalidated every minute.
+ * This used to be `max-age=86400, s-maxage=604800`, justified on the grounds
+ * that the image is a function of an already-coarsened coordinate and so
+ * cannot leak newer information. That reasoning was about the wrong risk. A
+ * shared cache stores a response under the headers it had *at fetch time*, so
+ * a week-long `s-maxage` meant an edge copy kept serving a listing's location
+ * for up to seven days after it was unpublished, deleted, or expired — the one
+ * thing `isActivePublicListing` exists to prevent, undone by a header.
  *
- * This single header is what makes the feature affordable. The URL is
- * deterministic per listing, so the CDN collapses every visitor into roughly
- * one upstream Google call per listing per day no matter how much traffic the
- * advert gets.
+ * `PUBLIC_SEO_CACHE_CONTROL` already settled this exact question for every
+ * other public response, and matching `s-maxage` to `max-age` is the rule that
+ * came out of it. This now follows it. Five minutes rather than the documents'
+ * sixty seconds because a coarsened circle is meaningfully less sensitive than
+ * the advert's own copy and contact details, and because the map is the only
+ * response here with an upstream per-request cost.
+ *
+ * The consequence is real and accepted: the CDN no longer collapses a
+ * listing's traffic into roughly one Google call a day. If the Static Maps
+ * bill becomes material, the fix is to cache the rendered PNG server-side by
+ * coordinate — which a delisting can actually invalidate — and never to widen
+ * this window again.
  */
-export const STATIC_MAP_CACHE_CONTROL =
-  'public, max-age=86400, s-maxage=604800';
+export const STATIC_MAP_CACHE_CONTROL = 'public, max-age=300, s-maxage=300';
 
 /** Rendered size in CSS pixels; `scale=2` doubles the delivered pixels. */
 const MAP_WIDTH = 640;

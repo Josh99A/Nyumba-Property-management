@@ -152,12 +152,18 @@ frame. The renderer:
   a marker**: a pin on a coarsened point still reads as "this house". A
   listing with no pin and a deployment with no key both answer `404`, so the
   page simply carries no map;
-- permits only short-lived caching (`max-age=60`, `s-maxage=300`) so browser
-  and shared caches refresh unpublished or expired projections promptly. The
-  rendered map is the one exception (`max-age=86400`, `s-maxage=604800`): it is
-  a pure function of a coarsened coordinate, so a stale copy cannot leak newer
-  information, and the deterministic URL is what keeps the Maps bill bounded as
-  traffic grows. Every error path stays `no-store`.
+- permits only short-lived caching (`max-age=60`, `s-maxage=60`) so browser and
+  shared caches refresh unpublished or expired projections promptly. The
+  rendered map is bounded by the same rule at `max-age=300`, `s-maxage=300` —
+  matched, because a shared cache serves a response under the headers it had at
+  fetch time and a longer `s-maxage` would keep serving a delisted property's
+  location for the remainder of that window, defeating the invariant recheck
+  entirely. Five minutes rather than sixty seconds only because a coarsened
+  circle is less sensitive than the advert's own copy and contact details.
+  Every error path stays `no-store`. There is no purge mechanism, so the
+  cache window *is* the exposure window; if the Maps bill becomes material the
+  answer is a server-side render cache keyed by coordinate, which a delisting
+  can invalidate, and never a longer public lifetime.
 
 All other Flutter routes use the static application shell with
 `noindex, nofollow`. `robots.txt` deliberately permits crawling so crawlers can

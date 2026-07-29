@@ -4320,4 +4320,8 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get nearestToMe => 'Ebiri okumpi nange';
+
+  @override
+  String get couldNotOpenMapsApp =>
+      'Tewali app ya maapu esobola okuggulawo amakubo.';
 }

@@ -11,6 +11,10 @@ import '../localization/app_localizations_adapter.dart';
 import 'async_action_button.dart';
 import 'surface.dart';
 
+/// Height of the fixed crosshair glyph. Named because the same value has to
+/// drive the upward shift that puts its point on the map centre.
+const double _crosshairSize = 46;
+
 /// A form row for placing a property or advert on the map.
 ///
 /// Replaces the pair of raw latitude/longitude text fields this app used to
@@ -280,10 +284,17 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
         // the map under it, so the point they are placing is never hidden
         // beneath their own finger.
         IgnorePointer(
-          child: Icon(
-            Icons.add_location,
-            size: 46,
-            color: context.nyumba.terracottaDark,
+          // The glyph's point sits at the bottom of its box, so a centred icon
+          // appears to indicate a spot half its height below the coordinate
+          // actually being captured. Lifting it by half its height puts the
+          // visible tip on the map centre, which is the point being placed.
+          child: Transform.translate(
+            offset: const Offset(0, -_crosshairSize / 2),
+            child: Icon(
+              Icons.add_location,
+              size: _crosshairSize,
+              color: context.nyumba.terracottaDark,
+            ),
           ),
         ),
         PositionedDirectional(
@@ -363,7 +374,18 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
           permission == LocationPermission.deniedForever) {
         throw const _LocationFailure.denied();
       }
-      final position = await Geolocator.getCurrentPosition();
+      // Bounded for the same reason, and with the same budget, as
+      // visitor_location.dart: an unbounded fix can wait indefinitely indoors,
+      // leaving the button spinning with no way back. The timeout surfaces
+      // through the catch-all below as "location unavailable", which is what
+      // it is. Low accuracy is enough to centre a map the landlord will then
+      // drag to the exact spot.
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
       final here = Coordinates.tryFrom(position.latitude, position.longitude);
       if (here == null) throw const _LocationFailure.unavailable();
       if (!mounted) return;

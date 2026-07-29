@@ -4243,4 +4243,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nearestToMe => 'Nearest to me';
+
+  @override
+  String get couldNotOpenMapsApp =>
+      'No maps app is available to open directions.';
 }

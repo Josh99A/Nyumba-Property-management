@@ -252,7 +252,9 @@ describe('public SEO rendering', () => {
     const html = renderListingPage(listing());
 
     expect(html).not.toContain('Where you will live');
-    expect(html).not.toContain('/map');
+    // The concrete rendered attribute, not a bare '/map' substring, which any
+    // unrelated path could satisfy and which made this assertion meaningless.
+    expect(html).not.toContain('src="/listing/listing_1234/map"');
     expect(html).not.toContain('Get directions');
   });
 

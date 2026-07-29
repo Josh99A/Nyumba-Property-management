@@ -5,7 +5,6 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
@@ -552,6 +551,21 @@ class _WorkOrderRow extends StatelessWidget {
   final VoidCallback onAdvance;
   final VoidCallback onAssign;
 
+  /// Sends the contractor to the site.
+  ///
+  /// A dispatch that silently fails is worse here than anywhere else in the
+  /// product — someone is trying to get to a job — so a device that cannot
+  /// open the link has to say so rather than swallow the tap.
+  Future<void> _openDirections(
+    BuildContext context,
+    Coordinates destination,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final message = appLocalizationsOf(context).couldNotOpenMapsApp;
+    if (await openMapsDirections(destination)) return;
+    messenger.showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final compact = context.isCompact;
@@ -560,17 +574,7 @@ class _WorkOrderRow extends StatelessWidget {
       tooltip: context.tr('Work order actions'),
       onSelected: (value) => switch (value) {
         'assign' => onAssign(),
-        // Fire-and-forget: handing off to another app is not something this
-        // screen waits on or reports the result of.
-        'directions' => unawaited(
-          launchUrl(
-            NyumbaMaps.directionsTo(
-              destination!.latitude,
-              destination.longitude,
-            ),
-            mode: LaunchMode.externalApplication,
-          ),
-        ),
+        'directions' => unawaited(_openDirections(context, destination!)),
         _ => onAdvance(),
       },
       itemBuilder: (_) => [

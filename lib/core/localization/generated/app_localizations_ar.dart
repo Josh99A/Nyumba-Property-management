@@ -4214,4 +4214,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get nearestToMe => 'الأقرب إليّ';
+
+  @override
+  String get couldNotOpenMapsApp => 'لا يوجد تطبيق خرائط لفتح الاتجاهات.';
 }

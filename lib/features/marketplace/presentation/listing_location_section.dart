@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart' hide Text, Tooltip;
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
@@ -84,7 +83,7 @@ class ListingLocationSection extends StatelessWidget {
         // already the Apply action, so directions needs its own real target
         // instead of competing for the same corner.
         AsyncActionButton.outlined(
-          onPressed: () => _openDirections(pin),
+          onPressed: () => _openDirections(context, pin),
           icon: const Icon(Icons.directions_outlined),
           child: Text.localized(copy.getDirections),
         ),
@@ -96,11 +95,15 @@ class ListingLocationSection extends StatelessWidget {
   ///
   /// Left enabled offline on purpose: the Google Maps app carries its own
   /// offline maps, so refusing the tap would be worse than handing over.
-  Future<void> _openDirections(Coordinates pin) async {
-    await launchUrl(
-      NyumbaMaps.directionsTo(pin.latitude, pin.longitude),
-      mode: LaunchMode.externalApplication,
-    );
+  Future<void> _openDirections(BuildContext context, Coordinates pin) async {
+    final opened = await openMapsDirections(pin);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(appLocalizationsOf(context).couldNotOpenMapsApp),
+        ),
+      );
+    }
   }
 }
 

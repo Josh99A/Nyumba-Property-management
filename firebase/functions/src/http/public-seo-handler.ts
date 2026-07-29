@@ -277,7 +277,14 @@ export const publicSeo = onRequest(
         response
           .status(200)
           .send(Buffer.from(await upstream.arrayBuffer()));
-      } catch {
+      } catch (error) {
+        // Diagnosable without being dangerous: the message distinguishes a
+        // network failure from an auth, quota, or non-image response, while
+        // the URL — which carries the API key — is deliberately never logged.
+        console.error(
+          `Static map render failed for ${listingId}:`,
+          error instanceof Error ? error.message : error,
+        );
         // Never cache a failed render: the next request should try again
         // rather than serve a hole for a day.
         markUnavailable(response);

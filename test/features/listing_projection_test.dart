@@ -289,6 +289,11 @@ void main() {
           ..['approximateLocation'] = <String, Object?>{'lat': 0, 'lng': 32},
       );
 
+      // Type-sensitive on purpose: `0 == 0.0` in Dart, so a value assertion
+      // alone would pass on an unconverted int and the mapper's
+      // `optionalDouble` would then reject it at decode time.
+      expect(shaped['approximateLatitude'], isA<double>());
+      expect(shaped['approximateLongitude'], isA<double>());
       expect(shaped['approximateLatitude'], 0.0);
       expect(shaped['approximateLongitude'], 32.0);
     });

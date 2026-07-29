@@ -1293,4 +1293,5 @@
     ,"mapView": "Ramani"
     ,"listView": "Orodha"
     ,"nearestToMe": "Zilizo karibu nami"
+    ,"couldNotOpenMapsApp": "Hakuna programu ya ramani inayoweza kufungua maelekezo."
 }

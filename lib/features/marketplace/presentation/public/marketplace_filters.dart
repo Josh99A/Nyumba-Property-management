@@ -436,6 +436,10 @@ class _SortMenuButton extends StatelessWidget {
         final origin = await ref
             .read(visitorLocationProvider.notifier)
             .resolve();
+        // The permission dialog is modal and unbounded in time: the visitor
+        // can dismiss the whole search before answering it. Applying a sort to
+        // a screen that is gone would rebuild a disposed widget.
+        if (!context.mounted) return;
         onChanged(
           query.copyWith(sort: origin == null ? ListingSort.newest : sort),
         );

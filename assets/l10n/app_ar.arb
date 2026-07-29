@@ -1293,4 +1293,5 @@
     ,"mapView": "خريطة"
     ,"listView": "قائمة"
     ,"nearestToMe": "الأقرب إليّ"
+    ,"couldNotOpenMapsApp": "لا يوجد تطبيق خرائط لفتح الاتجاهات."
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
   const documentGet = vi.fn();
@@ -261,6 +261,12 @@ describe('public SEO handler', () => {
       process.env.MAPS_STATIC_API_KEY = 'test-key';
     });
 
+    // One place, so a test that throws mid-way cannot leak a stubbed fetch or
+    // a deleted key into the next one.
+    afterEach(() => {
+      delete process.env.MAPS_STATIC_API_KEY;
+    });
+
     it('renders the coarsened pin and caches it hard', async () => {
       mocks.documentGet.mockResolvedValue(pinned());
       const fetchMock = vi.fn().mockResolvedValue({
@@ -287,7 +293,6 @@ describe('public SEO handler', () => {
       // "this house".
       expect(requested).toContain('path=');
       expect(requested).not.toContain('markers=');
-      vi.unstubAllGlobals();
     });
 
     it('never reads anything more precise than the public projection', async () => {
@@ -314,7 +319,6 @@ describe('public SEO handler', () => {
       expect(requested).not.toContain('0.3571234');
       expect(requested).not.toContain('Acacia');
       expect(mocks.firestore.collection).toHaveBeenCalledWith('publicListings');
-      vi.unstubAllGlobals();
     });
 
     it('rechecks the public invariant on every request', async () => {
@@ -373,7 +377,6 @@ describe('public SEO handler', () => {
 
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.set).toHaveBeenCalledWith({ 'Cache-Control': 'no-store' });
-      vi.unstubAllGlobals();
     });
   });
 });

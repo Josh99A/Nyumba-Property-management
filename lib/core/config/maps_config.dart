@@ -13,6 +13,10 @@
 /// `docs/architecture/maps-and-location-plan.md` for the procurement steps.
 library;
 
+import 'package:url_launcher/url_launcher.dart';
+
+import '../domain/coordinates.dart';
+
 abstract final class NyumbaMaps {
   /// Present only in builds that were given a key.
   ///
@@ -69,3 +73,20 @@ abstract final class NyumbaMaps {
     <String, String>{'api': '1', 'destination': '$latitude,$longitude'},
   );
 }
+
+/// Hands [destination] to whatever maps app the device has.
+///
+/// The one place the launch actually happens, so the public advert, the
+/// property detail, and a dispatched work order cannot drift into three
+/// slightly different hand-offs.
+///
+/// Returns false when nothing on the device could open it — a real outcome on
+/// a stripped device with no maps app and no browser, and one every caller
+/// should report rather than swallow: a tap that silently does nothing reads
+/// as a broken button.
+Future<bool> openMapsDirections(Coordinates destination) => launchUrl(
+  NyumbaMaps.directionsTo(destination.latitude, destination.longitude),
+  // Deliberately external: the point is to leave Nyumba for an app that has
+  // the user's traffic data, saved places, and offline maps.
+  mode: LaunchMode.externalApplication,
+);

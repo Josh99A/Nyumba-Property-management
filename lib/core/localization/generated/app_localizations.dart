@@ -7547,6 +7547,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nearest to me'**
   String get nearestToMe;
+
+  /// No description provided for @couldNotOpenMapsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'No maps app is available to open directions.'**
+  String get couldNotOpenMapsApp;
 }
 
 class _AppLocalizationsDelegate

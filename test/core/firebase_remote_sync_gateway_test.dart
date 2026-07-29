@@ -618,15 +618,54 @@ void main() {
       }
     });
 
-    test('a half-written pair never reaches the server', () {
+    // The path a landlord actually takes most often: the pin is placed while
+    // editing a property or advert that already exists, not at creation.
+    test('an edit carrying a complete pair folds it the same way', () {
       expect(
         payloadFor(
           OfflineEntityType.property,
-          OutboxOperation.create,
-          <String, Object?>{'latitude': 0.3476},
-        ),
-        isNot(contains('location')),
+          OutboxOperation.update,
+          <String, Object?>{'latitude': 0.3476, 'longitude': 32.5825},
+        )['location'],
+        <String, Object?>{'lat': 0.3476, 'lng': 32.5825},
       );
+      expect(
+        payloadFor(
+          OfflineEntityType.listing,
+          OutboxOperation.update,
+          <String, Object?>{
+            'approximateLatitude': 0.3476,
+            'approximateLongitude': 32.5825,
+          },
+        )['approximateLocation'],
+        <String, Object?>{'lat': 0.3476, 'lng': 32.5825},
+      );
+    });
+
+    // A lone axis cannot be placed on a map, and the server schema requires
+    // both, so a half-pair must be dropped rather than sent and rejected.
+    test('a half-written pair never reaches the server', () {
+      for (final (type, field, latitude, longitude)
+          in const <(OfflineEntityType, String, String, String)>[
+            (OfflineEntityType.property, 'location', 'latitude', 'longitude'),
+            (
+              OfflineEntityType.listing,
+              'approximateLocation',
+              'approximateLatitude',
+              'approximateLongitude',
+            ),
+          ]) {
+        for (final present in <Map<String, Object?>>[
+          <String, Object?>{latitude: 0.3476},
+          <String, Object?>{longitude: 32.5825},
+        ]) {
+          expect(
+            payloadFor(type, OutboxOperation.create, present),
+            isNot(contains(field)),
+            reason: '$field on ${type.name} from ${present.keys.single}',
+          );
+        }
+      }
     });
   });
 }

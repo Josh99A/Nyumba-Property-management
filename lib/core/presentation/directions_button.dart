@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart' hide Text, Tooltip;
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
@@ -49,16 +48,22 @@ class DirectionsButton extends StatelessWidget {
     const icon = Icon(Icons.directions_outlined);
     // Enabled offline on purpose: the Maps app carries its own offline maps,
     // so refusing the tap would be worse than handing over.
-    Future<void> open() => _open(destination);
+    Future<void> open() => _open(context, destination);
     return filled
         ? AsyncActionButton(onPressed: open, icon: icon, child: child)
         : AsyncActionButton.outlined(onPressed: open, icon: icon, child: child);
   }
 
-  Future<void> _open(Coordinates destination) async {
-    await launchUrl(
-      NyumbaMaps.directionsTo(destination.latitude, destination.longitude),
-      mode: LaunchMode.externalApplication,
-    );
+  Future<void> _open(BuildContext context, Coordinates destination) async {
+    final opened = await openMapsDirections(destination);
+    // A tap that silently does nothing reads as a broken button, so a device
+    // with nothing able to open the link has to say so.
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(appLocalizationsOf(context).couldNotOpenMapsApp),
+        ),
+      );
+    }
   }
 }

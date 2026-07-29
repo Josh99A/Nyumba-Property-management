@@ -1,5 +1,9 @@
 import { APP_ORIGIN, MAX_LISTING_PHOTOS } from '../shared/config';
-import { listingMapPath, type MapCoordinates } from './static-map';
+import {
+  listingMapPath,
+  publicMapCoordinates,
+  type MapCoordinates,
+} from './static-map';
 
 /**
  * A directions hand-off to the reader's own maps app.
@@ -90,12 +94,9 @@ function optionalString(value: unknown, maximumLength: number): string | undefin
 function approximateLocationValue(
   value: unknown,
 ): { lat: number; lng: number } | undefined {
-  if (typeof value !== 'object' || value === null) return undefined;
-  const { lat, lng } = value as { lat?: unknown; lng?: unknown };
-  if (typeof lat !== 'number' || typeof lng !== 'number') return undefined;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return undefined;
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return undefined;
-  return { lat, lng };
+  // One validator, shared with the route that renders the image, so the HTML
+  // and the map can never disagree about which pins are plottable.
+  return publicMapCoordinates(value) ?? undefined;
 }
 
 function currencyValue(value: unknown): string | null {
@@ -552,15 +553,18 @@ export function renderExplorePage(listings: PublicSeoListing[]): string {
     title: 'Rental Homes in Uganda | Nyumba',
     description: DEFAULT_DESCRIPTION,
     canonicalPath: '/explore',
-    socialImagePath:
-      '/assets/assets/listings/generated-modern-apartment-exterior.png',
+    // A dedicated 1200x630 JPEG rather than the hero image itself: the hero is
+    // WebP, which WhatsApp — the way a Ugandan renter actually shares a link —
+    // will not render as a preview, and it carries the wrong aspect for a
+    // social card besides.
+    socialImagePath: '/assets/assets/listings/nyumba-social-card.jpg',
     body: `<section class="seo-hero"><div class="seo-hero-inner">
         <div class="seo-hero-copy">
           <h1>Find a place that feels like home.</h1>
           <p>Browse verified available rental spaces and contact landlords directly.</p>
         </div>
         <div class="seo-hero-media">
-          <img src="/assets/assets/listings/generated-modern-apartment-exterior.png" alt="">
+          <img src="/assets/assets/listings/generated-modern-apartment-exterior.webp" alt="">
         </div>
       </div></section>${cards}`,
     structuredData: {

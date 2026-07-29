@@ -4297,4 +4297,8 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get nearestToMe => 'Zilizo karibu nami';
+
+  @override
+  String get couldNotOpenMapsApp =>
+      'Hakuna programu ya ramani inayoweza kufungua maelekezo.';
 }

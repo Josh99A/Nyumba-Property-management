@@ -1337,4 +1337,5 @@
     ,"mapView": "Map"
     ,"listView": "List"
     ,"nearestToMe": "Nearest to me"
+    ,"couldNotOpenMapsApp": "No maps app is available to open directions."
 }
