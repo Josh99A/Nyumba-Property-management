@@ -2718,6 +2718,9 @@ class AppLocalizationsSw extends AppLocalizations {
   String get subscriptionCheckPaymentStatus => 'Angalia hali ya malipo';
 
   @override
+  String get subscriptionContactSupport => 'Wasiliana na msaada';
+
+  @override
   String subscriptionPlanCapacity(int unitLimit, int listingLimit) {
     return 'Hadi nafasi $unitLimit za kukodisha · matangazo $listingLimit yanayotumika';
   }
@@ -3831,6 +3834,287 @@ class AppLocalizationsSw extends AppLocalizations {
   String get netPromoterScore => 'Alama ya mapendekezo';
 
   @override
+  String get supportTitle => 'Msaada';
+
+  @override
+  String get supportShort => 'Msaada';
+
+  @override
+  String get supportQueue => 'Foleni ya msaada';
+
+  @override
+  String get supportDescription =>
+      'Uliza timu ya Nyumba kuhusu akaunti yako, malipo, au chochote ndani ya programu. Kwa kawaida tunajibu ndani ya siku moja ya kazi.';
+
+  @override
+  String get supportMessageSupport => 'Tuma ujumbe kwa msaada';
+
+  @override
+  String get supportContactSupport => 'Wasiliana na msaada';
+
+  @override
+  String get supportSla => 'Kwa kawaida tunajibu ndani ya siku moja ya kazi.';
+
+  @override
+  String get supportYourConversations => 'Mazungumzo yako';
+
+  @override
+  String get supportYourConversationsSubtitle =>
+      'Kila ulichotuuliza, na hali yake.';
+
+  @override
+  String get supportLoadFailed =>
+      'Mazungumzo yako hayakuweza kupakiwa. Yako salama — jaribu tena baada ya muda.';
+
+  @override
+  String get supportCommonQuestions => 'Maswali ya kawaida';
+
+  @override
+  String get supportAnswerDidNotHelp => 'Hili halikusaidia';
+
+  @override
+  String get supportNoConversations => 'Bado hakuna mazungumzo';
+
+  @override
+  String get supportNoConversationsBody =>
+      'Ukitutumia ujumbe utaonekana hapa, pamoja na jibu letu.';
+
+  @override
+  String get supportWhatIsThisAbout => 'Hii inahusu nini?';
+
+  @override
+  String get supportAttachmentNotice =>
+      'Mpango wako, toleo la programu na kifaa vimeambatishwa ili tuweze kulichunguza.';
+
+  @override
+  String get supportSendMessage => 'Tuma ujumbe';
+
+  @override
+  String get supportTooManyOpen =>
+      'Tayari una mazungumzo matatu wazi nasi. Jibu kwenye mojawapo nasi tutaendelea hapo.';
+
+  @override
+  String get supportRateLimited =>
+      'Hilo lilitumwa punde tu. Subiri dakika moja kabla ya kuanzisha mazungumzo mengine.';
+
+  @override
+  String get supportFeedbackCrossLink =>
+      'Unahitaji jibu? Wasiliana na msaada badala yake';
+
+  @override
+  String get supportFeedbackVsSupport =>
+      'Maoni huenda upande mmoja. Wasiliana na msaada unapohitaji jibu.';
+
+  @override
+  String get supportConversation => 'Mazungumzo';
+
+  @override
+  String get supportAllConversations => 'Mazungumzo yote';
+
+  @override
+  String get supportThreadLoadFailed =>
+      'Mazungumzo haya hayakuweza kufunguliwa.';
+
+  @override
+  String get supportThreadNotSynced =>
+      'Mazungumzo haya bado hayajafika kwenye kifaa hiki.';
+
+  @override
+  String get supportThreadNotSyncedBody =>
+      'Yataonekana pindi eneo lako la kazi litakapomaliza kusawazisha.';
+
+  @override
+  String get supportSending => 'Inatuma…';
+
+  @override
+  String get supportNotSent => 'Haijatumwa';
+
+  @override
+  String get supportUnsentOnThread => 'Ujumbe mmoja hapa haujatumwa.';
+
+  @override
+  String get supportClosedLandlord =>
+      'Mazungumzo haya yamefungwa. Anzisha mengine nasi tutaendelea kutoka hapo.';
+
+  @override
+  String get supportClosedAgent =>
+      'Mazungumzo haya yamefungwa. Mwenye nyumba anaweza kuanzisha mengine.';
+
+  @override
+  String get supportStatusSent => 'Imetumwa';
+
+  @override
+  String get supportStatusLookingInto => 'Nyumba inalichunguza';
+
+  @override
+  String get supportStatusNeedsYou => 'Inakuhitaji';
+
+  @override
+  String get supportStatusResolved => 'Imetatuliwa';
+
+  @override
+  String get supportStatusClosed => 'Imefungwa';
+
+  @override
+  String get supportStatusNew => 'Mpya';
+
+  @override
+  String get supportStatusInProgress => 'Inaendelea';
+
+  @override
+  String get supportStatusAwaitingLandlord => 'Inasubiri mwenye nyumba';
+
+  @override
+  String get supportActionMarkInProgress => 'Weka kuwa inaendelea';
+
+  @override
+  String get supportActionMarkResolved => 'Weka kuwa imetatuliwa';
+
+  @override
+  String get supportActionClose => 'Funga';
+
+  @override
+  String get supportActionSorted => 'Hili limekwisha';
+
+  @override
+  String get supportActionReopen => 'Fungua tena';
+
+  @override
+  String get supportCategoryBilling => 'Malipo na usajili';
+
+  @override
+  String get supportCategoryPayments => 'Malipo na risiti';
+
+  @override
+  String get supportCategoryTenants => 'Wapangaji na mikataba';
+
+  @override
+  String get supportCategoryListings => 'Matangazo';
+
+  @override
+  String get supportCategoryAccount => 'Akaunti na ufikiaji';
+
+  @override
+  String get supportCategoryOther => 'Jambo lingine';
+
+  @override
+  String get supportCategoryBillingShort => 'Usajili';
+
+  @override
+  String get supportCategoryPaymentsShort => 'Malipo';
+
+  @override
+  String get supportCategoryTenantsShort => 'Wapangaji';
+
+  @override
+  String get supportCategoryListingsShort => 'Matangazo';
+
+  @override
+  String get supportCategoryAccountShort => 'Akaunti';
+
+  @override
+  String get supportCategoryOtherShort => 'Lingine';
+
+  @override
+  String get supportQueueDescription =>
+      'Mazungumzo na wenye nyumba. Kujibu kunasogeza tikiti mbele, hivyo foleni inabaki sahihi bila mtu kuweka hali.';
+
+  @override
+  String get supportQueueLoadFailed => 'Foleni ya msaada haikuweza kupakiwa.';
+
+  @override
+  String get supportQueueNeedsReply => 'Inahitaji jibu';
+
+  @override
+  String get supportQueueOpen => 'Wazi';
+
+  @override
+  String get supportQueueAll => 'Zote';
+
+  @override
+  String get supportQueueBackToQueue => 'Rudi kwenye foleni';
+
+  @override
+  String get supportQueueNothingWaiting => 'Hakuna kinachosubiri';
+
+  @override
+  String get supportQueueNothingWaitingBody =>
+      'Hakuna mazungumzo yanayolingana na kichujio hiki.';
+
+  @override
+  String get supportQueuePickOne => 'Chagua mazungumzo';
+
+  @override
+  String get supportQueuePickOneBody =>
+      'Chagua tikiti kutoka kwenye foleni ili kuisoma na kuijibu.';
+
+  @override
+  String get supportQueueNeverAnswered => 'Haijawahi kujibiwa';
+
+  @override
+  String get supportQueueUnnamedLandlord => 'Mwenye nyumba asiye na jina';
+
+  @override
+  String get supportFaqSubscriptionPendingQ =>
+      'Kwa nini usajili wangu bado unasema unasubiri?';
+
+  @override
+  String get supportFaqSubscriptionPendingA =>
+      'Malipo uliyotuma kwa pesa za simu au taslimu yanathibitishwa na timu ya Nyumba, si kiotomatiki. Hilo hufanyika siku hiyo hiyo ya kazi. Eneo lako la kazi hufunguka mara tu linapothibitishwa — hakuna kinachopotea wakati huo.';
+
+  @override
+  String get supportFaqCashPaymentQ =>
+      'Mpangaji wangu alilipa taslimu. Ninairekodije?';
+
+  @override
+  String get supportFaqCashPaymentA =>
+      'Fungua Fedha, chagua Rekodi malipo, kisha chagua mpangaji na kipindi kinachohusika. Nyumba hutengeneza risiti na mpangaji anaiona kwenye tovuti yake mara moja.';
+
+  @override
+  String get supportFaqDeclaredPaymentQ =>
+      'Mpangaji wangu anasema malipo aliyoripoti bado yanasubiri.';
+
+  @override
+  String get supportFaqDeclaredPaymentA =>
+      'Malipo anayoripoti mpangaji ni dai hadi uyathibitishe, hivyo salio lake halibadiliki kwa maneno yake tu. Fungua Fedha ili kuyathibitisha au kuyakataa — anaarifiwa vyovyote vile.';
+
+  @override
+  String get supportFaqTenantSignInQ => 'Mpangaji wangu hawezi kuingia.';
+
+  @override
+  String get supportFaqTenantSignInA =>
+      'Mpangaji hufika kwenye tovuti yake kwa kukubali mwaliko uliotuma kwa barua pepe au simu yake. Kama mwaliko huo haukufunguliwa, utume tena kutoka ukurasa wa mpangaji. Hawezi kujitengenezea akaunti.';
+
+  @override
+  String get supportFaqListingLifetimeQ => 'Tangazo hudumu kwa muda gani?';
+
+  @override
+  String get supportFaqListingLifetimeA =>
+      'Siku thelathini. Unaonywa kabla halijaisha na unaweza kulihuisha kwa mguso mmoja, jambo linaloanzisha siku thelathini mpya bila kuandika tangazo upya.';
+
+  @override
+  String get supportFaqPublishFailedQ =>
+      'Kwa nini tangazo langu halichapishwi?';
+
+  @override
+  String get supportFaqPublishFailedA =>
+      'Tangazo la hadharani linahitaji angalau picha moja ya nafasi inayopangishwa na chumba kinachopatikana kweli. Picha zilizo kwenye rekodi ya jengo ni za faragha na hazitumiki kamwe kwenye tangazo.';
+
+  @override
+  String get supportFaqAddTeamQ => 'Ninamwongezaje mtu kwenye timu yangu?';
+
+  @override
+  String get supportFaqAddTeamA =>
+      'Fungua Timu na umwalike kwa barua pepe. Wewe huchagua hasa anachoweza kufikia — mtunzaji anayeshughulikia matengenezo haoni fedha zako.';
+
+  @override
+  String get supportFaqPhotoUploadQ => 'Picha zangu zilishindwa kupakiwa.';
+
+  @override
+  String get supportFaqPhotoUploadA =>
+      'Picha hupakiwa pindi kifaa chako kitakapopata mtandao, hivyo muunganisho hafifu huchelewesha badala ya kupoteza. Kama moja inaendelea kushindwa, mara nyingi imezidi kikomo cha MB 5 — ipige upya kwa ukubwa mdogo.';
+
+  @override
   String get listYourSpace => 'Orodhesha nafasi yako';
 
   @override
@@ -3910,4 +4194,111 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get noHomesListedMessage =>
       'Wamiliki huongeza nafasi mpya mara kwa mara - rudi baadaye.';
+
+  @override
+  String get locationOnMap => 'Mahali kwenye ramani';
+
+  @override
+  String get setLocationOnMap => 'Weka mahali kwenye ramani';
+
+  @override
+  String get changeLocation => 'Badilisha mahali';
+
+  @override
+  String get removeLocation => 'Ondoa mahali';
+
+  @override
+  String get noLocationSet => 'Hakuna mahali palipowekwa';
+
+  @override
+  String get locationHelpsTenantsFindYou =>
+      'Wapangaji hutumia hii kuona eneo na kupata maelekezo.';
+
+  @override
+  String get pinTheLocation => 'Weka alama ya mahali';
+
+  @override
+  String get dragMapToPosition => 'Vuta ramani ili alama iwe juu ya nyumba.';
+
+  @override
+  String get useMyCurrentLocation => 'Tumia mahali nilipo sasa';
+
+  @override
+  String get findingYourLocation => 'Inatafuta mahali ulipo…';
+
+  @override
+  String get locationPermissionDenied =>
+      'Nyumba inahitaji ruhusa ya mahali ili kujua ulipo.';
+
+  @override
+  String get locationUnavailable =>
+      'Mahali ulipo hapakupatikana. Sogeza ramani badala yake.';
+
+  @override
+  String get confirmLocation => 'Thibitisha mahali';
+
+  @override
+  String get mapUnavailableTitle => 'Ramani haipatikani katika toleo hili';
+
+  @override
+  String get mapUnavailableMessage =>
+      'Bado unaweza kunasa mahali ukiwa kwenye nyumba.';
+
+  @override
+  String get locationCapturedOffMap => 'Mahali pamenaswa';
+
+  @override
+  String tenantsSeeApproximateArea(int metres) {
+    return 'Wapangaji huona duara hili, takriban mita $metres kwa upana — si lango lako.';
+  }
+
+  @override
+  String get publishedLocationIsApproximate =>
+      'Mahali palipochapishwa ni pa takriban';
+
+  @override
+  String get whereYouWillLive => 'Mahali utakapoishi';
+
+  @override
+  String get getDirections => 'Pata maelekezo';
+
+  @override
+  String approximateLocationIn(String area) {
+    return 'Mahali pa takriban katika $area';
+  }
+
+  @override
+  String get exactAddressSharedByLandlord =>
+      'Mwenye nyumba hushiriki anwani kamili mkishawasiliana.';
+
+  @override
+  String get mapUnavailableOffline =>
+      'Ramani itaonekana utakaporudi mtandaoni.';
+
+  @override
+  String get searchThisArea => 'Tafuta eneo hili';
+
+  @override
+  String homesNotOnMap(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Nyumba $count haziko kwenye ramani',
+      one: 'Nyumba 1 haiko kwenye ramani',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mapView => 'Ramani';
+
+  @override
+  String get listView => 'Orodha';
+
+  @override
+  String get nearestToMe => 'Zilizo karibu nami';
+
+  @override
+  String get couldNotOpenMapsApp =>
+      'Hakuna programu ya ramani inayoweza kufungua maelekezo.';
 }

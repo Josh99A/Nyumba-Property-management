@@ -189,7 +189,7 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
             (document) => RemoteRecord(
               entityType: entityType,
               id: document.id,
-              data: _toLocalShape(
+              data: toLocalShape(
                 entityType,
                 document.id,
                 document.data(),
@@ -205,7 +205,7 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
   ///
   /// Only the types listed here are safe for a landlord to pull. Everything
   /// else throws below rather than defaulting to the canonical collection:
-  /// `_toLocalShape` translates only what it names, so an unlisted type would
+  /// [toLocalShape] translates only what it names, so an unlisted type would
   /// land raw server JSON in the local store and its mapper would throw on the
   /// next read — a crash on a screen far from this decision.
   static LandlordReadSource landlordReadSource(
@@ -215,7 +215,11 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     OfflineEntityType.property ||
     OfflineEntityType.unit ||
     OfflineEntityType.listing ||
-    OfflineEntityType.staffInvite => LandlordReadSource.canonicalCollection,
+    OfflineEntityType.staffInvite ||
+    // Greenfield on both sides: the Firestore document `supportOpen` writes and
+    // `SupportTicketMapper` reads were designed together, in one change, so the
+    // canonical shape *is* what the mapper expects and no projection is needed.
+    OfflineEntityType.supportTicket => LandlordReadSource.canonicalCollection,
     // Joined read models: no single collection can rebuild these.
     OfflineEntityType.tenancy ||
     OfflineEntityType.payment ||
@@ -262,7 +266,7 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
           (document) => RemoteRecord(
             entityType: OfflineEntityType.publicReview,
             id: document.id,
-            data: _toLocalShape(
+            data: toLocalShape(
               OfflineEntityType.publicReview,
               document.id,
               document.data(),
@@ -290,6 +294,10 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     // both to platform admins alone.
     OfflineEntityType.landlordReview => 'landlordReviews',
     OfflineEntityType.platformFeedback => 'platformFeedback',
+    // Read in both scopes: filtered by `landlordId` for the owner, unfiltered
+    // for the administrative queue. Firestore Rules open it to exactly those
+    // two readers and to nobody else — not even to the owner's staff.
+    OfflineEntityType.supportTicket => 'supportTickets',
     _ => throw ArgumentError('No landlord collection for ${type.name}.'),
   };
 
@@ -313,7 +321,13 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     _ => throw ArgumentError('No client projection for ${type.name}.'),
   };
 
-  static Map<String, Object?> _toLocalShape(
+  /// Translates one server document into the shape the client's mapper reads.
+  ///
+  /// Public rather than private so the shape contract can be asserted directly
+  /// — nothing type-checks across Dart and TypeScript, so a test against this
+  /// function is the only thing that catches the server and the mapper drifting
+  /// apart. See `test/features/listing_projection_test.dart`.
+  static Map<String, Object?> toLocalShape(
     OfflineEntityType type,
     String id,
     Map<String, dynamic> source, {
@@ -340,6 +354,12 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
       result['imageUrls'] = propertyImageReferencesFromRemote(
         result,
       ).take(NyumbaMarket.maxPropertyPhotos).toList(growable: false);
+      _flattenPin(
+        result,
+        field: 'location',
+        latitudeKey: 'latitude',
+        longitudeKey: 'longitude',
+      );
     }
     if (type == OfflineEntityType.listing ||
         type == OfflineEntityType.publicListing) {
@@ -351,6 +371,12 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
       ).take(NyumbaMarket.maxListingPhotos).toList(growable: false);
       result['publicContactToken'] =
           result['landlordToken'] ?? result['publicContactToken'];
+      _flattenPin(
+        result,
+        field: 'approximateLocation',
+        latitudeKey: 'approximateLatitude',
+        longitudeKey: 'approximateLongitude',
+      );
       if (publicOnly) {
         final opaque = result['landlordToken']?.toString() ?? 'public';
         result['unitId'] = 'public_unit_$id';
@@ -360,6 +386,46 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     }
     return result;
   }
+
+  /// Rewrites the server's nested map pin as the two flat scalars the client's
+  /// aggregates carry.
+  ///
+  /// The server nests the pin ([field]); `Property` and `Listing` each hold two
+  /// doubles. Without this translation the coordinate survived only on the
+  /// device that authored it — every pull silently dropped it, so a map
+  /// rendered empty for everyone else.
+  ///
+  /// Both key spellings are accepted on purpose: `{lat, lng}` is what the
+  /// command handlers write today, and `{latitude, longitude}` is what
+  /// [_normalize] produces from a Firestore `GeoPoint`, so migrating the field
+  /// to a real GeoPoint later cannot quietly break this again.
+  static void _flattenPin(
+    Map<String, Object?> record, {
+    required String field,
+    required String latitudeKey,
+    required String longitudeKey,
+  }) {
+    final pin = record[field];
+    if (pin is! Map) return;
+    final latitude = _coordinate(pin['lat'] ?? pin['latitude']);
+    final longitude = _coordinate(pin['lng'] ?? pin['longitude']);
+    // Both or neither: a lone axis cannot be placed on a map, and the
+    // aggregates validate the two independently, so a half-written pair would
+    // decode cleanly and then render nothing.
+    if (latitude == null || longitude == null) return;
+    record[latitudeKey] = latitude;
+    record[longitudeKey] = longitude;
+  }
+
+  /// A coordinate axis, or null for anything that cannot be placed on a map.
+  ///
+  /// Lenient about the numeric type because JSON gives back an `int` for a
+  /// whole-number coordinate, and strict about finiteness because a NaN would
+  /// pass the aggregate's range check and then poison the map camera.
+  static double? _coordinate(Object? value) => switch (value) {
+    num() when value.isFinite => value.toDouble(),
+    _ => null,
+  };
 
   static Object? _normalize(Object? value) => switch (value) {
     Timestamp() => value.toDate().toUtc().toIso8601String(),

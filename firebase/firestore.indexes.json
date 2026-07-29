@@ -236,6 +236,22 @@
         { "fieldPath": "kind", "order": "ASCENDING" },
         { "fieldPath": "submittedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "supportTickets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "landlordId", "order": "ASCENDING" },
+        { "fieldPath": "isTerminal", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "supportTickets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "landlordId", "order": "ASCENDING" },
+        { "fieldPath": "lastMessageAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [
@@ -262,6 +278,11 @@
     {
       "collectionGroup": "auditLogs",
       "fieldPath": "redactedDiff",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "supportTickets",
+      "fieldPath": "messages",
       "indexes": []
     }
   ]

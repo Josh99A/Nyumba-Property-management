@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
+import 'package:nyumba_property_management/core/offline/offline_entity.dart';
+import 'package:nyumba_property_management/core/offline/remote_pull_gateway.dart';
 import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
 import 'package:nyumba_property_management/features/marketplace/data/sembast_listing_repository.dart';
 import 'package:nyumba_property_management/features/marketplace/data/mappers/listing_mapper.dart';
@@ -197,6 +199,126 @@ void main() {
     ]) {
       expect(projection, isNot(contains(privateField)));
     }
+  });
+
+  group('a pulled listing keeps its map pin', () {
+    /// A `publicListings/{id}` document as `listingPublish` in
+    /// firebase/functions/src/commands/listings.ts writes it, after
+    /// FirestoreRemotePullGateway has normalized Timestamps to ISO strings.
+    ///
+    /// Hand-written for the same reason as the landlord projection fixtures:
+    /// the point is to fail when the TypeScript writer and the Dart reader
+    /// drift apart, which a fixture derived from either side could not do.
+    Map<String, dynamic> publishedDocument() => <String, dynamic>{
+      'version': 4,
+      'title': 'Two-bedroom apartment in Ntinda',
+      'description': 'Bright apartment with reliable water.',
+      'monthlyRentMinor': 150000000,
+      'currency': 'UGX',
+      'unitType': 'apartment',
+      'city': 'Kampala',
+      'neighborhood': 'Ntinda',
+      'district': 'Kampala',
+      'bedrooms': 2,
+      'bathrooms': 2,
+      'amenities': <String>['Backup water'],
+      'approximateLocation': <String, Object?>{'lat': 0.357, 'lng': 32.612},
+      'landlordToken': 'opaque-landlord-token',
+      'imagePaths': <String>['public/listings/listing-1/0-abc-full.webp'],
+      'status': 'published',
+      'publishedAt': '2026-07-14T00:00:00.000Z',
+      'expiresAt': '2026-08-13T00:00:00.000Z',
+      'createdAt': '2026-07-14T00:00:00.000Z',
+      'updatedAt': '2026-07-14T00:00:00.000Z',
+      'isDeleted': false,
+    };
+
+    Map<String, Object?> shape(Map<String, dynamic> document) =>
+        FirestoreRemotePullGateway.toLocalShape(
+          OfflineEntityType.publicListing,
+          'listing-1',
+          document,
+          publicOnly: true,
+        );
+
+    // The regression this group exists for. The server nests the pin under
+    // `approximateLocation`; the aggregate reads two flat scalars. While those
+    // two disagreed the coordinate survived only on the device that authored
+    // it, so every other device saw a listing with no location at all.
+    test('the nested server location becomes the flat client scalars', () {
+      final shaped = shape(publishedDocument());
+
+      expect(shaped['approximateLatitude'], 0.357);
+      expect(shaped['approximateLongitude'], 32.612);
+    });
+
+    test('a pulled listing decodes with its coordinates intact', () {
+      final shaped = shape(publishedDocument())
+        ..['syncMetadata'] = SyncMetadataMapper.toJson(
+          SyncMetadata.synced(
+            serverRevision: '4',
+            lastSyncedAt: DateTime.utc(2026, 7, 14),
+          ),
+        );
+
+      final listing = ListingMapper.fromJson(shaped);
+
+      expect(listing.approximateLatitude, 0.357);
+      expect(listing.approximateLongitude, 32.612);
+      expect(listing.neighborhood, 'Ntinda');
+    });
+
+    // Guards the migration path: if the field ever becomes a real Firestore
+    // GeoPoint, `_normalize` hands back these key names instead.
+    test('a normalized GeoPoint is read the same way', () {
+      final shaped = shape(
+        publishedDocument()
+          ..['approximateLocation'] = <String, Object?>{
+            'latitude': 0.357,
+            'longitude': 32.612,
+          },
+      );
+
+      expect(shaped['approximateLatitude'], 0.357);
+      expect(shaped['approximateLongitude'], 32.612);
+    });
+
+    test('a whole-number coordinate survives JSON integer typing', () {
+      final shaped = shape(
+        publishedDocument()
+          ..['approximateLocation'] = <String, Object?>{'lat': 0, 'lng': 32},
+      );
+
+      // Type-sensitive on purpose: `0 == 0.0` in Dart, so a value assertion
+      // alone would pass on an unconverted int and the mapper's
+      // `optionalDouble` would then reject it at decode time.
+      expect(shaped['approximateLatitude'], isA<double>());
+      expect(shaped['approximateLongitude'], isA<double>());
+      expect(shaped['approximateLatitude'], 0.0);
+      expect(shaped['approximateLongitude'], 32.0);
+    });
+
+    // `listingPublish` writes an explicit null when the landlord never set a
+    // pin, so this is the ordinary case today, not an edge case.
+    test('a listing with no pin decodes without one', () {
+      final shaped = shape(publishedDocument()..['approximateLocation'] = null)
+        ..['syncMetadata'] = SyncMetadataMapper.toJson(
+          const SyncMetadata.pending(),
+        );
+
+      expect(shaped, isNot(contains('approximateLatitude')));
+      expect(ListingMapper.fromJson(shaped).approximateLatitude, isNull);
+    });
+
+    test('a half-written pair is dropped rather than half-applied', () {
+      final shaped = shape(
+        publishedDocument()
+          ..['approximateLocation'] = <String, Object?>{'lat': 0.357},
+      );
+
+      expect(shaped, isNot(contains('approximateLatitude')));
+      expect(shaped, isNot(contains('approximateLongitude')));
+    });
   });
 
   test('public projection decodes with an opaque contact token', () {

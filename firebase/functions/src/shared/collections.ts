@@ -43,6 +43,12 @@ export const COLLECTIONS = {
   publicLandlordRatings: 'publicLandlordRatings',
   /** Landlord-to-Nyumba product feedback. Never public, never reciprocal. */
   platformFeedback: 'platformFeedback',
+  /**
+   * Landlord ↔ Nyumba support conversations. Unlike `platformFeedback`, the
+   * landlord reads these back: a support thread is their own record of a
+   * conversation, with a status and a reply they are waiting on.
+   */
+  supportTickets: 'supportTickets',
 } as const;
 
 export const TENANT_PORTAL_SECTIONS = {

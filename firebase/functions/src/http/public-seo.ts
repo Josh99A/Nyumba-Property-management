@@ -1,4 +1,24 @@
 import { APP_ORIGIN, MAX_LISTING_PHOTOS } from '../shared/config';
+import {
+  listingMapPath,
+  publicMapCoordinates,
+  type MapCoordinates,
+} from './static-map';
+
+/**
+ * A directions hand-off to the reader's own maps app.
+ *
+ * Built from the coarsened public coordinate, which is what the page itself
+ * shows. Free, and better than an embedded map: it arrives with the reader's
+ * traffic data, saved places, and offline maps.
+ */
+function directionsUrl(centre: MapCoordinates): string {
+  const parameters = new URLSearchParams({
+    api: '1',
+    destination: `${centre.lat},${centre.lng}`,
+  });
+  return `https://www.google.com/maps/dir/?${parameters.toString()}`;
+}
 
 export interface PublicSeoListing {
   id: string;
@@ -14,6 +34,15 @@ export interface PublicSeoListing {
   bathrooms?: number;
   amenities: string[];
   imageCount: number;
+  /**
+   * The map pin, already coarsened to three decimal places (~110 m) by
+   * `listingPublish` before it was written to `publicListings`.
+   *
+   * This is the only geographic precision that may leave the server. The
+   * canonical listing's exact pin and the property's `addressLine` are private
+   * and must never reach this interface, the HTML, or the structured data.
+   */
+  approximateLocation?: { lat: number; lng: number };
   /**
    * Landlord reputation, denormalized onto the listing by the review pipeline.
    *
@@ -52,6 +81,22 @@ function stringValue(value: unknown, maximumLength: number): string | null {
 
 function optionalString(value: unknown, maximumLength: number): string | undefined {
   return stringValue(value, maximumLength) ?? undefined;
+}
+
+/**
+ * The coarsened map pin, or undefined for anything not plottable.
+ *
+ * Re-validated here rather than trusted: this parser is the boundary between a
+ * Firestore document and public HTML, and a malformed pair must degrade to "no
+ * map" instead of emitting structured data a crawler would reject. The bounds
+ * match the aggregate's own coordinate validation.
+ */
+function approximateLocationValue(
+  value: unknown,
+): { lat: number; lng: number } | undefined {
+  // One validator, shared with the route that renders the image, so the HTML
+  // and the map can never disagree about which pins are plottable.
+  return publicMapCoordinates(value) ?? undefined;
 }
 
 function currencyValue(value: unknown): string | null {
@@ -167,6 +212,7 @@ export function toPublicSeoListing(
   const publishedAt = dateValue(data.publishedAt) ?? undefined;
   const updatedAt = dateValue(data.updatedAt) ?? undefined;
   const imageCount = publicListingImagePaths(documentId, data.imagePaths).length;
+  const approximateLocation = approximateLocationValue(data.approximateLocation);
   const ratingCount = nonNegativeInteger(data.ratingCount);
   const rawAverage = data.ratingAverage;
   const ratingAverage = typeof rawAverage === 'number'
@@ -189,6 +235,7 @@ export function toPublicSeoListing(
     ...(bathrooms !== undefined ? { bathrooms } : {}),
     amenities: stringList(data.amenities, 50),
     imageCount,
+    ...(approximateLocation ? { approximateLocation } : {}),
     ...(ratingAverage !== undefined ? { ratingAverage } : {}),
     ...(ratingCount !== undefined ? { ratingCount } : {}),
     ...(publishedAt ? { publishedAt } : {}),
@@ -406,6 +453,9 @@ function page({
     .seo-section h2 { margin:0 0 14px; color:var(--navy); font-size:1.25rem; }
     .seo-chips { display:flex; flex-wrap:wrap; gap:10px; margin:0; padding:0; list-style:none; }
     .seo-chip { border-radius:999px; background:var(--sage-soft); padding:8px 13px; color:#365540; font-size:.9rem; font-weight:700; }
+    /* Intrinsic width/height are on the element too, so the space is reserved
+       before the image arrives and the copy below it never jumps. */
+    .seo-map { width:100%; height:auto; aspect-ratio:2/1; object-fit:cover; border-radius:14px; margin-bottom:14px; background:var(--sage-soft); }
     .seo-cta { width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:34px; padding:17px 20px; border-radius:14px; color:var(--white); background:var(--navy); box-shadow:0 12px 30px rgba(18,58,111,.2); text-decoration:none; font-weight:800; transition:transform .2s ease,background .2s ease; }
     .seo-cta:hover { transform:translateY(-2px); background:var(--navy-deep); }
     .seo-footer { border-top:1px solid var(--line); padding:30px 24px; background:var(--ivory); text-align:center; color:var(--muted); font-size:.9rem; }
@@ -503,15 +553,18 @@ export function renderExplorePage(listings: PublicSeoListing[]): string {
     title: 'Rental Homes in Uganda | Nyumba',
     description: DEFAULT_DESCRIPTION,
     canonicalPath: '/explore',
-    socialImagePath:
-      '/assets/assets/listings/generated-modern-apartment-exterior.png',
+    // A dedicated 1200x630 JPEG rather than the hero image itself: the hero is
+    // WebP, which WhatsApp — the way a Ugandan renter actually shares a link —
+    // will not render as a preview, and it carries the wrong aspect for a
+    // social card besides.
+    socialImagePath: '/assets/assets/listings/nyumba-social-card.jpg',
     body: `<section class="seo-hero"><div class="seo-hero-inner">
         <div class="seo-hero-copy">
           <h1>Find a place that feels like home.</h1>
           <p>Browse verified available rental spaces and contact landlords directly.</p>
         </div>
         <div class="seo-hero-media">
-          <img src="/assets/assets/listings/generated-modern-apartment-exterior.png" alt="">
+          <img src="/assets/assets/listings/generated-modern-apartment-exterior.webp" alt="">
         </div>
       </div></section>${cards}`,
     structuredData: {
@@ -597,6 +650,17 @@ export function renderListingPage(listing: PublicSeoListing): string {
     : `<section class="seo-section"><h2>Amenities</h2><ul class="seo-chips">${listing.amenities
       .map((amenity) => `<li class="seo-chip">${escapeHtml(amenity)}</li>`)
       .join('')}</ul></section>`;
+  // Rendered only when the landlord placed a pin. The image is a first-party
+  // path that re-checks the public invariant itself, and the directions link
+  // hands off to whatever maps app the reader already has — both work with no
+  // JavaScript, which is the whole point of this page.
+  const locationSection = listing.approximateLocation === undefined
+    ? ''
+    : `<section class="seo-section"><h2>Where you will live</h2>
+        <img class="seo-map" src="${listingMapPath(listing.id)}" alt="Map of the area around ${escapeHtml(location)}" loading="lazy" width="640" height="320">
+        <p class="seo-copy">Approximate location in ${escapeHtml(location)}. The exact address is shared by the landlord.</p>
+        <a class="seo-cta" href="${escapeHtml(directionsUrl(listing.approximateLocation))}" rel="noopener nofollow" target="_blank"><span>Get directions</span>${arrowIcon}</a>
+      </section>`;
 
   return page({
     title: pageTitle,
@@ -617,6 +681,7 @@ export function renderListingPage(listing: PublicSeoListing): string {
           <ul class="seo-facts">${facts.map((fact) => `<li>${fact.icon}<span>${escapeHtml(fact.label)}</span></li>`).join('')}</ul>
           <section class="seo-section"><h2>About this home</h2><p class="seo-copy">${escapeHtml(listing.description)}</p></section>
           ${amenities}
+          ${locationSection}
           <a class="seo-cta" href="${path}#contact"><span>Contact landlord</span>${arrowIcon}</a>
         </article>
       </div>
@@ -678,6 +743,20 @@ export function renderListingPage(listing: PublicSeoListing): string {
               addressLocality: listing.city,
               addressRegion: listing.district ?? listing.neighborhood,
             },
+            // Emitted only when the landlord actually placed a pin. The value
+            // is the coarsened one from the public projection, which is what
+            // the page itself shows — structured data must describe the
+            // visible page, and a precise coordinate would describe neither
+            // the page nor anything we are willing to publish.
+            ...(listing.approximateLocation
+              ? {
+                geo: {
+                  '@type': 'GeoCoordinates',
+                  latitude: listing.approximateLocation.lat,
+                  longitude: listing.approximateLocation.lng,
+                },
+              }
+              : {}),
             amenityFeature: listing.amenities.map((amenity) => ({
               '@type': 'LocationFeatureSpecification',
               name: amenity,

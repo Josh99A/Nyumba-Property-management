@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/domain/coordinates.dart';
 import '../../../core/domain/domain_exception.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/config/market_config.dart';
@@ -18,6 +19,7 @@ import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
+import '../../../core/presentation/location_picker.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/photo_editor_field.dart';
 import '../../../core/presentation/responsive.dart';
@@ -517,15 +519,17 @@ class _LandlordListingsScreenState
   /// instead of describing the queue. Publishing pushes immediately, so with a
   /// live link the only honest promise is "in a moment"; without one, the
   /// useful thing to say is what has to happen first.
-  String _publishConfirmation(Listing listing) =>
-      switch (ref.read(cloudStatusProvider).value) {
-        CloudStatus.local =>
-          'Saved on this device. Adverts go public only once this app is connected to the server.',
-        CloudStatus.failed || CloudStatus.connecting || null =>
-          '${listing.title} goes live as soon as you are back online.',
-        CloudStatus.live =>
-          'Publishing ${listing.title} now — the card shows Published the moment tenants can see it.',
-      };
+  String _publishConfirmation(Listing listing) => switch (ref
+      .read(cloudStatusProvider)
+      .value) {
+    CloudStatus.local =>
+      'Saved on this device. Adverts go public only once this app is connected to the server.',
+    CloudStatus.failed ||
+    CloudStatus.connecting ||
+    null => '${listing.title} goes live as soon as you are back online.',
+    CloudStatus.live =>
+      'Publishing ${listing.title} now — the card shows Published the moment tenants can see it.',
+  };
 
   Future<void> _editListing(Listing listing) async {
     final formKey = GlobalKey<FormState>();
@@ -723,7 +727,9 @@ class _LandlordListingsScreenState
     } on Object catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text.localized('Could not unpublish: ${_reason(error)}')),
+        SnackBar(
+          content: Text.localized('Could not unpublish: ${_reason(error)}'),
+        ),
       );
     }
   }
@@ -1155,36 +1161,20 @@ class _ListingFields {
       ],
     ),
     const SizedBox(height: 14),
-    Row(
-      children: [
-        Expanded(
-          child: TextFormField(
-            controller: latitude,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-              signed: true,
-            ),
-            decoration: InputDecoration(
-              labelText: context.tr('Approx. latitude (optional)'),
-            ),
-            validator: (value) => _optionalLatitudeValidator(context, value),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: TextFormField(
-            controller: longitude,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-              signed: true,
-            ),
-            decoration: InputDecoration(
-              labelText: context.tr('Approx. longitude (optional)'),
-            ),
-            validator: (value) => _optionalLongitudeValidator(context, value),
-          ),
-        ),
-      ],
+    // Was a pair of raw decimal text boxes. The controllers remain the storage
+    // so nothing downstream had to change, but a landlord now places the point
+    // on a map instead of being asked to type a coordinate — which is why the
+    // field was empty on essentially every advert.
+    LocationPickerField(
+      value: Coordinates.tryFrom(
+        _optionalDouble(latitude.text),
+        _optionalDouble(longitude.text),
+      ),
+      showPublicPrivacyNotice: true,
+      onChanged: (picked) => setDialogState(() {
+        latitude.text = picked?.latitude.toString() ?? '';
+        longitude.text = picked?.longitude.toString() ?? '';
+      }),
     ),
     const SizedBox(height: 14),
     AsyncActionButton.outlined(
@@ -1431,26 +1421,6 @@ String? _optionalNonNegativeIntegerValidator(
   final number = int.tryParse(normalized);
   return number == null || number < 0
       ? context.tr('Enter zero or a positive number')
-      : null;
-}
-
-String? _optionalLatitudeValidator(BuildContext context, String? value) =>
-    _optionalCoordinateValidator(context, value, -90, 90);
-
-String? _optionalLongitudeValidator(BuildContext context, String? value) =>
-    _optionalCoordinateValidator(context, value, -180, 180);
-
-String? _optionalCoordinateValidator(
-  BuildContext context,
-  String? value,
-  double minimum,
-  double maximum,
-) {
-  final normalized = value?.trim() ?? '';
-  if (normalized.isEmpty) return null;
-  final number = double.tryParse(normalized);
-  return number == null || number < minimum || number > maximum
-      ? context.tr('Enter a value from $minimum to $maximum')
       : null;
 }
 

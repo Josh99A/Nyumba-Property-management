@@ -84,58 +84,57 @@ void main() {
     errorReason: errorReason,
   );
 
-  testWidgets('a refused advert says so, gives the reason, and can be retried', (
-    tester,
-  ) async {
-    late _RecordingRetry retry;
-    await _pump(
-      tester,
-      listings: [listing],
-      outbox: [
-        entry(
-          state: OutboxState.permanentlyFailed,
-          attemptCount: 6,
-          lastError: 'VALIDATION_FAILED',
-          errorReason: 'listingMissingPhotos',
+  testWidgets(
+    'a refused advert says so, gives the reason, and can be retried',
+    (tester) async {
+      late _RecordingRetry retry;
+      await _pump(
+        tester,
+        listings: [listing],
+        outbox: [
+          entry(
+            state: OutboxState.permanentlyFailed,
+            attemptCount: 6,
+            lastError: 'VALIDATION_FAILED',
+            errorReason: 'listingMissingPhotos',
+          ),
+        ],
+        overrideRetry: (ref) => retry = _RecordingRetry(ref),
+      );
+
+      // Never "Publishing" — the wait already ended, with a no.
+      expect(find.text('Publishing'), findsNothing);
+      expect(find.text('Not published'), findsOneWidget);
+      // The whole point: what is wrong and how to fix it, never the raw
+      // "VALIDATION_FAILED" the server actually sent.
+      expect(find.textContaining('VALIDATION_FAILED'), findsNothing);
+      expect(
+        find.text(
+          'This advert has no photo of the rental space. Add at least one '
+          'photo, then publish it again.',
         ),
-      ],
-      overrideRetry: (ref) => retry = _RecordingRetry(ref),
-    );
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'One advert did not go through. Open the card marked in red to see '
+          'why and try again.',
+        ),
+        findsOneWidget,
+      );
 
-    // Never "Publishing" — the wait already ended, with a no.
-    expect(find.text('Publishing'), findsNothing);
-    expect(find.text('Not published'), findsOneWidget);
-    // The whole point: what is wrong and how to fix it, never the raw
-    // "VALIDATION_FAILED" the server actually sent.
-    expect(find.textContaining('VALIDATION_FAILED'), findsNothing);
-    expect(
-      find.text(
-        'This advert has no photo of the rental space. Add at least one '
-        'photo, then publish it again.',
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.text(
-        'One advert did not go through. Open the card marked in red to see '
-        'why and try again.',
-      ),
-      findsOneWidget,
-    );
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Try again'));
-    await tester.pumpAndSettle();
-
-    expect(retry.calls, ['mutation-1']);
-  });
+      expect(retry.calls, ['mutation-1']);
+    },
+  );
 
   testWidgets('a refused advert can still be edited', (tester) async {
     await _pump(
       tester,
       listings: [listing],
-      outbox: [
-        entry(state: OutboxState.permanentlyFailed, attemptCount: 6),
-      ],
+      outbox: [entry(state: OutboxState.permanentlyFailed, attemptCount: 6)],
       overrideRetry: _RecordingRetry.new,
     );
 

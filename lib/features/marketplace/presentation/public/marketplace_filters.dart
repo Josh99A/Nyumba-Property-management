@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show listEquals;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart' hide Text, Tooltip;
 
 import '../../../../app/theme/nyumba_colors.dart';
@@ -8,6 +9,7 @@ import '../../../../core/localization/nyumba_localizations.dart';
 import '../../../../core/presentation/responsive.dart';
 import '../../domain/listing.dart';
 import '../listing_visuals.dart';
+import '../../application/visitor_location.dart';
 import 'listing_query.dart';
 
 /// Width below which the three dropdowns stop fitting beside a usable search
@@ -364,6 +366,8 @@ class MarketplaceFilterBar extends SliverPersistentHeaderDelegate {
                         onChanged: onChanged,
                       ),
                       const SizedBox(width: 6),
+                      _ViewToggle(query: query, onChanged: onChanged),
+                      const SizedBox(width: 6),
                       _SortMenuButton(query: query, onChanged: onChanged),
                     ],
                   );
@@ -380,6 +384,8 @@ class MarketplaceFilterBar extends SliverPersistentHeaderDelegate {
                       const SizedBox(width: 10),
                       SizedBox(width: 178, child: field),
                     ],
+                    const SizedBox(width: 10),
+                    _ViewToggle(query: query, onChanged: onChanged),
                     const SizedBox(width: 10),
                     _SortMenuButton(query: query, onChanged: onChanged),
                   ],
@@ -409,14 +415,39 @@ class _SortMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Consumer(builder: (context, ref, _) => _menu(context, ref));
+  }
+
+  Widget _menu(BuildContext context, WidgetRef ref) {
+    final location = ref.watch(visitorLocationProvider);
     return PopupMenuButton<ListingSort>(
       tooltip: context.tr('Sort results'),
       initialValue: query.sort,
       position: PopupMenuPosition.under,
-      onSelected: (sort) => onChanged(query.copyWith(sort: sort)),
+      onSelected: (sort) async {
+        if (!sort.needsOrigin) {
+          onChanged(query.copyWith(sort: sort));
+          return;
+        }
+        // The permission prompt is deferred to exactly here: a marketplace
+        // that asks for a location on arrival gets refused. If the visitor
+        // declines, the controller marks it unavailable and the option
+        // withdraws itself rather than failing again on the next tap.
+        final origin = await ref
+            .read(visitorLocationProvider.notifier)
+            .resolve();
+        // The permission dialog is modal and unbounded in time: the visitor
+        // can dismiss the whole search before answering it. Applying a sort to
+        // a screen that is gone would rebuild a disposed widget.
+        if (!context.mounted) return;
+        onChanged(
+          query.copyWith(sort: origin == null ? ListingSort.newest : sort),
+        );
+      },
       itemBuilder: (context) => [
         for (final order in ListingSort.values)
-          PopupMenuItem(value: order, child: Text.localized(order.label)),
+          if (!order.needsOrigin || location.canOfferNearest)
+            PopupMenuItem(value: order, child: Text.localized(order.label)),
       ],
       child: _BarButtonShell(
         child: Row(
@@ -615,6 +646,100 @@ class ActiveFilterChips extends StatelessWidget {
             child: const Text.localized('Clear all'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The List | Map switch.
+///
+/// A two-state segmented control rather than a button, because the visitor
+/// needs to see which view they are in as much as how to leave it. Placed with
+/// the sort control: both change how the same results are presented, and
+/// neither is a filter.
+class _ViewToggle extends StatelessWidget {
+  const _ViewToggle({required this.query, required this.onChanged});
+
+  final ListingQuery query;
+  final ValueChanged<ListingQuery> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = appLocalizationsOf(context);
+    final isMap = query.view == ListingView.map;
+    return _BarButtonShell(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ViewToggleSegment(
+            icon: Icons.view_list_rounded,
+            label: copy.listView,
+            selected: !isMap,
+            onTap: () => onChanged(query.copyWith(view: ListingView.list)),
+          ),
+          const SizedBox(width: 4),
+          _ViewToggleSegment(
+            icon: Icons.map_outlined,
+            label: copy.mapView,
+            selected: isMap,
+            onTap: () => onChanged(query.copyWith(view: ListingView.map)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ViewToggleSegment extends StatelessWidget {
+  const _ViewToggleSegment({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.nyumba;
+    return Semantics(
+      selected: selected,
+      button: true,
+      label: context.tr(label),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(9),
+        onTap: selected ? null : onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(9),
+            color: selected ? palette.midnightNavy : Colors.transparent,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: selected ? palette.surface : palette.mutedInk,
+              ),
+              if (context.isExpanded) ...[
+                const SizedBox(width: 6),
+                Text.localized(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: selected ? palette.surface : palette.mutedInk,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

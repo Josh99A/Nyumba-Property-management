@@ -12,8 +12,10 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/domain/coordinates.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
+import '../../../core/presentation/location_picker.dart';
 import '../../../core/presentation/operational_actions.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/page_header.dart';
@@ -309,6 +311,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     final address = TextEditingController();
     final city = TextEditingController(text: 'Kampala');
     final description = TextEditingController();
+    Coordinates? location;
     final selectedPhotos = <PickedPropertyPhoto>[];
     // Kept apart on purpose: photos that were rejected are a warning about the
     // selection, while a failure is the save itself refusing. Both used to be
@@ -397,6 +400,14 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                               decoration: InputDecoration(
                                 labelText: context.tr('Description (optional)'),
                               ),
+                            ),
+                            const SizedBox(height: 14),
+                            // Pinned once here, inherited by every advert this
+                            // property's units go on to publish.
+                            LocationPickerField(
+                              value: location,
+                              onChanged: (picked) =>
+                                  setDialogState(() => location = picked),
                             ),
                             const SizedBox(height: 18),
                             Row(
@@ -548,6 +559,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                         addressLine: address.text.trim(),
                         city: city.text.trim(),
                         description: description.text.trim(),
+                        location: location,
                         imageUrls: selectedPhotos
                             .map((photo) => photo.dataUri)
                             .toList(),

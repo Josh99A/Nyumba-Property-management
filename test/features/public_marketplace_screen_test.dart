@@ -87,6 +87,29 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('renders in Luganda, which intl has no number symbols for', (
+      tester,
+    ) async {
+      await _setViewport(tester, const Size(1280, 2400));
+      await tester.pumpWidget(
+        _harness(
+          locale: const Locale('lg'),
+          listings: [_publishedListing(availableFrom: _publishedAt)],
+        ).app,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+
+      // Rent formatting used to be handed the catalogue locale directly, and
+      // NumberFormat throws on a locale CLDR does not carry rather than
+      // falling back — every card on the page became a red error box.
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ListingResultCard), findsWidgets);
+      expect(find.textContaining('UGX 1,500,000'), findsWidgets);
+      // Dates still follow the Luganda names registered at startup.
+      expect(find.textContaining('20 Jul'), findsWidgets);
+    });
+
     testWidgets('no longer advertises offline browsing', (tester) async {
       final copy = await AppLocalizations.delegate.load(const Locale('en'));
       await _setViewport(tester, const Size(1280, 2400));
@@ -364,7 +387,9 @@ Listing _publishedListing({
   String id = 'listing_public_1',
   String title = 'Modern two-bedroom home',
   String neighborhood = 'Ntinda',
+  DateTime? availableFrom,
 }) => Listing(
+  availableFrom: availableFrom,
   id: id,
   unitId: 'unit_1',
   propertyId: 'property_1',

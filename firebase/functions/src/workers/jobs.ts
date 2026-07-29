@@ -39,6 +39,11 @@ import {
   sendStaffInviteEmail,
   sendTenantInviteEmail,
 } from './email';
+import {
+  notifyLandlordSupportReply,
+  notifyLandlordSupportStatus,
+  notifySupportTeam,
+} from './support-notifications';
 import { initiatePayment } from './payment-provider';
 import { sendSubscriptionNoticeEmail } from './subscription-notices';
 import { renderReceipt } from './receipt-render';
@@ -86,6 +91,12 @@ const processors = new Map<string, JobProcessor>([
   ['sendLeaseExpiryEmail', sendLeaseExpiryEmail],
   ['sendListingExpiryWarningEmail', sendListingExpiryWarningEmail],
   ['sendSubscriptionNoticeEmail', sendSubscriptionNoticeEmail],
+  // Support desk. `notifySupportTeam` emails the support mailbox rather than
+  // fanning out to administrators, because admin rights are Auth claims with no
+  // Firestore roster to query — see workers/support-notifications.ts.
+  ['notifySupportTeam', notifySupportTeam],
+  ['notifyLandlordSupportReply', notifyLandlordSupportReply],
+  ['notifyLandlordSupportStatus', notifyLandlordSupportStatus],
 ]);
 
 /** Visible for tests, which assert no command enqueues an unregistered type. */

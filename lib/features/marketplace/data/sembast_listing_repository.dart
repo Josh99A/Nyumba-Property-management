@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_initializing_formals
 
 import 'package:nyumba_property_management/core/domain/clock.dart';
+import 'package:nyumba_property_management/core/domain/coordinates.dart';
 import 'package:nyumba_property_management/core/domain/domain_exception.dart';
 import 'package:nyumba_property_management/core/domain/id_generator.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
@@ -90,6 +91,18 @@ final class SembastListingRepository implements ListingRepository {
     final imageUrls = input.imageUrls.isEmpty
         ? property.imageUrls
         : input.imageUrls;
+    // Same inheritance rule as the gallery: an advert with no pin of its own
+    // starts from where its property is. Pinning a property once is what makes
+    // this feature usable at all — asking a landlord to place a map pin again
+    // for every unit in a block is how a field ends up permanently empty. The
+    // draft owns the copy from here, so moving the property later does not
+    // silently move a live advert, and publication coarsens it regardless.
+    final pin =
+        Coordinates.tryFrom(
+          input.approximateLatitude,
+          input.approximateLongitude,
+        ) ??
+        property.location;
     final listing = Listing(
       id: _idGenerator.generate(),
       unitId: input.unitId,
@@ -114,8 +127,8 @@ final class SembastListingRepository implements ListingRepository {
       city: input.city.trim(),
       district: _optional(input.district),
       neighborhood: _optional(input.neighborhood),
-      approximateLatitude: input.approximateLatitude,
-      approximateLongitude: input.approximateLongitude,
+      approximateLatitude: pin?.latitude,
+      approximateLongitude: pin?.longitude,
       availableFrom: input.availableFrom?.toUtc(),
       minimumLeaseMonths: input.minimumLeaseMonths,
       securityDepositMinor: input.securityDepositMinor,

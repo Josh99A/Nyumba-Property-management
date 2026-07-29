@@ -205,7 +205,7 @@ class MarketplaceHero extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           const _FittedAsset(
-            'assets/listings/generated-modern-apartment-exterior.png',
+            'assets/listings/generated-modern-apartment-exterior.webp',
           ),
           const DecoratedBox(
             decoration: BoxDecoration(

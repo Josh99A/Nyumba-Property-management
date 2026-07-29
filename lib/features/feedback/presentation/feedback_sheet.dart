@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
@@ -254,6 +255,26 @@ class _FreeformSheetState extends ConsumerState<_FreeformSheet> {
                   ),
               ],
             ),
+            // The two categories people pick when they actually want help, not
+            // to tell us something. Sending those into a one-way channel means
+            // waiting for a reply that was never coming, so the other door is
+            // named here rather than left to be discovered.
+            if (_category == PlatformFeedbackCategory.bug ||
+                _category == PlatformFeedbackCategory.support)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: AsyncActionButton(
+                  style: AsyncActionStyle.text,
+                  showBusyIndicator: false,
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    context.go('/support?compose=true');
+                  },
+                  child: const Text.localized(
+                    'Need a reply? Contact support instead',
+                  ),
+                ),
+              ),
             const SizedBox(height: 14),
             TextField(
               controller: _comment,

@@ -47,6 +47,10 @@ const _expectedCommands = <(OfflineEntityType, OutboxOperation), String>{
   (OfflineEntityType.landlordReview, OutboxOperation.create): 'review.submit',
   (OfflineEntityType.platformFeedback, OutboxOperation.create):
       'feedback.submit',
+  // `update` is absent for the same reason as landlordReview above: a support
+  // ticket carries either a reply or a status move, and only the payload's
+  // `pendingAction` says which. Both are pinned further down.
+  (OfflineEntityType.supportTicket, OutboxOperation.create): 'support.open',
 };
 
 /// Aggregates that never enqueue, so the gateway is never asked about them.
@@ -91,7 +95,15 @@ RemoteMutation _mutationFor(
   // Enough of a payload for any mapping to read; absent keys map to null,
   // which is what a real sparse aggregate would produce anyway. Focused
   // payload-contract tests below pass the aggregate fields they exercise.
-  Map<String, Object?> payload = const <String, Object?>{'_expectedVersion': 3},
+  Map<String, Object?> payload = const <String, Object?>{
+    '_expectedVersion': 3,
+    // A support mutation carries its text inside the thread, and the gateway
+    // refuses to build an envelope without one rather than sending an empty
+    // message. Present here so the coverage sweep exercises the real mapping.
+    'messages': <Object?>[
+      <String, Object?>{'id': 'm1', 'body': 'Something is wrong.'},
+    ],
+  },
 }) => RemoteMutation(
   mutationId: 'mutation-1',
   entityType: entityType,
@@ -317,6 +329,103 @@ void main() {
       expect(payload['amountMinor'], 100000);
       expect(payload['method'], 'mtn_momo');
       expect(payload['period'], 'January 2026');
+    });
+
+    test('support.open sends the opening message, not the whole thread', () {
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.supportTicket,
+          OutboxOperation.create,
+          payload: const <String, Object?>{
+            'subject': 'Payment not reconciling',
+            'category': 'billing',
+            'appVersion': '1.4.2+31',
+            'platform': 'android',
+            'pendingAction': 'open',
+            'messages': <Object?>[
+              <String, Object?>{'id': 'm1', 'body': 'My tenant paid on the 3rd.'},
+            ],
+            // Server-derived: the schema is strict, so sending either of these
+            // would be rejected outright rather than ignored.
+            'priority': 'high',
+            'status': 'open',
+          },
+        ),
+      );
+      expect(envelope['type'], 'support.open');
+      expect(envelope['payload'], const <String, Object?>{
+        'subject': 'Payment not reconciling',
+        'category': 'billing',
+        'body': 'My tenant paid on the 3rd.',
+        'appVersion': '1.4.2+31',
+        'platform': 'android',
+      });
+    });
+
+    test('support.reply sends only the newest message', () {
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.supportTicket,
+          OutboxOperation.update,
+          payload: const <String, Object?>{
+            '_expectedVersion': 4,
+            'pendingAction': 'reply',
+            'messages': <Object?>[
+              <String, Object?>{'id': 'm1', 'body': 'My tenant paid on the 3rd.'},
+              <String, Object?>{'id': 'm2', 'body': 'Could you send the ref?'},
+              <String, Object?>{'id': 'm3', 'body': 'Here it is: ABC123.'},
+            ],
+          },
+        ),
+      );
+      expect(envelope['type'], 'support.reply');
+      expect(envelope['expectedVersion'], 4);
+      // Resending the whole thread would append every earlier message again.
+      expect(envelope['payload'], const <String, Object?>{
+        'body': 'Here it is: ABC123.',
+      });
+    });
+
+    test('support.updateStatus carries the target status and note', () {
+      final envelope = gateway.buildEnvelope(
+        _mutationFor(
+          OfflineEntityType.supportTicket,
+          OutboxOperation.update,
+          payload: const <String, Object?>{
+            '_expectedVersion': 6,
+            'pendingAction': 'updateStatus',
+            // The wire spelling the command schema expects, carried on the enum
+            // rather than reconstructed with a snake-case helper.
+            'status': 'in_progress',
+            'statusNote': 'Reopened by the landlord.',
+          },
+        ),
+      );
+      expect(envelope['type'], 'support.updateStatus');
+      expect(envelope['payload'], const <String, Object?>{
+        'status': 'in_progress',
+        'note': 'Reopened by the landlord.',
+      });
+    });
+
+    test('a support mutation with no message body fails fast', () {
+      // Non-retryable on purpose: an empty support message is not something a
+      // later attempt can fix, and silently sending one would put a blank
+      // message in front of an agent instead of the question.
+      expect(
+        () => gateway.buildEnvelope(
+          _mutationFor(
+            OfflineEntityType.supportTicket,
+            OutboxOperation.update,
+            payload: const <String, Object?>{
+              '_expectedVersion': 2,
+              'pendingAction': 'reply',
+              'messages': <Object?>[],
+            },
+          ),
+        ),
+        throwsA(isA<RemoteSyncException>()),
+      );
     });
 
     test('accounts for every entity type', () {

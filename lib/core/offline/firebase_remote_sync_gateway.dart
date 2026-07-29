@@ -314,6 +314,32 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
       for (final name in names)
         if (payload[name] != null) name: payload[name],
     };
+
+    /// Folds the two flat coordinate scalars the client stores into the nested
+    /// pin the command envelope expects.
+    ///
+    /// [clearable] separates create from update: a create has no pin to take
+    /// back, while an edit must be able to say "removed" rather than
+    /// "unchanged" — a distinction an omitted key cannot express, which is why
+    /// a cleared pin used to sync as a no-op and reappear on the next pull.
+    Map<String, Object?> pin(
+      String field, {
+      required String latitudeKey,
+      required String longitudeKey,
+      required bool clearable,
+    }) {
+      final latitude = payload[latitudeKey];
+      final longitude = payload[longitudeKey];
+      if (latitude is num && longitude is num) {
+        return <String, Object?>{
+          field: <String, Object?>{'lat': latitude, 'lng': longitude},
+        };
+      }
+      return clearable
+          ? <String, Object?>{field: null}
+          : const <String, Object?>{};
+    }
+
     List<String> stagedPaths(int limit) => _stringList(
       payload['stagedImagePaths'] ?? payload['imageUrls'],
     ).where((path) => path.startsWith('uploads/')).take(limit).toList();
@@ -413,6 +439,36 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
       };
     }
 
+    /// Resolves the two edits a support ticket can carry into one command.
+    ///
+    /// Same shape as [reviewMutationCommand] and for the same reason: three
+    /// support commands do not fit five [OutboxOperation] values, so the
+    /// repository stamps `pendingAction` and this reads it back.
+    ///
+    /// Neither branch sends an author or a status the server would have to
+    /// trust: `support.reply` derives the author from the ticket, and
+    /// `support.updateStatus` validates the target against its own transition
+    /// table. The client's optimistic status is display only.
+    _RemoteCommand supportMutationCommand() {
+      final action = payload['pendingAction'];
+      return switch (action) {
+        'reply' => _RemoteCommand('support.reply', <String, Object?>{
+          'body': _latestSupportMessageBody(payload),
+        }),
+        'updateStatus' => _RemoteCommand(
+          'support.updateStatus',
+          <String, Object?>{
+            'status': payload['status'],
+            if (payload['statusNote'] != null) 'note': payload['statusNote'],
+          },
+        ),
+        _ => throw RemoteSyncException(
+          'Unsupported support action: $action.',
+          retryable: false,
+        ),
+      };
+    }
+
     return switch ((mutation.entityType, mutation.operation)) {
       (OfflineEntityType.userProfile, OutboxOperation.update) => _RemoteCommand(
         'profile.update',
@@ -429,6 +485,12 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
           if (payload['landlordId'] != null)
             'targetLandlordId': payload['landlordId'],
           ...pick(['name', 'addressLine', 'city', 'district', 'description']),
+          ...pin(
+            'location',
+            latitudeKey: 'latitude',
+            longitudeKey: 'longitude',
+            clearable: false,
+          ),
           'stagedImagePaths': stagedPaths(NyumbaMarket.maxPropertyPhotos),
         },
       ),
@@ -436,6 +498,12 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
         'property.update',
         <String, Object?>{
           ...pick(['name', 'addressLine', 'city', 'district', 'description']),
+          ...pin(
+            'location',
+            latitudeKey: 'latitude',
+            longitudeKey: 'longitude',
+            clearable: true,
+          ),
           if (stagedPaths(NyumbaMarket.maxPropertyPhotos).isNotEmpty)
             'stagedImagePaths': stagedPaths(NyumbaMarket.maxPropertyPhotos),
         },
@@ -491,12 +559,12 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
             'bathrooms',
             'amenities',
           ]),
-          if (payload['approximateLatitude'] != null &&
-              payload['approximateLongitude'] != null)
-            'approximateLocation': <String, Object?>{
-              'lat': payload['approximateLatitude'],
-              'lng': payload['approximateLongitude'],
-            },
+          ...pin(
+            'approximateLocation',
+            latitudeKey: 'approximateLatitude',
+            longitudeKey: 'approximateLongitude',
+            clearable: false,
+          ),
           'stagedImagePaths': stagedPaths(NyumbaMarket.maxListingPhotos),
         },
       ),
@@ -516,12 +584,12 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
             'bathrooms',
             'amenities',
           ]),
-          if (payload['approximateLatitude'] != null &&
-              payload['approximateLongitude'] != null)
-            'approximateLocation': <String, Object?>{
-              'lat': payload['approximateLatitude'],
-              'lng': payload['approximateLongitude'],
-            },
+          ...pin(
+            'approximateLocation',
+            latitudeKey: 'approximateLatitude',
+            longitudeKey: 'approximateLongitude',
+            clearable: true,
+          ),
           if (stagedPaths(NyumbaMarket.maxListingPhotos).isNotEmpty)
             'stagedImagePaths': stagedPaths(NyumbaMarket.maxListingPhotos),
         },
@@ -620,6 +688,19 @@ final class FirebaseRemoteSyncGateway implements RemoteSyncGateway {
           'appVersion': payload['appVersion'],
           'platform': payload['platform'],
         }),
+      (OfflineEntityType.supportTicket, OutboxOperation.create) =>
+        _RemoteCommand('support.open', <String, Object?>{
+          'subject': payload['subject'],
+          'category': payload['category'],
+          // The opening message is the body. It lives in the messages array
+          // locally so the thread renders from one list, and is unwrapped here
+          // because the command opens a ticket rather than appending to one.
+          'body': _latestSupportMessageBody(payload),
+          'appVersion': payload['appVersion'],
+          'platform': payload['platform'],
+        }),
+      (OfflineEntityType.supportTicket, OutboxOperation.update) =>
+        supportMutationCommand(),
       _ => throw RemoteSyncException(
         'No production command mapping for '
         '${mutation.entityType.name}.${mutation.operation.name}.',
@@ -651,6 +732,28 @@ Map<String, Object?>? _optionalStringMap(Object? value) =>
 List<String> _stringList(Object? value) => value is List
     ? value.whereType<String>().toList(growable: false)
     : const <String>[];
+
+/// The body of the message this support mutation is sending.
+///
+/// A support ticket's local record holds the whole thread, but a command sends
+/// exactly one message — the one just written, which is always the last. Reading
+/// it here rather than carrying a duplicate `pendingBody` field keeps one copy
+/// of the text: two would eventually disagree, and the one that syncs would not
+/// be the one on screen.
+String _latestSupportMessageBody(Map<String, Object?> payload) {
+  final messages = payload['messages'];
+  if (messages is List) {
+    for (final entry in messages.reversed) {
+      if (entry is! Map) continue;
+      final body = entry['body'];
+      if (body is String && body.trim().isNotEmpty) return body.trim();
+    }
+  }
+  throw const RemoteSyncException(
+    'Support mutation carries no message body.',
+    retryable: false,
+  );
+}
 
 _StagedImage? _decodeStagedImage(String reference) {
   final match = RegExp(

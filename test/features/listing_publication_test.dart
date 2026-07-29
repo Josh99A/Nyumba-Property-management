@@ -74,14 +74,16 @@ void main() {
       status: ListingStatus.published,
       syncMetadata: const SyncMetadata.pending(),
     );
-    OutboxEntry pending({required int attemptCount, required OutboxState state}) =>
-        _entry(
-          listingId: listing.id,
-          operation: OutboxOperation.publish,
-          state: state,
-          attemptCount: attemptCount,
-          createdAt: now,
-        );
+    OutboxEntry pending({
+      required int attemptCount,
+      required OutboxState state,
+    }) => _entry(
+      listingId: listing.id,
+      operation: OutboxOperation.publish,
+      state: state,
+      attemptCount: attemptCount,
+      createdAt: now,
+    );
 
     final firstTry = resolveListingPublication(
       listing: listing,

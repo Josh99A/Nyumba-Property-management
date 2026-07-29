@@ -87,6 +87,53 @@ void main() {
     expect(redirectForSession(active, '/subscription'), isNull);
   });
 
+  test('support stays reachable while billing is unconfirmed', () {
+    const pending = UserSession(
+      userId: 'landlord-pending',
+      displayName: 'Pending Landlord',
+      email: 'pending@nyumba.test',
+      role: AppRole.landlord,
+      subscriptionStatus: LandlordSubscriptionStatus.pendingPayment,
+      subscriptionTier: 'starter',
+    );
+
+    // The whole point of the exception in redirectForSession: the subscription
+    // gate would otherwise put "my payment was not confirmed" behind the very
+    // screen this landlord cannot get past.
+    expect(redirectForSession(pending, '/support'), isNull);
+    expect(redirectForSession(pending, '/support/ticket-1'), isNull);
+    // And it is still a gate for everything else.
+    expect(redirectForSession(pending, '/dashboard'), '/subscription');
+  });
+
+  test('support is the owner\'s alone', () {
+    // Staff read the owner's properties through their capabilities and still
+    // cannot read the owner's correspondence with Nyumba — the same split
+    // firestore.rules enforces on `supportTickets`.
+    for (final role in const [
+      AppRole.staff,
+      AppRole.tenant,
+      AppRole.admin,
+      AppRole.superAdmin,
+    ]) {
+      expect(
+        redirectForSession(_sessionFor(role), '/support'),
+        isNotNull,
+        reason: role.name,
+      );
+    }
+    expect(redirectForSession(_sessionFor(AppRole.landlord), '/support'), isNull);
+    // Administrators answer from their own console instead.
+    expect(
+      redirectForSession(_sessionFor(AppRole.admin), '/admin/support'),
+      isNull,
+    );
+    expect(
+      redirectForSession(_sessionFor(AppRole.landlord), '/admin/support'),
+      isNotNull,
+    );
+  });
+
   testWidgets('subscription gate renders at desktop and phone sizes', (
     tester,
   ) async {

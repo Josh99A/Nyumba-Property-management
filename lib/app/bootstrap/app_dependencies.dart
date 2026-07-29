@@ -20,6 +20,8 @@ import '../../features/documents/domain/lease_document_repository.dart';
 import '../../features/finance/data/sembast_rent_payment_repository.dart';
 import '../../features/finance/domain/rent_payment_repository.dart';
 import '../../features/feedback/data/sembast_feedback_repository.dart';
+import '../../features/support/data/sembast_support_repository.dart';
+import '../../features/support/domain/support_repository.dart';
 import '../../features/maintenance/data/sembast_maintenance_repository.dart';
 import '../../features/maintenance/domain/maintenance_repository.dart';
 import '../../features/reviews/data/sembast_review_repository.dart';
@@ -85,6 +87,7 @@ class AppDependencies {
     required this.staff,
     required this.reviews,
     required this.feedback,
+    required this.support,
     this.remotePullCoordinator,
     this.reconnectSyncTrigger,
     this.resumeSyncTrigger,
@@ -110,6 +113,7 @@ class AppDependencies {
   final StaffRepository staff;
   final ReviewRepository reviews;
   final FeedbackRepository feedback;
+  final SupportRepository support;
   final RemotePullCoordinator? remotePullCoordinator;
   final ReconnectSyncTrigger? reconnectSyncTrigger;
   final ResumeSyncTrigger? resumeSyncTrigger;
@@ -395,6 +399,7 @@ Future<AppDependencies> createAppDependencies({
   );
   final staff = SembastStaffRepository(database);
   final feedback = SembastFeedbackRepository(database: database);
+  final support = SembastSupportRepository(database: database);
   // Public browsing is unauthenticated but still server-backed: `publicListings`
   // is world-readable, so an anonymous visitor reads the real catalogue.
   final usesFirebase = Firebase.apps.isNotEmpty;
@@ -491,12 +496,17 @@ Future<AppDependencies> createAppDependencies({
         OfflineEntityType.property,
         OfflineEntityType.unit,
         OfflineEntityType.listing,
-        // Both are readable unfiltered here because their canonical document
+        // These are readable unfiltered here because their canonical document
         // shape *is* what the Dart mapper expects — they were designed that way
         // rather than reshaped afterwards, which is what excluded the types
         // named in the comment above.
         OfflineEntityType.landlordReview,
         OfflineEntityType.platformFeedback,
+        // The support queue. Unfiltered like the rest of this list, which is
+        // also its ceiling: the administrative pull is `.limit(200)` with no
+        // ordering, so past roughly two hundred lifetime tickets the queue reads
+        // an arbitrary subset. Paging is the fix, not a larger number.
+        OfflineEntityType.supportTicket,
       ]) {
         remotePullCoordinator.watch(type, administrativeScope: true);
       }
@@ -534,6 +544,14 @@ Future<AppDependencies> createAppDependencies({
         // their own reputation, not a delegable workspace task.
         remotePullCoordinator.watch(
           OfflineEntityType.landlordReview,
+          landlordId: session.effectiveWorkspaceId,
+        );
+        // Owner-only for a different reason than reviews: no staff capability
+        // covers the owner's correspondence with Nyumba, which routinely names
+        // billing state and account access. Firestore Rules deny it to staff
+        // outright, so a staff pull would fire a read the server refuses.
+        remotePullCoordinator.watch(
+          OfflineEntityType.supportTicket,
           landlordId: session.effectiveWorkspaceId,
         );
       }
@@ -615,6 +633,7 @@ Future<AppDependencies> createAppDependencies({
     staff: staff,
     reviews: reviews,
     feedback: feedback,
+    support: support,
     remotePullCoordinator: remotePullCoordinator,
     reconnectSyncTrigger: reconnectSyncTrigger,
     resumeSyncTrigger: resumeSyncTrigger,

@@ -2731,6 +2731,9 @@ class AppLocalizationsLg extends AppLocalizations {
   String get subscriptionCheckPaymentStatus => 'Kebera embeera y\'okusasula';
 
   @override
+  String get subscriptionContactSupport => 'Tuukirira obuyambi';
+
+  @override
   String subscriptionPlanCapacity(int unitLimit, int listingLimit) {
     return 'Okutuuka ku bifo $unitLimit eby\'okupangisa · eby\'okulanga $listingLimit ebikola';
   }
@@ -3853,6 +3856,288 @@ class AppLocalizationsLg extends AppLocalizations {
   String get netPromoterScore => 'Ebbaluwa ya NPS';
 
   @override
+  String get supportTitle => 'Obuyambi';
+
+  @override
+  String get supportShort => 'Obuyambi';
+
+  @override
+  String get supportQueue => 'Olukalala lw\'obuyambi';
+
+  @override
+  String get supportDescription =>
+      'Buuza ttiimu ya Nyumba ku akawunti yo, okusasula, oba ekintu kyonna mu app. Bulijjo tuddamu mu lunaku lumu olw\'emirimu.';
+
+  @override
+  String get supportMessageSupport => 'Weereza obubaka eri obuyambi';
+
+  @override
+  String get supportContactSupport => 'Tuukirira obuyambi';
+
+  @override
+  String get supportSla => 'Bulijjo tuddamu mu lunaku lumu olw\'emirimu.';
+
+  @override
+  String get supportYourConversations => 'Emboozi zo';
+
+  @override
+  String get supportYourConversationsSubtitle =>
+      'Buli kye watubuuza, n\'aw\'ekituuse.';
+
+  @override
+  String get supportLoadFailed =>
+      'Emboozi zo tezisobodde kujjibwa. Ziri bulungi — gezaako nate mu kaseera katono.';
+
+  @override
+  String get supportCommonQuestions => 'Ebibuuzo ebitera okubuuzibwa';
+
+  @override
+  String get supportAnswerDidNotHelp => 'Kino tekinnyambye';
+
+  @override
+  String get supportNoConversations => 'Tewali mboozi nnaku';
+
+  @override
+  String get supportNoConversationsBody =>
+      'Bw\'otuweereza obubaka bujja kulabika wano, n\'okuddamu kwaffe.';
+
+  @override
+  String get supportWhatIsThisAbout => 'Kino kikwata ku ki?';
+
+  @override
+  String get supportAttachmentNotice =>
+      'Enteekateeka yo, ekika kya app n\'ekyuma byattaddwako tusobole okukyekenneenya.';
+
+  @override
+  String get supportSendMessage => 'Weereza obubaka';
+
+  @override
+  String get supportTooManyOpen =>
+      'Olina emboozi ssatu ezaggule naffe. Ddamu ku emu ku zo naffe tujja kugikwatako eyo.';
+
+  @override
+  String get supportRateLimited =>
+      'Ekyo kiweereddwa kaakano. Linda eddakiika emu nga tonnatandika mboozi ndala.';
+
+  @override
+  String get supportFeedbackCrossLink =>
+      'Weetaaga okuddibwamu? Tuukirira obuyambi mu kifo ky\'ekyo';
+
+  @override
+  String get supportFeedbackVsSupport =>
+      'Endowooza egenda ludda lumu. Tuukirira obuyambi bw\'oba weetaaga okuddibwamu.';
+
+  @override
+  String get supportConversation => 'Emboozi';
+
+  @override
+  String get supportAllConversations => 'Emboozi zonna';
+
+  @override
+  String get supportThreadLoadFailed => 'Emboozi eno tesobodde kuggulwa.';
+
+  @override
+  String get supportThreadNotSynced => 'Emboozi eno tennatuuka ku kyuma kino.';
+
+  @override
+  String get supportThreadNotSyncedBody =>
+      'Ejja kulabika ng\'ekifo kyo eky\'emirimu kimaze okugatta.';
+
+  @override
+  String get supportSending => 'Eweerezebwa…';
+
+  @override
+  String get supportNotSent => 'Teweerezebwa';
+
+  @override
+  String get supportUnsentOnThread => 'Obubaka obumu wano tebuweerezebwa.';
+
+  @override
+  String get supportClosedLandlord =>
+      'Emboozi eno eggaddwa. Tandika endala naffe tujja kugikwatako okuva awo.';
+
+  @override
+  String get supportClosedAgent =>
+      'Emboozi eno eggaddwa. Nnyini nnyumba asobola okutandika endala.';
+
+  @override
+  String get supportStatusSent => 'Kiweereddwa';
+
+  @override
+  String get supportStatusLookingInto => 'Nyumba ekyekenneenya kino';
+
+  @override
+  String get supportStatusNeedsYou => 'Kikwetaaga';
+
+  @override
+  String get supportStatusResolved => 'Kigonjooddwa';
+
+  @override
+  String get supportStatusClosed => 'Kiggaddwa';
+
+  @override
+  String get supportStatusNew => 'Kipya';
+
+  @override
+  String get supportStatusInProgress => 'Kigenda mu maaso';
+
+  @override
+  String get supportStatusAwaitingLandlord => 'Kirindiridde nnyini nnyumba';
+
+  @override
+  String get supportActionMarkInProgress => 'Teeka nti kigenda mu maaso';
+
+  @override
+  String get supportActionMarkResolved => 'Teeka nti kigonjooddwa';
+
+  @override
+  String get supportActionClose => 'Ggalawo';
+
+  @override
+  String get supportActionSorted => 'Kino kiwedde';
+
+  @override
+  String get supportActionReopen => 'Ddamu oggulewo';
+
+  @override
+  String get supportCategoryBilling => 'Okusasula n\'obwannannyini';
+
+  @override
+  String get supportCategoryPayments => 'Okusasula ne risiiti';
+
+  @override
+  String get supportCategoryTenants => 'Abapangisa n\'endagaano';
+
+  @override
+  String get supportCategoryListings => 'Obulangirira';
+
+  @override
+  String get supportCategoryAccount => 'Akawunti n\'okuyingira';
+
+  @override
+  String get supportCategoryOther => 'Ekintu ekirala';
+
+  @override
+  String get supportCategoryBillingShort => 'Obwannannyini';
+
+  @override
+  String get supportCategoryPaymentsShort => 'Okusasula';
+
+  @override
+  String get supportCategoryTenantsShort => 'Abapangisa';
+
+  @override
+  String get supportCategoryListingsShort => 'Obulangirira';
+
+  @override
+  String get supportCategoryAccountShort => 'Akawunti';
+
+  @override
+  String get supportCategoryOtherShort => 'Ekirala';
+
+  @override
+  String get supportQueueDescription =>
+      'Emboozi ne bannyini nnyumba. Okuddamu kutambuza tikiti, olukalala ne lusigala nga lutuufu awatali muntu kuteeka mbeera.';
+
+  @override
+  String get supportQueueLoadFailed =>
+      'Olukalala lw\'obuyambi telusobodde kujjibwa.';
+
+  @override
+  String get supportQueueNeedsReply => 'Lwetaaga okuddibwamu';
+
+  @override
+  String get supportQueueOpen => 'Bigule';
+
+  @override
+  String get supportQueueAll => 'Byonna';
+
+  @override
+  String get supportQueueBackToQueue => 'Ddayo ku lukalala';
+
+  @override
+  String get supportQueueNothingWaiting => 'Tewali kirindiridde';
+
+  @override
+  String get supportQueueNothingWaitingBody =>
+      'Tewali mboozi etuukagana n\'ekisengejja kino.';
+
+  @override
+  String get supportQueuePickOne => 'Londa emboozi';
+
+  @override
+  String get supportQueuePickOneBody =>
+      'Londa tikiti okuva ku lukalala ogisome era ogiddemu.';
+
+  @override
+  String get supportQueueNeverAnswered => 'Tekaddiddwamu';
+
+  @override
+  String get supportQueueUnnamedLandlord => 'Nnyini nnyumba atalina linnya';
+
+  @override
+  String get supportFaqSubscriptionPendingQ =>
+      'Lwaki obwannannyini bwange bukyagamba nti bulindiridde?';
+
+  @override
+  String get supportFaqSubscriptionPendingA =>
+      'Okusasula kw\'oweerezza ku ssimu oba mu ssente enkalu kukakasibwa ttiimu ya Nyumba, si mu ngeri ey\'eyokka. Ekyo kitera okubaawo ku lunaku olwo lwennyini olw\'emirimu. Ekifo kyo eky\'emirimu kigguka amangu ddala nga kukakasiddwa — tewali kibula mu kiseera ekyo.';
+
+  @override
+  String get supportFaqCashPaymentQ =>
+      'Omupangisa wange asasudde ssente enkalu. Nkiwandiika ntya?';
+
+  @override
+  String get supportFaqCashPaymentA =>
+      'Ggulawo Ssente, londa Wandiika okusasula, olyoke olonde omupangisa n\'ekiseera kye kikwatako. Nyumba ekola risiiti era omupangisa agiraba mu poota ye mangu ago.';
+
+  @override
+  String get supportFaqDeclaredPaymentQ =>
+      'Omupangisa wange agamba nti okusasula kwe yalangirira kukyalindiridde.';
+
+  @override
+  String get supportFaqDeclaredPaymentA =>
+      'Okusasula omupangisa kw\'alangirira kuba kuwaayo bukuwaayo okutuusa lw\'okukakasa, era ebbalansi ye tekyuka lwa bigambo bye byokka. Ggulawo Ssente okukukakasa oba okukugaana — ategeezebwa mu ngeri yonna.';
+
+  @override
+  String get supportFaqTenantSignInQ => 'Omupangisa wange tasobola kuyingira.';
+
+  @override
+  String get supportFaqTenantSignInA =>
+      'Omupangisa atuuka ku poota ye ng\'akkiriza obuyite bw\'oweerezza ku email ye oba essimu ye. Obuyite obwo bwe butaggulwawo, ddamu obuweereze okuva ku lupapula lw\'omupangisa. Tasobola kwekolera akawunti ye ye.';
+
+  @override
+  String get supportFaqListingLifetimeQ =>
+      'Obulangirira bumala bbanga ki nga buli mu lujjudde?';
+
+  @override
+  String get supportFaqListingLifetimeA =>
+      'Ennaku amakumi asatu. Olabulwa nga tebunnaggwaako era osobola okubuzza buggya n\'okukuba omulundi gumu, ekitandika ennaku endala amakumi asatu awatali kuddamu kuwandiika bulangirira.';
+
+  @override
+  String get supportFaqPublishFailedQ =>
+      'Lwaki obulangirira bwange tebufuluma?';
+
+  @override
+  String get supportFaqPublishFailedA =>
+      'Obulangirira obw\'olukale bwetaaga waakiri ekifaananyi kimu eky\'ekifo ekipangisibwa n\'akasenge akaliwo ddala. Ebifaananyi ebiri ku nnyumba bya kyama era tebikozesebwa ku bulangirira.';
+
+  @override
+  String get supportFaqAddTeamQ => 'Nnyongera ntya omuntu ku ttiimu yange?';
+
+  @override
+  String get supportFaqAddTeamA =>
+      'Ggulawo Ttiimu omuyite ku email. Ggwe olonda ddala by\'asobola okutuukako — omukuumi akola ku ddaddabiriza talaba ssente zo.';
+
+  @override
+  String get supportFaqPhotoUploadQ =>
+      'Ebifaananyi byange tebisobodde kutwalibwa.';
+
+  @override
+  String get supportFaqPhotoUploadA =>
+      'Ebifaananyi bitwalibwa ng\'ekyuma kyo kizzeeko ku yintaneeti, n\'olwekyo omukutu omunafu gulwisa so si kubuza. Ekimu bwe kikyagaana, kitera okuba nti kisukka ku MB 5 — ddamu okikube nga kitono.';
+
+  @override
   String get listYourSpace => 'Wandiisa ekifo kyo';
 
   @override
@@ -3932,4 +4217,111 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get noHomesListedMessage =>
       'Bannannyini nnyumba bongera okuwandiika ebifo ebipya bulijjo - ddayo oluvannyuma.';
+
+  @override
+  String get locationOnMap => 'Ekifo ku maapu';
+
+  @override
+  String get setLocationOnMap => 'Teeka ekifo ku maapu';
+
+  @override
+  String get changeLocation => 'Kyusa ekifo';
+
+  @override
+  String get removeLocation => 'Ggyawo ekifo';
+
+  @override
+  String get noLocationSet => 'Tewali kifo kiteekeddwa';
+
+  @override
+  String get locationHelpsTenantsFindYou =>
+      'Abapangisa bakozesa kino okulaba ekitundu n’okufuna amakubo.';
+
+  @override
+  String get pinTheLocation => 'Londa ekifo';
+
+  @override
+  String get dragMapToPosition => 'Sika maapu oteeke akabonero ku nnyumba.';
+
+  @override
+  String get useMyCurrentLocation => 'Kozesa ekifo gye ndi kati';
+
+  @override
+  String get findingYourLocation => 'Tunoonya ekifo gy’oli…';
+
+  @override
+  String get locationPermissionDenied =>
+      'Nyumba yeetaaga olukusa okumanya gy’oli.';
+
+  @override
+  String get locationUnavailable =>
+      'Ekifo gy’oli tekizuuliddwa. Sika maapu mu kifo ky’ekyo.';
+
+  @override
+  String get confirmLocation => 'Kakasa ekifo';
+
+  @override
+  String get mapUnavailableTitle => 'Maapu teri mu nkola eno';
+
+  @override
+  String get mapUnavailableMessage =>
+      'Osobola okukwata ekifo ng’oli ku nnyumba.';
+
+  @override
+  String get locationCapturedOffMap => 'Ekifo kikwatiddwa';
+
+  @override
+  String tenantsSeeApproximateArea(int metres) {
+    return 'Abapangisa balaba akabonero kano, nga mita $metres obugazi — si mulyango gwo.';
+  }
+
+  @override
+  String get publishedLocationIsApproximate =>
+      'Ekifo ekifulumiziddwa kya kumpi';
+
+  @override
+  String get whereYouWillLive => 'Gy’ojja okubeera';
+
+  @override
+  String get getDirections => 'Funa amakubo';
+
+  @override
+  String approximateLocationIn(String area) {
+    return 'Ekifo ekiri kumpi mu $area';
+  }
+
+  @override
+  String get exactAddressSharedByLandlord =>
+      'Nnannyini nnyumba akuwa endagiriro entuufu nga mumaze okwogera.';
+
+  @override
+  String get mapUnavailableOffline =>
+      'Maapu ejja kulabika ng’oddiddemu ku yintaneeti.';
+
+  @override
+  String get searchThisArea => 'Noonya mu kitundu kino';
+
+  @override
+  String homesNotOnMap(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Amaka $count tegali ku maapu',
+      one: 'Amaka 1 tegali ku maapu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mapView => 'Maapu';
+
+  @override
+  String get listView => 'Olukalala';
+
+  @override
+  String get nearestToMe => 'Ebiri okumpi nange';
+
+  @override
+  String get couldNotOpenMapsApp =>
+      'Tewali app ya maapu esobola okuggulawo amakubo.';
 }

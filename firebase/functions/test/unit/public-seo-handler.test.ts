@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
   const documentGet = vi.fn();
@@ -54,6 +54,7 @@ import {
   PUBLIC_SEO_CACHE_CONTROL,
   publicSeo,
 } from '../../src/http/public-seo-handler';
+import { STATIC_MAP_CACHE_CONTROL } from '../../src/http/static-map';
 
 const now = new Date('2026-07-24T08:00:00.000Z');
 
@@ -223,5 +224,159 @@ describe('public SEO handler', () => {
     });
     expect(response.status).toHaveBeenCalledWith(200);
     expect(response.send).toHaveBeenCalledWith(Buffer.from('image'));
+  });
+
+  describe('the listing location map', () => {
+    function response() {
+      const res = {
+        end: vi.fn(),
+        redirect: vi.fn(),
+        send: vi.fn(),
+        set: vi.fn(),
+        status: vi.fn(),
+        type: vi.fn(),
+      };
+      res.set.mockReturnValue(res);
+      res.status.mockReturnValue(res);
+      res.type.mockReturnValue(res);
+      return res;
+    }
+
+    function call(res: ReturnType<typeof response>, path: string, method = 'GET') {
+      return (publicSeo as unknown as (
+        request: { method: string; path: string },
+        response: ReturnType<typeof response>,
+      ) => Promise<void>)({ method, path }, res);
+    }
+
+    const pinned = () => ({
+      exists: true,
+      data: () => ({
+        ...document(0).data(),
+        approximateLocation: { lat: 0.357, lng: 32.612 },
+      }),
+    });
+
+    beforeEach(() => {
+      process.env.MAPS_STATIC_API_KEY = 'test-key';
+    });
+
+    // One place, so a test that throws mid-way cannot leak a stubbed fetch or
+    // a deleted key into the next one.
+    afterEach(() => {
+      delete process.env.MAPS_STATIC_API_KEY;
+    });
+
+    it('renders the coarsened pin and caches it hard', async () => {
+      mocks.documentGet.mockResolvedValue(pinned());
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/png' },
+        arrayBuffer: async () => new TextEncoder().encode('png').buffer,
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      const res = response();
+
+      await call(res, '/listing/listing_0000/map');
+
+      // The long lifetime is what makes this affordable: the URL is
+      // deterministic per listing, so the CDN collapses all traffic into
+      // roughly one upstream call per listing per day.
+      expect(res.set).toHaveBeenCalledWith(
+        expect.objectContaining({ 'Cache-Control': STATIC_MAP_CACHE_CONTROL }),
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+
+      const requested = String(fetchMock.mock.calls[0]![0]);
+      expect(requested).toContain('center=0.357%2C32.612');
+      // A circle, never a marker: a pin on a coarsened point still reads as
+      // "this house".
+      expect(requested).toContain('path=');
+      expect(requested).not.toContain('markers=');
+    });
+
+    it('never reads anything more precise than the public projection', async () => {
+      mocks.documentGet.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          ...document(0).data(),
+          approximateLocation: { lat: 0.357, lng: 32.612 },
+          exactLocation: { lat: 0.3571234, lng: 32.6129876 },
+          addressLine: 'Plot 14, Acacia Avenue',
+        }),
+      });
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/png' },
+        arrayBuffer: async () => new TextEncoder().encode('png').buffer,
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      const res = response();
+
+      await call(res, '/listing/listing_0000/map');
+
+      const requested = String(fetchMock.mock.calls[0]![0]);
+      expect(requested).not.toContain('0.3571234');
+      expect(requested).not.toContain('Acacia');
+      expect(mocks.firestore.collection).toHaveBeenCalledWith('publicListings');
+    });
+
+    it('rechecks the public invariant on every request', async () => {
+      mocks.documentGet.mockResolvedValue({ exists: false });
+      const missing = response();
+      await call(missing, '/listing/listing_9999/map');
+      expect(missing.status).toHaveBeenCalledWith(404);
+      expect(missing.set).toHaveBeenCalledWith({ 'Cache-Control': 'no-store' });
+
+      mocks.documentGet.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          ...pinned().data(),
+          expiresAt: new Date('2020-01-01T00:00:00.000Z'),
+        }),
+      });
+      const expired = response();
+      await call(expired, '/listing/listing_0000/map');
+      expect(expired.status).toHaveBeenCalledWith(410);
+      expect(expired.set).toHaveBeenCalledWith(
+        'X-Robots-Tag',
+        'noindex, nofollow',
+      );
+    });
+
+    it('treats an unpinned listing and an unkeyed deployment alike', async () => {
+      mocks.documentGet.mockResolvedValue({
+        exists: true,
+        data: () => document(0).data(),
+      });
+      const unpinned = response();
+      await call(unpinned, '/listing/listing_0000/map');
+      expect(unpinned.status).toHaveBeenCalledWith(404);
+
+      // Every deployment is in this state until the key is provisioned, and a
+      // visitor should simply see no map rather than a broken one.
+      delete process.env.MAPS_STATIC_API_KEY;
+      mocks.documentGet.mockResolvedValue(pinned());
+      const unkeyed = response();
+      await call(unkeyed, '/listing/listing_0000/map');
+      expect(unkeyed.status).toHaveBeenCalledWith(404);
+      expect(unkeyed.set).toHaveBeenCalledWith({ 'Cache-Control': 'no-store' });
+    });
+
+    it('does not cache a failed upstream render', async () => {
+      mocks.documentGet.mockResolvedValue(pinned());
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        headers: { get: () => 'text/plain' },
+        arrayBuffer: async () => new ArrayBuffer(0),
+      }));
+      const res = response();
+
+      await call(res, '/listing/listing_0000/map');
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.set).toHaveBeenCalledWith({ 'Cache-Control': 'no-store' });
+    });
   });
 });

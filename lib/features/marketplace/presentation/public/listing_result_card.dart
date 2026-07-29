@@ -30,7 +30,7 @@ class ListingResultCard extends StatelessWidget {
     final copy = appLocalizationsOf(context);
     final palette = context.nyumba;
     final rent = NumberFormat.currency(
-      locale: copy.localeName,
+      locale: copy.numberLocale,
       name: NyumbaMarket.currencyCode,
       symbol: NyumbaMarket.currencySymbol,
       decimalDigits: 0,
@@ -164,7 +164,7 @@ class _CardMedia extends StatelessWidget {
                 listing,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.medium,
-                cacheWidth: 960,
+                cacheWidth: listingThumbnailCacheWidth,
                 preferThumbnail: true,
               ),
               PositionedDirectional(

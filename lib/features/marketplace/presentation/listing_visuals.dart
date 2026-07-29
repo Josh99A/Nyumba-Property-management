@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/nyumba_localizations.dart';
@@ -34,12 +36,25 @@ String listingUnitTypeLabel(String unitType) {
       : '${spaced[0].toUpperCase()}${spaced.substring(1)}';
 }
 
+/// Decode budget for the grid-sized delivery copy.
+///
+/// Shared by the results card and the detail carousel's placeholder because
+/// Flutter keys decoded images by the size they were decoded at: a carousel
+/// asking for the same thumbnail at a different width would decode it a second
+/// time instead of reusing the one the grid already paid for.
+const int listingThumbnailCacheWidth = 960;
+
 /// Renders a listing photo at the size the caller will actually display.
 ///
 /// [cacheWidth] is a decode budget in device pixels, and [preferThumbnail] asks
 /// for the server's grid-sized delivery copy where one exists. A card that
 /// leaves both at their detail-view defaults downloads and decodes several
 /// times the pixels it can show.
+///
+/// [thumbnailPlaceholder] fills the wait for a detail-sized copy with the
+/// grid-sized one instead of an empty box. It only pays off where that smaller
+/// copy is already cached — a renter arriving from a results card — so it is
+/// opt-in rather than the default.
 Widget listingImage(
   Listing listing, {
   int index = 0,
@@ -47,6 +62,7 @@ Widget listingImage(
   FilterQuality filterQuality = FilterQuality.medium,
   int cacheWidth = 1600,
   bool preferThumbnail = false,
+  bool thumbnailPlaceholder = false,
 }) {
   // An advert with no photos is empty, not broken. Only a reference that exists
   // and then fails to resolve earns the "unavailable" treatment.
@@ -81,12 +97,34 @@ Widget listingImage(
   }
 
   if (isStorageReference(reference)) {
+    final target = mediaReferenceFor(
+      reference,
+      preferThumbnail: preferThumbnail,
+    );
+    // Null for anything the delivery pipeline did not produce a thumbnail for,
+    // and equal to [target] when the caller already asked for one — neither is
+    // worth stacking a second fetch behind.
+    final thumbnail = thumbnailPlaceholder
+        ? thumbnailReferenceFor(reference)
+        : null;
     return RemoteMediaImage(
-      reference: mediaReferenceFor(reference, preferThumbnail: preferThumbnail),
+      reference: target,
       semanticLabel: listing.title,
       fit: fit,
       filterQuality: filterQuality,
       cacheWidth: cacheWidth,
+      placeholder: thumbnail == null || thumbnail == target
+          ? null
+          : RemoteMediaImage(
+              reference: thumbnail,
+              semanticLabel: listing.title,
+              fit: fit,
+              // Deliberately cheap: this is an upsampled stand-in on its way
+              // out, and a high-quality resample of it would compete with the
+              // decode of the photo actually being waited on.
+              filterQuality: FilterQuality.low,
+              cacheWidth: listingThumbnailCacheWidth,
+            ),
     );
   }
   return const MediaPlaceholder.unavailable();
@@ -137,6 +175,28 @@ class _ListingPhotoCarouselState extends State<ListingPhotoCarousel> {
   @override
   Widget build(BuildContext context) {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
+    final ratio = MediaQuery.devicePixelRatioOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        // Decode to what the carousel actually paints, capped at the delivery
+        // copy's own width. A fixed budget cost a phone roughly three times
+        // the pixels it can show — and `allowImplicitScrolling` keeps three
+        // pages alive, so the overrun evicted the grid thumbnails behind this
+        // screen and made going back re-decode all of them.
+        final decodeWidth = width.isFinite && width > 0
+            ? math.min(mediaFullImageWidth, (width * ratio).round())
+            : mediaFullImageWidth;
+        return _buildCarousel(context, isRtl: isRtl, decodeWidth: decodeWidth);
+      },
+    );
+  }
+
+  Widget _buildCarousel(
+    BuildContext context, {
+    required bool isRtl,
+    required int decodeWidth,
+  }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: AspectRatio(
@@ -160,7 +220,8 @@ class _ListingPhotoCarouselState extends State<ListingPhotoCarousel> {
                       index: widget.listing.imageUrls.isEmpty ? -1 : index,
                       fit: BoxFit.cover,
                       filterQuality: FilterQuality.high,
-                      cacheWidth: 1920,
+                      cacheWidth: decodeWidth,
+                      thumbnailPlaceholder: true,
                     ),
                   ),
                 ),

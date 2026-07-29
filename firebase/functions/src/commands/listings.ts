@@ -12,6 +12,7 @@ import { LISTING_LIFETIME_DAYS, MAX_LISTING_PHOTOS, MIN_LISTING_PHOTOS } from '.
 import { DomainError } from '../shared/errors';
 import { ratingBadge, readTotals } from '../shared/ratings';
 import {
+  coordinateSchema,
   createJob,
   idSchema,
   longText,
@@ -33,7 +34,10 @@ const draftSchema = strictPayload({
   bedrooms: z.number().int().min(0).max(100),
   bathrooms: z.number().int().min(0).max(100),
   amenities: z.array(z.string().trim().min(1).max(100)).max(50),
-  approximateLocation: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).strict().optional(),
+  // Nullable so a pin can be taken back, not only set. `listingSaveDraft`
+  // spreads the payload onto the draft, so an absent key leaves the stored pin
+  // untouched while an explicit null clears it.
+  approximateLocation: coordinateSchema.nullable().optional(),
   stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(MAX_LISTING_PHOTOS).optional(),
 });
 
@@ -103,7 +107,7 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
       version: number; landlordId: string; unitId: string; publicationState: string;
       title?: string; description?: string; monthlyRentMinor?: number; unitType?: string;
       city?: string; neighborhood?: string; district?: string; bedrooms?: number; bathrooms?: number;
-      amenities?: string[]; approximateLocation?: { lat: number; lng: number }; stagedImagePaths?: string[];
+      amenities?: string[]; approximateLocation?: { lat: number; lng: number } | null; stagedImagePaths?: string[];
     }>(listingSnap, cmd.expectedVersion);
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, listing.landlordId)

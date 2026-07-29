@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nyumba_property_management/core/domain/coordinates.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
 import 'package:nyumba_property_management/features/marketplace/presentation/public/listing_query.dart';
@@ -199,6 +200,144 @@ void main() {
       expect(types, ['apartment', 'house']);
     });
   });
+
+  group('nearest to me', () {
+    // Kampala city centre, and three adverts at increasing distance from it.
+    final origin = Coordinates(latitude: 0.3476, longitude: 32.5825);
+    final near = _listing(id: 'near', latitude: 0.3480, longitude: 32.5830);
+    final middle = _listing(id: 'middle', latitude: 0.3600, longitude: 32.6000);
+    final far = _listing(id: 'far', latitude: 0.4500, longitude: 32.7000);
+
+    test('orders by straight-line distance from the visitor', () {
+      const query = ListingQuery(sort: ListingSort.nearest);
+
+      final ordered = query.apply([far, near, middle], origin: origin);
+
+      expect(ordered.map((listing) => listing.id), ['near', 'middle', 'far']);
+    });
+
+    // A visitor who declined the permission, or opened someone else's shared
+    // `sort=nearest` link, gets the ordinary marketplace rather than an
+    // arbitrary order or an error.
+    test('falls back to newest when there is no origin', () {
+      const query = ListingQuery(sort: ListingSort.nearest);
+
+      final ordered = query.apply([far, near, middle]);
+      final byNewest = const ListingQuery().apply([far, near, middle]);
+
+      expect(
+        ordered.map((listing) => listing.id),
+        byNewest.map((listing) => listing.id),
+      );
+    });
+
+    // Dropping them would silently hide adverts from someone who only changed
+    // the sort order.
+    test('keeps unpinned adverts, ordered last', () {
+      final unpinned = _listing(id: 'unpinned');
+      const query = ListingQuery(sort: ListingSort.nearest);
+
+      final ordered = query.apply([unpinned, far, near], origin: origin);
+
+      expect(ordered.map((listing) => listing.id), ['near', 'far', 'unpinned']);
+      expect(ordered, hasLength(3));
+    });
+
+    test('a visitor position never travels in a shareable link', () {
+      const query = ListingQuery(sort: ListingSort.nearest);
+
+      final parameters = query.toQueryParameters();
+
+      expect(parameters['sort'], 'nearest');
+      expect(parameters.values.join(' '), isNot(contains('0.34')));
+    });
+  });
+
+  group('the view and viewport are not filters', () {
+    final centre = Coordinates(latitude: 0.3476, longitude: 32.5825);
+
+    test('map view and a viewport leave the filter count alone', () {
+      final query = ListingQuery(
+        view: ListingView.map,
+        centre: centre,
+        zoom: 14,
+        sort: ListingSort.priceLowToHigh,
+      );
+
+      expect(query.hasFilters, isFalse);
+      expect(query.activeFilterCount, 0);
+      expect(query.activeChips, isEmpty);
+    });
+
+    // Someone who panned to a neighbourhood and then cleared a price filter
+    // expects to still be looking at that neighbourhood, on the map.
+    test('clearing filters keeps the view, viewport, and sort', () {
+      final query = ListingQuery(
+        text: 'Ntinda',
+        price: PriceBand.under500k,
+        view: ListingView.map,
+        centre: centre,
+        zoom: 14,
+        sort: ListingSort.priceLowToHigh,
+      );
+
+      final cleared = query.cleared();
+
+      expect(cleared.hasFilters, isFalse);
+      expect(cleared.text, isEmpty);
+      expect(cleared.view, ListingView.map);
+      expect(cleared.centre, centre);
+      expect(cleared.zoom, 14);
+      expect(cleared.sort, ListingSort.priceLowToHigh);
+    });
+
+    test('a map viewport survives a round trip through the URL', () {
+      final query = ListingQuery(
+        view: ListingView.map,
+        centre: Coordinates(latitude: 0.34761, longitude: 32.58254),
+        zoom: 14.5,
+      );
+
+      final restored = ListingQuery.fromQueryParameters(
+        query.toQueryParameters(),
+      );
+
+      expect(restored.view, ListingView.map);
+      expect(restored.centre, query.centre);
+      expect(restored.zoom, 14.5);
+      expect(restored, query);
+    });
+
+    test('the list view and an unmoved map stay out of the URL', () {
+      expect(const ListingQuery().toQueryParameters(), isNot(contains('view')));
+      expect(
+        const ListingQuery(view: ListingView.map).toQueryParameters().keys,
+        isNot(contains('c')),
+      );
+    });
+
+    // These arrive from a URL a stranger may have edited. The right answer is
+    // the unfiltered marketplace, never an error.
+    test('nonsense viewport values are ignored', () {
+      final restored = ListingQuery.fromQueryParameters(const {
+        'view': 'hologram',
+        'c': 'not,a,coordinate',
+        'z': '999',
+      });
+
+      expect(restored.view, ListingView.list);
+      expect(restored.centre, isNull);
+      expect(restored.zoom, isNull);
+    });
+
+    test('an out-of-range coordinate is rejected, not clamped', () {
+      final restored = ListingQuery.fromQueryParameters(const {
+        'c': '91.0,200.0',
+      });
+
+      expect(restored.centre, isNull);
+    });
+  });
 }
 
 Listing _listing({
@@ -209,6 +348,8 @@ Listing _listing({
   String unitType = 'apartment',
   String neighborhood = 'Ntinda',
   DateTime? publishedAt,
+  double? latitude,
+  double? longitude,
 }) => Listing(
   id: id,
   unitId: 'unit_$id',
@@ -225,6 +366,8 @@ Listing _listing({
   city: 'Kampala',
   district: 'Kampala',
   neighborhood: neighborhood,
+  approximateLatitude: latitude,
+  approximateLongitude: longitude,
   publicContactToken: 'public-contact-$id',
   createdAt: _published.subtract(const Duration(days: 2)),
   updatedAt: _published,
