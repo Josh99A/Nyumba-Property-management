@@ -210,6 +210,8 @@ class _PhotoChip extends StatelessWidget {
     }
     // A stored photo that will not decode still has to be removable, so it is
     // shown as a placeholder rather than dropped silently.
-    return const CircleAvatar(child: Icon(Icons.broken_image_outlined, size: 16));
+    return const CircleAvatar(
+      child: Icon(Icons.broken_image_outlined, size: 16),
+    );
   }
 }

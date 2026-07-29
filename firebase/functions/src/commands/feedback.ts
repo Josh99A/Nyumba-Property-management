@@ -7,8 +7,13 @@ import {
   FEEDBACK_NPS_COOLDOWN_DAYS,
   FEEDBACK_SUBMIT_COOLDOWN_SECONDS,
 } from '../shared/config';
-import { DomainError } from '../shared/errors';
-import { longText, shortText, strictPayload, type CommandHandler } from '../shared/handlers';
+import {
+  longText,
+  rejectIfWithin,
+  shortText,
+  strictPayload,
+  type CommandHandler,
+} from '../shared/handlers';
 
 /**
  * The two feedback-cadence timestamps live on `landlordAccounts`, but neither
@@ -20,20 +25,6 @@ import { longText, shortText, strictPayload, type CommandHandler } from '../shar
 interface FeedbackCadence {
   lastFeedbackSubmittedAt?: Timestamp;
   lastNpsSubmittedAt?: Timestamp;
-}
-
-function rejectIfWithin(
-  last: Timestamp | undefined,
-  cooldownMs: number,
-  now: Timestamp,
-): void {
-  if (!(last instanceof Timestamp)) return;
-  const elapsed = now.toMillis() - last.toMillis();
-  if (elapsed < cooldownMs) {
-    throw new DomainError('RATE_LIMITED', {
-      retryAfterSeconds: Math.ceil((cooldownMs - elapsed) / 1000),
-    });
-  }
 }
 
 /**

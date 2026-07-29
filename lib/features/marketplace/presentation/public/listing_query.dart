@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/domain/coordinates.dart';
 import '../../domain/listing.dart';
 import '../listing_visuals.dart';
 
@@ -43,12 +44,31 @@ enum BedroomsFilter {
 enum ListingSort {
   newest('Newest first'),
   priceLowToHigh('Price: low to high'),
-  priceHighToLow('Price: high to low');
+  priceHighToLow('Price: high to low'),
+
+  /// Ordered by straight-line distance from the visitor.
+  ///
+  /// Only offered once the device has actually given up a position. Without an
+  /// origin this silently orders by [newest] instead, so a shared link
+  /// carrying `sort=nearest` opens as an ordinary marketplace for someone who
+  /// declined the permission rather than an empty or arbitrary list.
+  nearest('Nearest to me');
 
   const ListingSort(this.label);
 
   final String label;
+
+  /// Whether this ordering needs the visitor's position to mean anything.
+  bool get needsOrigin => this == ListingSort.nearest;
 }
+
+/// Whether results are drawn as a list of cards or on a map.
+///
+/// A view, not a filter: it changes how the same results are drawn and must
+/// stay out of [ListingQuery.hasFilters], [ListingQuery.activeFilterCount],
+/// [ListingQuery.activeChips] and [ListingQuery.cleared], exactly as `sort`
+/// does. "Clear filters" should never throw a visitor back to the list.
+enum ListingView { list, map }
 
 /// Sentinel for "every unit type", so the dropdown value stays a plain
 /// [String] alongside the landlord-entered types.
@@ -88,6 +108,9 @@ class ListingQuery {
     this.bedrooms = BedroomsFilter.any,
     this.unitType = anyUnitType,
     this.sort = ListingSort.newest,
+    this.view = ListingView.list,
+    this.centre,
+    this.zoom,
   });
 
   final String text;
@@ -95,6 +118,17 @@ class ListingQuery {
   final BedroomsFilter bedrooms;
   final String unitType;
   final ListingSort sort;
+
+  /// List or map. See [ListingView] — not a filter.
+  final ListingView view;
+
+  /// Where the map is pointed, once a visitor has moved it.
+  ///
+  /// Null until they pan or zoom, so a first visit frames itself around the
+  /// results rather than a hard-coded viewport. Carried in the URL so a map
+  /// someone shares opens where they left it.
+  final Coordinates? centre;
+  final double? zoom;
 
   /// Sort order is a presentation preference, not a filter, so it is excluded
   /// here and survives "clear filters".
@@ -137,15 +171,28 @@ class ListingQuery {
     BedroomsFilter? bedrooms,
     String? unitType,
     ListingSort? sort,
+    ListingView? view,
+    Coordinates? centre,
+    double? zoom,
+    bool clearViewport = false,
   }) => ListingQuery(
     text: text ?? this.text,
     price: price ?? this.price,
     bedrooms: bedrooms ?? this.bedrooms,
     unitType: unitType ?? this.unitType,
     sort: sort ?? this.sort,
+    view: view ?? this.view,
+    centre: clearViewport ? null : (centre ?? this.centre),
+    zoom: clearViewport ? null : (zoom ?? this.zoom),
   );
 
-  ListingQuery cleared() => ListingQuery(sort: sort);
+  /// Clears the filters and nothing else.
+  ///
+  /// Sort, view, and viewport all survive: someone who has panned to a
+  /// neighbourhood and then clears a price filter expects to still be looking
+  /// at that neighbourhood, on the map, in the order they chose.
+  ListingQuery cleared() =>
+      ListingQuery(sort: sort, view: view, centre: centre, zoom: zoom);
 
   /// The query as URL parameters, omitting anything left at its default.
   ///
@@ -159,6 +206,14 @@ class ListingQuery {
     if (bedrooms != BedroomsFilter.any) _bedroomsParam: bedrooms.name,
     if (unitType != anyUnitType) _unitTypeParam: unitType,
     if (sort != ListingSort.newest) _sortParam: sort.name,
+    if (view != ListingView.list) _viewParam: view.name,
+    // Five decimal places is about a metre — far finer than a map viewport
+    // needs, and enough to keep the shared URL short.
+    if (centre != null)
+      _centreParam:
+          '${centre!.latitude.toStringAsFixed(5)},'
+          '${centre!.longitude.toStringAsFixed(5)}',
+    if (zoom != null) _zoomParam: zoom!.toStringAsFixed(2),
   };
 
   /// Rebuilds a query from URL parameters, ignoring anything unrecognised.
@@ -177,6 +232,7 @@ class ListingQuery {
     }
 
     final type = parameters[_unitTypeParam]?.trim();
+    final zoom = double.tryParse(parameters[_zoomParam]?.trim() ?? '');
     return ListingQuery(
       text: parameters[_textParam]?.trim() ?? '',
       price: byName(PriceBand.values, parameters[_priceParam]) ?? PriceBand.any,
@@ -187,6 +243,25 @@ class ListingQuery {
       sort:
           byName(ListingSort.values, parameters[_sortParam]) ??
           ListingSort.newest,
+      view: byName(ListingView.values, parameters[_viewParam]) ??
+          ListingView.list,
+      centre: _parseCentre(parameters[_centreParam]),
+      // A zoom outside what any map can render is treated as absent rather
+      // than clamped: the viewport then reframes around the results, which is
+      // the same thing a first visit does.
+      zoom: zoom != null && zoom.isFinite && zoom >= 1 && zoom <= 21
+          ? zoom
+          : null,
+    );
+  }
+
+  /// Parses `lat,lng`, or null for anything unusable.
+  static Coordinates? _parseCentre(String? value) {
+    final parts = value?.split(',');
+    if (parts == null || parts.length != 2) return null;
+    return Coordinates.tryFrom(
+      double.tryParse(parts.first.trim()),
+      double.tryParse(parts.last.trim()),
     );
   }
 
@@ -195,6 +270,9 @@ class ListingQuery {
   static const _bedroomsParam = 'beds';
   static const _unitTypeParam = 'type';
   static const _sortParam = 'sort';
+  static const _viewParam = 'view';
+  static const _centreParam = 'c';
+  static const _zoomParam = 'z';
 
   /// Drops a unit type that no longer exists in the catalogue, so a filter a
   /// visitor cannot see or remove never silently empties the results.
@@ -203,7 +281,13 @@ class ListingQuery {
       ? this
       : copyWith(unitType: anyUnitType);
 
-  List<Listing> apply(List<Listing> listings) {
+  /// Filters and orders the catalogue.
+  ///
+  /// [origin] is the visitor's own position, supplied only when the device has
+  /// actually given one up. It is the one input that cannot come from the URL,
+  /// which is why it is an argument rather than a field: a link is shareable,
+  /// and somebody else's location must never travel inside one.
+  List<Listing> apply(List<Listing> listings, {Coordinates? origin}) {
     final query = text.trim().toLowerCase();
     final matched = listings.where((listing) {
       final matchesText =
@@ -221,9 +305,36 @@ class ListingQuery {
       ListingSort.newest => _byNewest,
       ListingSort.priceLowToHigh => _byPriceAscending,
       ListingSort.priceHighToLow => _byPriceDescending,
+      // Falls back rather than failing: a shared `sort=nearest` link opened by
+      // someone who declined the location permission gets the ordinary
+      // marketplace, not an arbitrary order or an error.
+      ListingSort.nearest => origin == null
+          ? _byNewest
+          : (left, right) => _byDistanceFrom(origin, left, right),
     });
     return matched;
   }
+
+  /// Orders by distance, with unpinned adverts last.
+  ///
+  /// An advert whose landlord never placed a pin cannot be ranked by distance
+  /// at all. Sorting those to the end keeps them reachable — dropping them
+  /// would silently hide listings from a visitor who only changed the order.
+  static int _byDistanceFrom(Coordinates origin, Listing left, Listing right) {
+    final leftPin = _pinOf(left);
+    final rightPin = _pinOf(right);
+    if (leftPin == null && rightPin == null) return _byNewest(left, right);
+    if (leftPin == null) return 1;
+    if (rightPin == null) return -1;
+    return origin
+        .distanceMetresTo(leftPin)
+        .compareTo(origin.distanceMetresTo(rightPin));
+  }
+
+  static Coordinates? _pinOf(Listing listing) => Coordinates.tryFrom(
+    listing.approximateLatitude,
+    listing.approximateLongitude,
+  );
 
   /// The neighbourhoods carrying the most homes, for the hero's one-tap
   /// shortcuts. Drawn from the catalogue so a shortcut never lands on an empty
@@ -273,8 +384,12 @@ class ListingQuery {
       other.price == price &&
       other.bedrooms == bedrooms &&
       other.unitType == unitType &&
-      other.sort == sort;
+      other.sort == sort &&
+      other.view == view &&
+      other.centre == centre &&
+      other.zoom == zoom;
 
   @override
-  int get hashCode => Object.hash(text, price, bedrooms, unitType, sort);
+  int get hashCode =>
+      Object.hash(text, price, bedrooms, unitType, sort, view, centre, zoom);
 }

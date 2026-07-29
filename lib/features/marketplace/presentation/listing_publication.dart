@@ -172,9 +172,7 @@ ListingPublication resolveListingPublication({
     return _failed(
       listing,
       copy: copy,
-      failure: code == null
-          ? null
-          : describeStoredCommandFailure(code: code),
+      failure: code == null ? null : describeStoredCommandFailure(code: code),
     );
   }
   if (listing.syncMetadata.state == EntitySyncState.conflicted) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../app/localization/locale_controller.dart';
@@ -692,24 +693,43 @@ class _FeedbackSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const NyumbaSectionHeader(
-            title: 'Feedback',
+            title: 'Feedback & support',
             subtitle:
                 'Tell the Nyumba team what is working and what is not. This is '
                 'private — your tenants never see it.',
           ),
           const SizedBox(height: 14),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: AsyncActionButton.tonal(
-              showBusyIndicator: false,
-              icon: const Icon(Icons.forum_outlined, size: 18),
-              // Disabled until the version resolves rather than sending
-              // "unknown": a report we cannot tie to a build is far less useful.
-              enabled: version != null,
-              onPressed: () async =>
-                  showFeedbackSheet(context, appVersion: version!),
-              child: const Text.localized('Send feedback'),
-            ),
+          // Two doors, and the labels are what distinguish them: feedback is
+          // told, support is asked. Someone who needs an answer must not end up
+          // in the one-way channel and then wait for a reply that is not coming.
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              AsyncActionButton.tonal(
+                showBusyIndicator: false,
+                icon: const Icon(Icons.forum_outlined, size: 18),
+                // Disabled until the version resolves rather than sending
+                // "unknown": a report we cannot tie to a build is far less
+                // useful.
+                enabled: version != null,
+                onPressed: () async =>
+                    showFeedbackSheet(context, appVersion: version!),
+                child: const Text.localized('Send feedback'),
+              ),
+              AsyncActionButton(
+                style: AsyncActionStyle.outlined,
+                showBusyIndicator: false,
+                icon: const Icon(Icons.support_agent_outlined, size: 18),
+                onPressed: () async => context.go('/support'),
+                child: const Text.localized('Contact support'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text.localized(
+            'Feedback goes one way. Contact support when you need a reply.',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),

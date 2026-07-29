@@ -4884,6 +4884,12 @@ abstract class AppLocalizations {
   /// **'Check payment status'**
   String get subscriptionCheckPaymentStatus;
 
+  /// No description provided for @subscriptionContactSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get subscriptionContactSupport;
+
   /// No description provided for @subscriptionPlanCapacity.
   ///
   /// In en, this message translates to:
@@ -6738,6 +6744,510 @@ abstract class AppLocalizations {
   /// **'Net promoter score'**
   String get netPromoterScore;
 
+  /// No description provided for @supportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Help & support'**
+  String get supportTitle;
+
+  /// No description provided for @supportShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get supportShort;
+
+  /// No description provided for @supportQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Support queue'**
+  String get supportQueue;
+
+  /// No description provided for @supportDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the Nyumba team about your account, billing, or anything in the app. We usually reply within one working day.'**
+  String get supportDescription;
+
+  /// No description provided for @supportMessageSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Message support'**
+  String get supportMessageSupport;
+
+  /// No description provided for @supportContactSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get supportContactSupport;
+
+  /// No description provided for @supportSla.
+  ///
+  /// In en, this message translates to:
+  /// **'We usually reply within one working day.'**
+  String get supportSla;
+
+  /// No description provided for @supportYourConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Your conversations'**
+  String get supportYourConversations;
+
+  /// No description provided for @supportYourConversationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything you have asked us, and where it got to.'**
+  String get supportYourConversationsSubtitle;
+
+  /// No description provided for @supportLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your conversations could not be loaded. They are safe — try again in a moment.'**
+  String get supportLoadFailed;
+
+  /// No description provided for @supportCommonQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Common questions'**
+  String get supportCommonQuestions;
+
+  /// No description provided for @supportAnswerDidNotHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'This did not help'**
+  String get supportAnswerDidNotHelp;
+
+  /// No description provided for @supportNoConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet'**
+  String get supportNoConversations;
+
+  /// No description provided for @supportNoConversationsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When you message us it appears here, with our reply.'**
+  String get supportNoConversationsBody;
+
+  /// No description provided for @supportWhatIsThisAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'What is this about?'**
+  String get supportWhatIsThisAbout;
+
+  /// No description provided for @supportAttachmentNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your plan, app version and device are attached so we can look into it.'**
+  String get supportAttachmentNotice;
+
+  /// No description provided for @supportSendMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Send message'**
+  String get supportSendMessage;
+
+  /// No description provided for @supportTooManyOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have three conversations open with us. Reply on one of those and we will pick it up there.'**
+  String get supportTooManyOpen;
+
+  /// No description provided for @supportRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'That was sent a moment ago. Give it a minute before starting another conversation.'**
+  String get supportRateLimited;
+
+  /// No description provided for @supportFeedbackCrossLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Need a reply? Contact support instead'**
+  String get supportFeedbackCrossLink;
+
+  /// No description provided for @supportFeedbackVsSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback goes one way. Contact support when you need a reply.'**
+  String get supportFeedbackVsSupport;
+
+  /// No description provided for @supportConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation'**
+  String get supportConversation;
+
+  /// No description provided for @supportAllConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'All conversations'**
+  String get supportAllConversations;
+
+  /// No description provided for @supportThreadLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation could not be opened.'**
+  String get supportThreadLoadFailed;
+
+  /// No description provided for @supportThreadNotSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is not on this device yet.'**
+  String get supportThreadNotSynced;
+
+  /// No description provided for @supportThreadNotSyncedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will appear once your workspace finishes syncing.'**
+  String get supportThreadNotSyncedBody;
+
+  /// No description provided for @supportSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get supportSending;
+
+  /// No description provided for @supportNotSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent'**
+  String get supportNotSent;
+
+  /// No description provided for @supportUnsentOnThread.
+  ///
+  /// In en, this message translates to:
+  /// **'A message here has not been sent.'**
+  String get supportUnsentOnThread;
+
+  /// No description provided for @supportClosedLandlord.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is closed. Start a new one and we will pick it up from there.'**
+  String get supportClosedLandlord;
+
+  /// No description provided for @supportClosedAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is closed. The landlord can start a new one.'**
+  String get supportClosedAgent;
+
+  /// No description provided for @supportStatusSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get supportStatusSent;
+
+  /// No description provided for @supportStatusLookingInto.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba is looking into this'**
+  String get supportStatusLookingInto;
+
+  /// No description provided for @supportStatusNeedsYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs you'**
+  String get supportStatusNeedsYou;
+
+  /// No description provided for @supportStatusResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get supportStatusResolved;
+
+  /// No description provided for @supportStatusClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get supportStatusClosed;
+
+  /// No description provided for @supportStatusNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get supportStatusNew;
+
+  /// No description provided for @supportStatusInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get supportStatusInProgress;
+
+  /// No description provided for @supportStatusAwaitingLandlord.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting landlord'**
+  String get supportStatusAwaitingLandlord;
+
+  /// No description provided for @supportActionMarkInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark in progress'**
+  String get supportActionMarkInProgress;
+
+  /// No description provided for @supportActionMarkResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark resolved'**
+  String get supportActionMarkResolved;
+
+  /// No description provided for @supportActionClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get supportActionClose;
+
+  /// No description provided for @supportActionSorted.
+  ///
+  /// In en, this message translates to:
+  /// **'This is sorted'**
+  String get supportActionSorted;
+
+  /// No description provided for @supportActionReopen.
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen'**
+  String get supportActionReopen;
+
+  /// No description provided for @supportCategoryBilling.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing & subscription'**
+  String get supportCategoryBilling;
+
+  /// No description provided for @supportCategoryPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments & receipts'**
+  String get supportCategoryPayments;
+
+  /// No description provided for @supportCategoryTenants.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenants & leases'**
+  String get supportCategoryTenants;
+
+  /// No description provided for @supportCategoryListings.
+  ///
+  /// In en, this message translates to:
+  /// **'Listings & adverts'**
+  String get supportCategoryListings;
+
+  /// No description provided for @supportCategoryAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account & access'**
+  String get supportCategoryAccount;
+
+  /// No description provided for @supportCategoryOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else'**
+  String get supportCategoryOther;
+
+  /// No description provided for @supportCategoryBillingShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing'**
+  String get supportCategoryBillingShort;
+
+  /// No description provided for @supportCategoryPaymentsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments'**
+  String get supportCategoryPaymentsShort;
+
+  /// No description provided for @supportCategoryTenantsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenants'**
+  String get supportCategoryTenantsShort;
+
+  /// No description provided for @supportCategoryListingsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Listings'**
+  String get supportCategoryListingsShort;
+
+  /// No description provided for @supportCategoryAccountShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get supportCategoryAccountShort;
+
+  /// No description provided for @supportCategoryOtherShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get supportCategoryOtherShort;
+
+  /// No description provided for @supportQueueDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations with landlords. Replying moves the ticket along, so the queue stays right without anyone setting a status.'**
+  String get supportQueueDescription;
+
+  /// No description provided for @supportQueueLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The support queue could not be loaded.'**
+  String get supportQueueLoadFailed;
+
+  /// No description provided for @supportQueueNeedsReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs reply'**
+  String get supportQueueNeedsReply;
+
+  /// No description provided for @supportQueueOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get supportQueueOpen;
+
+  /// No description provided for @supportQueueAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get supportQueueAll;
+
+  /// No description provided for @supportQueueBackToQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to queue'**
+  String get supportQueueBackToQueue;
+
+  /// No description provided for @supportQueueNothingWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing waiting'**
+  String get supportQueueNothingWaiting;
+
+  /// No description provided for @supportQueueNothingWaitingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations match this filter.'**
+  String get supportQueueNothingWaitingBody;
+
+  /// No description provided for @supportQueuePickOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a conversation'**
+  String get supportQueuePickOne;
+
+  /// No description provided for @supportQueuePickOneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a ticket from the queue to read and reply to it.'**
+  String get supportQueuePickOneBody;
+
+  /// No description provided for @supportQueueNeverAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'Never answered'**
+  String get supportQueueNeverAnswered;
+
+  /// No description provided for @supportQueueUnnamedLandlord.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed landlord'**
+  String get supportQueueUnnamedLandlord;
+
+  /// No description provided for @supportFaqSubscriptionPendingQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Why does my subscription still say pending?'**
+  String get supportFaqSubscriptionPendingQ;
+
+  /// No description provided for @supportFaqSubscriptionPendingA.
+  ///
+  /// In en, this message translates to:
+  /// **'A payment you sent by mobile money or cash is confirmed by the Nyumba team, not automatically. That usually happens the same working day. Your workspace opens the moment it is confirmed — nothing is lost in the meantime.'**
+  String get supportFaqSubscriptionPendingA;
+
+  /// No description provided for @supportFaqCashPaymentQ.
+  ///
+  /// In en, this message translates to:
+  /// **'My tenant paid in cash. How do I record it?'**
+  String get supportFaqCashPaymentQ;
+
+  /// No description provided for @supportFaqCashPaymentA.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Finances, choose Record a payment, and pick the tenant and the period it covers. Nyumba generates the receipt and the tenant sees it in their portal straight away.'**
+  String get supportFaqCashPaymentA;
+
+  /// No description provided for @supportFaqDeclaredPaymentQ.
+  ///
+  /// In en, this message translates to:
+  /// **'My tenant says the payment they reported is still waiting.'**
+  String get supportFaqDeclaredPaymentQ;
+
+  /// No description provided for @supportFaqDeclaredPaymentA.
+  ///
+  /// In en, this message translates to:
+  /// **'A payment a tenant reports is a claim until you confirm it, so their balance does not move on their say-so. Open Finances to confirm or reject it — they are told either way.'**
+  String get supportFaqDeclaredPaymentA;
+
+  /// No description provided for @supportFaqTenantSignInQ.
+  ///
+  /// In en, this message translates to:
+  /// **'My tenant cannot sign in.'**
+  String get supportFaqTenantSignInQ;
+
+  /// No description provided for @supportFaqTenantSignInA.
+  ///
+  /// In en, this message translates to:
+  /// **'A tenant reaches their portal by claiming the invitation you sent to their email or phone. If that invitation was never opened, resend it from the tenant\'s page. They cannot create their own account.'**
+  String get supportFaqTenantSignInA;
+
+  /// No description provided for @supportFaqListingLifetimeQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How long does a listing stay published?'**
+  String get supportFaqListingLifetimeQ;
+
+  /// No description provided for @supportFaqListingLifetimeA.
+  ///
+  /// In en, this message translates to:
+  /// **'Thirty days. You are warned before it expires and can renew it in one tap, which starts a fresh thirty days without rewriting the advert.'**
+  String get supportFaqListingLifetimeA;
+
+  /// No description provided for @supportFaqPublishFailedQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Why will my listing not publish?'**
+  String get supportFaqPublishFailedQ;
+
+  /// No description provided for @supportFaqPublishFailedA.
+  ///
+  /// In en, this message translates to:
+  /// **'A public advert needs at least one photo of the rental space and a unit that is actually available. Photos on the property record are private and are never used on an advert.'**
+  String get supportFaqPublishFailedA;
+
+  /// No description provided for @supportFaqAddTeamQ.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I add someone to my team?'**
+  String get supportFaqAddTeamQ;
+
+  /// No description provided for @supportFaqAddTeamA.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Team and invite them by email. You choose exactly what they can reach — a caretaker handling maintenance never sees your finances.'**
+  String get supportFaqAddTeamA;
+
+  /// No description provided for @supportFaqPhotoUploadQ.
+  ///
+  /// In en, this message translates to:
+  /// **'My photos failed to upload.'**
+  String get supportFaqPhotoUploadQ;
+
+  /// No description provided for @supportFaqPhotoUploadA.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos upload when your device next reaches the internet, so a weak connection delays them rather than losing them. If one keeps failing, it is usually over the 5 MB limit — retake it at a smaller size.'**
+  String get supportFaqPhotoUploadA;
+
   /// No description provided for @listYourSpace.
   ///
   /// In en, this message translates to:
@@ -6869,6 +7379,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Landlords add new rental spaces regularly - check back soon.'**
   String get noHomesListedMessage;
+
+  /// No description provided for @locationOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Location on map'**
+  String get locationOnMap;
+
+  /// No description provided for @setLocationOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Set location on map'**
+  String get setLocationOnMap;
+
+  /// No description provided for @changeLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Change location'**
+  String get changeLocation;
+
+  /// No description provided for @removeLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove location'**
+  String get removeLocation;
+
+  /// No description provided for @noLocationSet.
+  ///
+  /// In en, this message translates to:
+  /// **'No location set'**
+  String get noLocationSet;
+
+  /// No description provided for @locationHelpsTenantsFindYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenants use this to see the area and get directions.'**
+  String get locationHelpsTenantsFindYou;
+
+  /// No description provided for @pinTheLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin the location'**
+  String get pinTheLocation;
+
+  /// No description provided for @dragMapToPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the map to put the crosshair on the property.'**
+  String get dragMapToPosition;
+
+  /// No description provided for @useMyCurrentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my current location'**
+  String get useMyCurrentLocation;
+
+  /// No description provided for @findingYourLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding your location…'**
+  String get findingYourLocation;
+
+  /// No description provided for @locationPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba needs location permission to find where you are.'**
+  String get locationPermissionDenied;
+
+  /// No description provided for @locationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location could not be found. Move the map instead.'**
+  String get locationUnavailable;
+
+  /// No description provided for @confirmLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm location'**
+  String get confirmLocation;
+
+  /// No description provided for @mapUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The map is not available in this build'**
+  String get mapUnavailableTitle;
+
+  /// No description provided for @mapUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You can still capture the location while standing at the property.'**
+  String get mapUnavailableMessage;
+
+  /// No description provided for @locationCapturedOffMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Location captured'**
+  String get locationCapturedOffMap;
+
+  /// Shown on the landlord pin picker so they can see the privacy radius the public catalogue uses.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenants see this circle, roughly {metres} m across — not your gate.'**
+  String tenantsSeeApproximateArea(int metres);
+
+  /// No description provided for @publishedLocationIsApproximate.
+  ///
+  /// In en, this message translates to:
+  /// **'Published location is approximate'**
+  String get publishedLocationIsApproximate;
+
+  /// No description provided for @whereYouWillLive.
+  ///
+  /// In en, this message translates to:
+  /// **'Where you will live'**
+  String get whereYouWillLive;
+
+  /// No description provided for @getDirections.
+  ///
+  /// In en, this message translates to:
+  /// **'Get directions'**
+  String get getDirections;
+
+  /// Caption under the listing map. {area} is a landlord-authored neighbourhood name and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Approximate location in {area}'**
+  String approximateLocationIn(String area);
+
+  /// No description provided for @exactAddressSharedByLandlord.
+  ///
+  /// In en, this message translates to:
+  /// **'The landlord shares the exact address once you are in touch.'**
+  String get exactAddressSharedByLandlord;
+
+  /// No description provided for @mapUnavailableOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'The map will appear when you are back online.'**
+  String get mapUnavailableOffline;
 }
 
 class _AppLocalizationsDelegate

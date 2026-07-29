@@ -58,7 +58,16 @@ enum OfflineEntityType {
   publicReview('public_reviews', 97),
 
   /// Landlord-to-Nyumba product feedback. Write-only; nothing pulls it back.
-  platformFeedback('platform_feedback', 98);
+  platformFeedback('platform_feedback', 98),
+
+  /// A landlord ↔ Nyumba support conversation.
+  ///
+  /// The opposite of [platformFeedback] in the one way that matters here: it is
+  /// pulled back. One store serves both sides — a landlord's own tickets
+  /// (filtered by `landlordId`) and the administrative mirror of every ticket —
+  /// because the workspace database is already scoped per account *and* active
+  /// role, so an admin's copy and a landlord's copy never share a database.
+  supportTicket('support_tickets', 99);
 
   const OfflineEntityType(this.storeName, this.syncPriority);
 

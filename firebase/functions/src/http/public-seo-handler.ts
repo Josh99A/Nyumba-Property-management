@@ -18,6 +18,12 @@ import {
   toPublicSeoListing,
   type PublicSeoListing,
 } from './public-seo';
+import {
+  MAP_SECRETS,
+  publicMapCoordinates,
+  staticMapUrl,
+  STATIC_MAP_CACHE_CONTROL,
+} from './static-map';
 
 const PUBLIC_LISTING_PAGE_SIZE = 500;
 const PUBLIC_IMAGE_CONTENT_TYPES = new Set([
@@ -103,6 +109,10 @@ export const publicSeo = onRequest(
     timeoutSeconds: 30,
     memory: '256MiB',
     cors: false,
+    // Needed only by the /listing/{id}/map route. Absent in a deployment that
+    // has not provisioned it, which that route treats as "no map" rather than
+    // an error.
+    secrets: MAP_SECRETS,
   },
   async (request, response) => {
     applyDocumentHeaders(response);
@@ -208,6 +218,73 @@ export const publicSeo = onRequest(
           .set('X-Robots-Tag', 'noindex, nofollow')
           .status(404)
           .send('Listing image not found.');
+      }
+      return;
+    }
+
+    // The rendered location map. Served from this function rather than a
+    // separate one so it inherits the existing `/listing/**` Hosting rewrite,
+    // and so the public invariant is rechecked by the same code path that
+    // guards every other public response.
+    const mapMatch = /^\/listing\/([A-Za-z0-9_-]{8,128})\/map$/.exec(
+      request.path,
+    );
+    if (mapMatch) {
+      const listingId = mapMatch[1]!;
+      const snapshot = await getFirestore()
+        .collection(COLLECTIONS.publicListings)
+        .doc(listingId)
+        .get();
+      const data = snapshot.exists ? snapshot.data() ?? {} : null;
+      if (data === null || !isActivePublicListing(data, now)) {
+        markUnavailable(response);
+        response
+          .set('X-Robots-Tag', 'noindex, nofollow')
+          .status(data === null ? 404 : 410)
+          .send('Listing map is not available.');
+        return;
+      }
+      // Only ever the coarsened projection field. The canonical listing's
+      // exact pin and the property's address are private and are not read
+      // here at all.
+      const centre = publicMapCoordinates(data.approximateLocation);
+      const apiKey = process.env.MAPS_STATIC_API_KEY;
+      if (!centre || !apiKey) {
+        // A listing with no pin and a deployment with no key are the same
+        // outcome for a visitor: there is no map. Neither is an error worth
+        // caching, and neither should be indexed.
+        markUnavailable(response);
+        response
+          .set('X-Robots-Tag', 'noindex, nofollow')
+          .status(404)
+          .send('Listing map is not available.');
+        return;
+      }
+      try {
+        const upstream = await fetch(staticMapUrl(centre, apiKey));
+        const contentType = upstream.headers.get('content-type') ?? '';
+        if (!upstream.ok || !contentType.startsWith('image/')) {
+          throw new Error(`Static Maps responded ${upstream.status}.`);
+        }
+        response.set({
+          'Cache-Control': STATIC_MAP_CACHE_CONTROL,
+          'Content-Type': contentType,
+        });
+        if (request.method === 'HEAD') {
+          response.status(200).end();
+          return;
+        }
+        response
+          .status(200)
+          .send(Buffer.from(await upstream.arrayBuffer()));
+      } catch {
+        // Never cache a failed render: the next request should try again
+        // rather than serve a hole for a day.
+        markUnavailable(response);
+        response
+          .set('X-Robots-Tag', 'noindex, nofollow')
+          .status(404)
+          .send('Listing map is not available.');
       }
       return;
     }

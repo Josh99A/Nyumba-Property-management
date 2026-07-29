@@ -90,9 +90,7 @@ void main() {
               ),
             ),
           ),
-          publicListingsProvider.overrideWith(
-            (ref) => Stream.value(published),
-          ),
+          publicListingsProvider.overrideWith((ref) => Stream.value(published)),
           landlordListingsProvider.overrideWith(
             (ref) => Stream.value(ownListings),
           ),
@@ -127,24 +125,20 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a listing absent from the public catalogue falls back to the '
-    'landlord\'s own copy and shows the preview banner',
-    (tester) async {
-      await pump(tester, published: const [], ownListings: [listing]);
+  testWidgets('a listing absent from the public catalogue falls back to the '
+      'landlord\'s own copy and shows the preview banner', (tester) async {
+    await pump(tester, published: const [], ownListings: [listing]);
 
-      expect(find.text(listing.title), findsOneWidget);
-      expect(find.textContaining('Preview — not live yet'), findsOneWidget);
-    },
-  );
+    expect(find.text(listing.title), findsOneWidget);
+    expect(find.textContaining('Preview — not live yet'), findsOneWidget);
+  });
 
-  testWidgets(
-    'a listing in neither store still reads as not found',
-    (tester) async {
-      await pump(tester, published: const [], ownListings: const []);
+  testWidgets('a listing in neither store still reads as not found', (
+    tester,
+  ) async {
+    await pump(tester, published: const [], ownListings: const []);
 
-      expect(find.text('This home is no longer available'), findsOneWidget);
-      expect(find.textContaining('Preview — not live yet'), findsNothing);
-    },
-  );
+    expect(find.text('This home is no longer available'), findsOneWidget);
+    expect(find.textContaining('Preview — not live yet'), findsNothing);
+  });
 }

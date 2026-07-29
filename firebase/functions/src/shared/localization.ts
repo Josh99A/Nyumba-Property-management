@@ -7,7 +7,9 @@ export type NotificationTemplateKey =
   | 'new_enquiry'
   | 'tenant_notice'
   | 'new_review'
-  | 'review_response';
+  | 'review_response'
+  | 'support_reply'
+  | 'support_resolved';
 
 interface LocalizedNotification {
   title: string;
@@ -109,6 +111,45 @@ const NOTIFICATION_TEMPLATES: Record<
     ar: {
       title: 'ردّ مالك العقار',
       body: 'هناك ردّ علني على المراجعة التي كتبتها.',
+    },
+  },
+  // The reply itself is deliberately not in the body. A support answer can name
+  // an amount, an account, or a tenant, and a lock screen is not a private
+  // surface; the notification says where to look, not what was said.
+  support_reply: {
+    en: {
+      title: 'Nyumba support replied',
+      body: 'There is a new reply on your support conversation.',
+    },
+    lg: {
+      title: 'Obuyambi bwa Nyumba buddemu',
+      body: 'Waliwo okuddamu okupya ku mboozi yo ey’obuyambi.',
+    },
+    sw: {
+      title: 'Msaada wa Nyumba umejibu',
+      body: 'Kuna jibu jipya kwenye mazungumzo yako ya msaada.',
+    },
+    ar: {
+      title: 'ردّ دعم نيومبا',
+      body: 'هناك ردّ جديد على محادثة الدعم الخاصة بك.',
+    },
+  },
+  support_resolved: {
+    en: {
+      title: 'Your support request was resolved',
+      body: 'Open Nyumba to check it, or reply if it is not sorted.',
+    },
+    lg: {
+      title: 'Okusaba kwo okw’obuyambi kumaliriddwa',
+      body: 'Ggulawo Nyumba okukebera, oba oddemu bw’oba tekunnaggwa.',
+    },
+    sw: {
+      title: 'Ombi lako la msaada limetatuliwa',
+      body: 'Fungua Nyumba ukague, au jibu kama bado halijakamilika.',
+    },
+    ar: {
+      title: 'تمّت معالجة طلب الدعم الخاص بك',
+      body: 'افتح نيومبا للتحقق، أو ردّ إذا لم تُحل المشكلة.',
     },
   },
 };

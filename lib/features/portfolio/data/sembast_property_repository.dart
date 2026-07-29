@@ -37,6 +37,7 @@ final class SembastPropertyRepository implements PropertyRepository {
       city: input.city.trim(),
       country: input.country.trim(),
       description: _optional(input.description),
+      location: input.location,
       imageUrls: input.imageUrls.map((item) => item.trim()).toList(),
       createdAt: now,
       updatedAt: now,

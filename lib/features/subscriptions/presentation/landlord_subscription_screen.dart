@@ -610,6 +610,20 @@ class _PaymentStatusCard extends StatelessWidget {
                       icon: const Icon(Icons.refresh_rounded, size: 18),
                       child: Text(copy.subscriptionCheckPaymentStatus),
                     ),
+                    // Offered on exactly the states where refreshing has
+                    // stopped being useful. A landlord waiting on a payment
+                    // confirmation that is not coming has one real next step,
+                    // and hunting for it through the settings menu is not it.
+                    if (!active)
+                      AsyncActionButton(
+                        style: AsyncActionStyle.text,
+                        showBusyIndicator: false,
+                        icon: const Icon(Icons.support_agent_outlined, size: 18),
+                        onPressed: () async => context.go(
+                          '/support?compose=true',
+                        ),
+                        child: Text(copy.subscriptionContactSupport),
+                      ),
                   ],
                 ),
               ],

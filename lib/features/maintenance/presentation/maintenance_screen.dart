@@ -1,14 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' hide Text, Tooltip;
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/config/maps_config.dart';
+import '../../../core/domain/coordinates.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
@@ -82,7 +87,8 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                   ).statusSubjectMaintenanceRequests,
                   onRetry: () => ref.invalidate(maintenanceRequestsProvider),
                 ),
-                data: (requests) => _buildLoaded(context, requests, outbox),
+                data: (requests) =>
+                    _buildLoaded(context, requests, outbox, properties),
               ),
             ],
           ),
@@ -95,7 +101,15 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     BuildContext context,
     List<MaintenanceRequest> requests,
     List<OutboxEntry> outbox,
+    List<Property> properties,
   ) {
+    // Where each work order actually is. Resolved once for the whole table
+    // rather than per row, and only for properties that carry a pin — a
+    // request whose property has none simply offers no directions.
+    final destinations = <String, Coordinates>{
+      for (final property in properties)
+        if (property.location != null) property.id: property.location!,
+    };
     final filtered = requests.where((request) {
       return switch (_filter) {
         'Open' => request.status.isOpen,
@@ -161,6 +175,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                 for (final request in filtered)
                   _WorkOrderRow(
                     request: request,
+                    destination: request.propertyId == null
+                        ? null
+                        : destinations[request.propertyId],
                     syncStatus: resolveAggregateSyncStatus(
                       entityType: OfflineEntityType.maintenanceRequest,
                       entityId: request.id,
@@ -518,12 +535,19 @@ class _MaintenanceSummary extends StatelessWidget {
 class _WorkOrderRow extends StatelessWidget {
   const _WorkOrderRow({
     required this.request,
+    required this.destination,
     required this.syncStatus,
     required this.onAdvance,
     required this.onAssign,
   });
 
   final MaintenanceRequest request;
+
+  /// The exact pin on this request's property, or null when none was placed.
+  ///
+  /// Exact, not coarsened: a contractor is being sent to a site, and the
+  /// ~110 m public rounding would put them at the wrong end of the road.
+  final Coordinates? destination;
   final AggregateSyncStatus syncStatus;
   final VoidCallback onAdvance;
   final VoidCallback onAssign;
@@ -531,14 +555,37 @@ class _WorkOrderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final compact = context.isCompact;
+    final destination = this.destination;
     final actions = PopupMenuButton<String>(
       tooltip: context.tr('Work order actions'),
-      onSelected: (value) => value == 'assign' ? onAssign() : onAdvance(),
+      onSelected: (value) => switch (value) {
+        'assign' => onAssign(),
+        // Fire-and-forget: handing off to another app is not something this
+        // screen waits on or reports the result of.
+        'directions' => unawaited(
+          launchUrl(
+            NyumbaMaps.directionsTo(
+              destination!.latitude,
+              destination.longitude,
+            ),
+            mode: LaunchMode.externalApplication,
+          ),
+        ),
+        _ => onAdvance(),
+      },
       itemBuilder: (_) => [
         const PopupMenuItem(
           value: 'assign',
           child: Text.localized('Assign contractor'),
         ),
+        // Offered only when the property carries a pin. This is the surface
+        // that most justifies directions in the whole product: a contractor is
+        // being dispatched somewhere they have never been.
+        if (destination != null)
+          PopupMenuItem(
+            value: 'directions',
+            child: Text.localized(appLocalizationsOf(context).getDirections),
+          ),
         if (!request.status.isTerminal)
           PopupMenuItem(
             value: 'advance',

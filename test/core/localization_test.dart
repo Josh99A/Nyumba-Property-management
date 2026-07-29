@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:nyumba_property_management/app/localization/locale_controller.dart';
 import 'package:nyumba_property_management/core/documents/nyumba_document_service.dart';
 import 'package:nyumba_property_management/core/localization/app_language.dart';
+import 'package:nyumba_property_management/core/localization/app_localizations_adapter.dart';
 import 'package:nyumba_property_management/core/localization/command_failure_localizations.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/localization_formats.dart';
@@ -185,6 +186,27 @@ void main() {
     await initializeNyumbaLocalizationFormats();
     expect(DateFormat('MMMM', 'lg').format(DateTime(2026, 9)), 'Ssebutemba');
     expect(DateFormat('EEEE', 'lg').format(DateTime(2026, 7, 13)), 'Bbalaza');
+  });
+
+  test('every language has a money locale intl carries symbols for', () {
+    // Registering calendar names does not give `intl` number symbols, and
+    // NumberFormat throws on an unknown locale instead of falling back.
+    for (final language in AppLanguage.values) {
+      final copy = appLocalizationsFor(language);
+      for (final locale in {language.intlNumberLocale, copy.numberLocale}) {
+        expect(
+          NumberFormat.currency(
+            locale: locale,
+            name: 'UGX',
+            symbol: 'UGX ',
+            decimalDigits: 0,
+          ).format(1500000),
+          contains('1,500,000'),
+          reason: '${language.code} -> $locale',
+        );
+      }
+    }
+    expect(AppLanguage.luganda.intlNumberLocale, 'en_UG');
   });
 
   testWidgets('Arabic uses RTL and Luganda provides Material controls', (

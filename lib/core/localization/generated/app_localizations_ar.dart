@@ -2654,6 +2654,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get subscriptionCheckPaymentStatus => 'التحقق من حالة الدفع';
 
   @override
+  String get subscriptionContactSupport => 'التواصل مع الدعم';
+
+  @override
   String subscriptionPlanCapacity(int unitLimit, int listingLimit) {
     return 'حتى $unitLimit وحدات للإيجار · $listingLimit قوائم نشطة';
   }
@@ -3752,6 +3755,282 @@ class AppLocalizationsAr extends AppLocalizations {
   String get netPromoterScore => 'صافي نقاط الترويج';
 
   @override
+  String get supportTitle => 'المساعدة والدعم';
+
+  @override
+  String get supportShort => 'الدعم';
+
+  @override
+  String get supportQueue => 'قائمة الدعم';
+
+  @override
+  String get supportDescription =>
+      'اسأل فريق نيومبا عن حسابك أو فواتيرك أو أي شيء في التطبيق. نردّ عادةً خلال يوم عمل واحد.';
+
+  @override
+  String get supportMessageSupport => 'مراسلة الدعم';
+
+  @override
+  String get supportContactSupport => 'التواصل مع الدعم';
+
+  @override
+  String get supportSla => 'نردّ عادةً خلال يوم عمل واحد.';
+
+  @override
+  String get supportYourConversations => 'محادثاتك';
+
+  @override
+  String get supportYourConversationsSubtitle =>
+      'كل ما سألتنا عنه، وما آل إليه.';
+
+  @override
+  String get supportLoadFailed =>
+      'تعذّر تحميل محادثاتك. إنها محفوظة — أعد المحاولة بعد قليل.';
+
+  @override
+  String get supportCommonQuestions => 'أسئلة شائعة';
+
+  @override
+  String get supportAnswerDidNotHelp => 'هذا لم يساعدني';
+
+  @override
+  String get supportNoConversations => 'لا توجد محادثات بعد';
+
+  @override
+  String get supportNoConversationsBody =>
+      'عندما تراسلنا ستظهر المحادثة هنا مع ردّنا.';
+
+  @override
+  String get supportWhatIsThisAbout => 'بخصوص ماذا؟';
+
+  @override
+  String get supportAttachmentNotice =>
+      'أُرفقت خطتك وإصدار التطبيق ونوع الجهاز حتى نتمكن من فحص المشكلة.';
+
+  @override
+  String get supportSendMessage => 'إرسال الرسالة';
+
+  @override
+  String get supportTooManyOpen =>
+      'لديك بالفعل ثلاث محادثات مفتوحة معنا. ردّ على إحداها وسنتابع الأمر هناك.';
+
+  @override
+  String get supportRateLimited =>
+      'أُرسل ذلك قبل لحظات. انتظر دقيقة قبل بدء محادثة أخرى.';
+
+  @override
+  String get supportFeedbackCrossLink =>
+      'تحتاج إلى ردّ؟ تواصل مع الدعم بدلاً من ذلك';
+
+  @override
+  String get supportFeedbackVsSupport =>
+      'الملاحظات تسير في اتجاه واحد. تواصل مع الدعم عندما تحتاج إلى ردّ.';
+
+  @override
+  String get supportConversation => 'المحادثة';
+
+  @override
+  String get supportAllConversations => 'كل المحادثات';
+
+  @override
+  String get supportThreadLoadFailed => 'تعذّر فتح هذه المحادثة.';
+
+  @override
+  String get supportThreadNotSynced => 'هذه المحادثة ليست على هذا الجهاز بعد.';
+
+  @override
+  String get supportThreadNotSyncedBody =>
+      'ستظهر بمجرد انتهاء مزامنة مساحة عملك.';
+
+  @override
+  String get supportSending => 'جارٍ الإرسال…';
+
+  @override
+  String get supportNotSent => 'لم تُرسل';
+
+  @override
+  String get supportUnsentOnThread => 'هناك رسالة هنا لم تُرسل.';
+
+  @override
+  String get supportClosedLandlord =>
+      'هذه المحادثة مغلقة. ابدأ محادثة جديدة وسنتابع من هناك.';
+
+  @override
+  String get supportClosedAgent =>
+      'هذه المحادثة مغلقة. يمكن لمالك العقار بدء محادثة جديدة.';
+
+  @override
+  String get supportStatusSent => 'أُرسلت';
+
+  @override
+  String get supportStatusLookingInto => 'نيومبا تنظر في الأمر';
+
+  @override
+  String get supportStatusNeedsYou => 'بانتظارك';
+
+  @override
+  String get supportStatusResolved => 'تمت المعالجة';
+
+  @override
+  String get supportStatusClosed => 'مغلقة';
+
+  @override
+  String get supportStatusNew => 'جديدة';
+
+  @override
+  String get supportStatusInProgress => 'قيد المعالجة';
+
+  @override
+  String get supportStatusAwaitingLandlord => 'بانتظار مالك العقار';
+
+  @override
+  String get supportActionMarkInProgress => 'وضع علامة قيد المعالجة';
+
+  @override
+  String get supportActionMarkResolved => 'وضع علامة تمت المعالجة';
+
+  @override
+  String get supportActionClose => 'إغلاق';
+
+  @override
+  String get supportActionSorted => 'تم حلّ الأمر';
+
+  @override
+  String get supportActionReopen => 'إعادة الفتح';
+
+  @override
+  String get supportCategoryBilling => 'الفواتير والاشتراك';
+
+  @override
+  String get supportCategoryPayments => 'المدفوعات والإيصالات';
+
+  @override
+  String get supportCategoryTenants => 'المستأجرون وعقود الإيجار';
+
+  @override
+  String get supportCategoryListings => 'الإعلانات';
+
+  @override
+  String get supportCategoryAccount => 'الحساب والوصول';
+
+  @override
+  String get supportCategoryOther => 'شيء آخر';
+
+  @override
+  String get supportCategoryBillingShort => 'الفواتير';
+
+  @override
+  String get supportCategoryPaymentsShort => 'المدفوعات';
+
+  @override
+  String get supportCategoryTenantsShort => 'المستأجرون';
+
+  @override
+  String get supportCategoryListingsShort => 'الإعلانات';
+
+  @override
+  String get supportCategoryAccountShort => 'الحساب';
+
+  @override
+  String get supportCategoryOtherShort => 'أخرى';
+
+  @override
+  String get supportQueueDescription =>
+      'محادثات مع ملاك العقارات. الردّ ينقل التذكرة إلى مرحلتها التالية، فتبقى القائمة صحيحة دون أن يضبط أحد الحالة.';
+
+  @override
+  String get supportQueueLoadFailed => 'تعذّر تحميل قائمة الدعم.';
+
+  @override
+  String get supportQueueNeedsReply => 'بحاجة إلى ردّ';
+
+  @override
+  String get supportQueueOpen => 'مفتوحة';
+
+  @override
+  String get supportQueueAll => 'الكل';
+
+  @override
+  String get supportQueueBackToQueue => 'العودة إلى القائمة';
+
+  @override
+  String get supportQueueNothingWaiting => 'لا شيء بالانتظار';
+
+  @override
+  String get supportQueueNothingWaitingBody =>
+      'لا توجد محادثات تطابق هذا المرشّح.';
+
+  @override
+  String get supportQueuePickOne => 'اختر محادثة';
+
+  @override
+  String get supportQueuePickOneBody =>
+      'اختر تذكرة من القائمة لقراءتها والردّ عليها.';
+
+  @override
+  String get supportQueueNeverAnswered => 'لم يُردّ عليها قط';
+
+  @override
+  String get supportQueueUnnamedLandlord => 'مالك عقار بلا اسم';
+
+  @override
+  String get supportFaqSubscriptionPendingQ => 'لماذا لا يزال اشتراكي معلّقًا؟';
+
+  @override
+  String get supportFaqSubscriptionPendingA =>
+      'الدفعة التي أرسلتها عبر المحفظة الإلكترونية أو نقدًا يؤكّدها فريق نيومبا وليس النظام تلقائيًا. يحدث ذلك عادةً في يوم العمل نفسه. تُفتح مساحة عملك لحظة تأكيدها — ولا يضيع شيء في هذه الأثناء.';
+
+  @override
+  String get supportFaqCashPaymentQ => 'دفع المستأجر نقدًا. كيف أسجّل ذلك؟';
+
+  @override
+  String get supportFaqCashPaymentA =>
+      'افتح المالية، واختر تسجيل دفعة، ثم اختر المستأجر والفترة التي تغطّيها. تُنشئ نيومبا الإيصال ويراه المستأجر في بوابته فورًا.';
+
+  @override
+  String get supportFaqDeclaredPaymentQ =>
+      'يقول المستأجر إن الدفعة التي أبلغ عنها لا تزال معلّقة.';
+
+  @override
+  String get supportFaqDeclaredPaymentA =>
+      'الدفعة التي يُبلغ عنها المستأجر تبقى مجرد ادّعاء حتى تؤكّدها، فلا يتغيّر رصيده بقوله وحده. افتح المالية لتأكيدها أو رفضها — ويُبلَّغ بالنتيجة في الحالتين.';
+
+  @override
+  String get supportFaqTenantSignInQ => 'المستأجر لا يستطيع تسجيل الدخول.';
+
+  @override
+  String get supportFaqTenantSignInA =>
+      'يصل المستأجر إلى بوابته بقبول الدعوة التي أرسلتها إلى بريده أو هاتفه. إذا لم تُفتح تلك الدعوة، أعد إرسالها من صفحة المستأجر. لا يمكنه إنشاء حساب بنفسه.';
+
+  @override
+  String get supportFaqListingLifetimeQ => 'كم يبقى الإعلان منشورًا؟';
+
+  @override
+  String get supportFaqListingLifetimeA =>
+      'ثلاثون يومًا. ننبّهك قبل انتهائه ويمكنك تجديده بنقرة واحدة، فيبدأ ثلاثون يومًا جديدة دون إعادة كتابة الإعلان.';
+
+  @override
+  String get supportFaqPublishFailedQ => 'لماذا لا يُنشر إعلاني؟';
+
+  @override
+  String get supportFaqPublishFailedA =>
+      'يحتاج الإعلان العلني إلى صورة واحدة على الأقل للمساحة المؤجَّرة وإلى وحدة متاحة فعلًا. صور سجلّ العقار خاصة ولا تُستخدم في الإعلانات أبدًا.';
+
+  @override
+  String get supportFaqAddTeamQ => 'كيف أضيف شخصًا إلى فريقي؟';
+
+  @override
+  String get supportFaqAddTeamA =>
+      'افتح الفريق وادعُه بالبريد الإلكتروني. أنت تحدّد بالضبط ما يمكنه الوصول إليه — فالمشرف على الصيانة لا يرى بياناتك المالية.';
+
+  @override
+  String get supportFaqPhotoUploadQ => 'فشل رفع صوري.';
+
+  @override
+  String get supportFaqPhotoUploadA =>
+      'تُرفع الصور عندما يتصل جهازك بالإنترنت، فالاتصال الضعيف يؤخّرها ولا يفقدها. وإذا استمر فشل إحداها فغالبًا تتجاوز حدّ 5 ميغابايت — أعد التقاطها بحجم أصغر.';
+
+  @override
   String get listYourSpace => 'أضف عقارك';
 
   @override
@@ -3830,4 +4109,82 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get noHomesListedMessage =>
       'يضيف الملاك مساحات إيجار جديدة بانتظام - تحقق مرة أخرى قريبا.';
+
+  @override
+  String get locationOnMap => 'الموقع على الخريطة';
+
+  @override
+  String get setLocationOnMap => 'تحديد الموقع على الخريطة';
+
+  @override
+  String get changeLocation => 'تغيير الموقع';
+
+  @override
+  String get removeLocation => 'إزالة الموقع';
+
+  @override
+  String get noLocationSet => 'لم يُحدد موقع';
+
+  @override
+  String get locationHelpsTenantsFindYou =>
+      'يستخدم المستأجرون هذا لرؤية المنطقة والحصول على الاتجاهات.';
+
+  @override
+  String get pinTheLocation => 'حدد الموقع';
+
+  @override
+  String get dragMapToPosition => 'اسحب الخريطة لوضع المؤشر على العقار.';
+
+  @override
+  String get useMyCurrentLocation => 'استخدم موقعي الحالي';
+
+  @override
+  String get findingYourLocation => 'جارٍ تحديد موقعك…';
+
+  @override
+  String get locationPermissionDenied =>
+      'تحتاج Nyumba إلى إذن الموقع لمعرفة مكانك.';
+
+  @override
+  String get locationUnavailable =>
+      'تعذر إيجاد موقعك. حرّك الخريطة بدلاً من ذلك.';
+
+  @override
+  String get confirmLocation => 'تأكيد الموقع';
+
+  @override
+  String get mapUnavailableTitle => 'الخريطة غير متاحة في هذا الإصدار';
+
+  @override
+  String get mapUnavailableMessage =>
+      'لا يزال بإمكانك تسجيل الموقع وأنت في العقار.';
+
+  @override
+  String get locationCapturedOffMap => 'تم تسجيل الموقع';
+
+  @override
+  String tenantsSeeApproximateArea(int metres) {
+    return 'يرى المستأجرون هذه الدائرة، بعرض $metres متر تقريباً — وليس بوابتك.';
+  }
+
+  @override
+  String get publishedLocationIsApproximate => 'الموقع المنشور تقريبي';
+
+  @override
+  String get whereYouWillLive => 'أين ستعيش';
+
+  @override
+  String get getDirections => 'الحصول على الاتجاهات';
+
+  @override
+  String approximateLocationIn(String area) {
+    return 'موقع تقريبي في $area';
+  }
+
+  @override
+  String get exactAddressSharedByLandlord =>
+      'يشارك المالك العنوان الدقيق بعد التواصل.';
+
+  @override
+  String get mapUnavailableOffline => 'ستظهر الخريطة عند عودتك للاتصال.';
 }

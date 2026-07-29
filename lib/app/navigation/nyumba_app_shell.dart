@@ -21,6 +21,7 @@ import '../../features/auth/domain/user_session.dart';
 import '../../features/auth/presentation/app_role_localizations.dart';
 import '../../features/notifications/application/push_interactions.dart';
 import '../../features/notifications/presentation/notification_center_sheet.dart';
+import '../../features/support/application/support_providers.dart';
 import '../bootstrap/app_dependencies.dart';
 
 class AppDestination {
@@ -193,9 +194,29 @@ const _adminDestinations = [
     selectedIcon: Icons.forum_rounded,
     path: '/admin/feedback',
   ),
+  // Beside feedback rather than among the operational pages: both are inbound
+  // landlord signal, and an agent working one is usually looking at the other.
+  AppDestination(
+    label: 'Support queue',
+    shortLabel: 'Support',
+    icon: Icons.support_agent_outlined,
+    selectedIcon: Icons.support_agent_rounded,
+    path: '/admin/support',
+  ),
 ];
 
 const _staffDestinations = [..._adminDestinations, ..._landlordDestinations];
+
+/// Talking to the Nyumba team. Owner-only, like the team and subscription
+/// destinations, and placed with them rather than among the portfolio pages: it
+/// is about the landlord's relationship with us, not about their properties.
+const _supportDestination = AppDestination(
+  label: 'Help & support',
+  shortLabel: 'Support',
+  icon: Icons.support_agent_outlined,
+  selectedIcon: Icons.support_agent_rounded,
+  path: '/support',
+);
 
 /// Managing staff seats and their permissions. Owner-only: a staff member
 /// cannot manage the team, so this never appears in their navigation.
@@ -309,6 +330,7 @@ class NyumbaAppShell extends ConsumerWidget {
       ..._landlordDestinations,
       _teamDestination(teamLabel),
       _subscriptionDestination,
+      _supportDestination,
       _exploreDestination,
     ],
     AppRole.staff => [
@@ -480,14 +502,9 @@ class _SidebarItemState extends State<_SidebarItem> {
                     scale: _hovered && !selected ? 1.08 : 1,
                     duration: duration,
                     curve: NyumbaMotion.easeOut,
-                    child: Icon(
-                      selected
-                          ? widget.destination.selectedIcon
-                          : widget.destination.icon,
-                      size: 21,
-                      color: selected
-                          ? scheme.onPrimary
-                          : context.nyumba.mutedInk,
+                    child: _DestinationIcon(
+                      destination: widget.destination,
+                      selected: selected,
                     ),
                   ),
                   if (!widget.collapsed) ...[
@@ -510,6 +527,40 @@ class _SidebarItemState extends State<_SidebarItem> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A destination's icon, with a count when that destination has a queue.
+///
+/// Only two paths carry one, and both mean "somebody is waiting on you": the
+/// admin support queue and the landlord's own unanswered replies. A badge on
+/// anything else would be decoration, and decoration teaches people to ignore
+/// badges.
+class _DestinationIcon extends ConsumerWidget {
+  const _DestinationIcon({required this.destination, required this.selected});
+
+  final AppDestination destination;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final icon = Icon(
+      selected ? destination.selectedIcon : destination.icon,
+      size: 21,
+      color: selected ? scheme.onPrimary : context.nyumba.mutedInk,
+    );
+    final count = switch (destination.path) {
+      '/admin/support' => ref.watch(supportQueueDepthProvider),
+      '/support' => ref.watch(landlordSupportUnreadProvider),
+      _ => 0,
+    };
+    if (count == 0) return icon;
+    return Badge.count(
+      count: count,
+      backgroundColor: context.nyumba.danger,
+      child: icon,
     );
   }
 }

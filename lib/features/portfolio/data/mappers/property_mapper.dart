@@ -1,4 +1,5 @@
 import 'package:nyumba_property_management/core/config/market_config.dart';
+import 'package:nyumba_property_management/core/domain/coordinates.dart';
 import 'package:nyumba_property_management/core/offline/json_reader.dart';
 import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/property.dart';
@@ -14,6 +15,11 @@ final class PropertyMapper {
     'city': property.city,
     'country': property.country,
     'description': property.description,
+    // Stored as two flat scalars rather than a nested object, matching how the
+    // listing aggregate carries its pin. `FirestoreRemotePullGateway` flattens
+    // the server's nested `location` into the same pair.
+    'latitude': property.location?.latitude,
+    'longitude': property.location?.longitude,
     'imageUrls': property.imageUrls,
     'createdAt': property.createdAt.toUtc().toIso8601String(),
     'updatedAt': property.updatedAt.toUtc().toIso8601String(),
@@ -32,6 +38,14 @@ final class PropertyMapper {
       city: reader.requiredString('city'),
       country: reader.requiredString('country'),
       description: reader.optionalString('description'),
+      // Lenient rather than strict: a half-written or out-of-range pair means
+      // "no pin", not an unreadable property. A record that cannot decode
+      // disappears from the landlord's portfolio, which is a far worse
+      // outcome than a missing map.
+      location: Coordinates.tryFrom(
+        reader.optionalDouble('latitude'),
+        reader.optionalDouble('longitude'),
+      ),
       // Older local records may predate the two-photo property policy. Keep
       // the primary-first pair instead of making the property unreadable.
       imageUrls: reader

@@ -1,6 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Biometric app lock (local_auth). -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!--
+        "Use my current location" in the landlord's map pin picker. Coarse is
+        listed first and is genuinely sufficient: the published coordinate is
+        coarsened to roughly 110 m anyway, so asking for fine precision would
+        request more than the feature can ever use. Fine is declared for the
+        devices that grant it, and the picker works without either — the
+        landlord can pan the map instead.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <application
         android:label="Nyumba"
         android:name="${applicationName}"
@@ -33,6 +43,12 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Supplied by android/maps.properties via a manifest placeholder, so
+             no key is ever committed. Empty in a build without one, which is
+             why every map surface checks NyumbaMaps.isConfigured first. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${mapsApiKey}" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

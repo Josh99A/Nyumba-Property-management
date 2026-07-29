@@ -10,6 +10,7 @@ import '../features/admin/presentation/admin_broadcast_screen.dart';
 import '../features/admin/presentation/admin_portfolio_screen.dart';
 import '../features/admin/presentation/admin_reports_screen.dart';
 import '../features/admin/presentation/admin_subscriptions_screen.dart';
+import '../features/admin/presentation/admin_support_screen.dart';
 import '../features/admin/presentation/admin_users_screen.dart';
 import '../features/auth/application/session_controller.dart';
 import '../features/auth/domain/authorization_policy.dart';
@@ -34,6 +35,8 @@ import '../features/profile/presentation/profile_settings_screen.dart';
 import '../features/reviews/presentation/landlord_reviews_screen.dart';
 import '../features/reviews/presentation/tenant_reviews_screen.dart';
 import '../features/staff/presentation/team_screen.dart';
+import '../features/support/presentation/support_screen.dart';
+import '../features/support/presentation/support_thread_screen.dart';
 import '../features/subscriptions/presentation/landlord_subscription_screen.dart';
 import '../features/tenant_portal/presentation/tenant_documents_screen.dart';
 import '../features/tenant_portal/presentation/tenant_home_screen.dart';
@@ -219,6 +222,31 @@ final routerProvider = Provider<GoRouter>((ref) {
                 _transitionPage(state: state, child: const TeamScreen()),
           ),
           GoRoute(
+            path: '/support',
+            pageBuilder: (context, state) => _transitionPage(
+              state: state,
+              // `?compose=true` is what the contextual entry points link to, so
+              // a landlord who tapped "Contact support" on a failed payment
+              // lands in the composer rather than on a page they must act on
+              // again. Parsed here so a reload or a back-navigation restores it.
+              child: SupportScreen(
+                openComposerOnLoad:
+                    state.uri.queryParameters['compose'] == 'true',
+              ),
+            ),
+            routes: [
+              GoRoute(
+                path: ':ticketId',
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: SupportThreadScreen(
+                    ticketId: state.pathParameters['ticketId']!,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
             path: '/settings',
             pageBuilder: (context, state) => _transitionPage(
               state: state,
@@ -323,6 +351,27 @@ final routerProvider = Provider<GoRouter>((ref) {
                   child: const AdminFeedbackScreen(),
                 ),
               ),
+              GoRoute(
+                path: 'support',
+                pageBuilder: (context, state) => _transitionPage(
+                  state: state,
+                  child: const AdminSupportScreen(),
+                ),
+                routes: [
+                  // The deep link the support alert email carries, so an agent
+                  // opens the ticket they were told about rather than the top
+                  // of the queue.
+                  GoRoute(
+                    path: ':ticketId',
+                    pageBuilder: (context, state) => _transitionPage(
+                      state: state,
+                      child: AdminSupportScreen(
+                        initialTicketId: state.pathParameters['ticketId'],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ],
@@ -360,6 +409,15 @@ String? redirectForSession(UserSession? session, String path) {
     // Landlords can always open their subscription: it is the payment gate
     // before activation and the self-service upgrade path afterwards.
     return session.role == AppRole.landlord ? null : home;
+  }
+  final supportPath = path == '/support' || path.startsWith('/support/');
+  if (supportPath && session.role == AppRole.landlord) {
+    // Cleared ahead of the subscription gate below, deliberately. That gate
+    // sends an unconfirmed landlord to the payment screen, which would put
+    // "my payment was not confirmed" behind the very screen they cannot get
+    // past — a support channel that closes on the day it is needed. The
+    // command behind it makes the same allowance for the same reason.
+    return null;
   }
   if (publicPath) return null;
   if (session.role == AppRole.landlord && !session.hasConfirmedSubscription) {
@@ -403,6 +461,11 @@ String? redirectForSession(UserSession? session, String path) {
   final reviewsPath = path == '/reviews';
   final allowed =
       path == '/settings' ||
+      // Owner-only, matching the Firestore rule: a support thread routinely
+      // names billing state and account access, and no staff capability covers
+      // the owner's correspondence with Nyumba. Landlords already returned
+      // above; this leaves the path closed to every other role.
+      (supportPath && session.role == AppRole.landlord) ||
       (adminPath &&
           AuthorizationPolicy.allowsSession(
             session,

@@ -30,6 +30,16 @@ export const MAX_LISTING_PHOTOS = 5;
  * rule keep working until their landlord next edits them.
  */
 export const MIN_LISTING_PHOTOS = 1;
+/**
+ * Radius of the privacy circle drawn on a public listing map, in metres.
+ *
+ * Mirrored in lib/core/config/maps_config.dart — keep in sync. Deliberately
+ * wider than the ~110 m the published coordinate is coarsened to: the
+ * coarsening alone is not anonymity, and in a sparse area a tight circle can
+ * still identify a single compound.
+ */
+export const MAPS_PUBLIC_PRIVACY_RADIUS_METRES = 250;
+
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 export const MAX_PUBLIC_LISTING_IMAGE_WIDTH = 1_920;
@@ -130,6 +140,36 @@ export const FEEDBACK_NPS_COOLDOWN_DAYS = 90;
  * ration how often a paying customer may tell the team something is broken.
  */
 export const FEEDBACK_SUBMIT_COOLDOWN_SECONDS = 30;
+
+/**
+ * Support desk (docs/architecture/support-desk-plan.md).
+ *
+ * The mailbox every new ticket and landlord reply is announced to. Administrator
+ * rights are Auth custom claims granted by `scripts/grant-admin.mjs` and are not
+ * mirrored anywhere in Firestore, so there is no queryable roster to fan a
+ * notification out to — one email to a monitored address is the alert channel
+ * until `platformStaff` exists.
+ */
+export const SUPPORT_EMAIL = 'support@nyumba.online';
+
+/** Floor between two ticket opens, and between two replies, per landlord. */
+export const SUPPORT_OPEN_COOLDOWN_SECONDS = 60;
+export const SUPPORT_REPLY_COOLDOWN_SECONDS = 10;
+
+/**
+ * Conversations a landlord may have running at once. Not an anti-abuse number
+ * so much as an anti-fragmentation one: four parallel threads about the same
+ * problem get four partial answers. The rejection tells the client to reply on
+ * an existing thread instead.
+ */
+export const SUPPORT_MAX_OPEN_TICKETS = 3;
+
+/** Messages one thread may hold, matching the maintenance comment ceiling. */
+export const SUPPORT_MAX_MESSAGES = 100;
+export const SUPPORT_MAX_ATTACHMENTS = 5;
+
+/** How long a landlord may reopen a resolved ticket rather than start again. */
+export const SUPPORT_REOPEN_WINDOW_DAYS = 14;
 
 /** Background job retry policy. Product-final values are TBD; fail toward dead-letter. */
 export const JOB_MAX_ATTEMPTS = 8;

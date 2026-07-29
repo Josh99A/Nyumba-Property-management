@@ -6,6 +6,7 @@ import { COLLECTIONS } from '../shared/collections';
 import { COUNTRY, CURRENCY, MAX_PROPERTY_PHOTOS } from '../shared/config';
 import { DomainError } from '../shared/errors';
 import {
+  coordinateSchema,
   createJob,
   idSchema,
   longText,
@@ -27,6 +28,11 @@ const propertyCreateSchema = strictPayload({
   city: shortText,
   district: optionalShortText,
   description: longText.optional(),
+  // Where the property actually is, at the precision the landlord placed it.
+  // Private: it stays in the canonical `properties` document and is never
+  // projected publicly. A listing inherits it as a starting point and
+  // `listingPublish` coarsens that copy before anything reaches a visitor.
+  location: coordinateSchema.optional(),
   stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(MAX_PROPERTY_PHOTOS).optional(),
 });
 
@@ -99,6 +105,10 @@ const propertyUpdateSchema = strictPayload({
   city: shortText.optional(),
   district: optionalShortText,
   description: z.string().trim().max(5_000).optional(),
+  // Nullable, unlike create: absent means "leave the pin alone", while an
+  // explicit null is the landlord removing one they had placed. Without the
+  // distinction a pin could be set but never taken back.
+  location: coordinateSchema.nullable().optional(),
   stagedImagePaths: z.array(z.string().min(1).max(1_024)).max(MAX_PROPERTY_PHOTOS).optional(),
 }).refine((value) => Object.values(value).some((field) => field !== undefined));
 

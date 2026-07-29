@@ -17,8 +17,23 @@ enum AppLanguage {
     AppLanguage.arabic => 'ar',
   };
 
+  /// Locale used by `intl` for numbers and money.
+  ///
+  /// CLDR carries no number symbols for Luganda, and `NumberFormat` throws on
+  /// a locale it does not know rather than falling back, so a Luganda screen
+  /// that formats rent would crash. Ugandan English groups and separates
+  /// digits identically, so Luganda borrows it. Dates are unaffected: Luganda
+  /// calendar names are registered with `intl` at startup.
+  String get intlNumberLocale =>
+      this == AppLanguage.luganda ? AppLanguage.english.intlLocale : intlLocale;
+
   static AppLanguage fromCode(String? code) => AppLanguage.values.firstWhere(
     (language) => language.code == code,
     orElse: () => AppLanguage.english,
   );
+
+  /// Resolves an `intl` locale name — `lg`, `en`, `lg_UG` — back to the
+  /// language it was loaded for, so formatting can follow the active catalogue.
+  static AppLanguage fromLocaleName(String localeName) =>
+      fromCode(localeName.split(RegExp('[_-]')).first);
 }

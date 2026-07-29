@@ -21,6 +21,7 @@ import '../domain/application.dart';
 import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
 import '../../reviews/presentation/public_reviews_section.dart';
+import 'listing_location_section.dart';
 import 'listing_visuals.dart';
 import 'marketplace_navigation.dart';
 
@@ -92,10 +93,7 @@ class ListingDetailScreen extends ConsumerWidget {
           if (listing == null) {
             return _ListingNotFound(onBack: () => context.go('/explore'));
           }
-          return _ListingDetails(
-            listing: listing,
-            preview: published == null,
-          );
+          return _ListingDetails(listing: listing, preview: published == null);
         },
       ),
     );
@@ -119,7 +117,7 @@ class _MobileEnquiryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final copy = appLocalizationsOf(context);
     final rent = NumberFormat.currency(
-      locale: copy.localeName,
+      locale: copy.numberLocale,
       name: NyumbaMarket.currencyCode,
       symbol: NyumbaMarket.currencySymbol,
       decimalDigits: 0,
@@ -436,6 +434,14 @@ class _ListingDescription extends StatelessWidget {
                 _Included(label: feature),
             ],
           ),
+          const SizedBox(height: 28),
+        ],
+        // Placed after the photos, price, and amenities have done their job,
+        // and before the money table where readers stall. It renders nothing
+        // when the advert has no pin.
+        if (listing.approximateLatitude != null &&
+            listing.approximateLongitude != null) ...[
+          ListingLocationSection(listing: listing),
           const SizedBox(height: 28),
         ],
         Text.localized(

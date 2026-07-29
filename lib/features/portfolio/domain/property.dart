@@ -1,4 +1,5 @@
 import '../../../core/config/market_config.dart';
+import '../../../core/domain/coordinates.dart';
 import '../../../core/domain/domain_validation.dart';
 import '../../../core/domain/sync_metadata.dart';
 
@@ -14,6 +15,7 @@ final class Property {
     required this.updatedAt,
     required this.syncMetadata,
     this.description,
+    this.location,
     this.isArchived = false,
     this.archivedAt,
     List<String> imageUrls = const <String>[],
@@ -28,6 +30,13 @@ final class Property {
   final String city;
   final String country;
   final String? description;
+
+  /// Where the property is, as precisely as the landlord placed it.
+  ///
+  /// Private, and stays private: this is the exact point staff navigate to and
+  /// the starting point a new advert inherits, but a public listing only ever
+  /// carries the coarsened copy the server produces at publication.
+  final Coordinates? location;
 
   /// Ordered property images. The first image is the primary image.
   final List<String> imageUrls;
@@ -69,6 +78,8 @@ final class Property {
     String? country,
     String? description,
     bool clearDescription = false,
+    Coordinates? location,
+    bool clearLocation = false,
     List<String>? imageUrls,
     DateTime? updatedAt,
     SyncMetadata? syncMetadata,
@@ -83,6 +94,7 @@ final class Property {
     city: city ?? this.city,
     country: country ?? this.country,
     description: clearDescription ? null : (description ?? this.description),
+    location: clearLocation ? null : (location ?? this.location),
     imageUrls: imageUrls ?? this.imageUrls,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -100,6 +112,7 @@ final class CreatePropertyInput {
     required this.city,
     this.country = 'Uganda',
     this.description,
+    this.location,
     this.imageUrls = const <String>[],
   });
 
@@ -109,6 +122,7 @@ final class CreatePropertyInput {
   final String city;
   final String country;
   final String? description;
+  final Coordinates? location;
   final List<String> imageUrls;
 
   void validate() {

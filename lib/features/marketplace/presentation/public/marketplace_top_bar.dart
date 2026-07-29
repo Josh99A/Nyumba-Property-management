@@ -60,9 +60,9 @@ class OnHeroSurface extends StatelessWidget {
           titleTextStyle: theme.appBarTheme.titleTextStyle?.copyWith(
             color: Colors.white,
           ),
-          toolbarTextStyle: (theme.appBarTheme.toolbarTextStyle ??
-                  theme.textTheme.bodyMedium)
-              ?.copyWith(color: Colors.white),
+          toolbarTextStyle:
+              (theme.appBarTheme.toolbarTextStyle ?? theme.textTheme.bodyMedium)
+                  ?.copyWith(color: Colors.white),
         ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(

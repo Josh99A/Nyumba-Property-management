@@ -45,6 +45,9 @@ beforeEach(async () => {
       setDoc(doc(db, 'platformFeedback/feedback_1'), {
         actorUid: 'landlord_1', kind: 'nps', score: 3,
       }),
+      setDoc(doc(db, 'supportTickets/ticket_1'), {
+        landlordId: 'landlord_1', status: 'open', isTerminal: false, subject: 'Billing',
+      }),
       setDoc(doc(db, 'properties/landlord_two'), { landlordId: 'landlord_2' }),
       setDoc(doc(db, 'payments/payment_one'), { landlordId: 'landlord_1' }),
       setDoc(doc(db, 'staffInvites/invite_1'), {
@@ -265,6 +268,30 @@ describe('Firestore rules matrix', () => {
     await assertFails(getDoc(doc(env.authenticatedContext('landlord_1').firestore(), 'platformFeedback/feedback_1')));
     await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'platformFeedback/feedback_1')));
     await assertSucceeds(getDoc(doc(env.authenticatedContext('admin_123', { platformAdmin: true }).firestore(), 'platformFeedback/feedback_1')));
+  });
+
+  it('opens a support ticket to its landlord and the platform team, and nobody else', async () => {
+    const path = 'supportTickets/ticket_1';
+    // The inverse of platformFeedback above, and the distinction the whole
+    // feature rests on: a conversation the author cannot read is not a
+    // conversation.
+    await assertSucceeds(getDoc(doc(env.authenticatedContext('landlord_1').firestore(), path)));
+    await assertSucceeds(
+      getDoc(doc(env.authenticatedContext('admin_123', { platformAdmin: true }).firestore(), path)),
+    );
+    await assertFails(getDoc(doc(env.authenticatedContext('landlord_2').firestore(), path)));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), path)));
+    // Staff of this very workspace are excluded on purpose: `staff_1` reads the
+    // owner's properties through their capability, and still cannot read the
+    // owner's correspondence with us.
+    await assertFails(getDoc(doc(env.authenticatedContext('staff_1').firestore(), path)));
+    await assertFails(
+      getDocs(query(
+        collection(env.authenticatedContext('landlord_2').firestore(), 'supportTickets'),
+        where('landlordId', '==', 'landlord_1'),
+        limit(20),
+      )),
+    );
   });
 
   it('allows both administrator claims to read canonical private media', async () => {

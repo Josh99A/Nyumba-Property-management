@@ -64,6 +64,11 @@ firebase-adminsdk*.json
 .env.*
 !.env.example
 
+# Google Maps Platform keys. Restricted per platform in Google Cloud, but a
+# restriction is not a secret: an unrestricted-by-accident key on a public
+# marketplace is a way to lose real money to a stranger.
+android/maps.properties
+
 # Android release signing
 android/key.properties
 android/keys.properties

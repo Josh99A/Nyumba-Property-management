@@ -86,11 +86,8 @@ class PdfDocumentService implements DocumentService {
     const ivory = PdfColor.fromInt(0xFFF7F4ED);
     const ink = PdfColor.fromInt(0xFF17253A);
     const muted = PdfColor.fromInt(0xFF667085);
-    final numberLocale = data.language == AppLanguage.luganda
-        ? 'en_UG'
-        : data.language.intlLocale;
     final currency = NumberFormat.currency(
-      locale: numberLocale,
+      locale: data.language.intlNumberLocale,
       symbol: 'UGX ',
       decimalDigits: 0,
     );

@@ -143,8 +143,21 @@ frame. The renderer:
   projection before reading a server-owned `public/listings/{listingId}/`
   object, validates its image metadata, and never serializes the Storage path
   into HTML or structured data;
+- renders the listing's location map through `/listing/{listingId}/map`. That
+  route rechecks the same active public projection, reads **only** the
+  already-coarsened `approximateLocation` field, and calls the Maps Static API
+  with a `MAPS_STATIC_API_KEY` held in Secret Manager — the key never reaches
+  the page, and the canonical listing's exact pin and the property's
+  `addressLine` are never read here. The image is a translucent **circle, not
+  a marker**: a pin on a coarsened point still reads as "this house". A
+  listing with no pin and a deployment with no key both answer `404`, so the
+  page simply carries no map;
 - permits only short-lived caching (`max-age=60`, `s-maxage=300`) so browser
-  and shared caches refresh unpublished or expired projections promptly.
+  and shared caches refresh unpublished or expired projections promptly. The
+  rendered map is the one exception (`max-age=86400`, `s-maxage=604800`): it is
+  a pure function of a coarsened coordinate, so a stale copy cannot leak newer
+  information, and the deterministic URL is what keeps the Maps bill bounded as
+  traffic grows. Every error path stays `no-store`.
 
 All other Flutter routes use the static application shell with
 `noindex, nofollow`. `robots.txt` deliberately permits crawling so crawlers can

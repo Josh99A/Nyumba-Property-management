@@ -65,6 +65,15 @@ dependencies:
   web: ^1.1.1
   image: 4.8.0
   cached_network_image: ^3.4.1
+  # Location. The interactive map is only ever built where panning is the point
+  # (the landlord's pin picker); everything a visitor sees is a cached static
+  # image or a hand-off to the Maps app. See
+  # docs/architecture/maps-and-location-plan.md. Every map surface is gated on
+  # NyumbaMaps.isConfigured, so a build with no API key degrades to an honest
+  # fallback rather than a grey tile or an iOS-side crash.
+  google_maps_flutter: ^2.18.0
+  geolocator: ^14.0.2
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

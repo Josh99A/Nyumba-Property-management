@@ -36,6 +36,7 @@ import { documentPurge, listingDelete, propertyDelete, unitDelete } from './purg
 import { notificationMarkRead } from './notifications';
 import { reportRequest } from './reports';
 import { staffClaimInvite, staffInvite, staffRevoke, staffUpdatePermissions } from './staff';
+import { supportOpen, supportReply, supportUpdateStatus } from './support';
 import {
   planUpdate,
   subscriptionConfirmPayment,
@@ -126,4 +127,10 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['review.report', reviewReport],
   ['review.moderate', reviewModerate],
   ['feedback.submit', feedbackSubmit],
+  // Support. Unlike `feedback.submit` these are two-sided: `support.reply` and
+  // `support.updateStatus` resolve the author from the ticket, so one command
+  // serves the landlord and the administrator answering them.
+  ['support.open', supportOpen],
+  ['support.reply', supportReply],
+  ['support.updateStatus', supportUpdateStatus],
 ]);

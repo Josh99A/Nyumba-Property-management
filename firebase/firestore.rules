@@ -347,6 +347,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Landlord ↔ Nyumba support conversations. Unlike platformFeedback above,
+    // the landlord reads these back — a thread they cannot see is not a
+    // conversation. Staff are deliberately excluded: no workspace capability
+    // covers the owner's billing and account correspondence with us, the same
+    // call already made for the reviews section of landlordPortals. Internal
+    // agent notes must never be added as a field here; they belong in an
+    // admin-only subcollection, or this rule silently starts publishing them.
+    match /supportTickets/{ticketId} {
+      allow read: if isPlatformAdmin() || ownsLandlordDocument(resource.data);
+      allow write: if false;
+    }
+
     match /commandReceipts/{commandId} {
       allow read: if isPlatformAdmin()
         || (signedIn() && resource.data.actorUid == request.auth.uid);

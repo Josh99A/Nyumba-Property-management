@@ -19,6 +19,17 @@ val keystoreProperties = Properties().apply {
     if (hasReleaseSigning) FileInputStream(keystorePropertiesFile).use { load(it) }
 }
 
+// The Android Maps SDK reads its key from the manifest, so it cannot come from
+// a --dart-define. Supplied by an untracked android/maps.properties containing
+// `mapsApiKey=...`, restricted in Google Cloud to this package name and the
+// signing SHA-1. Absent it the placeholder resolves empty: the app still builds
+// and every map surface falls back through NyumbaMaps.isConfigured rather than
+// rendering a grey tile.
+val mapsPropertiesFile = rootProject.file("maps.properties")
+val mapsProperties = Properties().apply {
+    if (mapsPropertiesFile.exists()) FileInputStream(mapsPropertiesFile).use { load(it) }
+}
+
 android {
     namespace = "com.nyumba.nyumba_property_management"
     compileSdk = flutter.compileSdkVersion
@@ -37,6 +48,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["mapsApiKey"] =
+            mapsProperties.getProperty("mapsApiKey") ?: ""
     }
 
     signingConfigs {

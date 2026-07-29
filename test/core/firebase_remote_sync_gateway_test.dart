@@ -513,4 +513,120 @@ void main() {
       expect(listingPayload, isNot(contains('stagedImagePaths')));
     },
   );
+
+  group('map pins cross the envelope as a nested location', () {
+    FirebaseRemoteSyncGateway gateway() => FirebaseRemoteSyncGateway(
+      installationId: 'install_1234',
+      appVersion: '1.2.3',
+      platform: 'web',
+      invoke: (_) async => <String, Object?>{},
+    );
+
+    Map<String, Object?> payloadFor(
+      OfflineEntityType type,
+      OutboxOperation operation,
+      Map<String, Object?> fields,
+    ) =>
+        gateway().buildEnvelope(
+              RemoteMutation(
+                mutationId: 'outbox_${type.name}',
+                entityType: type,
+                entityId: '${type.name}_123456',
+                operation: operation,
+                payload: <String, Object?>{
+                  if (operation == OutboxOperation.update)
+                    '_expectedVersion': 1,
+                  'name': 'Acacia Court',
+                  'addressLine': 'Plot 14, Acacia Avenue',
+                  'city': 'Kampala',
+                  'unitId': 'unit_123456',
+                  'title': 'Two-bedroom apartment',
+                  'description': 'Bright apartment.',
+                  'monthlyRentMinor': 150000000,
+                  'unitType': 'apartment',
+                  'neighborhood': 'Ntinda',
+                  'bedrooms': 2,
+                  'bathrooms': 1,
+                  'amenities': <String>[],
+                  ...fields,
+                },
+                idempotencyKey: 'command_${type.name}',
+                clientCreatedAt: createdAt,
+              ),
+            )['payload']!
+            as Map<String, Object?>;
+
+    test('a property create folds its two scalars into one object', () {
+      final payload = payloadFor(
+        OfflineEntityType.property,
+        OutboxOperation.create,
+        <String, Object?>{'latitude': 0.3476, 'longitude': 32.5825},
+      );
+
+      expect(payload['location'], <String, Object?>{
+        'lat': 0.3476,
+        'lng': 32.5825,
+      });
+    });
+
+    test('a listing create folds into approximateLocation', () {
+      final payload = payloadFor(
+        OfflineEntityType.listing,
+        OutboxOperation.create,
+        <String, Object?>{
+          'approximateLatitude': 0.3476,
+          'approximateLongitude': 32.5825,
+        },
+      );
+
+      expect(payload['approximateLocation'], <String, Object?>{
+        'lat': 0.3476,
+        'lng': 32.5825,
+      });
+    });
+
+    // The distinction an omitted key cannot express. A create has no pin to
+    // take back, so silence means "none"; an edit must be able to say
+    // "removed", or a cleared pin syncs as a no-op and returns on the next
+    // pull.
+    test('an edit that removed the pin sends an explicit null', () {
+      for (final (type, field) in const <(OfflineEntityType, String)>[
+        (OfflineEntityType.property, 'location'),
+        (OfflineEntityType.listing, 'approximateLocation'),
+      ]) {
+        final payload = payloadFor(
+          type,
+          OutboxOperation.update,
+          const <String, Object?>{},
+        );
+
+        expect(payload, contains(field));
+        expect(payload[field], isNull, reason: '$field on ${type.name}');
+      }
+    });
+
+    test('a create with no pin omits the field rather than nulling it', () {
+      for (final (type, field) in const <(OfflineEntityType, String)>[
+        (OfflineEntityType.property, 'location'),
+        (OfflineEntityType.listing, 'approximateLocation'),
+      ]) {
+        expect(
+          payloadFor(type, OutboxOperation.create, const <String, Object?>{}),
+          isNot(contains(field)),
+          reason: '$field on ${type.name}',
+        );
+      }
+    });
+
+    test('a half-written pair never reaches the server', () {
+      expect(
+        payloadFor(
+          OfflineEntityType.property,
+          OutboxOperation.create,
+          <String, Object?>{'latitude': 0.3476},
+        ),
+        isNot(contains('location')),
+      );
+    });
+  });
 }

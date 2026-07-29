@@ -235,7 +235,11 @@ void main() {
       );
       expect(
         draft
-            .copyWith(imageUrls: const ['public/listings/l1/0-abcdef0123456789-full.webp'])
+            .copyWith(
+              imageUrls: const [
+                'public/listings/l1/0-abcdef0123456789-full.webp',
+              ],
+            )
             .publish(at: now)
             .status,
         ListingStatus.published,

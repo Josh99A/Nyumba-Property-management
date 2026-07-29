@@ -131,6 +131,42 @@ describe('public SEO projection', () => {
     );
   });
 
+  it('carries the coarsened map pin and nothing more precise', () => {
+    const result = toPublicSeoListing(
+      'listing_1234',
+      projection({
+        approximateLocation: { lat: 0.357, lng: 32.612 },
+        // What the canonical listing and its property hold. Neither may ever
+        // reach the public projection, whatever else changes around them.
+        exactLocation: { lat: 0.3571234, lng: 32.6129876 },
+        addressLine: 'Plot 14, Acacia Avenue',
+      }),
+      now,
+    );
+
+    expect(result?.approximateLocation).toEqual({ lat: 0.357, lng: 32.612 });
+    expect(result).not.toHaveProperty('exactLocation');
+    expect(result).not.toHaveProperty('addressLine');
+  });
+
+  it('drops a map pin that is missing, partial, or out of range', () => {
+    const pin = (approximateLocation: unknown) =>
+      toPublicSeoListing(
+        'listing_1234',
+        projection({ approximateLocation }),
+        now,
+      )?.approximateLocation;
+
+    // `listingPublish` writes an explicit null when no pin was set, so this is
+    // the ordinary case for most listings rather than an edge case.
+    expect(pin(null)).toBeUndefined();
+    expect(pin({ lat: 0.357 })).toBeUndefined();
+    expect(pin({ lat: '0.357', lng: '32.612' })).toBeUndefined();
+    expect(pin({ lat: 91, lng: 32.612 })).toBeUndefined();
+    expect(pin({ lat: 0.357, lng: 181 })).toBeUndefined();
+    expect(pin({ lat: Number.NaN, lng: 32.612 })).toBeUndefined();
+  });
+
   it('rejects malformed and unrecognized currency codes', () => {
     expect(
       toPublicSeoListing(
@@ -152,7 +188,81 @@ describe('public SEO projection', () => {
   });
 });
 
+/**
+ * The parsed JSON-LD block, so structured-data assertions test what a crawler
+ * actually consumes rather than a substring that happens to appear in the HTML.
+ */
+function structuredData(html: string): Record<string, unknown> {
+  const match = html.match(
+    /<script type="application\/ld\+json">([\s\S]*?)<\/script>/,
+  );
+  expect(match).not.toBeNull();
+  return JSON.parse(match![1]) as Record<string, unknown>;
+}
+
+function itemOffered(html: string): Record<string, unknown> {
+  const graph = structuredData(html)['@graph'] as Array<Record<string, unknown>>;
+  const offer = graph.find((node) => node['@type'] === 'Offer');
+  expect(offer).toBeDefined();
+  return offer!.itemOffered as Record<string, unknown>;
+}
+
 describe('public SEO rendering', () => {
+  it('describes the listing location with the coarsened coordinates', () => {
+    const html = renderListingPage(
+      listing({ approximateLocation: { lat: 0.357, lng: 32.612 } }),
+    );
+
+    expect(itemOffered(html).geo).toEqual({
+      '@type': 'GeoCoordinates',
+      latitude: 0.357,
+      longitude: 32.612,
+    });
+    // The page shows a neighbourhood, never a street address, and the
+    // structured data must not claim otherwise.
+    expect(itemOffered(html).address).toMatchObject({
+      '@type': 'PostalAddress',
+      addressCountry: 'UG',
+      addressLocality: 'Kampala',
+    });
+    expect(html).not.toContain('streetAddress');
+  });
+
+  it('renders a crawlable location section with a first-party map', () => {
+    const html = renderListingPage(
+      listing({ approximateLocation: { lat: 0.357, lng: 32.612 } }),
+    );
+
+    expect(html).toContain('<h2>Where you will live</h2>');
+    // A first-party path, so the Static Maps key never reaches the page and
+    // the image re-checks the public invariant itself.
+    expect(html).toContain('src="/listing/listing_1234/map"');
+    expect(html).not.toContain('maps.googleapis.com');
+    expect(html).not.toContain('key=');
+    // Works with JavaScript disabled, which is the whole point of this page.
+    expect(html).toContain(
+      'href="https://www.google.com/maps/dir/?api=1&amp;destination=0.357%2C32.612"',
+    );
+    expect(html).toContain('Get directions');
+    // Reserved space, so the copy below never jumps when the map arrives.
+    expect(html).toContain('width="640" height="320"');
+  });
+
+  it('omits the location section when no pin was set', () => {
+    const html = renderListingPage(listing());
+
+    expect(html).not.toContain('Where you will live');
+    expect(html).not.toContain('/map');
+    expect(html).not.toContain('Get directions');
+  });
+
+  it('omits the geo node entirely when no pin was set', () => {
+    const html = renderListingPage(listing());
+
+    expect(itemOffered(html)).not.toHaveProperty('geo');
+    expect(html).not.toContain('GeoCoordinates');
+  });
+
   it('renders canonical listing metadata and escapes user-authored markup', () => {
     const html = renderListingPage(
       listing({

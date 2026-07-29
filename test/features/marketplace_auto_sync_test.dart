@@ -25,6 +25,7 @@ import 'package:nyumba_property_management/features/profile/data/sembast_user_se
 import 'package:nyumba_property_management/features/subscriptions/data/sembast_subscription_plan_repository.dart';
 import 'package:nyumba_property_management/features/feedback/data/sembast_feedback_repository.dart';
 import 'package:nyumba_property_management/features/reviews/data/sembast_review_repository.dart';
+import 'package:nyumba_property_management/features/support/data/sembast_support_repository.dart';
 import 'package:nyumba_property_management/features/staff/data/sembast_staff_repository.dart';
 import 'package:nyumba_property_management/features/tenants/data/sembast_tenancy_repository.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -113,6 +114,7 @@ void main() {
       staff: SembastStaffRepository(database),
       reviews: SembastReviewRepository(database: database),
       feedback: SembastFeedbackRepository(database: database),
+      support: SembastSupportRepository(database: database),
     );
 
     final container = ProviderContainer(
@@ -162,7 +164,9 @@ void main() {
         neighborhood: 'Ntinda',
         contactPhone: '+256 772 000 100',
         // Publication requires at least one photo of the rental space.
-        imageUrls: const ['public/listings/listing-1/0-abcdef0123456789-full.webp'],
+        imageUrls: const [
+          'public/listings/listing-1/0-abcdef0123456789-full.webp',
+        ],
       ),
     );
     await _drainOutbox(database);

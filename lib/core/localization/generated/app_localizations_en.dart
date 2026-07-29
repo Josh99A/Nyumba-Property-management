@@ -2676,6 +2676,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subscriptionCheckPaymentStatus => 'Check payment status';
 
   @override
+  String get subscriptionContactSupport => 'Contact support';
+
+  @override
   String subscriptionPlanCapacity(int unitLimit, int listingLimit) {
     return 'Up to $unitLimit rental spaces · $listingLimit active listings';
   }
@@ -3778,6 +3781,287 @@ class AppLocalizationsEn extends AppLocalizations {
   String get netPromoterScore => 'Net promoter score';
 
   @override
+  String get supportTitle => 'Help & support';
+
+  @override
+  String get supportShort => 'Support';
+
+  @override
+  String get supportQueue => 'Support queue';
+
+  @override
+  String get supportDescription =>
+      'Ask the Nyumba team about your account, billing, or anything in the app. We usually reply within one working day.';
+
+  @override
+  String get supportMessageSupport => 'Message support';
+
+  @override
+  String get supportContactSupport => 'Contact support';
+
+  @override
+  String get supportSla => 'We usually reply within one working day.';
+
+  @override
+  String get supportYourConversations => 'Your conversations';
+
+  @override
+  String get supportYourConversationsSubtitle =>
+      'Everything you have asked us, and where it got to.';
+
+  @override
+  String get supportLoadFailed =>
+      'Your conversations could not be loaded. They are safe — try again in a moment.';
+
+  @override
+  String get supportCommonQuestions => 'Common questions';
+
+  @override
+  String get supportAnswerDidNotHelp => 'This did not help';
+
+  @override
+  String get supportNoConversations => 'No conversations yet';
+
+  @override
+  String get supportNoConversationsBody =>
+      'When you message us it appears here, with our reply.';
+
+  @override
+  String get supportWhatIsThisAbout => 'What is this about?';
+
+  @override
+  String get supportAttachmentNotice =>
+      'Your plan, app version and device are attached so we can look into it.';
+
+  @override
+  String get supportSendMessage => 'Send message';
+
+  @override
+  String get supportTooManyOpen =>
+      'You already have three conversations open with us. Reply on one of those and we will pick it up there.';
+
+  @override
+  String get supportRateLimited =>
+      'That was sent a moment ago. Give it a minute before starting another conversation.';
+
+  @override
+  String get supportFeedbackCrossLink =>
+      'Need a reply? Contact support instead';
+
+  @override
+  String get supportFeedbackVsSupport =>
+      'Feedback goes one way. Contact support when you need a reply.';
+
+  @override
+  String get supportConversation => 'Conversation';
+
+  @override
+  String get supportAllConversations => 'All conversations';
+
+  @override
+  String get supportThreadLoadFailed =>
+      'This conversation could not be opened.';
+
+  @override
+  String get supportThreadNotSynced =>
+      'This conversation is not on this device yet.';
+
+  @override
+  String get supportThreadNotSyncedBody =>
+      'It will appear once your workspace finishes syncing.';
+
+  @override
+  String get supportSending => 'Sending…';
+
+  @override
+  String get supportNotSent => 'Not sent';
+
+  @override
+  String get supportUnsentOnThread => 'A message here has not been sent.';
+
+  @override
+  String get supportClosedLandlord =>
+      'This conversation is closed. Start a new one and we will pick it up from there.';
+
+  @override
+  String get supportClosedAgent =>
+      'This conversation is closed. The landlord can start a new one.';
+
+  @override
+  String get supportStatusSent => 'Sent';
+
+  @override
+  String get supportStatusLookingInto => 'Nyumba is looking into this';
+
+  @override
+  String get supportStatusNeedsYou => 'Needs you';
+
+  @override
+  String get supportStatusResolved => 'Resolved';
+
+  @override
+  String get supportStatusClosed => 'Closed';
+
+  @override
+  String get supportStatusNew => 'New';
+
+  @override
+  String get supportStatusInProgress => 'In progress';
+
+  @override
+  String get supportStatusAwaitingLandlord => 'Awaiting landlord';
+
+  @override
+  String get supportActionMarkInProgress => 'Mark in progress';
+
+  @override
+  String get supportActionMarkResolved => 'Mark resolved';
+
+  @override
+  String get supportActionClose => 'Close';
+
+  @override
+  String get supportActionSorted => 'This is sorted';
+
+  @override
+  String get supportActionReopen => 'Reopen';
+
+  @override
+  String get supportCategoryBilling => 'Billing & subscription';
+
+  @override
+  String get supportCategoryPayments => 'Payments & receipts';
+
+  @override
+  String get supportCategoryTenants => 'Tenants & leases';
+
+  @override
+  String get supportCategoryListings => 'Listings & adverts';
+
+  @override
+  String get supportCategoryAccount => 'Account & access';
+
+  @override
+  String get supportCategoryOther => 'Something else';
+
+  @override
+  String get supportCategoryBillingShort => 'Billing';
+
+  @override
+  String get supportCategoryPaymentsShort => 'Payments';
+
+  @override
+  String get supportCategoryTenantsShort => 'Tenants';
+
+  @override
+  String get supportCategoryListingsShort => 'Listings';
+
+  @override
+  String get supportCategoryAccountShort => 'Account';
+
+  @override
+  String get supportCategoryOtherShort => 'Other';
+
+  @override
+  String get supportQueueDescription =>
+      'Conversations with landlords. Replying moves the ticket along, so the queue stays right without anyone setting a status.';
+
+  @override
+  String get supportQueueLoadFailed => 'The support queue could not be loaded.';
+
+  @override
+  String get supportQueueNeedsReply => 'Needs reply';
+
+  @override
+  String get supportQueueOpen => 'Open';
+
+  @override
+  String get supportQueueAll => 'All';
+
+  @override
+  String get supportQueueBackToQueue => 'Back to queue';
+
+  @override
+  String get supportQueueNothingWaiting => 'Nothing waiting';
+
+  @override
+  String get supportQueueNothingWaitingBody =>
+      'No conversations match this filter.';
+
+  @override
+  String get supportQueuePickOne => 'Pick a conversation';
+
+  @override
+  String get supportQueuePickOneBody =>
+      'Choose a ticket from the queue to read and reply to it.';
+
+  @override
+  String get supportQueueNeverAnswered => 'Never answered';
+
+  @override
+  String get supportQueueUnnamedLandlord => 'Unnamed landlord';
+
+  @override
+  String get supportFaqSubscriptionPendingQ =>
+      'Why does my subscription still say pending?';
+
+  @override
+  String get supportFaqSubscriptionPendingA =>
+      'A payment you sent by mobile money or cash is confirmed by the Nyumba team, not automatically. That usually happens the same working day. Your workspace opens the moment it is confirmed — nothing is lost in the meantime.';
+
+  @override
+  String get supportFaqCashPaymentQ =>
+      'My tenant paid in cash. How do I record it?';
+
+  @override
+  String get supportFaqCashPaymentA =>
+      'Open Finances, choose Record a payment, and pick the tenant and the period it covers. Nyumba generates the receipt and the tenant sees it in their portal straight away.';
+
+  @override
+  String get supportFaqDeclaredPaymentQ =>
+      'My tenant says the payment they reported is still waiting.';
+
+  @override
+  String get supportFaqDeclaredPaymentA =>
+      'A payment a tenant reports is a claim until you confirm it, so their balance does not move on their say-so. Open Finances to confirm or reject it — they are told either way.';
+
+  @override
+  String get supportFaqTenantSignInQ => 'My tenant cannot sign in.';
+
+  @override
+  String get supportFaqTenantSignInA =>
+      'A tenant reaches their portal by claiming the invitation you sent to their email or phone. If that invitation was never opened, resend it from the tenant\'s page. They cannot create their own account.';
+
+  @override
+  String get supportFaqListingLifetimeQ =>
+      'How long does a listing stay published?';
+
+  @override
+  String get supportFaqListingLifetimeA =>
+      'Thirty days. You are warned before it expires and can renew it in one tap, which starts a fresh thirty days without rewriting the advert.';
+
+  @override
+  String get supportFaqPublishFailedQ => 'Why will my listing not publish?';
+
+  @override
+  String get supportFaqPublishFailedA =>
+      'A public advert needs at least one photo of the rental space and a unit that is actually available. Photos on the property record are private and are never used on an advert.';
+
+  @override
+  String get supportFaqAddTeamQ => 'How do I add someone to my team?';
+
+  @override
+  String get supportFaqAddTeamA =>
+      'Open Team and invite them by email. You choose exactly what they can reach — a caretaker handling maintenance never sees your finances.';
+
+  @override
+  String get supportFaqPhotoUploadQ => 'My photos failed to upload.';
+
+  @override
+  String get supportFaqPhotoUploadA =>
+      'Photos upload when your device next reaches the internet, so a weak connection delays them rather than losing them. If one keeps failing, it is usually over the 5 MB limit — retake it at a smaller size.';
+
+  @override
   String get listYourSpace => 'List your space';
 
   @override
@@ -3855,4 +4139,85 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noHomesListedMessage =>
       'Landlords add new rental spaces regularly - check back soon.';
+
+  @override
+  String get locationOnMap => 'Location on map';
+
+  @override
+  String get setLocationOnMap => 'Set location on map';
+
+  @override
+  String get changeLocation => 'Change location';
+
+  @override
+  String get removeLocation => 'Remove location';
+
+  @override
+  String get noLocationSet => 'No location set';
+
+  @override
+  String get locationHelpsTenantsFindYou =>
+      'Tenants use this to see the area and get directions.';
+
+  @override
+  String get pinTheLocation => 'Pin the location';
+
+  @override
+  String get dragMapToPosition =>
+      'Drag the map to put the crosshair on the property.';
+
+  @override
+  String get useMyCurrentLocation => 'Use my current location';
+
+  @override
+  String get findingYourLocation => 'Finding your location…';
+
+  @override
+  String get locationPermissionDenied =>
+      'Nyumba needs location permission to find where you are.';
+
+  @override
+  String get locationUnavailable =>
+      'Your location could not be found. Move the map instead.';
+
+  @override
+  String get confirmLocation => 'Confirm location';
+
+  @override
+  String get mapUnavailableTitle => 'The map is not available in this build';
+
+  @override
+  String get mapUnavailableMessage =>
+      'You can still capture the location while standing at the property.';
+
+  @override
+  String get locationCapturedOffMap => 'Location captured';
+
+  @override
+  String tenantsSeeApproximateArea(int metres) {
+    return 'Tenants see this circle, roughly $metres m across — not your gate.';
+  }
+
+  @override
+  String get publishedLocationIsApproximate =>
+      'Published location is approximate';
+
+  @override
+  String get whereYouWillLive => 'Where you will live';
+
+  @override
+  String get getDirections => 'Get directions';
+
+  @override
+  String approximateLocationIn(String area) {
+    return 'Approximate location in $area';
+  }
+
+  @override
+  String get exactAddressSharedByLandlord =>
+      'The landlord shares the exact address once you are in touch.';
+
+  @override
+  String get mapUnavailableOffline =>
+      'The map will appear when you are back online.';
 }

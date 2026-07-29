@@ -12,6 +12,8 @@ import '../../../core/domain/sync_metadata.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
+import '../../../core/presentation/directions_button.dart';
+import '../../../core/presentation/location_picker.dart';
 import '../../../core/presentation/photo_editor_field.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -275,6 +277,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final address = TextEditingController(text: property.addressLine);
     final city = TextEditingController(text: property.city);
     final description = TextEditingController(text: property.description ?? '');
+    var location = property.location;
     final photos = EditablePhotoSet(existing: property.imageUrls);
     var photoProblems = const <String>[];
     String? error;
@@ -332,6 +335,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           labelText: context.tr('Description (optional)'),
                         ),
                       ),
+                      const SizedBox(height: 14),
+                      LocationPickerField(
+                        value: location,
+                        onChanged: (picked) =>
+                            setDialogState(() => location = picked),
+                      ),
                       const SizedBox(height: 18),
                       Align(
                         alignment: AlignmentDirectional.centerStart,
@@ -386,6 +395,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         city: city.text.trim(),
                         description: description.text.trim(),
                         clearDescription: description.text.trim().isEmpty,
+                        location: location,
+                        clearLocation: location == null,
                         imageUrls: photos.toImageUrls(),
                       ),
                     );
@@ -1236,6 +1247,16 @@ class _HeroContent extends StatelessWidget {
             '${property.addressLine}, ${property.city}',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
+          // Sits with the address rather than in the action bar: someone
+          // looking up how to get here is reading the address line, not
+          // hunting for a menu. Renders nothing when no pin has been placed.
+          if (property.location != null) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: DirectionsButton(destination: property.location),
+            ),
+          ],
           if (property.description != null) ...[
             const SizedBox(height: 10),
             Text(

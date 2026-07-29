@@ -21,3 +21,11 @@ AppLocalizations appLocalizationsFor(AppLanguage language) =>
 /// fallback for previews and tests that deliberately omit localization setup.
 AppLocalizations appLocalizationsOf(BuildContext context) =>
     AppLocalizations.of(context) ?? AppLocalizationsEn();
+
+extension AppLocalizationsFormatting on AppLocalizations {
+  /// Locale to hand `NumberFormat`, which is not always [localeName]: see
+  /// [AppLanguage.intlNumberLocale] for why Luganda formats money as Ugandan
+  /// English.
+  String get numberLocale =>
+      AppLanguage.fromLocaleName(localeName).intlNumberLocale;
+}
