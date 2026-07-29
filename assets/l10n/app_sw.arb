@@ -1287,4 +1287,10 @@
     ,"@approximateLocationIn": {"description": "Caption under the listing map. {area} is a landlord-authored neighbourhood name and must not be translated.", "placeholders": {"area": {"type": "String"}}}
     ,"exactAddressSharedByLandlord": "Mwenye nyumba hushiriki anwani kamili mkishawasiliana."
     ,"mapUnavailableOffline": "Ramani itaonekana utakaporudi mtandaoni."
+    ,"searchThisArea": "Tafuta eneo hili"
+    ,"homesNotOnMap": "{count,plural, =1{Nyumba 1 haiko kwenye ramani}other{Nyumba {count} haziko kwenye ramani}}"
+    ,"@homesNotOnMap": {"description": "Shown on the results map when some adverts have no coordinate and therefore cannot be drawn.", "placeholders": {"count": {"type": "int"}}}
+    ,"mapView": "Ramani"
+    ,"listView": "Orodha"
+    ,"nearestToMe": "Zilizo karibu nami"
 }

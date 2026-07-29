@@ -4187,4 +4187,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mapUnavailableOffline => 'ستظهر الخريطة عند عودتك للاتصال.';
+
+  @override
+  String get searchThisArea => 'ابحث في هذه المنطقة';
+
+  @override
+  String homesNotOnMap(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count منزل غير موجود على الخريطة',
+      many: '$count منزلاً غير موجود على الخريطة',
+      few: '$count منازل غير موجودة على الخريطة',
+      two: 'منزلان غير موجودين على الخريطة',
+      one: 'منزل واحد غير موجود على الخريطة',
+      zero: 'لا توجد منازل خارج الخريطة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mapView => 'خريطة';
+
+  @override
+  String get listView => 'قائمة';
+
+  @override
+  String get nearestToMe => 'الأقرب إليّ';
 }

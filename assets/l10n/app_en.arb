@@ -1331,4 +1331,10 @@
     ,"@approximateLocationIn": {"description": "Caption under the listing map. {area} is a landlord-authored neighbourhood name and must not be translated.", "placeholders": {"area": {"type": "String"}}}
     ,"exactAddressSharedByLandlord": "The landlord shares the exact address once you are in touch."
     ,"mapUnavailableOffline": "The map will appear when you are back online."
+    ,"searchThisArea": "Search this area"
+    ,"homesNotOnMap": "{count,plural, =1{1 home is not on the map}other{{count} homes are not on the map}}"
+    ,"@homesNotOnMap": {"description": "Shown on the results map when some adverts have no coordinate and therefore cannot be drawn.", "placeholders": {"count": {"type": "int"}}}
+    ,"mapView": "Map"
+    ,"listView": "List"
+    ,"nearestToMe": "Nearest to me"
 }

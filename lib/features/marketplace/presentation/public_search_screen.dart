@@ -11,8 +11,11 @@ import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../auth/application/session_controller.dart';
+import '../../../core/domain/coordinates.dart';
+import '../application/visitor_location.dart';
 import '../domain/listing.dart';
 import 'marketplace_navigation.dart';
+import 'public/listing_map_view.dart';
 import 'public/listing_query.dart';
 import 'public/listing_results.dart';
 import 'public/marketplace_filters.dart';
@@ -67,6 +70,12 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
     );
     context.replace(uri.toString());
   }
+
+  /// The visitor's own position, held only while this screen is alive.
+  ///
+  /// Read from the provider rather than the query on purpose: a query is a
+  /// shareable URL, and somebody else's location must never travel inside one.
+  Coordinates? get _origin => ref.read(visitorLocationProvider).position;
 
   void _applyQuery(ListingQuery query) {
     _searchSettle?.cancel();
@@ -194,7 +203,7 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
 
   String _summaryFor(ListingQuery query, List<Listing> all) {
     final copy = appLocalizationsOf(context);
-    final matched = query.apply(all).length;
+    final matched = query.apply(all, origin: _origin).length;
     return query.hasFilters
         ? copy.matchingHomesCount(matched, all.length)
         : copy.availableHomesCount(matched);
@@ -218,7 +227,7 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
         ),
       ];
     }
-    final listings = query.apply(all);
+    final listings = query.apply(all, origin: _origin);
     if (listings.isEmpty) {
       return [
         _boxed(
@@ -231,6 +240,30 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
               onPressed: () => _applyQuery(query.cleared()),
               icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
               label: Text(copy.clearFilters),
+            ),
+          ),
+        ),
+      ];
+    }
+    if (query.view == ListingView.map) {
+      return [
+        SliverPadding(
+          padding: EdgeInsetsDirectional.fromSTEB(inset, 16, inset, 24),
+          sliver: SliverToBoxAdapter(
+            // A fixed, generous height rather than the remaining viewport: the
+            // filters above stay reachable, and a map that fills the screen on
+            // a phone traps the scroll gesture.
+            child: SizedBox(
+              height: context.isCompact ? 460 : 560,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: ListingMapView(
+                  listings: listings,
+                  query: query,
+                  onQueryChanged: _applyQuery,
+                  onOpen: (listing) => context.go('/listing/${listing.id}'),
+                ),
+              ),
             ),
           ),
         ),

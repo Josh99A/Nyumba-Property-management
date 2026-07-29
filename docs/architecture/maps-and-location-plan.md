@@ -356,7 +356,57 @@ with it.
 When a listing has no coordinate, render nothing — not an empty grey box. The
 existing `listingLocationFor` text stays as the fallback.
 
-### Phase 3 — explore map view (largest and most cost-sensitive)
+### Phase 3 — explore map view — **done (2026-07-29)**
+
+- **`ListingSort.nearest`**, ordered by an on-device haversine
+  (`Coordinates.distanceMetresTo`). No Distance Matrix call — a billable
+  request per listing per sort would be slower and no more useful for ordering
+  a list. Straight-line distance, honest for "what is near me" and never
+  presented as a journey.
+- The visitor's position is an **argument to `apply`, never a field on the
+  query**, precisely so it cannot end up inside a shareable URL. The
+  permission prompt is deferred to the moment the sort is chosen; a
+  marketplace that asks on arrival gets refused. Declining withdraws the option
+  rather than erroring, and a shared `sort=nearest` link opened by someone
+  without a position falls back to `newest`.
+- **`ListingView` + `centre` + `zoom` in the URL** (`view`, `c`, `z`), kept out
+  of `hasFilters`, `activeFilterCount`, `activeChips`, and `cleared()`. Someone
+  who pans to a neighbourhood and then clears a price filter still sees that
+  neighbourhood, on the map, in their chosen order.
+- **On-device grid clustering** (`listing_map.dart`) — not a package: the
+  launch catalogue is small and this runs in microseconds over it. Grid rather
+  than distance-based so grouping is *stable* and pins do not reshuffle under
+  the visitor's finger while panning. Cell size halves per zoom step, clamped
+  at both ends.
+- **"Search this area" never fires automatically**, and only appears once the
+  camera has drifted more than a third of the visible span — a nudge is
+  ignored, a real pan always offers. Auto-search on pan is the most disliked
+  interaction in map search UIs.
+- Tapping a single pin opens the **existing `ListingResultCard`** in a sheet, so
+  list and map can never drift into describing the same advert differently. A
+  group pin zooms in instead — cheaper than a sheet to dismiss.
+- The map view states plainly when adverts are missing from it: an advert with
+  no pin cannot be drawn, so the map never claims to be the whole catalogue.
+- iOS `NSLocationWhenInUseUsageDescription` was rewritten: it previously
+  described only the landlord picker, and Apple requires the purpose string to
+  match actual use now that visitors sort by proximity.
+
+Verified: **683** Flutter tests, analyze and format clean, web release and
+debug APK both build.
+
+**Cost posture.** The map is opt-in behind the List/Map control rather than the
+default view, and never re-queries on its own — the two decisions that keep the
+Dynamic Maps SKU bounded. "Nearest to me" costs nothing at all. Before this
+goes to real traffic, confirm current per-SKU pricing and set a daily cap on
+the Maps JavaScript SDK as well as Static Maps.
+
+**Not verifiable here:** every map surface is gated on `NyumbaMaps.isConfigured`
+and no build in this environment carries `--dart-define=MAPS_API_KEY`, so the
+clustering, drift, and ordering logic is covered by tests while the rendered
+`GoogleMap` itself has not been exercised. First run with a key should check
+marker taps, the sheet, and "Search this area" on a real device.
+
+### Phase 3 (original plan) — explore map view (largest and most cost-sensitive)
 
 - A `List | Map` segmented control in the results header on
   `public_listings_screen` / `public_search_screen`.

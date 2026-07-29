@@ -243,7 +243,8 @@ class ListingQuery {
       sort:
           byName(ListingSort.values, parameters[_sortParam]) ??
           ListingSort.newest,
-      view: byName(ListingView.values, parameters[_viewParam]) ??
+      view:
+          byName(ListingView.values, parameters[_viewParam]) ??
           ListingView.list,
       centre: _parseCentre(parameters[_centreParam]),
       // A zoom outside what any map can render is treated as absent rather
@@ -308,9 +309,10 @@ class ListingQuery {
       // Falls back rather than failing: a shared `sort=nearest` link opened by
       // someone who declined the location permission gets the ordinary
       // marketplace, not an arbitrary order or an error.
-      ListingSort.nearest => origin == null
-          ? _byNewest
-          : (left, right) => _byDistanceFrom(origin, left, right),
+      ListingSort.nearest =>
+        origin == null
+            ? _byNewest
+            : (left, right) => _byDistanceFrom(origin, left, right),
     });
     return matched;
   }

@@ -29,7 +29,7 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Nyumba uses Face ID to unlock the app and protect your property and tenant information.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Nyumba uses your location only to place a property on the map while you are setting it up. Your location is never shared with tenants or stored on our servers.</string>
+	<string>Nyumba uses your location to place a property on the map while you are setting it up, and to sort available homes by how near they are to you. Your location stays on this device — it is never shared with landlords or tenants, and never stored on our servers.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

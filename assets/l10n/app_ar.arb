@@ -1287,4 +1287,10 @@
     ,"@approximateLocationIn": {"description": "Caption under the listing map. {area} is a landlord-authored neighbourhood name and must not be translated.", "placeholders": {"area": {"type": "String"}}}
     ,"exactAddressSharedByLandlord": "يشارك المالك العنوان الدقيق بعد التواصل."
     ,"mapUnavailableOffline": "ستظهر الخريطة عند عودتك للاتصال."
+    ,"searchThisArea": "ابحث في هذه المنطقة"
+    ,"homesNotOnMap": "{count,plural, zero{لا توجد منازل خارج الخريطة}one{منزل واحد غير موجود على الخريطة}two{منزلان غير موجودين على الخريطة}few{{count} منازل غير موجودة على الخريطة}many{{count} منزلاً غير موجود على الخريطة}other{{count} منزل غير موجود على الخريطة}}"
+    ,"@homesNotOnMap": {"description": "Shown on the results map when some adverts have no coordinate and therefore cannot be drawn.", "placeholders": {"count": {"type": "int"}}}
+    ,"mapView": "خريطة"
+    ,"listView": "قائمة"
+    ,"nearestToMe": "الأقرب إليّ"
 }

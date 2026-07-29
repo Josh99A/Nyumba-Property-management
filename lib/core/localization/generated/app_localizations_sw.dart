@@ -4274,4 +4274,27 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get mapUnavailableOffline =>
       'Ramani itaonekana utakaporudi mtandaoni.';
+
+  @override
+  String get searchThisArea => 'Tafuta eneo hili';
+
+  @override
+  String homesNotOnMap(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Nyumba $count haziko kwenye ramani',
+      one: 'Nyumba 1 haiko kwenye ramani',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mapView => 'Ramani';
+
+  @override
+  String get listView => 'Orodha';
+
+  @override
+  String get nearestToMe => 'Zilizo karibu nami';
 }

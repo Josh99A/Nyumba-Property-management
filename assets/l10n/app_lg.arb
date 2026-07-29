@@ -1287,4 +1287,10 @@
     ,"@approximateLocationIn": {"description": "Caption under the listing map. {area} is a landlord-authored neighbourhood name and must not be translated.", "placeholders": {"area": {"type": "String"}}}
     ,"exactAddressSharedByLandlord": "Nnannyini nnyumba akuwa endagiriro entuufu nga mumaze okwogera."
     ,"mapUnavailableOffline": "Maapu ejja kulabika ng’oddiddemu ku yintaneeti."
+    ,"searchThisArea": "Noonya mu kitundu kino"
+    ,"homesNotOnMap": "{count,plural, =1{Amaka 1 tegali ku maapu}other{Amaka {count} tegali ku maapu}}"
+    ,"@homesNotOnMap": {"description": "Shown on the results map when some adverts have no coordinate and therefore cannot be drawn.", "placeholders": {"count": {"type": "int"}}}
+    ,"mapView": "Maapu"
+    ,"listView": "Olukalala"
+    ,"nearestToMe": "Ebiri okumpi nange"
 }

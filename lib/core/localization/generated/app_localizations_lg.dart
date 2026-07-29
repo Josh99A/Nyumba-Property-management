@@ -4297,4 +4297,27 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get mapUnavailableOffline =>
       'Maapu ejja kulabika ng’oddiddemu ku yintaneeti.';
+
+  @override
+  String get searchThisArea => 'Noonya mu kitundu kino';
+
+  @override
+  String homesNotOnMap(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Amaka $count tegali ku maapu',
+      one: 'Amaka 1 tegali ku maapu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mapView => 'Maapu';
+
+  @override
+  String get listView => 'Olukalala';
+
+  @override
+  String get nearestToMe => 'Ebiri okumpi nange';
 }

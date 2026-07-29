@@ -7517,6 +7517,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The map will appear when you are back online.'**
   String get mapUnavailableOffline;
+
+  /// No description provided for @searchThisArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Search this area'**
+  String get searchThisArea;
+
+  /// Shown on the results map when some adverts have no coordinate and therefore cannot be drawn.
+  ///
+  /// In en, this message translates to:
+  /// **'{count,plural, =1{1 home is not on the map}other{{count} homes are not on the map}}'**
+  String homesNotOnMap(int count);
+
+  /// No description provided for @mapView.
+  ///
+  /// In en, this message translates to:
+  /// **'Map'**
+  String get mapView;
+
+  /// No description provided for @listView.
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get listView;
+
+  /// No description provided for @nearestToMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearest to me'**
+  String get nearestToMe;
 }
 
 class _AppLocalizationsDelegate

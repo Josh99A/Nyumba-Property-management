@@ -4220,4 +4220,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mapUnavailableOffline =>
       'The map will appear when you are back online.';
+
+  @override
+  String get searchThisArea => 'Search this area';
+
+  @override
+  String homesNotOnMap(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count homes are not on the map',
+      one: '1 home is not on the map',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mapView => 'Map';
+
+  @override
+  String get listView => 'List';
+
+  @override
+  String get nearestToMe => 'Nearest to me';
 }
