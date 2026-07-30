@@ -19,6 +19,7 @@ import 'package:sembast/sembast_memory.dart';
 class _FakeGateway implements RemotePullGateway {
   final Map<OfflineEntityType, StreamController<List<RemoteRecord>>>
   controllers = {};
+  final Map<OfflineEntityType, int> watchCounts = {};
 
   @override
   Stream<List<RemoteRecord>> watchCollection(
@@ -32,6 +33,7 @@ class _FakeGateway implements RemotePullGateway {
   }) {
     final controller = StreamController<List<RemoteRecord>>();
     controllers[entityType] = controller;
+    watchCounts.update(entityType, (count) => count + 1, ifAbsent: () => 1);
     return controller.stream;
   }
 
@@ -121,4 +123,42 @@ void main() {
     expect(emitted, contains(CloudLinkState.live));
     await sub.cancel();
   });
+
+  test(
+    'refresh reopens registered listeners and waits for a snapshot',
+    () async {
+      coordinator.watch(OfflineEntityType.property, landlordId: 'landlord-1');
+      gateway.controllers[OfflineEntityType.property]!.add(const []);
+      await pumpEventQueue();
+      expect(coordinator.linkState, CloudLinkState.live);
+
+      final refresh = coordinator.refresh();
+      await pumpEventQueue();
+
+      expect(gateway.watchCounts[OfflineEntityType.property], 2);
+      expect(coordinator.linkState, CloudLinkState.connecting);
+
+      gateway.controllers[OfflineEntityType.property]!.add([
+        RemoteRecord(
+          entityType: OfflineEntityType.property,
+          id: 'refreshed-property',
+          data: const {
+            'id': 'refreshed-property',
+            'name': 'Fresh from server',
+            'version': 1,
+          },
+        ),
+      ]);
+      await refresh;
+
+      expect(coordinator.linkState, CloudLinkState.live);
+      expect(
+        await database.readEntity(
+          OfflineEntityType.property,
+          'refreshed-property',
+        ),
+        containsPair('name', 'Fresh from server'),
+      );
+    },
+  );
 }

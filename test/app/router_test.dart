@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/app/router.dart';
+import 'package:nyumba_property_management/core/presentation/pull_to_refresh.dart';
 import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
 import 'package:nyumba_property_management/features/auth/domain/user_session.dart';
 import 'package:nyumba_property_management/features/marketplace/presentation/public_listings_screen.dart';
@@ -464,6 +465,9 @@ void main() {
     await _pumpFor(tester, const Duration(seconds: 1));
 
     expect(find.text('Complete setup'), findsOneWidget);
+    // Public routes live outside ShellRoute, so a signed-in visitor gets the
+    // catalogue refresh indicator only, never a nested workspace/outbox one.
+    expect(find.byType(NyumbaRefreshIndicator), findsOneWidget);
     await tester.tap(find.text('Complete setup'));
     await _pumpFor(tester, const Duration(seconds: 1));
 
