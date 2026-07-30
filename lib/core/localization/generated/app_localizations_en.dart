@@ -4459,4 +4459,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get listingDraftSaved => 'Draft advert saved.';
+
+  @override
+  String get propertySaveSuccess => 'Property saved.';
 }

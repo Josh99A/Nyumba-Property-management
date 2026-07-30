@@ -4536,4 +4536,7 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get listingDraftSaved => 'Ekirango eky\'okusooka kitereke.';
+
+  @override
+  String get propertySaveSuccess => 'Eky\'obugagga kiterekeddwa.';
 }

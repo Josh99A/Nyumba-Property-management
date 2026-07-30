@@ -4512,4 +4512,7 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get listingDraftSaved => 'Rasimu ya tangazo imehifadhiwa.';
+
+  @override
+  String get propertySaveSuccess => 'Mali imehifadhiwa.';
 }

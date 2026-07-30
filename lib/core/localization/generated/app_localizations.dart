@@ -7865,6 +7865,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Draft advert saved.'**
   String get listingDraftSaved;
+
+  /// Confirmation after the server accepted a new property. Past tense: only shown once the server has confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Property saved.'**
+  String get propertySaveSuccess;
 }
 
 class _AppLocalizationsDelegate

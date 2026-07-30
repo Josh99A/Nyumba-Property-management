@@ -4427,4 +4427,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get listingDraftSaved => 'تم حفظ مسودة الإعلان.';
+
+  @override
+  String get propertySaveSuccess => 'تم حفظ العقار.';
 }
