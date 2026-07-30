@@ -516,7 +516,10 @@ final class RemotePullCoordinator {
     _subscribe(registration);
   }
 
-  void _subscribe(_RemotePullRegistration registration) {
+  void _subscribe(
+    _RemotePullRegistration registration, {
+    Completer<void>? refreshReady,
+  }) {
     final slot = _subscriptionStates.length;
     _subscriptionStates.add(CloudLinkState.connecting);
     final subscription = gateway
@@ -533,24 +536,47 @@ final class RemotePullCoordinator {
           (records) async {
             // A delivered snapshot is the only proof the server is readable;
             // an empty list still proves it.
-            _publish(slot, CloudLinkState.live);
-            if (records.isEmpty) return;
+            if (records.isEmpty) {
+              _publish(slot, CloudLinkState.live);
+              if (refreshReady != null && !refreshReady.isCompleted) {
+                refreshReady.complete();
+              }
+              return;
+            }
             // One transaction for the whole snapshot. Merging record by record
             // woke the store's snapshot listeners once per document, so every
             // screen watching this collection rebuilt as many times as the
             // snapshot was long.
-            final results = await database
-                .mergeRemoteEntities(<RemoteEntityMerge>[
-                  for (final record in records)
-                    RemoteEntityMerge(
-                      entityType: record.entityType,
-                      entityId: record.id,
-                      entity: record.data,
-                    ),
-                ]);
+            late final List<RemoteMergeResult> results;
+            try {
+              results = await database.mergeRemoteEntities(<RemoteEntityMerge>[
+                for (final record in records)
+                  RemoteEntityMerge(
+                    entityType: record.entityType,
+                    entityId: record.id,
+                    entity: record.data,
+                  ),
+              ]);
+            } on Object catch (error, stackTrace) {
+              // The snapshot proved connectivity even though the application
+              // mirror could not accept it. A user-triggered refresh must still
+              // surface the failed merge instead of completing over stale data.
+              _publish(slot, CloudLinkState.live);
+              developer.log(
+                'Failed to merge a refreshed remote snapshot',
+                name: 'remote_pull_gateway',
+                error: error,
+                stackTrace: stackTrace,
+              );
+              if (refreshReady != null && !refreshReady.isCompleted) {
+                refreshReady.completeError(error, stackTrace);
+              }
+              return;
+            }
             final failed = results
                 .where((result) => result == RemoteMergeResult.failed)
                 .length;
+            _publish(slot, CloudLinkState.live);
             // A failed merge is recorded per record inside the database, but a
             // listener that keeps reporting `live` while quietly dropping every
             // update from one collection is its own failure mode; surface it
@@ -562,13 +588,30 @@ final class RemotePullCoordinator {
                 name: 'remote_pull_gateway',
               );
             }
+            if (refreshReady != null && !refreshReady.isCompleted) {
+              if (failed > 0) {
+                refreshReady.completeError(
+                  StateError(
+                    '$failed of ${results.length} refreshed records failed '
+                    'to merge',
+                  ),
+                );
+              } else {
+                refreshReady.complete();
+              }
+            }
           },
-          onError: (_) {
+          onError: (Object error, StackTrace stackTrace) {
             // Listener errors leave the local source of truth intact. The SDK
             // retries transient streams; permission/configuration failures mark
             // only this collection failed, so the badge reports offline only
             // when no collection is live.
             _publish(slot, CloudLinkState.failed);
+            if (_linkState == CloudLinkState.failed &&
+                refreshReady != null &&
+                !refreshReady.isCompleted) {
+              refreshReady.completeError(error, stackTrace);
+            }
           },
         );
     _subscriptions.add(subscription);
@@ -593,20 +636,19 @@ final class RemotePullCoordinator {
       _linkStates.add(CloudLinkState.connecting);
     }
 
-    final settled = linkStates.firstWhere(
-      (state) => state != CloudLinkState.connecting,
+    final refreshReady = Completer<void>();
+    final settled = refreshReady.future.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {},
     );
     for (final registration in _registrations) {
-      _subscribe(registration);
+      _subscribe(registration, refreshReady: refreshReady);
     }
 
     // A listener can remain in the SDK's connecting state while the device is
     // fully offline. Pull-to-refresh must finish rather than trapping the UI in
     // a permanent spinner; the cloud badge continues to show the honest state.
-    await settled.timeout(
-      const Duration(seconds: 10),
-      onTimeout: () => _linkState,
-    );
+    await settled;
   }
 
   Future<void> close() async {

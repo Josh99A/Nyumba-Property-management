@@ -138,9 +138,27 @@ void main() {
       expect(gateway.watchCounts[OfflineEntityType.property], 2);
       expect(coordinator.linkState, CloudLinkState.connecting);
 
-      gateway.controllers[OfflineEntityType.property]!.add(const []);
+      gateway.controllers[OfflineEntityType.property]!.add([
+        RemoteRecord(
+          entityType: OfflineEntityType.property,
+          id: 'refreshed-property',
+          data: const {
+            'id': 'refreshed-property',
+            'name': 'Fresh from server',
+            'version': 1,
+          },
+        ),
+      ]);
       await refresh;
+
       expect(coordinator.linkState, CloudLinkState.live);
+      expect(
+        await database.readEntity(
+          OfflineEntityType.property,
+          'refreshed-property',
+        ),
+        containsPair('name', 'Fresh from server'),
+      );
     },
   );
 }
