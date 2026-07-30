@@ -4301,4 +4301,80 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get couldNotOpenMapsApp =>
       'Hakuna programu ya ramani inayoweza kufungua maelekezo.';
+
+  @override
+  String get cloudLoadingLabel => 'Inapakia';
+
+  @override
+  String get cloudRefreshing => 'Inasasisha…';
+
+  @override
+  String get cloudCheckingForUpdates => 'Inatafuta masasisho…';
+
+  @override
+  String get cloudReconnecting => 'Inaunganisha upya…';
+
+  @override
+  String cloudLastUpdated(String time) {
+    return 'Ilisasishwa $time';
+  }
+
+  @override
+  String get cloudMayBeOutdatedTitle => 'Huenda haya yamepitwa na wakati';
+
+  @override
+  String get cloudMayBeOutdatedMessage =>
+      'Nyumba haikuweza kufikia seva, kwa hivyo haya ndiyo yaliyopakiwa mara ya mwisho.';
+
+  @override
+  String get cloudNoConnectionTitle => 'Hakuna muunganisho na Nyumba';
+
+  @override
+  String get cloudNoConnectionMessage =>
+      'Angalia muunganisho wako wa intaneti, kisha ujaribu tena.';
+
+  @override
+  String get cloudAccessDeniedTitle => 'Huna ruhusa ya kuona haya';
+
+  @override
+  String get cloudAccessDeniedMessage =>
+      'Akaunti yako hairuhusiwi kuona haya. Muulize mmiliki wa nafasi ya kazi ikiwa unadhani hii si sahihi.';
+
+  @override
+  String get cloudServerRefusedTitle => 'Nyumba haikuweza kupakia haya';
+
+  @override
+  String get cloudServerRefusedMessage =>
+      'Seva ilikataa ombi. Jaribu tena baada ya muda mfupi.';
+
+  @override
+  String get cloudConnectionRequiredTitle =>
+      'Muunganisho wa intaneti unahitajika';
+
+  @override
+  String get cloudConnectionRequiredMessage =>
+      'Kitendo hiki lazima kifikie seva ya Nyumba, kwa hivyo hakiwezi kufanyika bila intaneti.';
+
+  @override
+  String get cloudSending => 'Inatuma…';
+
+  @override
+  String get cloudUnconfirmedTitle => 'Nyumba haikuweza kuthibitisha hili';
+
+  @override
+  String get cloudUnconfirmedMessage =>
+      'Ombi lako lilitumwa, lakini jibu halikufika, kwa hivyo huenda likawa limetekelezwa au la. Angalia na seva kabla ya kujaribu tena.';
+
+  @override
+  String get cloudCheckWithServer => 'Angalia na seva';
+
+  @override
+  String get availabilityUpdated => 'Upatikanaji umesasishwa.';
+
+  @override
+  String get availabilityUpdatedAdvertWithdrawn =>
+      'Upatikanaji umesasishwa. Tangazo limeondolewa sokoni.';
+
+  @override
+  String get listingDraftSaved => 'Rasimu ya tangazo imehifadhiwa.';
 }

@@ -1,5 +1,4 @@
-import 'package:nyumba_property_management/core/offline/json_reader.dart';
-import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
+﻿import 'package:nyumba_property_management/core/domain/json_reader.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
 
 final class ListingMapper {
@@ -93,7 +92,7 @@ final class ListingMapper {
     'publishedAt': listing.publishedAt?.toUtc().toIso8601String(),
     'expiresAt': listing.expiresAt?.toUtc().toIso8601String(),
     'projectionVersion': listing.projectionVersion,
-    'syncMetadata': SyncMetadataMapper.toJson(listing.syncMetadata),
+    'version': listing.serverVersion,
   };
 
   /// Whether [fromJson] can read this record. Used by the workspace-open sweep
@@ -156,7 +155,7 @@ final class ListingMapper {
       publishedAt: reader.optionalDate('publishedAt'),
       expiresAt: reader.optionalDate('expiresAt'),
       projectionVersion: reader.optionalInt('projectionVersion'),
-      syncMetadata: SyncMetadataMapper.fromJson(json['syncMetadata']),
+      serverVersion: reader.optionalInt('version'),
     );
   }
 }

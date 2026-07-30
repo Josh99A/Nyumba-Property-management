@@ -1,189 +1,182 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_cache.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_command.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_read_gateway.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_reader.dart';
+import 'package:nyumba_property_management/core/cloud/command_dispatcher.dart';
 import 'package:nyumba_property_management/core/domain/clock.dart';
-import 'package:nyumba_property_management/core/domain/id_generator.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
-import 'package:nyumba_property_management/core/offline/offline_database.dart';
-import 'package:nyumba_property_management/core/offline/offline_entity.dart';
-import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
-import 'package:nyumba_property_management/features/marketplace/data/sembast_listing_repository.dart';
-import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
-import 'package:nyumba_property_management/features/portfolio/data/sembast_property_repository.dart';
-import 'package:nyumba_property_management/features/portfolio/data/sembast_unit_repository.dart';
-import 'package:nyumba_property_management/features/portfolio/domain/property.dart';
+import 'package:nyumba_property_management/core/domain/domain_exception.dart';
+import 'package:nyumba_property_management/features/portfolio/data/cloud_unit_repository.dart';
+import 'package:nyumba_property_management/features/portfolio/data/mappers/unit_mapper.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/unit.dart';
-import 'package:sembast/sembast_memory.dart';
+
+import '../support/fake_cloud.dart';
 
 void main() {
   final now = DateTime.utc(2026, 7, 15, 12);
-
-  test(
-    'unit archive remains visible until its delete command is acknowledged',
-    () async {
-      final database = OfflineDatabase(
-        await databaseFactoryMemory.openDatabase('unit-archive.db'),
-      );
-      addTearDown(database.close);
-      await database.initialize();
-      final ids = _SequenceIdGenerator('unit-archive');
-      final properties = SembastPropertyRepository(
-        database: database,
-        idGenerator: ids,
-        clock: FixedClock(now),
-      );
-      final units = SembastUnitRepository(
-        database: database,
-        idGenerator: ids,
-        clock: FixedClock(now),
-      );
-      final property = await properties.create(
-        const CreatePropertyInput(
-          landlordId: 'landlord-1',
-          name: 'Archive Court',
-          addressLine: '1 Archive Road',
-          city: 'Kampala',
-        ),
-      );
-      final unit = await units.create(
-        CreateUnitInput(
-          propertyId: property.id,
-          landlordId: property.landlordId,
-          label: 'A1',
-          type: UnitType.apartment,
-          status: UnitStatus.vacant,
-          monthlyRentMinor: 150000000,
-        ),
-      );
-      await _acknowledgeAll(database, now);
-
-      final archived = await units.archive(unit.id);
-
-      expect(archived.isArchived, isTrue);
-      expect(archived.archivedAt, now);
-      expect((await units.getAll()).map((item) => item.id), contains(unit.id));
-      final archiveCommand = (await database.readOutbox()).single;
-      expect(archiveCommand.entityType, OfflineEntityType.unit);
-      expect(archiveCommand.operation, OutboxOperation.delete);
-      expect(archiveCommand.payload['isDeleted'], isTrue);
-      expect(archiveCommand.payload['deletedAt'], now.toIso8601String());
-
-      await database.acknowledgeMutation(
-        mutationId: archiveCommand.id,
-        syncedAt: now,
-        serverRevision: '2',
-      );
-
-      expect(await units.getAll(), isEmpty);
-      expect(
-        (await units.getAll(includeArchived: true)).single.isArchived,
-        isTrue,
-      );
-      expect((await units.getById(unit.id))?.isArchived, isTrue);
-    },
+  const partition = CachePartition(
+    environment: 'test-project',
+    userId: 'landlord-1',
+    role: 'landlord',
   );
 
-  test(
-    'unpublish queues a server-bound command and pauses visibility',
-    () async {
-      final database = OfflineDatabase(
-        await databaseFactoryMemory.openDatabase('listing-unpublish.db'),
-      );
-      addTearDown(database.close);
-      await database.initialize();
-      final ids = _SequenceIdGenerator('listing-unpublish');
-      final properties = SembastPropertyRepository(
-        database: database,
-        idGenerator: ids,
-        clock: FixedClock(now),
-      );
-      final units = SembastUnitRepository(
-        database: database,
-        idGenerator: ids,
-        clock: FixedClock(now),
-      );
-      final listings = SembastListingRepository(
-        database: database,
-        properties: properties,
-        units: units,
-        idGenerator: ids,
-        clock: FixedClock(now),
-      );
-      final property = await properties.create(
-        const CreatePropertyInput(
-          landlordId: 'landlord-1',
-          name: 'Listing Court',
-          addressLine: '2 Listing Road',
-          city: 'Kampala',
-        ),
-      );
-      final unit = await units.create(
-        CreateUnitInput(
-          propertyId: property.id,
-          landlordId: property.landlordId,
-          label: 'B1',
-          type: UnitType.apartment,
-          status: UnitStatus.vacant,
-          monthlyRentMinor: 175000000,
-        ),
-      );
-      final draft = await listings.createDraft(
-        CreateListingInput(
-          unitId: unit.id,
-          propertyId: property.id,
-          landlordId: property.landlordId,
-          title: 'B1 at Listing Court',
-          description: 'A bright rental space in Kampala.',
-          monthlyRentMinor: unit.monthlyRentMinor,
-          city: property.city,
-          neighborhood: 'Ntinda',
-          contactPhone: '+256700000001',
-          // Publication requires at least one photo of the rental space.
-          imageUrls: const [
-            'public/listings/listing-b1/0-abcdef0123456789-full.webp',
-          ],
-        ),
-      );
-      await _acknowledgeAll(database, now);
-      await listings.publish(draft.id);
-      await _acknowledgeAll(database, now);
-      expect((await listings.getById(draft.id))?.isPublic, isTrue);
-
-      final unpublished = await listings.unpublish(draft.id);
-
-      expect(unpublished.status, ListingStatus.paused);
-      expect(unpublished.syncMetadata.state, EntitySyncState.pending);
-      expect(await listings.getAll(publicOnly: true), isEmpty);
-      final unpublishCommand = (await database.readOutbox()).single;
-      expect(unpublishCommand.entityType, OfflineEntityType.listing);
-      expect(unpublishCommand.operation, OutboxOperation.delete);
-
-      await database.acknowledgeMutation(
-        mutationId: unpublishCommand.id,
-        syncedAt: now,
-        serverRevision: '3',
-      );
-      final confirmed = await listings.getById(draft.id);
-      expect(confirmed?.status, ListingStatus.paused);
-      expect(confirmed?.syncMetadata.state, EntitySyncState.synced);
-    },
+  Unit unitRecord({int version = 4, bool archived = false}) => Unit(
+    id: 'unit-1',
+    propertyId: 'property-1',
+    landlordId: 'landlord-1',
+    label: 'A1',
+    type: UnitType.apartment,
+    status: UnitStatus.vacant,
+    monthlyRentMinor: 150000000,
+    currency: 'UGX',
+    createdAt: now,
+    updatedAt: now,
+    serverVersion: version,
+    isArchived: archived,
+    archivedAt: archived ? now : null,
   );
-}
 
-Future<void> _acknowledgeAll(OfflineDatabase database, DateTime now) async {
-  for (final mutation in await database.readOutbox()) {
-    await database.acknowledgeMutation(
-      mutationId: mutation.id,
-      syncedAt: now,
-      serverRevision: '1',
+  ({
+    CloudUnitRepository repository,
+    FakeCloudReadGateway reads,
+    RecordingCommandGateway commands,
+    StubConnection connection,
+  })
+  build({RecordingCommandGateway? commandGateway}) {
+    final reads = FakeCloudReadGateway();
+    final commands = commandGateway ?? RecordingCommandGateway();
+    final connection = StubConnection();
+    return (
+      repository: CloudUnitRepository(
+        reader: CloudReader(
+          cache: CloudCache(clock: FixedClock(now)),
+          gateway: reads,
+          partition: partition,
+          clock: FixedClock(now),
+        ),
+        commands: CommandDispatcher(
+          gateway: commands,
+          connection: connection,
+          clock: FixedClock(now),
+        ),
+        scope: const LandlordScope('landlord-1'),
+        clock: FixedClock(now),
+      ),
+      reads: reads,
+      commands: commands,
+      connection: connection,
     );
   }
-}
 
-final class _SequenceIdGenerator implements IdGenerator {
-  _SequenceIdGenerator(this.prefix);
+  group('archiving a rental space', () {
+    test('sends unit.archive guarded by the version it was read at', () async {
+      final harness = build();
+      harness.reads.seed(CommandAggregate.unit, [
+        UnitMapper.toJson(unitRecord(version: 4)),
+      ]);
 
-  final String prefix;
-  int _value = 0;
+      final unit = (await harness.repository.getAll()).value!.single;
+      await harness.repository.archive(unit);
 
-  @override
-  String generate() => '$prefix-${_value++}';
+      final command = harness.commands.lastCommand;
+      expect(command.type, 'unit.archive');
+      expect(command.aggregateId, 'unit-1');
+      // The guard is what stops an archive composed against a stale read from
+      // silently overwriting someone else's concurrent change.
+      expect(command.expectedVersion, 4);
+      expect(command.payload, isEmpty);
+    });
+
+    test('refuses to send when the record carries no server version', () async {
+      final harness = build();
+      // A unit with no version never came from the server, so there is nothing
+      // to guard against and the safe move is to refuse rather than send an
+      // unguarded write.
+      await expectLater(
+        harness.repository.archive(unitRecord(version: 0)),
+        throwsA(isA<DomainValidationException>()),
+      );
+      expect(harness.commands.sent, isEmpty);
+    });
+
+    test('a rejected archive leaves the space exactly as it was', () async {
+      final harness = build(
+        commandGateway: RecordingCommandGateway(
+          responder: (_, _) => Future<CommandOutcome>.error(
+            const CommandException(
+              kind: CommandFailureKind.rejected,
+              code: 'VALIDATION_FAILED',
+              details: <String, Object?>{'reason': 'unitOccupied'},
+            ),
+          ),
+        ),
+      );
+      harness.reads.seed(CommandAggregate.unit, [
+        UnitMapper.toJson(unitRecord()),
+      ]);
+      final unit = (await harness.repository.getAll()).value!.single;
+
+      await expectLater(
+        harness.repository.archive(unit),
+        throwsA(
+          isA<CommandException>().having(
+            (e) => e.reason,
+            'reason',
+            'unitOccupied',
+          ),
+        ),
+      );
+
+      // The server said no, so the space is still active — nothing local
+      // pretended otherwise.
+      final after = (await harness.repository.getAll()).value!.single;
+      expect(after.isArchived, isFalse);
+    });
+
+    test('archiving while disconnected never reaches the wire', () async {
+      final harness = build();
+      harness.reads.seed(CommandAggregate.unit, [
+        UnitMapper.toJson(unitRecord()),
+      ]);
+      final unit = (await harness.repository.getAll()).value!.single;
+      harness.connection.online = false;
+
+      await expectLater(
+        harness.repository.archive(unit),
+        throwsA(
+          isA<CommandException>().having(
+            (e) => e.kind,
+            'kind',
+            CommandFailureKind.connection,
+          ),
+        ),
+      );
+      // Nothing was sent and nothing was stored for later: the archive simply
+      // did not happen, which is what the user is told.
+      expect(harness.commands.sent, isEmpty);
+    });
+
+    test('the archived space leaves the active list once confirmed', () async {
+      final harness = build();
+      harness.reads.seed(CommandAggregate.unit, [
+        UnitMapper.toJson(unitRecord()),
+      ]);
+      final unit = (await harness.repository.getAll()).value!.single;
+
+      await harness.repository.archive(unit);
+      // The server is the one that decides what the list contains; the next
+      // snapshot is what removes it, not a local edit.
+      harness.reads.emitUpdate(CommandAggregate.unit, [
+        UnitMapper.toJson(unitRecord(version: 5, archived: true)),
+      ]);
+
+      expect((await harness.repository.getAll()).value, isEmpty);
+      expect(
+        (await harness.repository.getAll(
+          includeArchived: true,
+        )).value!.single.isArchived,
+        isTrue,
+      );
+    });
+  });
 }

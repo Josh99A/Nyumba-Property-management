@@ -4324,4 +4324,79 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get couldNotOpenMapsApp =>
       'Tewali app ya maapu esobola okuggulawo amakubo.';
+
+  @override
+  String get cloudLoadingLabel => 'Kitikkibwa';
+
+  @override
+  String get cloudRefreshing => 'Tuzza buggya…';
+
+  @override
+  String get cloudCheckingForUpdates => 'Tukebera ebipya…';
+
+  @override
+  String get cloudReconnecting => 'Tuddamu okukwatagana…';
+
+  @override
+  String cloudLastUpdated(String time) {
+    return 'Byazzibwa buggya $time';
+  }
+
+  @override
+  String get cloudMayBeOutdatedTitle => 'Bino biyinza obutaba bipya';
+
+  @override
+  String get cloudMayBeOutdatedMessage =>
+      'Nyumba tesobodde kutuuka ku ssaava, bino bye byasembayo okujja.';
+
+  @override
+  String get cloudNoConnectionTitle => 'Tewali nkolagana ne Nyumba';
+
+  @override
+  String get cloudNoConnectionMessage =>
+      'Kebera yintaneeti yo, oluvannyuma ogezeeko nate.';
+
+  @override
+  String get cloudAccessDeniedTitle => 'Tolina lukusa ku bino';
+
+  @override
+  String get cloudAccessDeniedMessage =>
+      'Akawunti yo tekkirizibwa kulaba bino. Buuza nnannyini kifo ky\'emirimu singa olowooza nti kikyamu.';
+
+  @override
+  String get cloudServerRefusedTitle => 'Nyumba tesobodde kuggula bino';
+
+  @override
+  String get cloudServerRefusedMessage =>
+      'Ssaava egaanye okusaba. Gezaako nate mu kaseera katono.';
+
+  @override
+  String get cloudConnectionRequiredTitle => 'Yintaneeti yeetaagisa';
+
+  @override
+  String get cloudConnectionRequiredMessage =>
+      'Ekikolwa kino kyetaaga okutuuka ku ssaava ya Nyumba, noolwekyo tekisoboka nga tolina yintaneeti.';
+
+  @override
+  String get cloudSending => 'Tusindika…';
+
+  @override
+  String get cloudUnconfirmedTitle => 'Nyumba tesobodde kukakasa kino';
+
+  @override
+  String get cloudUnconfirmedMessage =>
+      'Okusaba kwo kwasindikiddwa, naye eky\'okuddamu tekyatuuka, n\'olwekyo kiyinza okuba nga kwatuuse oba nedda. Kebera ne ssaava nga tonnaddamu kugezaako.';
+
+  @override
+  String get cloudCheckWithServer => 'Kebera ne ssaava';
+
+  @override
+  String get availabilityUpdated => 'Obusobozi buzzibwamu.';
+
+  @override
+  String get availabilityUpdatedAdvertWithdrawn =>
+      'Obusobozi buzzibwamu. Ekirango kiggiddwa ku katale.';
+
+  @override
+  String get listingDraftSaved => 'Ekirango eky\'okusooka kitereke.';
 }

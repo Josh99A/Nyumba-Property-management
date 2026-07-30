@@ -1,14 +1,15 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_command.dart';
+import '../support/cloud_fixtures.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/luganda_localizations.dart';
 import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
@@ -35,9 +36,14 @@ class _RecordingUpdateProperty extends UpdateProperty {
   final calls = <Property>[];
 
   @override
-  Future<Property> call(Property property) async {
+  Future<MutationResult> call(Property property) async {
     calls.add(property);
-    return property;
+    // A real save returns only after the server confirms, and returns proof of
+    // that rather than the edited object — so the stub does the same.
+    return MutationResult(
+      aggregateId: property.id,
+      outcome: CommandOutcome(committedAt: DateTime.utc(2026, 7, 29, 9)),
+    );
   }
 }
 
@@ -62,7 +68,6 @@ void main() {
     imageUrls: [_dataUri(_pngBytes), _dataUri(_pngBytes)],
     createdAt: now,
     updatedAt: now,
-    syncMetadata: const SyncMetadata.synced(serverRevision: '3'),
   );
 
   testWidgets(
@@ -208,13 +213,13 @@ Future<void> _pump(
           ),
         ),
         portfolioPropertiesProvider.overrideWith(
-          (ref) => Stream.value(properties),
+          (ref) => Stream.value(cloudOf(properties)),
         ),
         portfolioUnitsProvider.overrideWith(
-          (ref) => Stream.value(const <Unit>[]),
+          (ref) => Stream.value(cloudOf(const <Unit>[])),
         ),
         landlordListingsProvider.overrideWith(
-          (ref) => Stream.value(const <Listing>[]),
+          (ref) => Stream.value(cloudOf(const <Listing>[])),
         ),
         updatePropertyProvider.overrideWith(overrideUpdate),
       ],

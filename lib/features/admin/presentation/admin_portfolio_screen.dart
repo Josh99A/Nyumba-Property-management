@@ -5,6 +5,7 @@ import 'package:nyumba_property_management/core/localization/nyumba_localization
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -41,11 +42,9 @@ class _AdminPortfolioScreenState extends ConsumerState<AdminPortfolioScreen> {
   Widget build(BuildContext context) {
     final session = ref.watch(sessionControllerProvider);
     final isSuperAdmin = session?.role == AppRole.superAdmin;
-    final properties =
-        ref.watch(adminPropertiesProvider).value ?? const <Property>[];
-    final units = ref.watch(adminUnitsProvider).value ?? const <Unit>[];
-    final listings =
-        ref.watch(landlordListingsProvider).value ?? const <Listing>[];
+    final properties = ref.watch(adminPropertiesProvider).supportingRecords;
+    final units = ref.watch(adminUnitsProvider).supportingRecords;
+    final listings = ref.watch(landlordListingsProvider).supportingRecords;
     final accountsByUid = <String, PlatformAccount>{
       for (final account
           in ref.watch(platformAccountsProvider).value ??
@@ -423,14 +422,10 @@ class _PropertyTile extends StatelessWidget {
               onPressed: () => onPurge(
                 kind: 'property',
                 name: property.name,
-                expectedVersion: _serverVersion(
-                  property.syncMetadata.serverRevision,
-                ),
+                expectedVersion: property.serverVersion,
                 run: (commands, reason) => commands.deleteProperty(
                   propertyId: property.id,
-                  expectedVersion: _serverVersion(
-                    property.syncMetadata.serverRevision,
-                  )!,
+                  expectedVersion: property.serverVersion!,
                   reasonCode: reason,
                 ),
               ),
@@ -495,14 +490,10 @@ class _UnitRow extends StatelessWidget {
               onPressed: () => onPurge(
                 kind: 'rental space',
                 name: unit.label,
-                expectedVersion: _serverVersion(
-                  unit.syncMetadata.serverRevision,
-                ),
+                expectedVersion: unit.serverVersion,
                 run: (commands, reason) => commands.deleteUnit(
                   unitId: unit.id,
-                  expectedVersion: _serverVersion(
-                    unit.syncMetadata.serverRevision,
-                  )!,
+                  expectedVersion: unit.serverVersion!,
                   reasonCode: reason,
                 ),
               ),
@@ -559,14 +550,10 @@ class _ListingRow extends StatelessWidget {
               onPressed: () => onPurge(
                 kind: 'listing',
                 name: listing.title,
-                expectedVersion: _serverVersion(
-                  listing.syncMetadata.serverRevision,
-                ),
+                expectedVersion: listing.serverVersion,
                 run: (commands, reason) => commands.deleteListing(
                   listingId: listing.id,
-                  expectedVersion: _serverVersion(
-                    listing.syncMetadata.serverRevision,
-                  )!,
+                  expectedVersion: listing.serverVersion!,
                   reasonCode: reason,
                 ),
               ),
@@ -597,4 +584,3 @@ class _PurgeButton extends StatelessWidget {
 /// The server's optimistic-concurrency token, which the mirror stores as text.
 /// A record that has never synced has none, and cannot be addressed by a
 /// command at all.
-int? _serverVersion(String? revision) => int.tryParse(revision ?? '');

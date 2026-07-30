@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
 import '../../../../app/bootstrap/app_dependencies.dart';
+import '../../../../core/localization/app_localizations_adapter.dart';
 import '../../../../app/theme/nyumba_colors.dart';
-import '../../../../core/domain/sync_metadata.dart';
 import '../../../../core/presentation/status_badge.dart';
 import '../../../../core/presentation/surface.dart';
 import '../../../auth/application/session_controller.dart';
@@ -23,10 +23,11 @@ enum _AvailabilityFilter { all, vacant, occupied, other }
 
 /// A landlord-facing availability editor placed directly on the dashboard.
 ///
-/// Unit and listing streams are still backed by the local Sembast mirror. A
-/// status change is optimistic and visibly pending; a published listing is
-/// retired before the unit change is queued so this device never advertises a
-/// space it already knows is unavailable.
+/// Units and adverts are read live from the server. A status change is sent
+/// immediately and the control stays busy until the server answers — there is
+/// no optimistic local state and nothing is queued. The server retires any
+/// published advert in the same transaction as the unit change, so a space can
+/// never be shown as unavailable here while still being advertised to visitors.
 class RentalSpaceAvailabilityPanel extends ConsumerStatefulWidget {
   const RentalSpaceAvailabilityPanel({super.key});
 
@@ -46,9 +47,13 @@ class _RentalSpaceAvailabilityPanelState
     final listingsValue = ref.watch(landlordListingsProvider);
     final tenanciesValue = ref.watch(tenanciesProvider);
     final session = ref.watch(sessionControllerProvider);
-    final properties = _resolvedAsyncValue(propertiesValue);
-    final units = _resolvedAsyncValue(unitsValue);
-    final listings = _resolvedAsyncValue(listingsValue);
+    // Unwrapped to the records because this widget's own resolved/error
+    // handling below already reports the read's state; freshness for the whole
+    // dashboard is surfaced once by its "last updated" stamp rather than
+    // repeated on every card.
+    final properties = _resolvedAsyncValue(propertiesValue)?.value;
+    final units = _resolvedAsyncValue(unitsValue)?.value;
+    final listings = _resolvedAsyncValue(listingsValue)?.value;
     final tenancies = _resolvedAsyncValue(tenanciesValue);
     final dataResolved =
         properties != null &&
@@ -264,9 +269,12 @@ class _RentalSpaceAvailabilityPanelState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text.localized(
-            result.unpublishedListing == null
-                ? 'Availability saved locally and queued to sync.'
-                : 'Availability saved locally. The public listing is being removed.',
+            // Past tense, and only reached once the server confirmed. The old
+            // copy called a local write "saved" and described a still-live
+            // advert as "being removed".
+            result.advertWasWithdrawn
+                ? appLocalizationsOf(context).availabilityUpdatedAdvertWithdrawn
+                : appLocalizationsOf(context).availabilityUpdated,
           ),
         ),
       );
@@ -555,28 +563,11 @@ _PublicListingState _publicListingState(Unit unit, List<Listing> listings) {
             Icons.error_outline_rounded,
           );
   }
-  if (unitListings.any(
-    (listing) =>
-        listing.status == ListingStatus.published &&
-        listing.syncMetadata.state != EntitySyncState.synced,
-  )) {
-    return const _PublicListingState(
-      'Publishing pending',
-      BadgeTone.warning,
-      Icons.cloud_upload_outlined,
-    );
-  }
-  if (unitListings.any(
-    (listing) =>
-        listing.status == ListingStatus.paused &&
-        listing.syncMetadata.state != EntitySyncState.synced,
-  )) {
-    return const _PublicListingState(
-      'Removal pending',
-      BadgeTone.warning,
-      Icons.hourglass_top_rounded,
-    );
-  }
+  // The "Publishing pending" and "Removal pending" states are gone. Both
+  // described an advert whose change was sitting in a queue, and there is no
+  // queue: a publish or a retirement either reached the server — in which case
+  // the state below is already the truth — or it failed and was reported at the
+  // time it was attempted.
   if (unitListings.isNotEmpty) {
     return const _PublicListingState(
       'Not public',

@@ -7,7 +7,7 @@ import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
 import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
-import 'package:nyumba_property_management/core/offline/uuid_id_generator.dart';
+import 'package:nyumba_property_management/core/domain/uuid_id_generator.dart';
 import 'package:nyumba_property_management/features/finance/data/mappers/rent_payment_mapper.dart';
 import 'package:nyumba_property_management/features/finance/domain/rent_payment.dart';
 import 'package:nyumba_property_management/features/finance/domain/rent_payment_repository.dart';

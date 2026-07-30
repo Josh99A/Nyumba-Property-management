@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide Text, Tooltip;
+﻿import 'package:flutter/material.dart' hide Text, Tooltip;
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/documents/nyumba_document_service.dart';
@@ -535,11 +536,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       builder: (dialogContext) => Consumer(
         builder: (context, ref, _) {
           final propertiesValue = ref.watch(portfolioPropertiesProvider);
-          final properties =
-              propertiesValue.value
-                  ?.where((property) => !property.isArchived)
-                  .toList(growable: false) ??
-              const <Property>[];
+          final properties = propertiesValue.supportingRecords
+              .where((property) => !property.isArchived)
+              .toList(growable: false);
           final portfolioResolved = propertiesValue.hasValue;
           return StatefulBuilder(
             builder: (context, setDialogState) => AlertDialog(

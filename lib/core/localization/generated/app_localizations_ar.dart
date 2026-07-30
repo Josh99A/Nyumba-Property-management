@@ -4217,4 +4217,79 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get couldNotOpenMapsApp => 'لا يوجد تطبيق خرائط لفتح الاتجاهات.';
+
+  @override
+  String get cloudLoadingLabel => 'جارٍ التحميل';
+
+  @override
+  String get cloudRefreshing => 'جارٍ التحديث…';
+
+  @override
+  String get cloudCheckingForUpdates => 'جارٍ البحث عن تحديثات…';
+
+  @override
+  String get cloudReconnecting => 'جارٍ إعادة الاتصال…';
+
+  @override
+  String cloudLastUpdated(String time) {
+    return 'آخر تحديث $time';
+  }
+
+  @override
+  String get cloudMayBeOutdatedTitle => 'قد تكون هذه البيانات قديمة';
+
+  @override
+  String get cloudMayBeOutdatedMessage =>
+      'تعذّر على Nyumba الوصول إلى الخادم، لذا هذه آخر بيانات تم تحميلها.';
+
+  @override
+  String get cloudNoConnectionTitle => 'لا يوجد اتصال بـ Nyumba';
+
+  @override
+  String get cloudNoConnectionMessage =>
+      'تحقّق من اتصالك بالإنترنت ثم أعد المحاولة.';
+
+  @override
+  String get cloudAccessDeniedTitle => 'ليس لديك صلاحية الاطّلاع على هذا';
+
+  @override
+  String get cloudAccessDeniedMessage =>
+      'حسابك غير مصرّح له بعرض هذا. راجع مالك مساحة العمل إذا كنت ترى أن هذا غير صحيح.';
+
+  @override
+  String get cloudServerRefusedTitle => 'تعذّر على Nyumba تحميل هذا';
+
+  @override
+  String get cloudServerRefusedMessage =>
+      'رفض الخادم الطلب. أعد المحاولة بعد قليل.';
+
+  @override
+  String get cloudConnectionRequiredTitle => 'يلزم وجود اتصال بالإنترنت';
+
+  @override
+  String get cloudConnectionRequiredMessage =>
+      'يجب أن يصل هذا الإجراء إلى خادم Nyumba، لذا لا يمكن تنفيذه دون اتصال.';
+
+  @override
+  String get cloudSending => 'جارٍ الإرسال…';
+
+  @override
+  String get cloudUnconfirmedTitle => 'تعذّر على Nyumba تأكيد هذا';
+
+  @override
+  String get cloudUnconfirmedMessage =>
+      'تم إرسال طلبك لكن لم يصل الرد، لذا قد يكون قد نُفّذ وقد لا يكون. تحقّق من الخادم قبل إعادة المحاولة.';
+
+  @override
+  String get cloudCheckWithServer => 'التحقّق من الخادم';
+
+  @override
+  String get availabilityUpdated => 'تم تحديث التوفّر.';
+
+  @override
+  String get availabilityUpdatedAdvertWithdrawn =>
+      'تم تحديث التوفّر. وأُزيل الإعلان من السوق.';
+
+  @override
+  String get listingDraftSaved => 'تم حفظ مسودة الإعلان.';
 }

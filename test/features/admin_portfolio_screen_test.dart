@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/cloud_fixtures.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/luganda_localizations.dart';
 import 'package:nyumba_property_management/features/admin/application/admin_directory_providers.dart';
@@ -42,7 +42,6 @@ Property _property({
   updatedAt: _now,
   isArchived: archived,
   archivedAt: archived ? _now : null,
-  syncMetadata: const SyncMetadata.synced(serverRevision: '3'),
 );
 
 Unit _unit({
@@ -63,7 +62,6 @@ Unit _unit({
   updatedAt: _now,
   isArchived: archived,
   archivedAt: archived ? _now : null,
-  syncMetadata: const SyncMetadata.synced(serverRevision: '2'),
 );
 
 void main() {
@@ -191,9 +189,13 @@ Future<void> _pump(
             ),
           ),
         ),
-        adminPropertiesProvider.overrideWith((ref) => Stream.value(properties)),
-        adminUnitsProvider.overrideWith((ref) => Stream.value(units)),
-        landlordListingsProvider.overrideWith((ref) => Stream.value(listings)),
+        adminPropertiesProvider.overrideWith(
+          (ref) => Stream.value(cloudOf(properties)),
+        ),
+        adminUnitsProvider.overrideWith((ref) => Stream.value(cloudOf(units))),
+        landlordListingsProvider.overrideWith(
+          (ref) => Stream.value(cloudOf(listings)),
+        ),
         platformAccountsProvider.overrideWith(
           (ref) => Stream.value(const <PlatformAccount>[
             PlatformAccount(

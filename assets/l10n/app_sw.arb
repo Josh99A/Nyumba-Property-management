@@ -1,4 +1,4 @@
-{
+﻿{
     "@@locale":  "sw",
     "appTitle":  "Usimamizi wa Nyumba",
     "language":  "Lugha",
@@ -1294,4 +1294,28 @@
     ,"listView": "Orodha"
     ,"nearestToMe": "Zilizo karibu nami"
     ,"couldNotOpenMapsApp": "Hakuna programu ya ramani inayoweza kufungua maelekezo."
+
+    ,"cloudLoadingLabel": "Inapakia"
+    ,"cloudRefreshing": "Inasasisha…"
+    ,"cloudCheckingForUpdates": "Inatafuta masasisho…"
+    ,"cloudReconnecting": "Inaunganisha upya…"
+    ,"cloudLastUpdated": "Ilisasishwa {time}"
+    ,"@cloudLastUpdated": {"description": "Freshness stamp. {time} is a formatted time, already localized.", "placeholders": {"time": {"type": "String"}}}
+    ,"cloudMayBeOutdatedTitle": "Huenda haya yamepitwa na wakati"
+    ,"cloudMayBeOutdatedMessage": "Nyumba haikuweza kufikia seva, kwa hivyo haya ndiyo yaliyopakiwa mara ya mwisho."
+    ,"cloudNoConnectionTitle": "Hakuna muunganisho na Nyumba"
+    ,"cloudNoConnectionMessage": "Angalia muunganisho wako wa intaneti, kisha ujaribu tena."
+    ,"cloudAccessDeniedTitle": "Huna ruhusa ya kuona haya"
+    ,"cloudAccessDeniedMessage": "Akaunti yako hairuhusiwi kuona haya. Muulize mmiliki wa nafasi ya kazi ikiwa unadhani hii si sahihi."
+    ,"cloudServerRefusedTitle": "Nyumba haikuweza kupakia haya"
+    ,"cloudServerRefusedMessage": "Seva ilikataa ombi. Jaribu tena baada ya muda mfupi."
+    ,"cloudConnectionRequiredTitle": "Muunganisho wa intaneti unahitajika"
+    ,"cloudConnectionRequiredMessage": "Kitendo hiki lazima kifikie seva ya Nyumba, kwa hivyo hakiwezi kufanyika bila intaneti."
+    ,"cloudSending": "Inatuma…"
+    ,"cloudUnconfirmedTitle": "Nyumba haikuweza kuthibitisha hili"
+    ,"cloudUnconfirmedMessage": "Ombi lako lilitumwa, lakini jibu halikufika, kwa hivyo huenda likawa limetekelezwa au la. Angalia na seva kabla ya kujaribu tena."
+    ,"cloudCheckWithServer": "Angalia na seva"
+    ,"availabilityUpdated": "Upatikanaji umesasishwa."
+    ,"availabilityUpdatedAdvertWithdrawn": "Upatikanaji umesasishwa. Tangazo limeondolewa sokoni."
+    ,"listingDraftSaved": "Rasimu ya tangazo imehifadhiwa."
 }

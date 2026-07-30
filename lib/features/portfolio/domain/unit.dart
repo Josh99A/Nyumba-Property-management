@@ -1,5 +1,4 @@
 import '../../../core/domain/domain_validation.dart';
-import '../../../core/domain/sync_metadata.dart';
 
 enum UnitType { apartment, house, shop, office, bedsitter, room, other }
 
@@ -17,7 +16,7 @@ final class Unit {
     required this.currency,
     required this.createdAt,
     required this.updatedAt,
-    required this.syncMetadata,
+    this.serverVersion,
     this.bedrooms = 0,
     this.bathrooms = 0,
     this.floor,
@@ -47,7 +46,11 @@ final class Unit {
   final List<String> amenities;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final SyncMetadata syncMetadata;
+
+  /// The server's aggregate version this copy was read at, echoed back as
+  /// `expectedVersion` so a stale edit is rejected rather than silently
+  /// overwriting a change made elsewhere.
+  final int? serverVersion;
   final bool isArchived;
   final DateTime? archivedAt;
 
@@ -92,7 +95,7 @@ final class Unit {
     bool clearDescription = false,
     List<String>? amenities,
     DateTime? updatedAt,
-    SyncMetadata? syncMetadata,
+    int? serverVersion,
     bool? isArchived,
     DateTime? archivedAt,
     bool clearArchivedAt = false,
@@ -112,7 +115,7 @@ final class Unit {
     amenities: amenities ?? this.amenities,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
-    syncMetadata: syncMetadata ?? this.syncMetadata,
+    serverVersion: serverVersion ?? this.serverVersion,
     isArchived: isArchived ?? this.isArchived,
     archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
   );
@@ -165,7 +168,6 @@ final class CreateUnitInput {
       amenities: amenities,
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.pending(),
     );
   }
 }

@@ -1,19 +1,31 @@
+import '../../../core/cloud/cloud_command.dart';
+import '../../../core/cloud/cloud_data.dart';
 import 'unit.dart';
 
+/// Reads and writes rentable units against the server. Same contract shape as
+/// `PropertyRepository`: reads carry their own freshness, writes land only on
+/// server confirmation.
 abstract interface class UnitRepository {
-  Stream<List<Unit>> watchAll({
+  Stream<CloudData<List<Unit>>> watchAll({
     String? propertyId,
     String? landlordId,
     bool includeArchived = false,
   });
-  Stream<Unit?> watchById(String id);
-  Future<List<Unit>> getAll({
+
+  Stream<CloudData<Unit?>> watchById(String id);
+
+  Future<CloudData<List<Unit>>> getAll({
     String? propertyId,
     String? landlordId,
     bool includeArchived = false,
+    bool forceRefresh = false,
   });
-  Future<Unit?> getById(String id);
-  Future<Unit> create(CreateUnitInput input);
-  Future<Unit> update(Unit unit);
-  Future<Unit> archive(String unitId);
+
+  Future<CloudData<Unit?>> getById(String id, {bool forceRefresh = false});
+
+  Future<MutationResult> create(CreateUnitInput input);
+
+  Future<MutationResult> update(Unit unit);
+
+  Future<MutationResult> archive(Unit unit);
 }

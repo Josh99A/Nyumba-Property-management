@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/presentation/remote_media_image.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
 import 'package:nyumba_property_management/features/marketplace/presentation/listing_visuals.dart';
@@ -208,5 +207,4 @@ Listing _listing({required List<String> imageUrls}) => Listing(
   imageUrls: imageUrls,
   createdAt: _now,
   updatedAt: _now,
-  syncMetadata: const SyncMetadata.pending(),
 );

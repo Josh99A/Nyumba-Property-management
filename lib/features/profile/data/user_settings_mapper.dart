@@ -1,6 +1,6 @@
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/localization/app_language.dart';
-import '../../../core/offline/json_reader.dart';
+import '../../../core/domain/json_reader.dart';
 import '../../../core/offline/sync_metadata_mapper.dart';
 import '../domain/user_settings.dart';
 

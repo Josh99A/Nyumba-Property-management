@@ -1,6 +1,5 @@
 import '../../../core/config/market_config.dart';
 import '../../../core/domain/domain_validation.dart';
-import '../../../core/domain/sync_metadata.dart';
 
 enum ListingStatus { draft, published, paused, closed }
 
@@ -17,7 +16,7 @@ final class Listing {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
-    required this.syncMetadata,
+    this.serverVersion,
     this.bedrooms,
     this.bathrooms,
     this.unitType,
@@ -114,7 +113,11 @@ final class Listing {
   final DateTime? publishedAt;
   final DateTime? expiresAt;
   final int? projectionVersion;
-  final SyncMetadata syncMetadata;
+
+  /// The server's aggregate version this copy was read at, echoed back as
+  /// `expectedVersion` so an edit composed against a stale read is refused
+  /// rather than silently overwriting a concurrent change.
+  final int? serverVersion;
 
   /// Whether this advert carries any photo at all.
   ///
@@ -124,11 +127,13 @@ final class Listing {
   /// rather than a broken one.
   bool get hasPhotos => imageUrls.isNotEmpty;
 
-  /// Locally requested publication is not a public listing until the server
-  /// has acknowledged and merged the canonical state.
-  bool get isPublic =>
-      status == ListingStatus.published &&
-      syncMetadata.state == EntitySyncState.synced;
+  /// Whether this advert is live on the public marketplace.
+  ///
+  /// Now simply the server's own publication state. It used to also require a
+  /// local `synced` flag, because a device could hold a publication the server
+  /// had never seen — a state that no longer exists, since a publish either
+  /// reached the server or did not happen at all.
+  bool get isPublic => status == ListingStatus.published;
 
   void validate() {
     DomainValidation.check(<String, String?>{
@@ -338,7 +343,7 @@ final class Listing {
     DateTime? expiresAt,
     bool clearExpiresAt = false,
     int? projectionVersion,
-    SyncMetadata? syncMetadata,
+    int? serverVersion,
   }) => Listing(
     id: id,
     unitId: unitId,
@@ -411,7 +416,7 @@ final class Listing {
     publishedAt: clearPublishedAt ? null : (publishedAt ?? this.publishedAt),
     expiresAt: clearExpiresAt ? null : (expiresAt ?? this.expiresAt),
     projectionVersion: projectionVersion ?? this.projectionVersion,
-    syncMetadata: syncMetadata ?? this.syncMetadata,
+    serverVersion: serverVersion ?? this.serverVersion,
   );
 
   static String? _coordinateError(
@@ -531,7 +536,6 @@ final class CreateListingInput {
       contactEmail: contactEmail,
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.pending(),
     );
   }
 }

@@ -5,20 +5,21 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_cache.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_command.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_read_gateway.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_reader.dart';
+import 'package:nyumba_property_management/core/cloud/command_dispatcher.dart';
+import 'package:nyumba_property_management/features/portfolio/data/cloud_property_repository.dart';
+import '../support/fake_cloud.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/core/domain/clock.dart';
 import 'package:nyumba_property_management/core/domain/domain_exception.dart';
-import 'package:nyumba_property_management/core/domain/id_generator.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
-import 'package:nyumba_property_management/core/offline/offline_database.dart';
-import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
 import 'package:nyumba_property_management/core/offline/remote_pull_gateway.dart';
 import 'package:nyumba_property_management/features/portfolio/data/mappers/property_mapper.dart';
-import 'package:nyumba_property_management/features/portfolio/data/sembast_property_repository.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/property.dart';
 import 'package:nyumba_property_management/features/portfolio/presentation/portfolio_visuals.dart';
 import 'package:nyumba_property_management/features/portfolio/presentation/property_photo_picker.dart';
-import 'package:sembast/sembast_memory.dart';
 
 void main() {
   final now = DateTime.utc(2026, 7, 15, 10);
@@ -28,15 +29,26 @@ void main() {
     expect(propertyPhotoMaxBytes, 5 * 1024 * 1024);
   });
 
-  test('property photos round-trip with the primary image first', () async {
-    final database = OfflineDatabase(
-      await databaseFactoryMemory.openDatabase('property-media.db'),
-    );
-    addTearDown(database.close);
-    await database.initialize();
-    final repository = SembastPropertyRepository(
-      database: database,
-      idGenerator: _SequenceIdGenerator(),
+  test('property photos reach the command in primary-first order', () async {
+    final reads = FakeCloudReadGateway();
+    final commands = RecordingCommandGateway();
+    final repository = CloudPropertyRepository(
+      reader: CloudReader(
+        cache: CloudCache(clock: FixedClock(now)),
+        gateway: reads,
+        partition: const CachePartition(
+          environment: 'test-project',
+          userId: 'landlord-1',
+          role: 'landlord',
+        ),
+        clock: FixedClock(now),
+      ),
+      commands: CommandDispatcher(
+        gateway: commands,
+        connection: StubConnection(),
+        clock: FixedClock(now),
+      ),
+      scope: const LandlordScope('landlord-1'),
       clock: FixedClock(now),
     );
     const images = <String>[
@@ -44,7 +56,7 @@ void main() {
       'data:image/jpeg;base64,AQ==',
     ];
 
-    final property = await repository.create(
+    await repository.create(
       const CreatePropertyInput(
         landlordId: 'landlord-1',
         name: 'Acacia Court',
@@ -54,11 +66,13 @@ void main() {
       ),
     );
 
-    expect(property.imageUrls, images);
-    expect((await repository.getById(property.id))?.imageUrls, images);
-    final outbox = await database.readOutbox();
-    expect(outbox, hasLength(1));
-    expect(outbox.single.payload['imageUrls'], images);
+    // Order is the contract: the first image is the cover the marketplace uses,
+    // so it must survive to the command exactly as the landlord arranged it.
+    final command = commands.lastCommand;
+    expect(command.type, 'property.create');
+    expect(command.payload['imageUrls'], images);
+    // A create is recognised by the router through `expectedVersion: 0`.
+    expect(command.expectedVersion, 0);
   });
 
   test('property rejects more than two images', () {
@@ -117,59 +131,67 @@ void main() {
   });
 
   test(
-    'archive keeps a durable tombstone and hides the active property',
+    'archiving a property is the server\'s decision, not a local one',
     () async {
-      final database = OfflineDatabase(
-        await databaseFactoryMemory.openDatabase('property-archive.db'),
-      );
-      addTearDown(database.close);
-      await database.initialize();
-      final repository = SembastPropertyRepository(
-        database: database,
-        idGenerator: _SequenceIdGenerator(),
+      final reads = FakeCloudReadGateway();
+      final commands = RecordingCommandGateway();
+      final repository = CloudPropertyRepository(
+        reader: CloudReader(
+          cache: CloudCache(clock: FixedClock(now)),
+          gateway: reads,
+          partition: const CachePartition(
+            environment: 'test-project',
+            userId: 'landlord-1',
+            role: 'landlord',
+          ),
+          clock: FixedClock(now),
+        ),
+        commands: CommandDispatcher(
+          gateway: commands,
+          connection: StubConnection(),
+          clock: FixedClock(now),
+        ),
+        scope: const LandlordScope('landlord-1'),
         clock: FixedClock(now),
       );
-      final property = await repository.create(
-        const CreatePropertyInput(
-          landlordId: 'landlord-1',
-          name: 'Archive Court',
-          addressLine: '1 Archive Road',
-          city: 'Kampala',
-        ),
-      );
-      final createMutation = (await database.readOutbox()).single;
-      await database.acknowledgeMutation(
-        mutationId: createMutation.id,
-        syncedAt: now,
-        serverRevision: '1',
-      );
+      Map<String, Object?> record({bool archived = false, int version = 1}) =>
+          PropertyMapper.toJson(
+            Property(
+              id: 'property-1',
+              landlordId: 'landlord-1',
+              name: 'Archive Court',
+              addressLine: '1 Archive Road',
+              city: 'Kampala',
+              country: 'Uganda',
+              createdAt: now,
+              updatedAt: now,
+              serverVersion: version,
+              isArchived: archived,
+              archivedAt: archived ? now : null,
+            ),
+          );
+      reads.seed(CommandAggregate.property, [record()]);
 
-      final archived = await repository.archive(property.id);
+      final property = (await repository.getAll()).value!.single;
+      await repository.archive(property);
 
-      expect(archived.isArchived, isTrue);
-      expect(archived.archivedAt, now);
-      expect(
-        await repository.getAll(),
-        contains(predicate<Property>((item) => item.id == property.id)),
-      );
-      expect(
-        await repository.getAll(includeArchived: true),
-        contains(predicate<Property>((item) => item.id == property.id)),
-      );
-      final archiveMutation = (await database.readOutbox()).single;
-      expect(archiveMutation.operation, OutboxOperation.delete);
-      expect(archiveMutation.payload['isDeleted'], isTrue);
-      expect(archiveMutation.payload['deletedAt'], now.toIso8601String());
+      expect(commands.lastCommand.type, 'property.archive');
+      expect(commands.lastCommand.expectedVersion, 1);
+      // Still active: the command was accepted, but what a landlord sees is
+      // whatever the server last sent, and no local edit forged that.
+      expect((await repository.getAll(forceRefresh: true)).value, hasLength(1));
 
-      await database.acknowledgeMutation(
-        mutationId: archiveMutation.id,
-        syncedAt: now,
-        serverRevision: '2',
+      reads.emitUpdate(CommandAggregate.property, [
+        record(archived: true, version: 2),
+      ]);
+
+      expect((await repository.getAll(forceRefresh: true)).value, isEmpty);
+      final retained = await repository.getById(
+        'property-1',
+        forceRefresh: true,
       );
-      final retained = await repository.getById(property.id);
-      expect(retained?.isArchived, isTrue);
-      expect(retained?.syncMetadata.serverRevision, '2');
-      expect(await repository.getAll(), isEmpty);
+      expect(retained.value?.isArchived, isTrue);
+      expect(retained.value?.serverVersion, 2);
     },
   );
 
@@ -224,7 +246,6 @@ void main() {
       imageUrls: const <String>[primary, secondary],
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
     );
 
     await tester.pumpWidget(
@@ -283,7 +304,6 @@ void main() {
       imageUrls: const <String>[full],
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
     );
 
     await tester.pumpWidget(
@@ -337,7 +357,6 @@ void main() {
       imageUrls: const <String>[publicRef],
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
     );
 
     await tester.pumpWidget(
@@ -387,7 +406,6 @@ void main() {
       imageUrls: const <String>[staged],
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
     );
 
     await tester.pumpWidget(
@@ -431,7 +449,6 @@ void main() {
       imageUrls: const <String>[primary],
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
     );
 
     await tester.pumpWidget(
@@ -483,7 +500,6 @@ void main() {
       imageUrls: const <String>[primary],
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
     );
     final visibility = GlobalKey<_MediaVisibilityState>();
 
@@ -533,11 +549,4 @@ class _MediaVisibilityState extends State<_MediaVisibility> {
   Widget build(BuildContext context) => _show
       ? SizedBox(width: 300, height: 160, child: propertyImage(widget.property))
       : const SizedBox.shrink();
-}
-
-final class _SequenceIdGenerator implements IdGenerator {
-  int _value = 0;
-
-  @override
-  String generate() => 'property-media-${_value++}';
 }

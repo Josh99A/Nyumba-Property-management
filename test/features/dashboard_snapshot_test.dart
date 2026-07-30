@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
 import 'package:nyumba_property_management/features/dashboard/application/dashboard_snapshot.dart';
@@ -24,7 +24,6 @@ Unit _unit(String id, UnitStatus status) => Unit(
   currency: 'UGX',
   createdAt: _now,
   updatedAt: _now,
-  syncMetadata: SyncMetadata.synced(lastSyncedAt: _now),
 );
 
 RentPayment _payment(String id, int amountMinor, DateTime paidOn) =>

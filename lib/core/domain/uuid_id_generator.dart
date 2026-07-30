@@ -1,9 +1,11 @@
+// ignore_for_file: prefer_initializing_formals
+
 import 'package:uuid/uuid.dart';
 
-import '../domain/id_generator.dart';
+import 'id_generator.dart';
 
 final class UuidIdGenerator implements IdGenerator {
-  UuidIdGenerator({Uuid? uuid}) : _uuid = uuid ?? const Uuid();
+  const UuidIdGenerator({Uuid uuid = const Uuid()}) : _uuid = uuid;
 
   final Uuid _uuid;
 

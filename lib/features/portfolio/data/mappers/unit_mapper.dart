@@ -1,5 +1,4 @@
-import 'package:nyumba_property_management/core/offline/json_reader.dart';
-import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
+import 'package:nyumba_property_management/core/domain/json_reader.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/unit.dart';
 
 final class UnitMapper {
@@ -23,7 +22,7 @@ final class UnitMapper {
     'updatedAt': unit.updatedAt.toUtc().toIso8601String(),
     'isDeleted': unit.isArchived,
     'deletedAt': unit.archivedAt?.toUtc().toIso8601String(),
-    'syncMetadata': SyncMetadataMapper.toJson(unit.syncMetadata),
+    'version': unit.serverVersion,
   };
 
   static Unit fromJson(Map<String, Object?> json) {
@@ -46,7 +45,7 @@ final class UnitMapper {
       updatedAt: reader.requiredDate('updatedAt'),
       isArchived: reader.optionalBool('isDeleted'),
       archivedAt: reader.optionalDate('deletedAt'),
-      syncMetadata: SyncMetadataMapper.fromJson(json['syncMetadata']),
+      serverVersion: reader.optionalInt('version'),
     );
   }
 }

@@ -1,4 +1,4 @@
-{
+﻿{
     "@@locale":  "ar",
     "appTitle":  "إدارة عقارات نيومبا",
     "language":  "اللغة",
@@ -1294,4 +1294,28 @@
     ,"listView": "قائمة"
     ,"nearestToMe": "الأقرب إليّ"
     ,"couldNotOpenMapsApp": "لا يوجد تطبيق خرائط لفتح الاتجاهات."
+
+    ,"cloudLoadingLabel": "جارٍ التحميل"
+    ,"cloudRefreshing": "جارٍ التحديث…"
+    ,"cloudCheckingForUpdates": "جارٍ البحث عن تحديثات…"
+    ,"cloudReconnecting": "جارٍ إعادة الاتصال…"
+    ,"cloudLastUpdated": "آخر تحديث {time}"
+    ,"@cloudLastUpdated": {"description": "Freshness stamp. {time} is a formatted time, already localized.", "placeholders": {"time": {"type": "String"}}}
+    ,"cloudMayBeOutdatedTitle": "قد تكون هذه البيانات قديمة"
+    ,"cloudMayBeOutdatedMessage": "تعذّر على Nyumba الوصول إلى الخادم، لذا هذه آخر بيانات تم تحميلها."
+    ,"cloudNoConnectionTitle": "لا يوجد اتصال بـ Nyumba"
+    ,"cloudNoConnectionMessage": "تحقّق من اتصالك بالإنترنت ثم أعد المحاولة."
+    ,"cloudAccessDeniedTitle": "ليس لديك صلاحية الاطّلاع على هذا"
+    ,"cloudAccessDeniedMessage": "حسابك غير مصرّح له بعرض هذا. راجع مالك مساحة العمل إذا كنت ترى أن هذا غير صحيح."
+    ,"cloudServerRefusedTitle": "تعذّر على Nyumba تحميل هذا"
+    ,"cloudServerRefusedMessage": "رفض الخادم الطلب. أعد المحاولة بعد قليل."
+    ,"cloudConnectionRequiredTitle": "يلزم وجود اتصال بالإنترنت"
+    ,"cloudConnectionRequiredMessage": "يجب أن يصل هذا الإجراء إلى خادم Nyumba، لذا لا يمكن تنفيذه دون اتصال."
+    ,"cloudSending": "جارٍ الإرسال…"
+    ,"cloudUnconfirmedTitle": "تعذّر على Nyumba تأكيد هذا"
+    ,"cloudUnconfirmedMessage": "تم إرسال طلبك لكن لم يصل الرد، لذا قد يكون قد نُفّذ وقد لا يكون. تحقّق من الخادم قبل إعادة المحاولة."
+    ,"cloudCheckWithServer": "التحقّق من الخادم"
+    ,"availabilityUpdated": "تم تحديث التوفّر."
+    ,"availabilityUpdatedAdvertWithdrawn": "تم تحديث التوفّر. وأُزيل الإعلان من السوق."
+    ,"listingDraftSaved": "تم حفظ مسودة الإعلان."
 }

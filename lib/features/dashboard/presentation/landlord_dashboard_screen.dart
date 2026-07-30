@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/metric_grid.dart';
@@ -348,7 +349,7 @@ class _DashboardFeedbackGate extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final payments =
         ref.watch(rentPaymentsProvider).value ?? const <RentPayment>[];
-    final listings = ref.watch(landlordListingsProvider).value ?? const [];
+    final listings = ref.watch(landlordListingsProvider).supportingRecords;
     // Account age is taken from the oldest recorded payment rather than a
     // signup date the client does not hold. It understates a brand-new account
     // and never overstates one, which is the safe direction: the cost of asking

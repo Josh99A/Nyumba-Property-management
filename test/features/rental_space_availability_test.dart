@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/cloud_fixtures.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
 import 'package:nyumba_property_management/features/dashboard/presentation/widgets/rental_space_availability.dart';
@@ -51,12 +52,12 @@ Future<void> _pumpPanel(
     ProviderScope(
       overrides: [
         portfolioPropertiesProvider.overrideWith(
-          (ref) => Stream.value(const <Property>[]),
+          (ref) => Stream.value(cloudOf(const <Property>[])),
         ),
         portfolioUnitsProvider.overrideWith(
-          (ref) => Stream.value(const <Unit>[]),
+          (ref) => Stream.value(cloudOf(const <Unit>[])),
         ),
-        landlordListingsProvider.overrideWith((ref) => listings),
+        landlordListingsProvider.overrideWith((ref) => listings.map(cloudOf)),
         tenanciesProvider.overrideWith(
           (ref) => Stream.value(const <Tenancy>[]),
         ),

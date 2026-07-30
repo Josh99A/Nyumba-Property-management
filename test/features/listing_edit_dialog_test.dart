@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_command.dart';
+import '../support/cloud_fixtures.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/luganda_localizations.dart';
 import 'package:nyumba_property_management/core/presentation/remote_media_image.dart';
@@ -37,9 +38,14 @@ class _RecordingUpdateListing extends UpdateListing {
   final calls = <Listing>[];
 
   @override
-  Future<Listing> call(Listing listing) async {
+  Future<MutationResult> call(Listing listing) async {
     calls.add(listing);
-    return listing;
+    // A real save returns proof the server accepted it, not the edited object:
+    // the authoritative copy arrives on the listener a moment later.
+    return MutationResult(
+      aggregateId: listing.id,
+      outcome: CommandOutcome(committedAt: DateTime.utc(2026, 7, 29, 9)),
+    );
   }
 }
 
@@ -75,7 +81,6 @@ void main() {
     imageUrls: [_dataUri(_pngBytes)],
     createdAt: now,
     updatedAt: now,
-    syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
   );
 
   testWidgets(
@@ -291,12 +296,14 @@ Future<void> _pump(
             ),
           ),
         ),
-        landlordListingsProvider.overrideWith((ref) => Stream.value(listings)),
+        landlordListingsProvider.overrideWith(
+          (ref) => Stream.value(cloudOf(listings)),
+        ),
         portfolioUnitsProvider.overrideWith(
-          (ref) => Stream.value(const <Unit>[]),
+          (ref) => Stream.value(cloudOf(const <Unit>[])),
         ),
         portfolioPropertiesProvider.overrideWith(
-          (ref) => Stream.value(const <Property>[]),
+          (ref) => Stream.value(cloudOf(const <Property>[])),
         ),
         rentalApplicationsProvider.overrideWith(
           (ref) => Stream.value(const <RentalApplication>[]),

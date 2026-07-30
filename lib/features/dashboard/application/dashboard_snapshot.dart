@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
@@ -123,15 +124,21 @@ class DashboardSnapshot {
 /// How many months of history the rent sparkline shows.
 const _trendMonths = 10;
 
-/// The landlord dashboard, derived entirely from the local mirror.
+/// The landlord dashboard, derived from the records this session has read.
 ///
 /// Every figure is computed from this landlord's own records, so an account
 /// with no properties honestly reports zeroes instead of illustrative totals.
-/// This is a per-landlord view of data they already hold, not a platform
-/// aggregate: cross-tenant reporting stays server-derived by design.
+/// This is a per-landlord view of their own data, not a platform aggregate:
+/// cross-tenant reporting stays server-derived by design.
+///
+/// Freshness comes from the units read, which is the collection every headline
+/// figure depends on. A dashboard drawn from a cached copy therefore reports
+/// the age of that copy rather than the moment it was rendered.
 final dashboardSnapshotProvider = Provider<DashboardSnapshot>((ref) {
+  final unitsRead = ref.watch(portfolioUnitsProvider);
   return buildDashboardSnapshot(
-    units: ref.watch(portfolioUnitsProvider).value ?? const <Unit>[],
+    retrievedAt: unitsRead.value?.retrievedAt,
+    units: unitsRead.supportingRecords,
     payments: ref.watch(rentPaymentsProvider).value ?? const <RentPayment>[],
     tenancies: ref.watch(tenanciesProvider).value ?? const <Tenancy>[],
     requests:
@@ -154,6 +161,11 @@ DashboardSnapshot buildDashboardSnapshot({
   required List<maintenance_domain.MaintenanceRequest> requests,
   required List<OutboxEntry> outbox,
   required DateTime now,
+
+  /// When the server produced the records behind these figures, when that is
+  /// known. Preferred over any per-record stamp, because it describes the read
+  /// the whole dashboard was drawn from.
+  DateTime? retrievedAt,
 }) {
   final propertyNameByPayment = <String, String>{};
   for (final payment in payments) {
@@ -237,7 +249,7 @@ DashboardSnapshot buildDashboardSnapshot({
         )
         .toList(growable: false),
     activity: _activity(recentPayments, recentOpen),
-    lastSyncedAt: _lastSyncedAt(payments, units) ?? now,
+    lastSyncedAt: retrievedAt ?? _lastSyncedAt(payments) ?? now,
     pendingChanges: outbox.length,
   );
 }
@@ -307,12 +319,15 @@ List<ActivitySummary> _activity(
 
 /// The newest server acknowledgement across the records the dashboard shows.
 /// Null when nothing has ever synced, so the UI can avoid claiming otherwise.
-DateTime? _lastSyncedAt(List<RentPayment> payments, List<Unit> units) {
+/// The newest per-record sync stamp still available.
+///
+/// Only payments carry one now; units are read straight from the server and
+/// their freshness belongs to the read, not to each row. Once finance moves to
+/// the cloud repositories this disappears entirely and the snapshot's freshness
+/// comes only from `CloudData.retrievedAt`.
+DateTime? _lastSyncedAt(List<RentPayment> payments) {
   DateTime? newest;
-  for (final at in [
-    ...payments.map((p) => p.syncMetadata.lastSyncedAt),
-    ...units.map((u) => u.syncMetadata.lastSyncedAt),
-  ]) {
+  for (final at in payments.map((p) => p.syncMetadata.lastSyncedAt)) {
     if (at == null) continue;
     if (newest == null || at.isAfter(newest)) newest = at;
   }

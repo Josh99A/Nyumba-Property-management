@@ -1,4 +1,4 @@
-{
+﻿{
     "@@locale":  "lg",
     "appTitle":  "Enzirukanya y\u0027Ebyobupangisa eya Nyumba",
     "language":  "Olulimi",
@@ -1294,4 +1294,28 @@
     ,"listView": "Olukalala"
     ,"nearestToMe": "Ebiri okumpi nange"
     ,"couldNotOpenMapsApp": "Tewali app ya maapu esobola okuggulawo amakubo."
+
+    ,"cloudLoadingLabel": "Kitikkibwa"
+    ,"cloudRefreshing": "Tuzza buggya…"
+    ,"cloudCheckingForUpdates": "Tukebera ebipya…"
+    ,"cloudReconnecting": "Tuddamu okukwatagana…"
+    ,"cloudLastUpdated": "Byazzibwa buggya {time}"
+    ,"@cloudLastUpdated": {"description": "Freshness stamp. {time} is a formatted time, already localized.", "placeholders": {"time": {"type": "String"}}}
+    ,"cloudMayBeOutdatedTitle": "Bino biyinza obutaba bipya"
+    ,"cloudMayBeOutdatedMessage": "Nyumba tesobodde kutuuka ku ssaava, bino bye byasembayo okujja."
+    ,"cloudNoConnectionTitle": "Tewali nkolagana ne Nyumba"
+    ,"cloudNoConnectionMessage": "Kebera yintaneeti yo, oluvannyuma ogezeeko nate."
+    ,"cloudAccessDeniedTitle": "Tolina lukusa ku bino"
+    ,"cloudAccessDeniedMessage": "Akawunti yo tekkirizibwa kulaba bino. Buuza nnannyini kifo ky'emirimu singa olowooza nti kikyamu."
+    ,"cloudServerRefusedTitle": "Nyumba tesobodde kuggula bino"
+    ,"cloudServerRefusedMessage": "Ssaava egaanye okusaba. Gezaako nate mu kaseera katono."
+    ,"cloudConnectionRequiredTitle": "Yintaneeti yeetaagisa"
+    ,"cloudConnectionRequiredMessage": "Ekikolwa kino kyetaaga okutuuka ku ssaava ya Nyumba, noolwekyo tekisoboka nga tolina yintaneeti."
+    ,"cloudSending": "Tusindika…"
+    ,"cloudUnconfirmedTitle": "Nyumba tesobodde kukakasa kino"
+    ,"cloudUnconfirmedMessage": "Okusaba kwo kwasindikiddwa, naye eky'okuddamu tekyatuuka, n'olwekyo kiyinza okuba nga kwatuuse oba nedda. Kebera ne ssaava nga tonnaddamu kugezaako."
+    ,"cloudCheckWithServer": "Kebera ne ssaava"
+    ,"availabilityUpdated": "Obusobozi buzzibwamu."
+    ,"availabilityUpdatedAdvertWithdrawn": "Obusobozi buzzibwamu. Ekirango kiggiddwa ku katale."
+    ,"listingDraftSaved": "Ekirango eky'okusooka kitereke."
 }

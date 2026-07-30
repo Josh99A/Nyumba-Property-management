@@ -4247,4 +4247,80 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get couldNotOpenMapsApp =>
       'No maps app is available to open directions.';
+
+  @override
+  String get cloudLoadingLabel => 'Loading';
+
+  @override
+  String get cloudRefreshing => 'Refreshing…';
+
+  @override
+  String get cloudCheckingForUpdates => 'Checking for updates…';
+
+  @override
+  String get cloudReconnecting => 'Reconnecting…';
+
+  @override
+  String cloudLastUpdated(String time) {
+    return 'Last updated $time';
+  }
+
+  @override
+  String get cloudMayBeOutdatedTitle => 'This may be out of date';
+
+  @override
+  String get cloudMayBeOutdatedMessage =>
+      'Nyumba could not reach the server, so this is what loaded last.';
+
+  @override
+  String get cloudNoConnectionTitle => 'No connection to Nyumba';
+
+  @override
+  String get cloudNoConnectionMessage =>
+      'Check your internet connection, then try again.';
+
+  @override
+  String get cloudAccessDeniedTitle => 'You do not have access to this';
+
+  @override
+  String get cloudAccessDeniedMessage =>
+      'Your account is not permitted to see this. Ask the workspace owner if you think this is wrong.';
+
+  @override
+  String get cloudServerRefusedTitle => 'Nyumba could not load this';
+
+  @override
+  String get cloudServerRefusedMessage =>
+      'The server refused the request. Try again shortly.';
+
+  @override
+  String get cloudConnectionRequiredTitle =>
+      'An internet connection is required';
+
+  @override
+  String get cloudConnectionRequiredMessage =>
+      'This action must reach Nyumba\'s server, so it cannot be done offline.';
+
+  @override
+  String get cloudSending => 'Sending…';
+
+  @override
+  String get cloudUnconfirmedTitle => 'Nyumba could not confirm this';
+
+  @override
+  String get cloudUnconfirmedMessage =>
+      'Your request was sent, but the answer never arrived, so it may or may not have gone through. Check with the server before trying again.';
+
+  @override
+  String get cloudCheckWithServer => 'Check with the server';
+
+  @override
+  String get availabilityUpdated => 'Availability updated.';
+
+  @override
+  String get availabilityUpdatedAdvertWithdrawn =>
+      'Availability updated. The advert has been taken off the marketplace.';
+
+  @override
+  String get listingDraftSaved => 'Draft advert saved.';
 }

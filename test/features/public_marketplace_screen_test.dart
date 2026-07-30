@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/cloud_fixtures.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/luganda_localizations.dart';
 import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
@@ -363,7 +363,9 @@ Future<void> _setViewport(WidgetTester tester, Size size) async {
   final app = ProviderScope(
     overrides: [
       sessionControllerProvider.overrideWith(_VisitorSessionController.new),
-      publicListingsProvider.overrideWith((ref) => Stream.value(catalogue)),
+      publicListingsProvider.overrideWith(
+        (ref) => Stream.value(cloudOf(catalogue)),
+      ),
       cloudStatusProvider.overrideWith((ref) => Stream.value(CloudStatus.live)),
     ],
     child: MaterialApp.router(
@@ -412,5 +414,4 @@ Listing _publishedListing({
   updatedAt: _publishedAt,
   publishedAt: _publishedAt,
   expiresAt: _publishedAt.add(const Duration(days: 30)),
-  syncMetadata: SyncMetadata.synced(lastSyncedAt: _publishedAt),
 );

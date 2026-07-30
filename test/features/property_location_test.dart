@@ -1,14 +1,12 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import '../support/fake_listing_repository.dart';
+import '../support/fake_portfolio_repositories.dart';
 import 'package:nyumba_property_management/core/domain/coordinates.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
 import 'package:nyumba_property_management/core/offline/remote_pull_gateway.dart';
-import 'package:nyumba_property_management/features/marketplace/data/sembast_listing_repository.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
 import 'package:nyumba_property_management/features/portfolio/data/mappers/property_mapper.dart';
-import 'package:nyumba_property_management/features/portfolio/data/sembast_property_repository.dart';
-import 'package:nyumba_property_management/features/portfolio/data/sembast_unit_repository.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/property.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/unit.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -68,7 +66,6 @@ void main() {
       location: location,
       createdAt: DateTime.utc(2026),
       updatedAt: DateTime.utc(2026),
-      syncMetadata: const SyncMetadata.pending(),
     );
 
     test('round-trips through the mapper', () {
@@ -118,35 +115,43 @@ void main() {
   });
 
   group('a new advert starts from its property', () {
+    // The unit repository is returned alongside the others because the listing
+    // repository resolves units through the very same instance. Building a
+    // second one here would give the fixture a unit the listing repository
+    // cannot see — which is exactly what an in-memory fake makes visible and a
+    // shared database used to hide.
     Future<
-      (SembastListingRepository, SembastPropertyRepository, OfflineDatabase)
+      (
+        FakeListingRepository,
+        FakePropertyRepository,
+        FakeUnitRepository,
+        OfflineDatabase,
+      )
     >
     open(String name) async {
       final database = OfflineDatabase(
         await databaseFactoryMemory.openDatabase(name),
       );
       await database.initialize();
-      final properties = SembastPropertyRepository(database: database);
-      final units = SembastUnitRepository(database: database);
+      final properties = FakePropertyRepository();
+      final units = FakeUnitRepository();
       return (
-        SembastListingRepository(
-          database: database,
-          properties: properties,
-          units: units,
-        ),
+        FakeListingRepository(properties: properties, units: units),
         properties,
+        units,
         database,
       );
     }
 
     Future<Listing> draftFor(
-      SembastListingRepository listings,
-      SembastPropertyRepository properties,
+      FakeListingRepository listings,
+      FakePropertyRepository properties,
+      FakeUnitRepository units,
       OfflineDatabase database, {
       required Coordinates? propertyPin,
       Coordinates? explicitPin,
     }) async {
-      final property = await properties.create(
+      final property = await properties.createReturning(
         CreatePropertyInput(
           landlordId: 'landlord-1',
           name: 'Acacia Court',
@@ -155,8 +160,7 @@ void main() {
           location: propertyPin,
         ),
       );
-      final units = SembastUnitRepository(database: database);
-      final unit = await units.create(
+      final unit = await units.createReturning(
         CreateUnitInput(
           propertyId: property.id,
           landlordId: 'landlord-1',
@@ -166,7 +170,7 @@ void main() {
           monthlyRentMinor: 150000000,
         ),
       );
-      return listings.createDraft(
+      return listings.createReturning(
         CreateListingInput(
           unitId: unit.id,
           propertyId: property.id,
@@ -187,12 +191,15 @@ void main() {
     // place a pin again for every unit in a block is how the field ends up
     // permanently empty.
     test('an advert with no pin inherits the property pin', () async {
-      final (listings, properties, database) = await open('inherit-pin.db');
+      final (listings, properties, units, database) = await open(
+        'inherit-pin.db',
+      );
       addTearDown(database.close);
 
       final draft = await draftFor(
         listings,
         properties,
+        units,
         database,
         propertyPin: kampala,
       );
@@ -202,13 +209,16 @@ void main() {
     });
 
     test('an explicitly placed pin wins over the property pin', () async {
-      final (listings, properties, database) = await open('explicit-pin.db');
+      final (listings, properties, units, database) = await open(
+        'explicit-pin.db',
+      );
       addTearDown(database.close);
       final placed = Coordinates(latitude: 0.3136, longitude: 32.5811);
 
       final draft = await draftFor(
         listings,
         properties,
+        units,
         database,
         propertyPin: kampala,
         explicitPin: placed,
@@ -219,12 +229,13 @@ void main() {
     });
 
     test('an unpinned property leaves the advert unpinned', () async {
-      final (listings, properties, database) = await open('no-pin.db');
+      final (listings, properties, units, database) = await open('no-pin.db');
       addTearDown(database.close);
 
       final draft = await draftFor(
         listings,
         properties,
+        units,
         database,
         propertyPin: null,
       );
