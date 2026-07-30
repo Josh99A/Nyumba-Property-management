@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
 import 'package:nyumba_property_management/features/dashboard/application/dashboard_snapshot.dart';
@@ -40,7 +40,6 @@ RentPayment _payment(String id, int amountMinor, DateTime paidOn) =>
       paidOn: paidOn,
       createdAt: paidOn,
       updatedAt: paidOn,
-      syncMetadata: SyncMetadata.synced(lastSyncedAt: paidOn),
     );
 
 Tenancy _tenancy(String id, int balanceMinor, TenancyStatus status) => Tenancy(
@@ -58,7 +57,6 @@ Tenancy _tenancy(String id, int balanceMinor, TenancyStatus status) => Tenancy(
   status: status,
   createdAt: _now,
   updatedAt: _now,
-  syncMetadata: SyncMetadata.synced(lastSyncedAt: _now),
 );
 
 MaintenanceRequest _request(String id, MaintenanceStatus status) =>

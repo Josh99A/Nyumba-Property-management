@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/offline/aggregate_sync_status.dart';
@@ -68,12 +69,12 @@ class TenantHomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      data: (tenancy) => tenancy == null
+      data: (tenancyRead) => tenancyRead.value == null
           ? _NoTenancyHome(firstName: firstName)
           : _TenantHomeLoaded(
               firstName: firstName,
               tenantId: tenantId,
-              tenancy: tenancy,
+              tenancy: tenancyRead.value!,
             ),
     );
   }
@@ -164,9 +165,9 @@ class _TenantHomeLoaded extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final paid = !tenancy.balanceDue;
-    final payments =
-        ref.watch(tenancyPaymentsProvider(tenancy.id)).value ??
-        const <RentPayment>[];
+    final payments = ref
+        .watch(tenancyPaymentsProvider(tenancy.id))
+        .supportingRecords;
     final requests =
         ref.watch(tenantMaintenanceRequestsProvider(tenantId)).value ??
         const <MaintenanceRequest>[];
@@ -623,14 +624,11 @@ class _RecentPaymentsPanel extends StatelessWidget {
                         payment: recent[index],
                         // An unacknowledged payment must never read as money
                         // the server has confirmed.
-                        confirmed:
-                            resolveAggregateSyncStatus(
-                              entityType: OfflineEntityType.payment,
-                              entityId: recent[index].id,
-                              outbox: outbox,
-                              syncMetadata: recent[index].syncMetadata,
-                            ) ==
-                            AggregateSyncStatus.synced,
+                        // Every payment a tenant sees here has been settled by
+                        // the server — the projection is written by the
+                        // settlement path — so this no longer depends on
+                        // whether this device has heard back yet.
+                        confirmed: true,
                       ),
                       if (index < recent.length - 1 && index < 2)
                         const Divider(height: 25),

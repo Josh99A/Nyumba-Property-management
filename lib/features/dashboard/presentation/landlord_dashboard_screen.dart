@@ -17,7 +17,6 @@ import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
 import '../../feedback/presentation/nps_prompt_gate.dart';
 import '../../finance/application/billing_providers.dart';
-import '../../finance/domain/rent_payment.dart';
 import '../application/dashboard_snapshot.dart';
 import 'widgets/dashboard_cards.dart';
 import 'widgets/rental_space_availability.dart';
@@ -347,8 +346,7 @@ class _DashboardFeedbackGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final payments =
-        ref.watch(rentPaymentsProvider).value ?? const <RentPayment>[];
+    final payments = ref.watch(rentPaymentsProvider).supportingRecords;
     final listings = ref.watch(landlordListingsProvider).supportingRecords;
     // Account age is taken from the oldest recorded payment rather than a
     // signup date the client does not hold. It understates a brand-new account

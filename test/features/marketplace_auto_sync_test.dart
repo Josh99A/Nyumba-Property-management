@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/fake_billing_repositories.dart';
 import '../support/fake_listing_repository.dart';
 import '../support/fake_portfolio_repositories.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
@@ -10,7 +11,6 @@ import 'package:nyumba_property_management/core/offline/sync_engine.dart';
 import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
 import 'package:nyumba_property_management/features/auth/domain/user_session.dart';
 import 'package:nyumba_property_management/features/documents/data/sembast_lease_document_repository.dart';
-import 'package:nyumba_property_management/features/finance/data/sembast_rent_payment_repository.dart';
 import 'package:nyumba_property_management/features/maintenance/data/sembast_maintenance_repository.dart';
 import 'package:nyumba_property_management/features/marketplace/application/marketplace_use_cases.dart';
 import 'package:nyumba_property_management/features/marketplace/data/sembast_application_repository.dart';
@@ -26,7 +26,6 @@ import 'package:nyumba_property_management/features/feedback/data/sembast_feedba
 import 'package:nyumba_property_management/features/reviews/data/sembast_review_repository.dart';
 import 'package:nyumba_property_management/features/support/data/sembast_support_repository.dart';
 import 'package:nyumba_property_management/features/staff/data/sembast_staff_repository.dart';
-import 'package:nyumba_property_management/features/tenants/data/sembast_tenancy_repository.dart';
 import 'package:sembast/sembast_memory.dart';
 
 /// Session stub that never touches Firebase.
@@ -103,8 +102,8 @@ void main() {
       documents: const PdfDocumentService(),
       userSettings: SembastUserSettingsRepository(database: database),
       maintenance: SembastMaintenanceRepository(database: database),
-      tenancies: SembastTenancyRepository(database: database),
-      payments: SembastRentPaymentRepository(database: database),
+      tenancies: FakeTenancyRepository(),
+      payments: FakeRentPaymentRepository(),
       leaseDocuments: SembastLeaseDocumentRepository(database: database),
       notices: SembastNoticeRepository(database: database),
       notifications: SembastAppNotificationRepository(database: database),

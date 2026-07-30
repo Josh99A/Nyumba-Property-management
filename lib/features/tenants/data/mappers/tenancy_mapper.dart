@@ -1,5 +1,4 @@
 import 'package:nyumba_property_management/core/domain/json_reader.dart';
-import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
 import 'package:nyumba_property_management/features/tenants/domain/tenancy.dart';
 
 final class TenancyMapper {
@@ -23,7 +22,7 @@ final class TenancyMapper {
     'status': tenancy.status.name,
     'createdAt': tenancy.createdAt.toUtc().toIso8601String(),
     'updatedAt': tenancy.updatedAt.toUtc().toIso8601String(),
-    'syncMetadata': SyncMetadataMapper.toJson(tenancy.syncMetadata),
+    'version': tenancy.serverVersion,
   };
 
   static Tenancy fromJson(Map<String, Object?> json) {
@@ -46,7 +45,7 @@ final class TenancyMapper {
       status: reader.enumValue('status', TenancyStatus.values),
       createdAt: reader.requiredDate('createdAt'),
       updatedAt: reader.requiredDate('updatedAt'),
-      syncMetadata: SyncMetadataMapper.fromJson(json['syncMetadata']),
+      serverVersion: reader.optionalInt('version'),
     );
   }
 }

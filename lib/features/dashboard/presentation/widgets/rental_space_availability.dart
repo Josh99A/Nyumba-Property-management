@@ -54,7 +54,7 @@ class _RentalSpaceAvailabilityPanelState
     final properties = _resolvedAsyncValue(propertiesValue)?.value;
     final units = _resolvedAsyncValue(unitsValue)?.value;
     final listings = _resolvedAsyncValue(listingsValue)?.value;
-    final tenancies = _resolvedAsyncValue(tenanciesValue);
+    final tenancies = _resolvedAsyncValue(tenanciesValue)?.value;
     final dataResolved =
         properties != null &&
         units != null &&

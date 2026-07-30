@@ -59,7 +59,7 @@ Future<void> _pumpPanel(
         ),
         landlordListingsProvider.overrideWith((ref) => listings.map(cloudOf)),
         tenanciesProvider.overrideWith(
-          (ref) => Stream.value(const <Tenancy>[]),
+          (ref) => Stream.value(cloudOf(const <Tenancy>[])),
         ),
       ],
       child: MaterialApp(

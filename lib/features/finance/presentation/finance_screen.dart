@@ -10,9 +10,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/offline/aggregate_sync_status.dart';
-import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/metric_grid.dart';
@@ -21,7 +20,6 @@ import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
-import '../../../core/presentation/sync_state_badge.dart';
 import '../../auth/domain/auth_failure.dart';
 import '../../tenants/application/tenancy_providers.dart';
 import '../../tenants/domain/tenancy.dart';
@@ -212,7 +210,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
   @override
   Widget build(BuildContext context) {
     final paymentsValue = ref.watch(rentPaymentsProvider);
-    final tenancies = ref.watch(tenanciesProvider).value ?? const <Tenancy>[];
+    final tenancies = ref.watch(tenanciesProvider).supportingRecords;
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
 
@@ -257,8 +255,12 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   subject: appLocalizationsOf(context).statusSubjectPayments,
                   onRetry: () => ref.invalidate(rentPaymentsProvider),
                 ),
-                data: (payments) =>
-                    _buildLoaded(context, payments, tenancies, outbox),
+                data: (payments) => _buildLoaded(
+                  context,
+                  payments.value ?? const <RentPayment>[],
+                  tenancies,
+                  outbox,
+                ),
               ),
             ],
           ),
@@ -273,14 +275,6 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
     List<Tenancy> tenancies,
     List<OutboxEntry> outbox,
   ) {
-    AggregateSyncStatus statusOf(RentPayment payment) =>
-        resolveAggregateSyncStatus(
-          entityType: OfflineEntityType.payment,
-          entityId: payment.id,
-          outbox: outbox,
-          syncMetadata: payment.syncMetadata,
-        );
-
     final query = _query.trim().toLowerCase();
     final filtered = payments.where((payment) {
       final matchesQuery =
@@ -288,11 +282,10 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
           payment.tenantName.toLowerCase().contains(query) ||
           (payment.receiptNumber?.toLowerCase().contains(query) ?? false) ||
           payment.propertyName.toLowerCase().contains(query);
-      final matchesFilter = switch (_filter) {
-        'Confirmed' => statusOf(payment) == AggregateSyncStatus.synced,
-        'Awaiting sync' => statusOf(payment) != AggregateSyncStatus.synced,
-        _ => true,
-      };
+      // 'Confirmed' and 'Awaiting sync' split this table by delivery state.
+      // Every payment here is settled, so both chips selected the same rows —
+      // one of them always came back empty and looked like a bug.
+      const matchesFilter = true;
       return matchesQuery && matchesFilter;
     }).toList();
 
@@ -365,10 +358,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 )
               else if (context.isCompact)
                 for (final payment in filtered)
-                  _CompactFinanceRow(
-                    payment: payment,
-                    syncStatus: statusOf(payment),
-                  )
+                  _CompactFinanceRow(payment: payment)
               else
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -422,12 +412,12 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                   ),
                                 ),
                                 DataCell(Text.localized(payment.method)),
-                                DataCell(
-                                  SyncStateBadge(
-                                    status: statusOf(payment),
-                                    compact: false,
-                                  ),
-                                ),
+                                // The per-payment sync badge is gone. Every
+                                // payment in this table is one the server has
+                                // settled — the landlordPortals projection is
+                                // written by the settlement path — so the badge
+                                // only ever said "synced" about money that had
+                                // already moved.
                               ],
                             ),
                           )
@@ -883,10 +873,9 @@ class FinanceSummary extends StatelessWidget {
 }
 
 class _CompactFinanceRow extends StatelessWidget {
-  const _CompactFinanceRow({required this.payment, required this.syncStatus});
+  const _CompactFinanceRow({required this.payment});
 
   final RentPayment payment;
-  final AggregateSyncStatus syncStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -931,7 +920,8 @@ class _CompactFinanceRow extends StatelessWidget {
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 4),
-              SyncStateBadge(status: syncStatus, compact: false),
+              // Per-payment sync badge removed: this row shows money the
+              // server has already settled.
             ],
           ),
         ],

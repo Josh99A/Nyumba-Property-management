@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart' hide Text, Tooltip;
+import 'package:flutter/material.dart' hide Text, Tooltip;
 
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
@@ -81,7 +81,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     final documentsValue = ref.watch(leaseDocumentsProvider);
-    final tenancies = ref.watch(tenanciesProvider).value ?? const <Tenancy>[];
+    final tenancies = ref.watch(tenanciesProvider).supportingRecords;
     final notices = ref.watch(noticesProvider).value ?? const <Notice>[];
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];

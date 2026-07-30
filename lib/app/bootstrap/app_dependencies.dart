@@ -17,7 +17,7 @@ import '../../features/auth/application/session_controller.dart';
 import '../../features/auth/domain/user_session.dart';
 import '../../features/documents/data/sembast_lease_document_repository.dart';
 import '../../features/documents/domain/lease_document_repository.dart';
-import '../../features/finance/data/sembast_rent_payment_repository.dart';
+import '../../features/finance/data/cloud_rent_payment_repository.dart';
 import '../../features/finance/domain/rent_payment_repository.dart';
 import '../../features/feedback/data/sembast_feedback_repository.dart';
 import '../../features/support/data/sembast_support_repository.dart';
@@ -26,7 +26,7 @@ import '../../features/maintenance/data/sembast_maintenance_repository.dart';
 import '../../features/maintenance/domain/maintenance_repository.dart';
 import '../../features/reviews/data/sembast_review_repository.dart';
 import '../../features/reviews/domain/review_repository.dart';
-import '../../features/tenants/data/sembast_tenancy_repository.dart';
+import '../../features/tenants/data/cloud_tenancy_repository.dart';
 import '../../features/tenants/domain/tenancy_repository.dart';
 import '../../features/notices/data/sembast_notice_repository.dart';
 import '../../features/notices/domain/notice_repository.dart';
@@ -482,8 +482,16 @@ Future<AppDependencies> createAppDependencies({
   final applications = SembastApplicationRepository(database: database);
   final userSettings = SembastUserSettingsRepository(database: database);
   final maintenance = SembastMaintenanceRepository(database: database);
-  final tenancies = SembastTenancyRepository(database: database);
-  final payments = SembastRentPaymentRepository(database: database);
+  final tenancies = CloudTenancyRepository(
+    reader: cloudReader,
+    commands: commandDispatcher,
+    scope: cloudScope,
+  );
+  final payments = CloudRentPaymentRepository(
+    reader: cloudReader,
+    commands: commandDispatcher,
+    scope: cloudScope,
+  );
   final leaseDocuments = SembastLeaseDocumentRepository(database: database);
   final notices = SembastNoticeRepository(database: database);
   final notifications = SembastAppNotificationRepository(database: database);

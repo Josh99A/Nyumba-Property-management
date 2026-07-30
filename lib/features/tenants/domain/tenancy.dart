@@ -1,5 +1,4 @@
 import '../../../core/domain/domain_validation.dart';
-import '../../../core/domain/sync_metadata.dart';
 
 enum TenancyStatus { active, noticeGiven, ended }
 
@@ -22,7 +21,7 @@ final class Tenancy {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
-    required this.syncMetadata,
+    this.serverVersion,
     this.tenantUserId,
     this.propertyId,
     this.unitId,
@@ -50,7 +49,11 @@ final class Tenancy {
   final TenancyStatus status;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final SyncMetadata syncMetadata;
+
+  /// The server's aggregate version this copy was read at, echoed back as
+  /// `expectedVersion` so an edit composed against a stale read is refused
+  /// rather than silently overwriting a concurrent change.
+  final int? serverVersion;
 
   bool get balanceDue => balanceMinor > 0;
 
@@ -81,7 +84,7 @@ final class Tenancy {
     TenancyStatus? status,
     DateTime? leaseEnd,
     DateTime? updatedAt,
-    SyncMetadata? syncMetadata,
+    int? serverVersion,
   }) => Tenancy(
     id: id,
     landlordId: landlordId,
@@ -100,7 +103,7 @@ final class Tenancy {
     status: status ?? this.status,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
-    syncMetadata: syncMetadata ?? this.syncMetadata,
+    serverVersion: serverVersion ?? this.serverVersion,
   );
 }
 

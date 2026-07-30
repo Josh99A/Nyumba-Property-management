@@ -100,7 +100,11 @@ final reviewEligibilityHintProvider = Provider<DateTime?>((ref) {
 final myTenanciesForReviewProvider =
     StreamProvider.family<List<Tenancy>, String>((ref, tenantUserId) async* {
       final deps = await ref.watch(appDependenciesProvider.future);
-      yield* deps.tenancies.watchAll(tenantUserId: tenantUserId);
+      // Unwrapped to the records: this feeds a review *prompt*, and a prompt is
+      // the one thing that should stay quiet rather than surface a read state.
+      yield* deps.tenancies
+          .watchAll(tenantUserId: tenantUserId)
+          .map((data) => data.value ?? const <Tenancy>[]);
     });
 
 int _monthsBetween(DateTime from, DateTime to) {
