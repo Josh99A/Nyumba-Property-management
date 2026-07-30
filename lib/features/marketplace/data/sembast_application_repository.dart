@@ -7,7 +7,7 @@ import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
 import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
-import 'package:nyumba_property_management/core/offline/uuid_id_generator.dart';
+import 'package:nyumba_property_management/core/domain/uuid_id_generator.dart';
 import 'package:nyumba_property_management/features/marketplace/data/mappers/application_mapper.dart';
 import 'package:nyumba_property_management/features/marketplace/data/mappers/listing_mapper.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/application.dart';

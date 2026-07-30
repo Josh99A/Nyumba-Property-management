@@ -3,7 +3,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
 import 'package:nyumba_property_management/core/config/maps_config.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/luganda_localizations.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
@@ -31,7 +30,6 @@ Listing listingWith({double? latitude, double? longitude}) {
     createdAt: now,
     updatedAt: now,
     publishedAt: now,
-    syncMetadata: SyncMetadata.synced(lastSyncedAt: now),
   );
 }
 

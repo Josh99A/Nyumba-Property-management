@@ -7,8 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/domain/sync_metadata.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
@@ -17,7 +17,9 @@ import '../../../core/presentation/location_picker.dart';
 import '../../../core/presentation/photo_editor_field.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
+import '../../../core/presentation/cloud_data_view.dart';
 import '../../../core/presentation/surface.dart';
+import '../../../core/presentation/toast.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../marketplace/application/marketplace_use_cases.dart';
@@ -67,22 +69,34 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final unitsValue = ref.watch(portfolioUnitsProvider);
     final listingsValue = ref.watch(landlordListingsProvider);
     final session = ref.watch(sessionControllerProvider);
-    final properties = propertiesValue.value;
-    if (propertiesValue.isLoading || properties == null) {
+    final portfolio = propertiesValue.value;
+    if (propertiesValue.isLoading || portfolio == null) {
       return const Center(child: CircularProgressIndicator());
     }
+    // A read that failed with nothing to fall back on is not a property that
+    // does not exist. Saying "this property is gone" because the network
+    // dropped would be a lie about someone's own record.
+    if (portfolio.hasFailed && !portfolio.hasValue) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: CloudFreshnessBanner<List<Property>>(
+          data: portfolio,
+          onRetry: () async => ref.invalidate(portfolioPropertiesProvider),
+        ),
+      );
+    }
     Property? property;
-    for (final item in properties) {
+    for (final item in portfolio.value ?? const <Property>[]) {
       if (item.id == widget.propertyId) property = item;
     }
     if (property == null) {
       return _MissingProperty(onBack: () => context.go('/properties'));
     }
 
-    final allUnits = (unitsValue.value ?? const <Unit>[])
+    final allUnits = unitsValue.supportingRecords
         .where((unit) => unit.propertyId == property!.id)
         .toList();
-    final listings = listingsValue.value ?? const <Listing>[];
+    final listings = listingsValue.supportingRecords;
     bool allows(AppResource resource, CrudOperation operation) =>
         session != null &&
         AuthorizationPolicy.allowsSession(session, resource, operation);
@@ -429,7 +443,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 
   Future<void> _showAddUnit() async {
-    final property = await ref.read(getPropertyByIdProvider)(widget.propertyId);
+    final property = (await ref.read(getPropertyByIdProvider)(
+      widget.propertyId,
+    )).value;
     if (property == null || !mounted) return;
 
     // Hitting the plan's rental-space limit prompts an upgrade instead of a
@@ -438,7 +454,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     if (ref.read(landlordEntitlementProvider).value case EntitlementKnown(
       entitlement: final plan,
     )) {
-      final unitCount = ref.read(portfolioUnitsProvider).value?.length ?? 0;
+      final unitCount = ref
+          .read(portfolioUnitsProvider)
+          .supportingRecords
+          .length;
       if (unitCount >= plan.unitLimit) {
         await showUpgradePrompt(
           context,
@@ -647,7 +666,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       );
       return;
     }
-    final listings = listingsValue.isLoading ? null : listingsValue.value;
+    final listings = listingsValue.isLoading
+        ? null
+        : listingsValue.value?.value;
     if (listings == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -876,10 +897,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     if (updated == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          // Only reached once the server accepted the change, so both branches
+          // may speak in the past tense. The previous copy announced a local
+          // write as saved and described a still-live advert as "being removed".
           content: Text.localized(
-            result?.unpublishedListing == null
-                ? 'Rental space changes saved locally and queued to sync.'
-                : 'Availability saved locally. The public listing is being removed.',
+            result?.advertWasWithdrawn ?? false
+                ? appLocalizationsOf(context).availabilityUpdatedAdvertWithdrawn
+                : appLocalizationsOf(context).availabilityUpdated,
           ),
         ),
       );
@@ -887,12 +911,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 
   Future<void> _archiveUnit(Unit unit, List<Listing> listings) async {
+    // Only a genuinely live advert blocks archiving. The old check also caught
+    // a paused advert whose retirement had not synced — a state that no longer
+    // exists, because an unpublish either reached the server or did not happen.
     final blockingListing = listings.any(
       (listing) =>
           listing.unitId == unit.id &&
-          (listing.status == ListingStatus.published ||
-              (listing.status == ListingStatus.paused &&
-                  listing.syncMetadata.state != EntitySyncState.synced)),
+          listing.status == ListingStatus.published,
     );
     String? blocker;
     if (unit.status != UnitStatus.vacant) {
@@ -922,8 +947,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       builder: (context) => AlertDialog(
         title: Text.localized('Archive ${unit.displayName}?'),
         content: const Text.localized(
-          'The rental space stays marked as archive pending until the server '
-          'confirms it.',
+          'This needs a connection to Nyumba. The space is archived only once '
+          'the server confirms it.',
         ),
         actions: [
           TextButton(
@@ -945,46 +970,49 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     try {
       await ref.read(archiveUnitProvider)(unit.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text.localized(
-            'Archive queued for ${unit.displayName}; awaiting server confirmation.',
-          ),
-        ),
+      showNyumbaToast(
+        appLocalizationsOf(context).archiveSuccessName(unit.displayName),
+        variant: NyumbaToastVariant.success,
       );
     } on Object catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text.localized('Could not archive rental space: $error'),
-        ),
+      showNyumbaToast(
+        describeActionFailure(
+          error,
+          action: appLocalizationsOf(
+            context,
+          ).actionFailureActionArchiveRentalSpace,
+        ).message,
+        variant: NyumbaToastVariant.error,
       );
     }
   }
 
   Future<void> _archiveProperty(Property property) async {
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(archivePropertyProvider)(property.id);
       if (!mounted) return;
+      final message = appLocalizationsOf(
+        context,
+      ).archiveSuccessName(property.name);
       context.go('/properties');
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text.localized(
-            'Archive queued for ${property.name}; awaiting server confirmation.',
-          ),
-        ),
-      );
+      showNyumbaToast(message, variant: NyumbaToastVariant.success);
     } on Object catch (error) {
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text.localized('Could not archive property: $error')),
+      showNyumbaToast(
+        describeActionFailure(
+          error,
+          action: appLocalizationsOf(
+            context,
+          ).actionFailureActionArchiveProperty,
+        ).message,
+        variant: NyumbaToastVariant.error,
       );
     }
   }
 
   Future<void> _createListing(Property property, Unit unit) async {
-    final draft = await ref.read(createListingDraftProvider)(
+    await ref.read(createListingDraftProvider)(
       CreateListingInput(
         unitId: unit.id,
         propertyId: property.id,
@@ -1002,7 +1030,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text.localized('${draft.title} saved as a local draft.'),
+          // The draft is on the server by the time this runs — `createDraft`
+          // does not return until it says so. The old copy called it "a local
+          // draft", which was true then and would be a lie now.
+          content: Text.localized(
+            appLocalizationsOf(context).listingDraftSaved,
+          ),
         ),
       );
       context.go('/listings');
@@ -1221,7 +1254,6 @@ class _HeroContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pending = property.syncMetadata.state != EntitySyncState.synced;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -1235,10 +1267,6 @@ class _HeroContent extends StatelessWidget {
                   property.name,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-              ),
-              StatusBadge(
-                label: pending ? 'Pending sync' : 'Synced',
-                tone: pending ? BadgeTone.warning : BadgeTone.success,
               ),
             ],
           ),
@@ -1336,11 +1364,11 @@ class _UnitCard extends StatelessWidget {
       symbol: 'UGX ',
       decimalDigits: 0,
     );
+    // An archived space is simply archived. There is no "pending" or "needs
+    // attention" variant now: an archive either reached the server, in which
+    // case it is done, or it failed and was reported at the time.
     final (statusLabel, tone) = unit.isArchived
-        ? unit.syncMetadata.state == EntitySyncState.failed ||
-                  unit.syncMetadata.state == EntitySyncState.conflicted
-              ? ('Archive needs attention', BadgeTone.danger)
-              : ('Archive pending', BadgeTone.warning)
+        ? ('Archived', BadgeTone.neutral)
         : switch (unit.status) {
             UnitStatus.occupied => ('Occupied', BadgeTone.success),
             UnitStatus.vacant => ('Vacant', BadgeTone.info),
@@ -1435,13 +1463,10 @@ class _UnitCard extends StatelessWidget {
           const SizedBox(height: 9),
           Row(
             children: [
-              if (unit.syncMetadata.state != EntitySyncState.synced)
-                const StatusBadge(
-                  label: 'Pending sync',
-                  tone: BadgeTone.warning,
-                )
-              else
-                const StatusBadge(label: 'Synced', tone: BadgeTone.success),
+              // The per-record sync badge is gone. Every space on this screen
+              // came from the server, so "Synced" was a tautology and "Pending
+              // sync" described a queue that no longer exists. Freshness is
+              // reported once, for the read as a whole.
               const Spacer(),
               if (canAdvertise && unit.canBeAdvertised && !hasListing)
                 AsyncActionButton.text(

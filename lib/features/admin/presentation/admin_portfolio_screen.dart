@@ -5,7 +5,10 @@ import 'package:nyumba_property_management/core/localization/nyumba_localization
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/surface.dart';
@@ -41,11 +44,9 @@ class _AdminPortfolioScreenState extends ConsumerState<AdminPortfolioScreen> {
   Widget build(BuildContext context) {
     final session = ref.watch(sessionControllerProvider);
     final isSuperAdmin = session?.role == AppRole.superAdmin;
-    final properties =
-        ref.watch(adminPropertiesProvider).value ?? const <Property>[];
-    final units = ref.watch(adminUnitsProvider).value ?? const <Unit>[];
-    final listings =
-        ref.watch(landlordListingsProvider).value ?? const <Listing>[];
+    final properties = ref.watch(adminPropertiesProvider).supportingRecords;
+    final units = ref.watch(adminUnitsProvider).supportingRecords;
+    final listings = ref.watch(landlordListingsProvider).supportingRecords;
     final accountsByUid = <String, PlatformAccount>{
       for (final account
           in ref.watch(platformAccountsProvider).value ??
@@ -121,7 +122,9 @@ class _AdminPortfolioScreenState extends ConsumerState<AdminPortfolioScreen> {
               label: 'Archived records',
               value: '$archivedCount',
               caption: isSuperAdmin
-                  ? 'Purgeable once nothing references them'
+                  ? appLocalizationsOf(
+                      context,
+                    ).adminArchivedRecordsCascadeCaption
                   : 'A super admin can purge these',
               icon: Icons.inventory_2_outlined,
               tone: context.nyumba.mutedInk,
@@ -201,6 +204,8 @@ class _AdminPortfolioScreenState extends ConsumerState<AdminPortfolioScreen> {
     required String kind,
     required String name,
     required int? expectedVersion,
+    int? cascadeUnitCount,
+    int? cascadeListingCount,
     required Future<void> Function(AdminPurgeCommands commands, String reason)
     run,
   }) async {
@@ -212,7 +217,12 @@ class _AdminPortfolioScreenState extends ConsumerState<AdminPortfolioScreen> {
       );
       return;
     }
-    final reason = await _askReason(kind: kind, name: name);
+    final reason = await _askReason(
+      kind: kind,
+      name: name,
+      cascadeUnitCount: cascadeUnitCount,
+      cascadeListingCount: cascadeListingCount,
+    );
     if (reason == null || !mounted) return;
     try {
       await run(ref.read(adminPurgeCommandsProvider), reason);
@@ -220,13 +230,23 @@ class _AdminPortfolioScreenState extends ConsumerState<AdminPortfolioScreen> {
       showAdminMessage(context, 'Deleted $name permanently.');
     } on Object catch (error) {
       if (!mounted) return;
-      showAdminMessage(context, 'The server rejected the deletion: $error');
+      showAdminMessage(
+        context,
+        describeActionFailure(
+          error,
+          action: appLocalizationsOf(
+            context,
+          ).actionFailureActionDeletePermanently,
+        ).message,
+      );
     }
   }
 
   Future<String?> _askReason({
     required String kind,
     required String name,
+    int? cascadeUnitCount,
+    int? cascadeListingCount,
   }) async {
     var reason = purgeReasonCodes.first;
     final colorScheme = Theme.of(context).colorScheme;
@@ -235,38 +255,57 @@ class _AdminPortfolioScreenState extends ConsumerState<AdminPortfolioScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
           title: Text.localized('Delete this $kind permanently?'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text.localized(
-                '“$name” will be destroyed on the server. This cannot be '
-                'undone, and restoring it from the archive will no longer be '
-                'possible.',
-              ),
-              const SizedBox(height: 14),
-              Text.localized(
-                'Reason recorded in the audit log',
-                style: Theme.of(dialogContext).textTheme.labelLarge,
-              ),
-              RadioGroup<String>(
-                groupValue: reason,
-                onChanged: (value) =>
-                    setDialogState(() => reason = value ?? reason),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final code in purgeReasonCodes)
-                      RadioListTile<String>(
-                        value: code,
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        title: Text.localized(_reasonLabel(code)),
-                      ),
-                  ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text.localized(
+                  '“$name” will be destroyed on the server. This cannot be '
+                  'undone, and restoring it from the archive will no longer be '
+                  'possible.',
                 ),
-              ),
-            ],
+                if (cascadeUnitCount != null &&
+                    cascadeListingCount != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    appLocalizationsOf(
+                      dialogContext,
+                    ).adminPropertyCascadeWarning(
+                      cascadeUnitCount,
+                      cascadeListingCount,
+                    ),
+                    style: Theme.of(dialogContext).textTheme.bodyMedium
+                        ?.copyWith(
+                          color: context.nyumba.danger,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                Text.localized(
+                  'Reason recorded in the audit log',
+                  style: Theme.of(dialogContext).textTheme.labelLarge,
+                ),
+                RadioGroup<String>(
+                  groupValue: reason,
+                  onChanged: (value) =>
+                      setDialogState(() => reason = value ?? reason),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final code in purgeReasonCodes)
+                        RadioListTile<String>(
+                          value: code,
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text.localized(_reasonLabel(code)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -303,6 +342,8 @@ typedef _PurgeRunner =
       required String kind,
       required String name,
       required int? expectedVersion,
+      int? cascadeUnitCount,
+      int? cascadeListingCount,
       required Future<void> Function(AdminPurgeCommands commands, String reason)
       run,
     });
@@ -346,14 +387,27 @@ class _LandlordPortfolioPanel extends StatelessWidget {
               ),
             ),
           for (final property in properties) ...[
-            _PropertyTile(
-              property: property,
-              units: units
+            () {
+              final propertyUnits = units
                   .where((unit) => unit.propertyId == property.id)
-                  .toList(growable: false),
-              isSuperAdmin: isSuperAdmin,
-              onPurge: onPurge,
-            ),
+                  .toList(growable: false);
+              final propertyUnitIds = propertyUnits
+                  .map((unit) => unit.id)
+                  .toSet();
+              return _PropertyTile(
+                property: property,
+                units: propertyUnits,
+                // Everything the cascade would take down with the property, so
+                // the confirmation can name it before anything is destroyed.
+                listingCount: listings
+                    .where(
+                      (listing) => propertyUnitIds.contains(listing.unitId),
+                    )
+                    .length,
+                isSuperAdmin: isSuperAdmin,
+                onPurge: onPurge,
+              );
+            }(),
             const SizedBox(height: 6),
           ],
           if (listings.isNotEmpty) ...[
@@ -380,21 +434,23 @@ class _PropertyTile extends StatelessWidget {
   const _PropertyTile({
     required this.property,
     required this.units,
+    required this.listingCount,
     required this.isSuperAdmin,
     required this.onPurge,
   });
 
   final Property property;
   final List<Unit> units;
+  final int listingCount;
   final bool isSuperAdmin;
   final _PurgeRunner onPurge;
 
   @override
   Widget build(BuildContext context) {
-    // A property can only be purged once nothing references it, matching the
-    // server's own precondition — offering the action otherwise would just
-    // produce a rejection the administrator cannot act on.
-    final purgeable = isSuperAdmin && property.isArchived && units.isEmpty;
+    // Deleting an archived property now cascades to its rental spaces and their
+    // listings, so it no longer has to be emptied first — the button appears as
+    // soon as the property itself is archived.
+    final purgeable = isSuperAdmin && property.isArchived;
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       childrenPadding: const EdgeInsetsDirectional.only(start: 16, bottom: 8),
@@ -423,14 +479,16 @@ class _PropertyTile extends StatelessWidget {
               onPressed: () => onPurge(
                 kind: 'property',
                 name: property.name,
-                expectedVersion: _serverVersion(
-                  property.syncMetadata.serverRevision,
-                ),
+                expectedVersion: property.serverVersion,
+                cascadeUnitCount: units.isEmpty && listingCount == 0
+                    ? null
+                    : units.length,
+                cascadeListingCount: units.isEmpty && listingCount == 0
+                    ? null
+                    : listingCount,
                 run: (commands, reason) => commands.deleteProperty(
                   propertyId: property.id,
-                  expectedVersion: _serverVersion(
-                    property.syncMetadata.serverRevision,
-                  )!,
+                  expectedVersion: property.serverVersion!,
                   reasonCode: reason,
                 ),
               ),
@@ -495,14 +553,10 @@ class _UnitRow extends StatelessWidget {
               onPressed: () => onPurge(
                 kind: 'rental space',
                 name: unit.label,
-                expectedVersion: _serverVersion(
-                  unit.syncMetadata.serverRevision,
-                ),
+                expectedVersion: unit.serverVersion,
                 run: (commands, reason) => commands.deleteUnit(
                   unitId: unit.id,
-                  expectedVersion: _serverVersion(
-                    unit.syncMetadata.serverRevision,
-                  )!,
+                  expectedVersion: unit.serverVersion!,
                   reasonCode: reason,
                 ),
               ),
@@ -559,14 +613,10 @@ class _ListingRow extends StatelessWidget {
               onPressed: () => onPurge(
                 kind: 'listing',
                 name: listing.title,
-                expectedVersion: _serverVersion(
-                  listing.syncMetadata.serverRevision,
-                ),
+                expectedVersion: listing.serverVersion,
                 run: (commands, reason) => commands.deleteListing(
                   listingId: listing.id,
-                  expectedVersion: _serverVersion(
-                    listing.syncMetadata.serverRevision,
-                  )!,
+                  expectedVersion: listing.serverVersion!,
                   reasonCode: reason,
                 ),
               ),
@@ -597,4 +647,3 @@ class _PurgeButton extends StatelessWidget {
 /// The server's optimistic-concurrency token, which the mirror stores as text.
 /// A record that has never synced has none, and cannot be addressed by a
 /// command at all.
-int? _serverVersion(String? revision) => int.tryParse(revision ?? '');

@@ -24,7 +24,6 @@ Unit _unit(String id, UnitStatus status) => Unit(
   currency: 'UGX',
   createdAt: _now,
   updatedAt: _now,
-  syncMetadata: SyncMetadata.synced(lastSyncedAt: _now),
 );
 
 RentPayment _payment(String id, int amountMinor, DateTime paidOn) =>
@@ -41,7 +40,6 @@ RentPayment _payment(String id, int amountMinor, DateTime paidOn) =>
       paidOn: paidOn,
       createdAt: paidOn,
       updatedAt: paidOn,
-      syncMetadata: SyncMetadata.synced(lastSyncedAt: paidOn),
     );
 
 Tenancy _tenancy(String id, int balanceMinor, TenancyStatus status) => Tenancy(
@@ -59,7 +57,6 @@ Tenancy _tenancy(String id, int balanceMinor, TenancyStatus status) => Tenancy(
   status: status,
   createdAt: _now,
   updatedAt: _now,
-  syncMetadata: SyncMetadata.synced(lastSyncedAt: _now),
 );
 
 MaintenanceRequest _request(String id, MaintenanceStatus status) =>

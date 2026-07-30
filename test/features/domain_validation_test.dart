@@ -26,7 +26,6 @@ void main() {
           currency: 'UGX',
           createdAt: now,
           updatedAt: now,
-          syncMetadata: const SyncMetadata.pending(),
         ),
         throwsA(
           isA<DomainValidationException>().having(
@@ -50,7 +49,6 @@ void main() {
         currency: 'UGX',
         createdAt: now,
         updatedAt: now,
-        syncMetadata: const SyncMetadata.pending(),
       );
       final json = UnitMapper.toJson(valid)..['monthlyRentMinor'] = 45000.50;
 
@@ -69,7 +67,6 @@ void main() {
         currency: 'UGX',
         createdAt: now,
         updatedAt: now,
-        syncMetadata: const SyncMetadata.pending(),
       );
       final json = UnitMapper.toJson(valid)..['status'] = 'available-ish';
 
@@ -96,14 +93,15 @@ void main() {
         createdAt: now,
         updatedAt: now,
         publishedAt: now,
-        syncMetadata: const SyncMetadata.pending(),
       );
-      final acknowledged = pending.copyWith(
-        syncMetadata: SyncMetadata.synced(lastSyncedAt: now),
-      );
-
-      expect(pending.isPublic, isFalse);
-      expect(acknowledged.isPublic, isTrue);
+      // This assertion is inverted from what it used to be, and deliberately.
+      // It previously checked that a published advert stayed private until its
+      // publication had been acknowledged — a state that existed only because a
+      // device could hold a publication the server had never seen. A publish
+      // now reaches the server or does not happen, so the server's status is
+      // the whole answer.
+      expect(pending.isPublic, isTrue);
+      expect(pending.copyWith(status: ListingStatus.paused).isPublic, isFalse);
     });
 
     test('published listing requires contact details', () {
@@ -124,7 +122,6 @@ void main() {
           createdAt: now,
           updatedAt: now,
           publishedAt: now,
-          syncMetadata: const SyncMetadata.pending(),
         ),
         throwsA(isA<DomainValidationException>()),
       );
@@ -148,7 +145,6 @@ void main() {
           createdAt: now,
           updatedAt: now,
           publishedAt: now,
-          syncMetadata: const SyncMetadata.pending(),
         ),
         throwsA(isA<DomainValidationException>()),
       );
@@ -175,7 +171,6 @@ void main() {
           ),
           createdAt: now,
           updatedAt: now,
-          syncMetadata: const SyncMetadata.pending(),
         ),
         throwsA(isA<DomainValidationException>()),
       );
@@ -201,7 +196,6 @@ void main() {
           createdAt: now,
           updatedAt: now,
           publishedAt: now,
-          syncMetadata: const SyncMetadata.pending(),
         ),
         throwsA(isA<DomainValidationException>()),
       );
@@ -224,7 +218,6 @@ void main() {
         contactPhone: '+256700000000',
         createdAt: now,
         updatedAt: now,
-        syncMetadata: const SyncMetadata.pending(),
       );
 
       // Complete in every other respect, so the rejection can only be the photo.
@@ -269,7 +262,6 @@ void main() {
           createdAt: now,
           updatedAt: now,
           publishedAt: now,
-          syncMetadata: const SyncMetadata.synced(),
         ),
         returnsNormally,
       );
@@ -292,7 +284,6 @@ void main() {
         contactPhone: '+256700000000',
         createdAt: now,
         updatedAt: now,
-        syncMetadata: const SyncMetadata.pending(),
       );
       final json = ListingMapper.toJson(draft)..['status'] = 'live';
 

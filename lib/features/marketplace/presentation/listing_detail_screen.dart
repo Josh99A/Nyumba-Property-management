@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/market_config.dart';
 import '../../../core/presentation/async_action_button.dart';
@@ -43,8 +44,8 @@ class ListingDetailScreen extends ConsumerWidget {
     // authored or was served privately, so it is empty for a visitor.
     final ownListings = ref.watch(landlordListingsProvider);
     final listing =
-        _listingIn(listings.value ?? const <Listing>[]) ??
-        _listingIn(ownListings.value ?? const <Listing>[]);
+        _listingIn(listings.supportingRecords) ??
+        _listingIn(ownListings.supportingRecords);
     return Scaffold(
       backgroundColor: context.nyumba.softIvory,
       // On a phone the enquiry card sits below a long description, so the
@@ -86,10 +87,10 @@ class ListingDetailScreen extends ConsumerWidget {
             ),
           ),
         ),
-        data: (items) {
-          final published = _listingIn(items);
+        data: (catalogue) {
+          final published = _listingIn(catalogue.value ?? const <Listing>[]);
           final listing =
-              published ?? _listingIn(ownListings.value ?? const <Listing>[]);
+              published ?? _listingIn(ownListings.supportingRecords);
           if (listing == null) {
             return _ListingNotFound(onBack: () => context.go('/explore'));
           }

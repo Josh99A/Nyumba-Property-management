@@ -6,14 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/user_session.dart';
-import '../../portfolio/domain/property.dart';
-import '../../portfolio/domain/unit.dart';
 import '../application/admin_directory_providers.dart';
 import '../domain/platform_account.dart';
 import 'widgets/admin_components.dart';
@@ -26,9 +25,8 @@ class AdminOverviewScreen extends ConsumerWidget {
     final source = ref.watch(adminDirectorySourceProvider);
     final accountsValue = ref.watch(platformAccountsProvider);
     final accounts = accountsValue.value ?? const <PlatformAccount>[];
-    final properties =
-        ref.watch(portfolioPropertiesProvider).value ?? const <Property>[];
-    final units = ref.watch(portfolioUnitsProvider).value ?? const <Unit>[];
+    final properties = ref.watch(portfolioPropertiesProvider).supportingRecords;
+    final units = ref.watch(portfolioUnitsProvider).supportingRecords;
 
     final live = source == AdminDirectorySource.live;
     final activeSubscriptions = accounts

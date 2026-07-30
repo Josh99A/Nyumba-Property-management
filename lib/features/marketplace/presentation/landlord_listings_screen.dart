@@ -5,18 +5,16 @@ import 'package:nyumba_property_management/core/localization/nyumba_localization
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/localization/app_localizations_adapter.dart';
-import '../../../core/localization/command_failure_localizations.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/domain/coordinates.dart';
 import '../../../core/domain/domain_exception.dart';
 import '../../../core/domain/sync_metadata.dart';
 import '../../../core/config/market_config.dart';
-import '../../../core/offline/offline_entity.dart';
-import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/location_picker.dart';
@@ -26,6 +24,7 @@ import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
+import '../../../core/presentation/toast.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../portfolio/domain/property.dart';
@@ -52,52 +51,29 @@ class LandlordListingsScreen extends ConsumerStatefulWidget {
 class _LandlordListingsScreenState
     extends ConsumerState<LandlordListingsScreen> {
   String _filter = 'All';
-  bool _syncing = false;
 
   @override
   Widget build(BuildContext context) {
     final listingsValue = ref.watch(landlordListingsProvider);
     final unitsValue = ref.watch(portfolioUnitsProvider);
     final propertiesValue = ref.watch(portfolioPropertiesProvider);
-    final outbox = ref.watch(outboxEntriesProvider);
     final applicationsValue = ref.watch(rentalApplicationsProvider);
     final applications = applicationsValue.value ?? const <RentalApplication>[];
-    // Scoped to listings: the outbox is workspace-wide, so a global count put
-    // "Sync 3" on this page when the three changes were rent payments.
-    final listingEntries = (outbox.value ?? const <OutboxEntry>[])
-        .where((entry) => entry.entityType == OfflineEntityType.listing)
-        .toList(growable: false);
-    // Separated because only one of these is the user's problem. Uploading
-    // work clears itself; a refused or blocked entry never will, and the sync
-    // button cannot move it — [SyncEngine] does not re-claim either state.
-    final stuckCount = listingEntries
-        .where(
-          (entry) =>
-              entry.state == OutboxState.permanentlyFailed ||
-              entry.state == OutboxState.blocked,
-        )
-        .length;
-    final uploadingCount = listingEntries.length - stuckCount;
+    // The outbox counters that used to live here are gone. "Sync 3", "3
+    // uploading", "1 stuck" all described adverts whose changes had not reached
+    // the server; a publish now either lands while the landlord waits or fails
+    // in front of them, so there is nothing left to count.
     final copy = appLocalizationsOf(context);
     // Resolved once for the whole page so the banner, the filter chips and the
     // cards can never disagree about which adverts are actually live.
     final publications = <String, ListingPublication>{
-      for (final listing in listingsValue.value ?? const <Listing>[])
-        listing.id: resolveListingPublication(
-          listing: listing,
-          outbox: listingEntries,
-          copy: copy,
-        ),
+      for (final listing in listingsValue.supportingRecords)
+        listing.id: resolveListingPublication(listing: listing, copy: copy),
     };
-    final attentionCount = publications.values
-        .where((publication) => publication.needsAttention)
-        .length;
-    // The "Needs attention" chip only exists while there is something to
-    // show for it. Without this, resolving the last failure leaves the
-    // filter selected on a chip that just vanished from the Wrap, landing on
-    // an empty "No listings match this filter" state with nothing visibly
-    // selected.
-    if (attentionCount == 0 && _filter == 'Needs attention') {
+    // The "Needs attention" and "Going live" chips are gone with the states
+    // they filtered on. Both described adverts mid-delivery, and delivery is no
+    // longer something an advert can be in the middle of.
+    if (_filter == 'Needs attention' || _filter == 'Going live') {
       _filter = 'All';
     }
     final session = ref.watch(sessionControllerProvider);
@@ -145,92 +121,24 @@ class _LandlordListingsScreenState
                                 ? null
                                 : () => _showCreateListing(
                                     context,
-                                    unitsValue.value!,
-                                    propertiesValue.value!,
+                                    unitsValue.supportingRecords,
+                                    propertiesValue.supportingRecords,
                                   ),
                             showBusyIndicator: false,
                             icon: const Icon(Icons.add_rounded),
                             child: const Text.localized('Create listing'),
                           )
                         : null,
-                    // Offered only when pressing it would do something. Adverts
-                    // push themselves the moment you publish, so a permanent
-                    // "Sync" button invites work the app already did, and
-                    // pointing it at stuck entries would do nothing at all.
-                    secondaryAction: uploadingCount > 0
-                        ? OutlinedButton.icon(
-                            onPressed: _syncing ? null : _sync,
-                            icon: _syncing
-                                ? const SizedBox.square(
-                                    dimension: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.sync_rounded),
-                            label: const Text.localized('Sync now'),
-                          )
-                        : null,
+                    // The manual "Sync" button is gone. It existed to flush a
+                    // queue of adverts waiting to reach the server; there is no
+                    // queue now, so pressing it could only ever have been a
+                    // no-op dressed up as an action.
                   ),
                   const SizedBox(height: 22),
-                  if (attentionCount > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 18),
-                      child: NyumbaSurface(
-                        backgroundColor: context.nyumba.dangerTint,
-                        borderColor: context.nyumba.dangerBorder,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 11,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.error_outline_rounded,
-                              color: context.nyumba.danger,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text.localized(
-                                attentionCount == 1
-                                    ? 'One advert did not go through. Open the card marked in red to see why and try again.'
-                                    : '$attentionCount adverts did not go through. Open the cards marked in red to see why and try again.',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else if (uploadingCount > 0 && stuckCount == 0)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 18),
-                      child: NyumbaSurface(
-                        backgroundColor: context.nyumba.navyTint,
-                        borderColor: context.nyumba.navyBorder,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 11,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.cloud_upload_outlined,
-                              color: context.nyumba.midnightNavy,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text.localized(
-                                uploadingCount == 1
-                                    ? 'One change is still uploading. An advert appears in search once the server has it.'
-                                    : '$uploadingCount changes are still uploading. An advert appears in search once the server has it.',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  // The 'adverts did not go through' banner is gone with the
+                  // outbox that produced it. A refusal is now shown at the
+                  // moment the landlord attempts the change, not as a standing
+                  // condition on a card they have to go hunting for.
                   if (applications.isNotEmpty) ...[
                     _ApplicationsInbox(applications: applications),
                     const SizedBox(height: 18),
@@ -241,10 +149,8 @@ class _LandlordListingsScreenState
                     children: [
                       for (final filter in <String>[
                         'All',
-                        if (attentionCount > 0) 'Needs attention',
                         'Published',
                         'Draft',
-                        'Going live',
                         'Paused',
                       ])
                         ChoiceChip(
@@ -290,21 +196,13 @@ class _LandlordListingsScreenState
                   data: (allListings) {
                     ListingPublication publicationOf(Listing listing) =>
                         publications[listing.id] ??
-                        resolveListingPublication(
-                          listing: listing,
-                          outbox: listingEntries,
-                          copy: copy,
-                        );
-                    final listings = allListings.where((listing) {
+                        resolveListingPublication(listing: listing, copy: copy);
+                    final listings = allListings.value!.where((listing) {
                       final publication = publicationOf(listing);
                       return switch (_filter) {
-                        'Needs attention' => publication.needsAttention,
                         'Published' => publication.isLive,
                         'Draft' => listing.status == ListingStatus.draft,
-                        'Going live' => publication.inFlight,
-                        'Paused' =>
-                          listing.status == ListingStatus.paused &&
-                              !publication.inFlight,
+                        'Paused' => listing.status == ListingStatus.paused,
                         _ => true,
                       };
                     }).toList();
@@ -401,40 +299,19 @@ class _LandlordListingsScreenState
     onPublish: () => _publish(listing),
     onEdit: () => _editListing(listing),
     onUnpublish: () => _unpublish(listing),
-    onRetry: publication.canRetry
-        ? () => _retry(listing, publication.mutationId!)
-        : null,
+    onRemove: () => _removeListing(listing),
+    // No per-advert retry. A refused command is reported when it is refused,
+    // and the action that failed is still right there to try again.
+    onRetry: null,
     canPublish: canUpdate,
     canEdit: canUpdate,
     canUnpublish: canUnpublish,
+    canRemove: canUnpublish,
   );
 
   /// Recovery for an advert the server refused. The failed command is put back
   /// in the queue and pushed straight away, so the landlord finds out in the
   /// same breath whether whatever they fixed was enough.
-  Future<void> _retry(Listing listing, String mutationId) async {
-    try {
-      final requeued = await ref.read(retryMutationProvider)(mutationId);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text.localized(
-            requeued
-                ? 'Trying ${listing.title} again.'
-                : 'That change is no longer waiting — nothing to retry.',
-          ),
-        ),
-      );
-    } on Object catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text.localized('Could not try again: ${_reason(error)}'),
-        ),
-      );
-    }
-  }
-
   Future<void> _publish(Listing listing) async {
     // Both the domain and the server refuse a photoless advert, but their
     // rejection reads as a raw validation exception. Naming the missing thing
@@ -471,8 +348,7 @@ class _LandlordListingsScreenState
     if (ref.read(landlordEntitlementProvider).value case EntitlementKnown(
       entitlement: final plan,
     )) {
-      final listings =
-          ref.read(landlordListingsProvider).value ?? const <Listing>[];
+      final listings = ref.read(landlordListingsProvider).supportingRecords;
       final activeCount = listings
           .where((l) => l.status == ListingStatus.published)
           .length;
@@ -734,23 +610,55 @@ class _LandlordListingsScreenState
     }
   }
 
-  Future<void> _sync() async {
-    setState(() => _syncing = true);
-    try {
-      final report = await ref.read(manualSyncProvider)();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text.localized(
-              report.succeeded == 0
-                  ? 'No changes were ready to sync.'
-                  : '${report.succeeded} ${report.succeeded == 1 ? 'change' : 'changes'} synced successfully.',
-            ),
+  Future<void> _removeListing(Listing listing) async {
+    final copy = appLocalizationsOf(context);
+    if (listing.status == ListingStatus.published) {
+      showNyumbaToast(
+        copy.removeListingPublishedGuidance,
+        variant: NyumbaToastVariant.info,
+      );
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(copy.removeListingDialogTitle(listing.title)),
+        content: Text(copy.removeListingDialogMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text.localized('Cancel'),
           ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _syncing = false);
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: dialogContext.nyumba.danger,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(copy.removeListingConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(removeListingProvider)(listing.id);
+      if (!mounted) return;
+      showNyumbaToast(
+        appLocalizationsOf(context).removeListingSuccessName(listing.title),
+        variant: NyumbaToastVariant.success,
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      final copy = appLocalizationsOf(context);
+      final message =
+          error is StateError &&
+              error.message.toString().contains('Unpublish this listing')
+          ? copy.removeListingPublishedGuidance
+          : describeActionFailure(
+              error,
+              action: copy.actionFailureActionRemoveListing,
+            ).message;
+      showNyumbaToast(message, variant: NyumbaToastVariant.error);
     }
   }
 
@@ -1432,10 +1340,12 @@ class _LandlordListingCard extends StatelessWidget {
     required this.onPublish,
     required this.onEdit,
     required this.onUnpublish,
+    required this.onRemove,
     required this.onRetry,
     required this.canPublish,
     required this.canEdit,
     required this.canUnpublish,
+    required this.canRemove,
   });
 
   final Listing listing;
@@ -1444,16 +1354,17 @@ class _LandlordListingCard extends StatelessWidget {
   final VoidCallback onPublish;
   final VoidCallback onEdit;
   final VoidCallback onUnpublish;
+  final VoidCallback onRemove;
 
   /// Null when there is no refused command to re-queue.
   final Future<void> Function()? onRetry;
   final bool canPublish;
   final bool canEdit;
   final bool canUnpublish;
+  final bool canRemove;
 
   @override
   Widget build(BuildContext context) {
-    final removing = publication.state == ListingPublicationState.removing;
     final currency = NumberFormat.currency(
       locale: 'en_UG',
       symbol: 'UGX ',
@@ -1512,14 +1423,10 @@ class _LandlordListingCard extends StatelessWidget {
                     color: context.nyumba.midnightNavy,
                   ),
                 ),
-                if (publication.needsAttention) ...[
-                  const SizedBox(height: 14),
-                  _PublicationFailure(
-                    publication: publication,
-                    onRetry: onRetry,
-                    onEdit: canEdit ? onEdit : null,
-                  ),
-                ],
+                // The per-card failure panel is gone with the outbox. It
+                // existed to explain a refusal discovered long after the fact,
+                // when the landlord had already moved on; a refusal is now
+                // raised on the action itself, where the fix is to hand.
                 const SizedBox(height: 16),
                 const Divider(),
                 const SizedBox(height: 10),
@@ -1540,10 +1447,8 @@ class _LandlordListingCard extends StatelessWidget {
                     // has settled; publishing over an in-flight unpublish would
                     // race the server for the same aggregate.
                     if (canPublish &&
-                        !publication.needsAttention &&
                         (listing.status == ListingStatus.draft ||
-                            (listing.status == ListingStatus.paused &&
-                                !publication.inFlight)))
+                            listing.status == ListingStatus.paused))
                       TextButton(
                         onPressed: onPublish,
                         child: const Text.localized('Publish'),
@@ -1561,8 +1466,7 @@ class _LandlordListingCard extends StatelessWidget {
                               content: Text.localized(
                                 '${listingLocationFor(listing)}\n\n'
                                 '$applicationCount application${applicationCount == 1 ? '' : 's'}\n\n'
-                                '${publication.detail}'
-                                '${publication.failure == null ? '' : '\n\n${localizeCommandFailure(appLocalizationsOf(context), publication.failure!)}'}',
+                                '${publication.detail}',
                               ),
                               actions: [
                                 FilledButton(
@@ -1574,6 +1478,8 @@ class _LandlordListingCard extends StatelessWidget {
                           );
                         } else if (value == 'unpublish') {
                           onUnpublish();
+                        } else if (value == 'remove') {
+                          onRemove();
                         } else if (value == 'edit') {
                           onEdit();
                         }
@@ -1598,20 +1504,25 @@ class _LandlordListingCard extends StatelessWidget {
                         // the landlord no way to fix whatever the server
                         // objected to.
                         if (canEdit &&
-                            (listing.status != ListingStatus.published ||
-                                publication.needsAttention) &&
-                            !removing)
+                            listing.status != ListingStatus.published)
                           const PopupMenuItem(
                             value: 'edit',
                             child: Text.localized('Edit listing'),
                           ),
                         if (listing.status == ListingStatus.published &&
-                            canUnpublish &&
-                            !publication.needsAttention &&
-                            !removing)
+                            canUnpublish)
                           const PopupMenuItem(
                             value: 'unpublish',
                             child: Text.localized('Unpublish listing'),
+                          ),
+                        if (canRemove &&
+                            (listing.status == ListingStatus.draft ||
+                                listing.status == ListingStatus.paused))
+                          PopupMenuItem(
+                            value: 'remove',
+                            child: Text(
+                              appLocalizationsOf(context).removeListingMenu,
+                            ),
                           ),
                       ],
                     ),
@@ -1620,73 +1531,6 @@ class _LandlordListingCard extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The card's account of a refused advert: what happened, the server's own
-/// reason, and the two ways out.
-///
-/// The reason is shown verbatim rather than summarised because only the server
-/// knows whether this was a plan limit, a missing photo or an occupied rental
-/// space, and each has a different fix.
-class _PublicationFailure extends StatelessWidget {
-  const _PublicationFailure({
-    required this.publication,
-    required this.onRetry,
-    required this.onEdit,
-  });
-
-  final ListingPublication publication;
-  final Future<void> Function()? onRetry;
-  final VoidCallback? onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    final failure = publication.failure;
-    return NyumbaSurface(
-      backgroundColor: context.nyumba.dangerTint,
-      borderColor: context.nyumba.dangerBorder,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text.localized(
-            publication.detail,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          if (failure != null) ...[
-            const SizedBox(height: 7),
-            // The line that has to earn its place: what is wrong, and what to
-            // do about it, in the reader's language.
-            Text(
-              localizeCommandFailure(appLocalizationsOf(context), failure),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: context.nyumba.danger,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-          if (onRetry != null || onEdit != null) ...[
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                if (onRetry != null)
-                  AsyncActionButton.text(
-                    onPressed: onRetry,
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    child: const Text.localized('Try again'),
-                  ),
-                if (onEdit != null)
-                  TextButton(
-                    onPressed: onEdit,
-                    child: const Text.localized('Edit advert'),
-                  ),
-              ],
-            ),
-          ],
         ],
       ),
     );

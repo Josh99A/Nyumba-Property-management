@@ -1,7 +1,6 @@
 import 'package:nyumba_property_management/core/config/market_config.dart';
 import 'package:nyumba_property_management/core/domain/coordinates.dart';
-import 'package:nyumba_property_management/core/offline/json_reader.dart';
-import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
+import 'package:nyumba_property_management/core/domain/json_reader.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/property.dart';
 
 final class PropertyMapper {
@@ -15,9 +14,9 @@ final class PropertyMapper {
     'city': property.city,
     'country': property.country,
     'description': property.description,
-    // Stored as two flat scalars rather than a nested object, matching how the
-    // listing aggregate carries its pin. `FirestoreRemotePullGateway` flattens
-    // the server's nested `location` into the same pair.
+    // Two flat scalars rather than a nested object, matching how the listing
+    // aggregate carries its pin. `FirestoreCloudReadGateway.toClientShape`
+    // flattens the server's nested `location` into the same pair.
     'latitude': property.location?.latitude,
     'longitude': property.location?.longitude,
     'imageUrls': property.imageUrls,
@@ -25,7 +24,7 @@ final class PropertyMapper {
     'updatedAt': property.updatedAt.toUtc().toIso8601String(),
     'isDeleted': property.isArchived,
     'deletedAt': property.archivedAt?.toUtc().toIso8601String(),
-    'syncMetadata': SyncMetadataMapper.toJson(property.syncMetadata),
+    'version': property.serverVersion,
   };
 
   static Property fromJson(Map<String, Object?> json) {
@@ -56,7 +55,9 @@ final class PropertyMapper {
       updatedAt: reader.requiredDate('updatedAt'),
       isArchived: reader.optionalBool('isDeleted'),
       archivedAt: reader.optionalDate('deletedAt'),
-      syncMetadata: SyncMetadataMapper.fromJson(json['syncMetadata']),
+      // The server's optimistic-concurrency counter, echoed back on the next
+      // edit. Optional because the public projection withholds it.
+      serverVersion: reader.optionalInt('version'),
     );
   }
 }

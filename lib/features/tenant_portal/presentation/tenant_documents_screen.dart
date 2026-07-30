@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../app/localization/locale_controller.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../core/documents/nyumba_document_service.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/status_badge.dart';
@@ -152,11 +153,10 @@ class _TenantDocumentsScreenState extends ConsumerState<TenantDocumentsScreen> {
     final leaseDocuments =
         ref.watch(tenantLeaseDocumentsProvider(_tenantId)).value ??
         const <LeaseDocument>[];
-    final tenancy = ref.watch(myTenancyProvider(_tenantId)).value;
+    final tenancy = ref.watch(myTenancyProvider(_tenantId)).value?.value;
     final payments = tenancy == null
         ? const <RentPayment>[]
-        : ref.watch(tenancyPaymentsProvider(tenancy.id)).value ??
-              const <RentPayment>[];
+        : ref.watch(tenancyPaymentsProvider(tenancy.id)).supportingRecords;
     final documents = <_TenantDocument>[
       ..._localRequests.map(_applyOverrides),
       ...leaseDocuments.map(_fromLeaseDocument),

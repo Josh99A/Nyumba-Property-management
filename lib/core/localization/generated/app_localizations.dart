@@ -5910,6 +5910,186 @@ abstract class AppLocalizations {
   /// **'queue this notice'**
   String get actionFailureActionQueueNotice;
 
+  /// No description provided for @actionFailureCommandConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not reach the server, so it did not {action}. Check your connection and try again.'**
+  String actionFailureCommandConnection(String action);
+
+  /// No description provided for @actionFailureCommandUncertain.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not confirm whether the request completed. Check your connection, then refresh before trying to {action} again.'**
+  String actionFailureCommandUncertain(String action);
+
+  /// No description provided for @actionFailureCommandRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'The server refused to {action} because the record no longer meets the requirements. Refresh it, review its current status, and try again.'**
+  String actionFailureCommandRejected(String action);
+
+  /// No description provided for @actionFailureRejectedFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not {action} because this information needs attention: {fields}.'**
+  String actionFailureRejectedFields(String action, String fields);
+
+  /// No description provided for @actionFailureReasonListingStillPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'This listing is still published. Unpublish it first, then try again.'**
+  String get actionFailureReasonListingStillPublished;
+
+  /// No description provided for @actionFailureReasonPropertyHasActiveUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'This property still has an occupied rental space. End the active tenancy before trying again.'**
+  String get actionFailureReasonPropertyHasActiveUnits;
+
+  /// No description provided for @actionFailureReasonUnitStillLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'This rental space still has an active tenancy or published listing. End the tenancy or unpublish the listing first.'**
+  String get actionFailureReasonUnitStillLinked;
+
+  /// No description provided for @actionFailureReasonNotArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'This record must be archived before it can be deleted permanently.'**
+  String get actionFailureReasonNotArchived;
+
+  /// No description provided for @actionFailureReasonPortfolioTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This portfolio is too large to delete safely in one step. Delete rental spaces or listings individually, then try again.'**
+  String get actionFailureReasonPortfolioTooLarge;
+
+  /// No description provided for @actionFailureReasonVerifyEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your email address before trying this action again.'**
+  String get actionFailureReasonVerifyEmail;
+
+  /// No description provided for @actionFailureReasonSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in before trying this action again.'**
+  String get actionFailureReasonSignIn;
+
+  /// No description provided for @actionFailureVersionConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'This record changed after you opened it. Refresh it and try again.'**
+  String get actionFailureVersionConflict;
+
+  /// No description provided for @actionFailureRecordNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This record no longer exists. Refresh the page before trying again.'**
+  String get actionFailureRecordNotFound;
+
+  /// No description provided for @actionFailureAccountNotApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'This landlord account must be approved before it can make this change.'**
+  String get actionFailureAccountNotApproved;
+
+  /// No description provided for @actionFailureAccountSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'This landlord account is suspended and cannot make this change.'**
+  String get actionFailureAccountSuspended;
+
+  /// No description provided for @actionFailureSubscriptionInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'An active landlord subscription is required for this change.'**
+  String get actionFailureSubscriptionInactive;
+
+  /// No description provided for @actionFailureEntitlementMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The current subscription plan does not include this action.'**
+  String get actionFailureEntitlementMissing;
+
+  /// No description provided for @actionFailureActionArchiveProperty.
+  ///
+  /// In en, this message translates to:
+  /// **'archive this property'**
+  String get actionFailureActionArchiveProperty;
+
+  /// No description provided for @actionFailureActionArchiveRentalSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'archive this rental space'**
+  String get actionFailureActionArchiveRentalSpace;
+
+  /// No description provided for @actionFailureActionRemoveListing.
+  ///
+  /// In en, this message translates to:
+  /// **'remove this listing'**
+  String get actionFailureActionRemoveListing;
+
+  /// No description provided for @actionFailureActionDeletePermanently.
+  ///
+  /// In en, this message translates to:
+  /// **'delete this record permanently'**
+  String get actionFailureActionDeletePermanently;
+
+  /// No description provided for @archiveSuccessName.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived {name}.'**
+  String archiveSuccessName(String name);
+
+  /// No description provided for @removeListingMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove listing'**
+  String get removeListingMenu;
+
+  /// No description provided for @removeListingDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String removeListingDialogTitle(String name);
+
+  /// No description provided for @removeListingDialogMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently removes the off-market listing and its photos from Nyumba. This cannot be undone.'**
+  String get removeListingDialogMessage;
+
+  /// No description provided for @removeListingConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove listing'**
+  String get removeListingConfirm;
+
+  /// No description provided for @removeListingSuccessName.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed {name}.'**
+  String removeListingSuccessName(String name);
+
+  /// No description provided for @removeListingPublishedGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpublish this listing first, then remove it.'**
+  String get removeListingPublishedGuidance;
+
+  /// No description provided for @adminArchivedRecordsCascadeCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived properties can be deleted with their rental spaces and listings'**
+  String get adminArchivedRecordsCascadeCaption;
+
+  /// No description provided for @adminPropertyCascadeWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This also permanently deletes {unitCount, plural, =1{1 rental space} other{{unitCount} rental spaces}} and {listingCount, plural, =1{1 listing} other{{listingCount} listings}}. Tenancy, lease, payment, receipt, document, maintenance, and notice history is kept.'**
+  String adminPropertyCascadeWarning(int unitCount, int listingCount);
+
   /// No description provided for @browseHomesNav.
   ///
   /// In en, this message translates to:
@@ -7553,6 +7733,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No maps app is available to open directions.'**
   String get couldNotOpenMapsApp;
+
+  /// Accessible label for the first load of a screen, before anything has been shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading'**
+  String get cloudLoadingLabel;
+
+  /// Shown while already-visible data is being checked against the server.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshing…'**
+  String get cloudRefreshing;
+
+  /// Shown when cached data is on screen and its freshness has not been confirmed yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for updates…'**
+  String get cloudCheckingForUpdates;
+
+  /// Shown while a dropped live connection is being re-established.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnecting…'**
+  String get cloudReconnecting;
+
+  /// Freshness stamp. {time} is a formatted time, already localized.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated {time}'**
+  String cloudLastUpdated(String time);
+
+  /// Warning heading over cached data whose refresh failed. Must never be omitted when showing unvalidated data.
+  ///
+  /// In en, this message translates to:
+  /// **'This may be out of date'**
+  String get cloudMayBeOutdatedTitle;
+
+  /// Explains why visible data is unvalidated.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not reach the server, so this is what loaded last.'**
+  String get cloudMayBeOutdatedMessage;
+
+  /// Heading when a read failed and there is nothing cached to fall back on.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection to Nyumba'**
+  String get cloudNoConnectionTitle;
+
+  /// Recovery instruction for a connection failure.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your internet connection, then try again.'**
+  String get cloudNoConnectionMessage;
+
+  /// Heading when the server refused this actor's read. Deliberately distinct from a connection failure so the user does not go and check their wifi.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have access to this'**
+  String get cloudAccessDeniedTitle;
+
+  /// Explains a permission denial without revealing what was withheld.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is not permitted to see this. Ask the workspace owner if you think this is wrong.'**
+  String get cloudAccessDeniedMessage;
+
+  /// Heading when the server rejected the request itself rather than the actor.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not load this'**
+  String get cloudServerRefusedTitle;
+
+  /// Recovery instruction for a server rejection.
+  ///
+  /// In en, this message translates to:
+  /// **'The server refused the request. Try again shortly.'**
+  String get cloudServerRefusedMessage;
+
+  /// Shown where a mutation is disabled because the device is offline.
+  ///
+  /// In en, this message translates to:
+  /// **'An internet connection is required'**
+  String get cloudConnectionRequiredTitle;
+
+  /// Explains why a server-dependent action is unavailable. Financial and tenancy wording: review before release.
+  ///
+  /// In en, this message translates to:
+  /// **'This action must reach Nyumba\'s server, so it cannot be done offline.'**
+  String get cloudConnectionRequiredMessage;
+
+  /// Shown while a command is in flight. Must not claim the action has completed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get cloudSending;
+
+  /// Heading for an uncertain outcome: submitted, but the answer never arrived. Must never read as either success or failure.
+  ///
+  /// In en, this message translates to:
+  /// **'Nyumba could not confirm this'**
+  String get cloudUnconfirmedTitle;
+
+  /// Explains an uncertain command outcome and why a blind retry is not offered. Financial and tenancy wording: review before release.
+  ///
+  /// In en, this message translates to:
+  /// **'Your request was sent, but the answer never arrived, so it may or may not have gone through. Check with the server before trying again.'**
+  String get cloudUnconfirmedMessage;
+
+  /// Action that reconciles an uncertain command against the server, reusing the original command id.
+  ///
+  /// In en, this message translates to:
+  /// **'Check with the server'**
+  String get cloudCheckWithServer;
+
+  /// Confirmation after the server accepted a rental-space availability change. Past tense: only shown once the server has confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Availability updated.'**
+  String get availabilityUpdated;
+
+  /// Confirmation when the availability change also removed a published advert. Both clauses describe completed server actions.
+  ///
+  /// In en, this message translates to:
+  /// **'Availability updated. The advert has been taken off the marketplace.'**
+  String get availabilityUpdatedAdvertWithdrawn;
+
+  /// Confirmation after the server accepted a new draft advert. Past tense: only shown once the server has confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft advert saved.'**
+  String get listingDraftSaved;
 }
 
 class _AppLocalizationsDelegate

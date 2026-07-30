@@ -1,5 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/features/portfolio/application/rental_space_labels.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/unit.dart';
 
@@ -17,7 +16,6 @@ void main() {
       currency: 'UGX',
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.pending(),
     );
 
     expect(unit.displayName, 'Apartment B4');
@@ -40,7 +38,6 @@ void main() {
       currency: 'UGX',
       createdAt: now,
       updatedAt: now,
-      syncMetadata: const SyncMetadata.pending(),
     );
 
     expect(unit.displayName, 'Apartment A1');

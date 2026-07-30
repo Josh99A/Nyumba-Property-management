@@ -1,14 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_cache.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_read_gateway.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_reader.dart';
+import 'package:nyumba_property_management/core/cloud/command_dispatcher.dart';
+import 'package:nyumba_property_management/core/domain/clock.dart';
+import 'package:nyumba_property_management/features/marketplace/data/cloud_listing_repository.dart';
+import '../support/fake_cloud.dart';
+import '../support/fake_listing_repository.dart';
+import '../support/fake_portfolio_repositories.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
 import 'package:nyumba_property_management/core/offline/remote_pull_gateway.dart';
 import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
-import 'package:nyumba_property_management/features/marketplace/data/sembast_listing_repository.dart';
 import 'package:nyumba_property_management/features/marketplace/data/mappers/listing_mapper.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
-import 'package:nyumba_property_management/features/portfolio/data/sembast_property_repository.dart';
-import 'package:nyumba_property_management/features/portfolio/data/sembast_unit_repository.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/property.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/unit.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -20,15 +26,14 @@ void main() {
     );
     addTearDown(database.close);
     await database.initialize();
-    final properties = SembastPropertyRepository(database: database);
-    final units = SembastUnitRepository(database: database);
-    final repository = SembastListingRepository(
-      database: database,
+    final properties = FakePropertyRepository();
+    final units = FakeUnitRepository();
+    final repository = FakeListingRepository(
       properties: properties,
       units: units,
     );
 
-    final property = await properties.create(
+    final property = await properties.createReturning(
       const CreatePropertyInput(
         landlordId: 'landlord-1',
         name: 'Sunset Apartments',
@@ -42,7 +47,7 @@ void main() {
       ),
     );
 
-    final unit = await units.create(
+    final unit = await units.createReturning(
       CreateUnitInput(
         propertyId: property.id,
         landlordId: 'landlord-1',
@@ -56,7 +61,7 @@ void main() {
       ),
     );
 
-    final draft = await repository.createDraft(
+    final draft = await repository.createReturning(
       CreateListingInput(
         unitId: unit.id,
         propertyId: property.id,
@@ -78,17 +83,98 @@ void main() {
     expect(draft.neighborhood, 'Ntinda');
     expect(draft.imageUrls, property.imageUrls);
 
-    final reloaded = await repository.getById(draft.id);
+    final reloaded = (await repository.getById(draft.id)).value;
     expect(reloaded?.bedrooms, 3);
     expect(reloaded?.bathrooms, 2);
     expect(reloaded?.amenities, draft.amenities);
     expect(reloaded?.imageUrls, draft.imageUrls);
-    final queued = await database.readOutbox();
-    final draftCommand = queued.singleWhere(
-      (entry) => entry.entityId == draft.id,
-    );
-    expect(draftCommand.payload['imageUrls'], draft.imageUrls);
   });
+
+  // The same inheritance, asserted where it actually has to hold: on the
+  // command the server receives. This replaces an outbox assertion, and checks
+  // something strictly stronger — the payload that crosses the wire, rather
+  // than a queue entry that no longer exists.
+  test(
+    'the draft command carries the inherited photos and unit facts',
+    () async {
+      final reads = FakeCloudReadGateway();
+      final commands = RecordingCommandGateway();
+      final properties = FakePropertyRepository();
+      final units = FakeUnitRepository();
+      final now = DateTime.utc(2026, 7, 29, 9);
+      final repository = CloudListingRepository(
+        reader: CloudReader(
+          cache: CloudCache(clock: FixedClock(now)),
+          gateway: reads,
+          partition: const CachePartition(
+            environment: 'test-project',
+            userId: 'landlord-1',
+            role: 'landlord',
+          ),
+          clock: FixedClock(now),
+        ),
+        commands: CommandDispatcher(
+          gateway: commands,
+          connection: StubConnection(),
+          clock: FixedClock(now),
+        ),
+        scope: const LandlordScope('landlord-1'),
+        units: units,
+        properties: properties,
+        clock: FixedClock(now),
+      );
+
+      final property = await properties.createReturning(
+        const CreatePropertyInput(
+          landlordId: 'landlord-1',
+          name: 'Sunset Apartments',
+          addressLine: 'Muthangari Drive',
+          city: 'Kampala',
+          imageUrls: <String>[
+            'uploads/landlord-1/property-command/0_primary.webp',
+            'uploads/landlord-1/property-command/1_kitchen.webp',
+          ],
+        ),
+      );
+      final unit = await units.createReturning(
+        CreateUnitInput(
+          propertyId: property.id,
+          landlordId: 'landlord-1',
+          label: 'C1',
+          type: UnitType.apartment,
+          status: UnitStatus.vacant,
+          monthlyRentMinor: 150000000,
+          bedrooms: 3,
+          bathrooms: 2,
+          amenities: const ['Secure parking', 'Backup water'],
+        ),
+      );
+
+      await repository.createDraft(
+        CreateListingInput(
+          unitId: unit.id,
+          propertyId: property.id,
+          landlordId: 'landlord-1',
+          title: 'C1 at Sunset Apartments',
+          description: 'A bright three-bedroom apartment.',
+          monthlyRentMinor: unit.monthlyRentMinor,
+          city: property.city,
+          neighborhood: 'Ntinda',
+          contactPhone: '+256 772 000 100',
+        ),
+      );
+
+      final payload = commands.lastCommand.payload;
+      expect(commands.lastCommand.type, 'listing.saveDraft');
+      // Unit facts describe the space, so they come from the space.
+      expect(payload['bedrooms'], 3);
+      expect(payload['bathrooms'], 2);
+      expect(payload['unitType'], 'apartment');
+      expect(payload['amenities'], ['Secure parking', 'Backup water']);
+      // An empty photo selection inherits the property's gallery, in order.
+      expect(payload['imageUrls'], property.imageUrls);
+    },
+  );
 
   test('listing-specific photos override inherited property media', () async {
     final database = OfflineDatabase(
@@ -98,14 +184,13 @@ void main() {
     );
     addTearDown(database.close);
     await database.initialize();
-    final properties = SembastPropertyRepository(database: database);
-    final units = SembastUnitRepository(database: database);
-    final repository = SembastListingRepository(
-      database: database,
+    final properties = FakePropertyRepository();
+    final units = FakeUnitRepository();
+    final repository = FakeListingRepository(
       properties: properties,
       units: units,
     );
-    final property = await properties.create(
+    final property = await properties.createReturning(
       const CreatePropertyInput(
         landlordId: 'landlord-1',
         name: 'Sunset Apartments',
@@ -117,7 +202,7 @@ void main() {
         ],
       ),
     );
-    final unit = await units.create(
+    final unit = await units.createReturning(
       CreateUnitInput(
         propertyId: property.id,
         landlordId: 'landlord-1',
@@ -128,7 +213,7 @@ void main() {
       ),
     );
 
-    final draft = await repository.createDraft(
+    final draft = await repository.createReturning(
       CreateListingInput(
         unitId: unit.id,
         propertyId: property.id,
@@ -181,7 +266,6 @@ void main() {
       publishedAt: publishedAt,
       expiresAt: publishedAt.add(const Duration(days: 30)),
       projectionVersion: 3,
-      syncMetadata: SyncMetadata.synced(lastSyncedAt: publishedAt),
     );
 
     final projection = ListingMapper.toPublicProjection(listing);

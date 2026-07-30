@@ -1,5 +1,4 @@
-import 'package:nyumba_property_management/core/offline/json_reader.dart';
-import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
+import 'package:nyumba_property_management/core/domain/json_reader.dart';
 import 'package:nyumba_property_management/features/finance/domain/rent_payment.dart';
 
 final class RentPaymentMapper {
@@ -21,7 +20,7 @@ final class RentPaymentMapper {
     'paidOn': payment.paidOn.toUtc().toIso8601String(),
     'createdAt': payment.createdAt.toUtc().toIso8601String(),
     'updatedAt': payment.updatedAt.toUtc().toIso8601String(),
-    'syncMetadata': SyncMetadataMapper.toJson(payment.syncMetadata),
+    'version': payment.serverVersion,
   };
 
   static RentPayment fromJson(Map<String, Object?> json) {
@@ -42,7 +41,7 @@ final class RentPaymentMapper {
       paidOn: reader.requiredDate('paidOn'),
       createdAt: reader.requiredDate('createdAt'),
       updatedAt: reader.requiredDate('updatedAt'),
-      syncMetadata: SyncMetadataMapper.fromJson(json['syncMetadata']),
+      serverVersion: reader.optionalInt('version'),
     );
   }
 }

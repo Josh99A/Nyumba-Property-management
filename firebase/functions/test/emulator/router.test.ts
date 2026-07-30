@@ -358,9 +358,25 @@ describe('command router', () => {
     expect((await db.doc('backendJobs/command_user_del_1_delete').get()).data()).toMatchObject({ type: 'deleteAuthUser', payload: { uid: landlord.uid } });
   });
 
-  it('purges archived portfolio records only for a Super Admin, and only bottom-up', async () => {
+  it('cascades a Super Admin property purge through portfolio children but keeps history', async () => {
     await seedLandlord();
     await executeCommandCore(db, landlord, envelope('command_purge_seed', 'unit.create', 'unit_123456', 0, unitPayload()), now);
+    await db.doc('privateListings/listing_cascade').set({
+      id: 'listing_cascade', landlordId: landlord.uid, unitId: 'unit_123456',
+      publicationState: 'draft', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('publicListings/listing_cascade').set({
+      id: 'listing_cascade', status: 'unpublished', version: 1,
+      createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('tenantRecords/tenant_history').set({
+      id: 'tenant_history', landlordId: landlord.uid, unitId: 'unit_123456',
+      displayName: 'Former tenant', version: 1, createdAt: now, updatedAt: now,
+    });
+    await db.doc('payments/payment_history').set({
+      id: 'payment_history', landlordId: landlord.uid, unitId: 'unit_123456',
+      amountMinor: 100_000, currency: 'UGX', version: 1, createdAt: now, updatedAt: now,
+    });
 
     // A live record is never purgeable: the archive is the required first step.
     const live = envelope('command_purge_0', 'property.delete', 'property_1234', 1, { reasonCode: 'ADMIN_CORRECTION' });
@@ -371,32 +387,80 @@ describe('command router', () => {
     await executeCommandCore(db, landlord, envelope('command_purge_1', 'unit.archive', 'unit_123456', 1, {}), now);
     await executeCommandCore(db, landlord, envelope('command_purge_2', 'property.archive', 'property_1234', 1, {}), now);
 
-    // An archived unit still references the property, and purging the parent
-    // would orphan it past recovery — the child has to go first.
-    const parentFirst = envelope('command_purge_3', 'property.delete', 'property_1234', 2, { reasonCode: 'ADMIN_CORRECTION' });
-    expect(await executeCommandCore(db, superAdmin, parentFirst, now)).toMatchObject({
-      status: 'rejected', error: { code: 'VALIDATION_FAILED', details: { reason: 'propertyHasUnits' } },
-    });
-
     // Permanent deletion is closed to an ordinary platform admin.
-    const adminAttempt = envelope('command_purge_4', 'unit.delete', 'unit_123456', 2, { reasonCode: 'ADMIN_CORRECTION' });
+    const adminAttempt = envelope('command_purge_admin', 'property.delete', 'property_1234', 2, { reasonCode: 'ADMIN_CORRECTION' });
     expect(await executeCommandCore(db, admin, adminAttempt, now)).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
-
-    const removeUnit = envelope('command_purge_5', 'unit.delete', 'unit_123456', 2, { reasonCode: 'ADMIN_CORRECTION' });
-    expect(await executeCommandCore(db, superAdmin, removeUnit, now)).toMatchObject({ status: 'applied' });
-    expect((await db.doc('units/unit_123456').get()).exists).toBe(false);
-    // The archive already decremented the counter; the purge must not repeat it.
-    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()?.activeUnitCount).toBe(0);
 
     // Staged photos never reach a server-owned prefix, so they are swept by an
     // explicit path list rather than by prefix.
     await db.doc('properties/property_1234').update({ stagedImagePaths: ['uploads/landlord_1234/cmd/a.jpg'] });
-    const removeProperty = envelope('command_purge_6', 'property.delete', 'property_1234', 2, { reasonCode: 'DATA_RETENTION' });
+    const removeProperty = envelope('command_purge_3', 'property.delete', 'property_1234', 2, { reasonCode: 'DATA_RETENTION' });
     expect(await executeCommandCore(db, superAdmin, removeProperty, now)).toMatchObject({ status: 'accepted' });
     expect((await db.doc('properties/property_1234').get()).exists).toBe(false);
-    expect((await db.doc('backendJobs/command_purge_6_media').get()).data()).toMatchObject({
+    expect((await db.doc('units/unit_123456').get()).exists).toBe(false);
+    expect((await db.doc('privateListings/listing_cascade').get()).exists).toBe(false);
+    expect((await db.doc('publicListings/listing_cascade').get()).exists).toBe(false);
+    expect((await db.doc('tenantRecords/tenant_history').get()).exists).toBe(true);
+    expect((await db.doc('payments/payment_history').get()).exists).toBe(true);
+    expect((await db.doc('backendJobs/command_purge_3_media').get()).data()).toMatchObject({
       type: 'purgeStorageObjects', payload: { paths: ['uploads/landlord_1234/cmd/a.jpg'] },
     });
+    expect((await db.doc('backendJobs/command_purge_3_listing_0').get()).data()).toMatchObject({
+      type: 'cleanupListingMedia', payload: { listingId: 'listing_cascade' },
+    });
+    // Archive already decremented the unit counter; cascade must not repeat it.
+    expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()?.activeUnitCount).toBe(0);
+  });
+
+  it('refuses a property cascade while a space is occupied or an advert is published', async () => {
+    await db.doc('properties/property_occupied').set({
+      id: 'property_occupied', landlordId: landlord.uid, isDeleted: true,
+      version: 2, createdAt: now, updatedAt: now,
+    });
+    await db.doc('units/unit_occupied_child').set({
+      id: 'unit_occupied_child', propertyId: 'property_occupied', landlordId: landlord.uid,
+      isDeleted: true, activeLeaseId: 'lease_active_1234',
+      version: 2, createdAt: now, updatedAt: now,
+    });
+    const occupied = envelope(
+      'command_cascade_occupied',
+      'property.delete',
+      'property_occupied',
+      2,
+      { reasonCode: 'ADMIN_CORRECTION' },
+    );
+    expect(await executeCommandCore(db, superAdmin, occupied, now)).toMatchObject({
+      status: 'rejected',
+      error: { code: 'VALIDATION_FAILED', details: { reason: 'propertyHasActiveUnits' } },
+    });
+    expect((await db.doc('properties/property_occupied').get()).exists).toBe(true);
+
+    await db.doc('properties/property_published').set({
+      id: 'property_published', landlordId: landlord.uid, isDeleted: true,
+      version: 2, createdAt: now, updatedAt: now,
+    });
+    await db.doc('units/unit_published_child').set({
+      id: 'unit_published_child', propertyId: 'property_published', landlordId: landlord.uid,
+      isDeleted: true, activeLeaseId: null,
+      version: 2, createdAt: now, updatedAt: now,
+    });
+    await db.doc('privateListings/listing_published_child').set({
+      id: 'listing_published_child', unitId: 'unit_published_child',
+      landlordId: landlord.uid, publicationState: 'published',
+      version: 2, createdAt: now, updatedAt: now,
+    });
+    const published = envelope(
+      'command_cascade_published',
+      'property.delete',
+      'property_published',
+      2,
+      { reasonCode: 'ADMIN_CORRECTION' },
+    );
+    expect(await executeCommandCore(db, superAdmin, published, now)).toMatchObject({
+      status: 'rejected',
+      error: { code: 'VALIDATION_FAILED', details: { reason: 'listingStillPublished' } },
+    });
+    expect((await db.doc('properties/property_published').get()).exists).toBe(true);
   });
 
   it('purges listings and documents that are already out of circulation', async () => {
@@ -446,6 +510,87 @@ describe('command router', () => {
     expect((await db.doc('backendJobs/command_dpurge_1_purge').get()).data()).toMatchObject({
       type: 'purgeDocument', payload: { documentId: 'document_1234' },
     });
+  });
+
+  it('lets only the owner discard an off-market listing', async () => {
+    await seedLandlord();
+    await db.doc('privateListings/listing_discard').set({
+      id: 'listing_discard', landlordId: landlord.uid, unitId: 'unit_123456',
+      publicationState: 'draft', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('publicListings/listing_discard').set({
+      id: 'listing_discard', status: 'unpublished', version: 1,
+      createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    expect(await executeCommandCore(
+      db,
+      landlord,
+      envelope('command_discard_owner', 'listing.discard', 'listing_discard', 1, {}),
+      now,
+    )).toMatchObject({ status: 'accepted' });
+    expect((await db.doc('privateListings/listing_discard').get()).exists).toBe(false);
+    expect((await db.doc('publicListings/listing_discard').get()).exists).toBe(false);
+    expect((await db.doc('backendJobs/command_discard_owner_cleanup').get()).data()).toMatchObject({
+      type: 'cleanupListingMedia', payload: { listingId: 'listing_discard' },
+    });
+
+    await db.doc('privateListings/listing_live_discard').set({
+      id: 'listing_live_discard', landlordId: landlord.uid, unitId: 'unit_123456',
+      publicationState: 'published', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    expect(await executeCommandCore(
+      db,
+      landlord,
+      envelope('command_discard_live', 'listing.discard', 'listing_live_discard', 1, {}),
+      now,
+    )).toMatchObject({
+      status: 'rejected',
+      error: { code: 'VALIDATION_FAILED', details: { reason: 'listingStillPublished' } },
+    });
+
+    const otherLandlord: Actor = {
+      ...landlord,
+      uid: 'other_landlord_1234',
+      email: 'other@nyumba.test',
+    };
+    await db.doc(`landlordAccounts/${otherLandlord.uid}`).set({
+      id: otherLandlord.uid, ownerUid: otherLandlord.uid, approvalStatus: 'approved',
+      activeUnitCount: 0, activeListingCount: 0, activeStaffSeatCount: 0, receiptCounter: 0,
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc(`subscriptions/${otherLandlord.uid}`).set({
+      id: otherLandlord.uid, tier: 'starter', status: 'active',
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('privateListings/listing_foreign_discard').set({
+      id: 'listing_foreign_discard', landlordId: landlord.uid, unitId: 'unit_123456',
+      publicationState: 'draft', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    expect(await executeCommandCore(
+      db,
+      otherLandlord,
+      envelope('command_discard_foreign', 'listing.discard', 'listing_foreign_discard', 1, {}),
+      now,
+    )).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+    expect((await db.doc('privateListings/listing_foreign_discard').get()).exists).toBe(true);
+
+    await db.doc('privateListings/listing_super_admin_discard').set({
+      id: 'listing_super_admin_discard', landlordId: landlord.uid, unitId: 'unit_123456',
+      publicationState: 'draft', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    expect(await executeCommandCore(
+      db,
+      superAdmin,
+      envelope(
+        'command_discard_super_admin',
+        'listing.discard',
+        'listing_super_admin_discard',
+        1,
+        {},
+      ),
+      now,
+    )).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+    expect((await db.doc('privateListings/listing_super_admin_discard').get()).exists).toBe(true);
   });
 
   it('defers the scheduled document purge to the end of the retention window', async () => {

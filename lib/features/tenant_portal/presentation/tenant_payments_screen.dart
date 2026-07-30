@@ -7,13 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/documents/nyumba_document_service.dart';
-import '../../../core/offline/aggregate_sync_status.dart';
-import '../../../core/offline/offline_entity.dart';
-import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
@@ -24,16 +21,16 @@ import '../../tenants/application/tenancy_providers.dart';
 import '../../tenants/domain/tenancy.dart';
 import 'widgets/tenant_components.dart';
 
-String _paymentStatusLabel(AggregateSyncStatus status) => switch (status) {
-  AggregateSyncStatus.synced => 'Paid',
-  AggregateSyncStatus.pending || AggregateSyncStatus.syncing => 'Awaiting sync',
-  AggregateSyncStatus.rejected => 'Rejected',
-  AggregateSyncStatus.blocked => 'Blocked',
-  AggregateSyncStatus.conflicted => 'Conflicted',
-  // A payment always carries a sync intent, so this is unreachable in practice
-  // — but it must never fall into the 'Paid' branch if that ever changes.
-  AggregateSyncStatus.localOnly => 'On this device',
-};
+/// Every payment a tenant can see here is settled.
+///
+/// This used to map local sync state onto a money word, so a payment the server
+/// had already settled could read as 'Awaiting sync' — and, worse, a rejected
+/// one sat in the same list as the rest. The tenantPortals payments projection
+/// is written by the server's settlement path, so a payment only reaches it
+/// once the money has been allocated. A tenant's own unconfirmed declaration is
+/// not in it: that is a claim with their landlord, and it is shown as such
+/// elsewhere rather than counted here.
+const _settledPaymentLabel = 'Paid';
 
 class TenantPaymentsScreen extends ConsumerStatefulWidget {
   const TenantPaymentsScreen({super.key});
@@ -76,7 +73,7 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
           ),
         ],
       ),
-      data: (tenancy) => tenancy == null
+      data: (tenancyRead) => tenancyRead.value == null
           ? const TenantPage(
               title: 'Payments',
               description:
@@ -93,32 +90,22 @@ class _TenantPaymentsScreenState extends ConsumerState<TenantPaymentsScreen> {
                 ),
               ],
             )
-          : _buildLoaded(context, tenancy),
+          : _buildLoaded(context, tenancyRead.value!),
     );
   }
 
   Widget _buildLoaded(BuildContext context, Tenancy tenancy) {
-    final payments =
-        ref.watch(tenancyPaymentsProvider(tenancy.id)).value ??
-        const <RentPayment>[];
-    final outbox =
-        ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
-    String statusOf(RentPayment payment) => _paymentStatusLabel(
-      resolveAggregateSyncStatus(
-        entityType: OfflineEntityType.payment,
-        entityId: payment.id,
-        outbox: outbox,
-        syncMetadata: payment.syncMetadata,
-      ),
-    );
+    final payments = ref
+        .watch(tenancyPaymentsProvider(tenancy.id))
+        .supportingRecords;
+    String statusOf(RentPayment payment) => _settledPaymentLabel;
 
     final paid = !tenancy.balanceDue;
     final balanceWhole = tenancy.balanceMinor ~/ 100;
     final rentWhole = tenancy.monthlyRentMinor ~/ 100;
     final filtered = payments.where((payment) {
       return switch (_filter) {
-        'Paid' => statusOf(payment) == 'Paid',
-        'Awaiting sync' => statusOf(payment) == 'Awaiting sync',
+        'Paid' => statusOf(payment) == _settledPaymentLabel,
         _ => true,
       };
     }).toList();

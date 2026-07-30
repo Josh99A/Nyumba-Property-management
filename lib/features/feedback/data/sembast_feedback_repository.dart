@@ -6,12 +6,12 @@ import 'package:nyumba_property_management/core/domain/clock.dart';
 import 'package:nyumba_property_management/core/domain/domain_exception.dart';
 import 'package:nyumba_property_management/core/domain/id_generator.dart';
 import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
-import 'package:nyumba_property_management/core/offline/json_reader.dart';
+import 'package:nyumba_property_management/core/domain/json_reader.dart';
 import 'package:nyumba_property_management/core/offline/offline_database.dart';
 import 'package:nyumba_property_management/core/offline/offline_entity.dart';
 import 'package:nyumba_property_management/core/offline/outbox_entry.dart';
 import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
-import 'package:nyumba_property_management/core/offline/uuid_id_generator.dart';
+import 'package:nyumba_property_management/core/domain/uuid_id_generator.dart';
 import 'package:nyumba_property_management/features/feedback/domain/platform_feedback.dart';
 
 final class PlatformFeedbackMapper {

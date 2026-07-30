@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/domain/coordinates.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
 import 'package:nyumba_property_management/features/marketplace/presentation/public/listing_map.dart';
 
@@ -30,7 +29,6 @@ Listing listingAt({
   createdAt: _published,
   updatedAt: _published,
   publishedAt: _published,
-  syncMetadata: SyncMetadata.synced(lastSyncedAt: _published),
 );
 
 void main() {

@@ -11,17 +11,17 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/domain/coordinates.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/location_picker.dart';
 import '../../../core/presentation/operational_actions.dart';
-import '../../../core/domain/sync_metadata.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/responsive.dart';
-import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
+import '../../../core/presentation/cloud_data_view.dart';
 import '../../../core/presentation/surface.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
@@ -84,7 +84,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     final propertiesValue = ref.watch(portfolioPropertiesProvider);
     final unitsValue = ref.watch(portfolioUnitsProvider);
     final session = ref.watch(sessionControllerProvider);
-    final units = unitsValue.value ?? const <Unit>[];
+    final units = unitsValue.supportingRecords;
     final canCreate =
         session != null &&
         AuthorizationPolicy.allowsSession(
@@ -186,16 +186,46 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                       ),
                     ),
                   ],
-                  data: (allProperties) {
+                  data: (cloud) {
+                    // A read that failed with nothing cached is not an empty
+                    // portfolio, so it must not fall through to the "add your
+                    // first property" state below.
+                    if (cloud.hasFailed && !cloud.hasValue) {
+                      return [
+                        SliverToBoxAdapter(
+                          child: CloudFreshnessBanner<List<Property>>(
+                            data: cloud,
+                            onRetry: () async =>
+                                ref.invalidate(portfolioPropertiesProvider),
+                          ),
+                        ),
+                      ];
+                    }
                     final query = _searchController.text.trim().toLowerCase();
-                    final properties = allProperties.where((property) {
-                      return query.isEmpty ||
-                          property.name.toLowerCase().contains(query) ||
-                          property.city.toLowerCase().contains(query) ||
-                          property.addressLine.toLowerCase().contains(query);
-                    }).toList();
+                    final properties = (cloud.value ?? const <Property>[])
+                        .where((property) {
+                          return query.isEmpty ||
+                              property.name.toLowerCase().contains(query) ||
+                              property.city.toLowerCase().contains(query) ||
+                              property.addressLine.toLowerCase().contains(
+                                query,
+                              );
+                        })
+                        .toList();
+                    // Sits above every branch below so an unvalidated or stale
+                    // list always carries its warning — including the empty
+                    // one, where "add your first property" would otherwise be
+                    // asserted from a cached copy nobody has confirmed.
+                    final freshness = SliverToBoxAdapter(
+                      child: CloudFreshnessBanner<List<Property>>(
+                        data: cloud,
+                        onRetry: () async =>
+                            ref.invalidate(portfolioPropertiesProvider),
+                      ),
+                    );
                     if (properties.isEmpty) {
                       return [
+                        freshness,
                         SliverToBoxAdapter(
                           child: NyumbaSurface(
                             child: Padding(
@@ -224,6 +254,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                       ];
                     }
                     return [
+                      freshness,
                       // Built a row at a time so cards below the fold are never
                       // constructed — and never start downloading their photo —
                       // until they scroll into view. Rows rather than a SliverGrid
@@ -294,7 +325,9 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     final session = ref.read(sessionControllerProvider);
     if (session == null) return;
     final knownLandlordIds =
-        (ref.read(portfolioPropertiesProvider).value ?? [])
+        ref
+            .read(portfolioPropertiesProvider)
+            .supportingRecords
             .map((property) => property.landlordId)
             .toSet()
             .toList(growable: false)
@@ -759,11 +792,6 @@ class _PropertyCard extends StatelessWidget {
       symbol: 'UGX ',
       decimalDigits: 0,
     );
-    final pending = property.syncMetadata.state != EntitySyncState.synced;
-    final archiveNeedsAttention =
-        property.isArchived &&
-        (property.syncMetadata.state == EntitySyncState.failed ||
-            property.syncMetadata.state == EntitySyncState.conflicted);
     return NyumbaSurface(
       padding: EdgeInsets.zero,
       onTap: () => context.go('/properties/${property.id}'),
@@ -785,21 +813,10 @@ class _PropertyCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (pending)
-                PositionedDirectional(
-                  start: 12,
-                  top: 12,
-                  child: StatusBadge(
-                    label: property.isArchived
-                        ? archiveNeedsAttention
-                              ? 'Archive needs attention'
-                              : 'Archive pending'
-                        : 'Pending sync',
-                    tone: archiveNeedsAttention
-                        ? BadgeTone.danger
-                        : BadgeTone.warning,
-                  ),
-                ),
+              // No per-record delivery badge any more. Every property on this
+              // screen is one the server returned — there is no such thing as a
+              // property waiting to be sent. Freshness belongs to the read as a
+              // whole and is stated once, above the list.
             ],
           ),
           Padding(

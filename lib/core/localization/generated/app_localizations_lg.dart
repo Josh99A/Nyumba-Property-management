@@ -3368,6 +3368,143 @@ class AppLocalizationsLg extends AppLocalizations {
       'okuteeka obubaka buno mu lunyiriri';
 
   @override
+  String actionFailureCommandConnection(String action) {
+    return 'Nyumba tesobodde kutuuka ku seva, n\'olwekyo tekoze $action. Kebera yintaneeti yo oddemu ogezeeko.';
+  }
+
+  @override
+  String actionFailureCommandUncertain(String action) {
+    return 'Nyumba tesobodde kukakasa oba okusaba kuwedde. Kebera yintaneeti yo, oddemu oteeke omuko nga tonnaddamu kugezaako $action.';
+  }
+
+  @override
+  String actionFailureCommandRejected(String action) {
+    return 'Seva egaanye $action kubanga ebikwata ku rekodi tebikyatuukiriza bisaanyizo. Ddamu ogiteeke, kebera embeera yaayo, oddemu ogezeeko.';
+  }
+
+  @override
+  String actionFailureRejectedFields(String action, String fields) {
+    return 'Nyumba tesobodde $action kubanga bino byetaaga okutereezebwa: $fields.';
+  }
+
+  @override
+  String get actionFailureReasonListingStillPublished =>
+      'Ekirango kino kikyalangiriddwa. Sooka okiggye ku katale, oluvannyuma oddemu ogezeeko.';
+
+  @override
+  String get actionFailureReasonPropertyHasActiveUnits =>
+      'Eky\'obugagga kino kikyalina ekifo eky\'okupangisa ekirimu omupangisa. Sooka omale obupangisa obukola.';
+
+  @override
+  String get actionFailureReasonUnitStillLinked =>
+      'Ekifo kino kikyalina obupangisa obukola oba ekiranga ekilangiriddwa. Sooka omale obupangisa oba oggye ekiranga ku katale.';
+
+  @override
+  String get actionFailureReasonNotArchived =>
+      'Rekodi eno erina okusooka okuterekebwa mu tterekero nga tennasangulwa ddala.';
+
+  @override
+  String get actionFailureReasonPortfolioTooLarge =>
+      'Ebikwata ku by\'obugagga bino bingi nnyo okusangulwa obulungi mu mutendera gumu. Sangula ebifo oba amatangazo kinnakimu, oddemu ogezeeko.';
+
+  @override
+  String get actionFailureReasonVerifyEmail =>
+      'Kakasa endagiriro yo eya imeyilo nga tonnaddamu kugezaako.';
+
+  @override
+  String get actionFailureReasonSignIn =>
+      'Sooka oyingire nga tonnaddamu kugezaako.';
+
+  @override
+  String get actionFailureVersionConflict =>
+      'Rekodi eno yakyusiddwa ng\'omaze okugiggulawo. Ddamu ogiteeke oddemu ogezeeko.';
+
+  @override
+  String get actionFailureRecordNotFound =>
+      'Rekodi eno tekyaliwo. Ddamu oteeke omuko nga tonnaddamu kugezaako.';
+
+  @override
+  String get actionFailureAccountNotApproved =>
+      'Akawunti ya nannyini nnyumba erina okusooka okukakasibwa okukola enkyukakyuka eno.';
+
+  @override
+  String get actionFailureAccountSuspended =>
+      'Akawunti ya nannyini nnyumba eyimiriziddwa era tesobola kukola nkyukakyuka eno.';
+
+  @override
+  String get actionFailureSubscriptionInactive =>
+      'Okwewandiisa kwa nannyini nnyumba okukola kwetaagisa ku nkyukakyuka eno.';
+
+  @override
+  String get actionFailureEntitlementMissing =>
+      'Enteekateeka y\'okwewandiisa eriwo terimu kikolwa kino.';
+
+  @override
+  String get actionFailureActionArchiveProperty =>
+      'okutereka eky\'obugagga kino mu tterekero';
+
+  @override
+  String get actionFailureActionArchiveRentalSpace =>
+      'okutereka ekifo kino eky\'okupangisa mu tterekero';
+
+  @override
+  String get actionFailureActionRemoveListing => 'okuggyawo ekiranga kino';
+
+  @override
+  String get actionFailureActionDeletePermanently =>
+      'okusangula rekodi eno ddala';
+
+  @override
+  String archiveSuccessName(String name) {
+    return '$name kiterekeddwa mu tterekero.';
+  }
+
+  @override
+  String get removeListingMenu => 'Ggyawo ekiranga';
+
+  @override
+  String removeListingDialogTitle(String name) {
+    return 'Ggyawo $name?';
+  }
+
+  @override
+  String get removeListingDialogMessage =>
+      'Kino kisangula ddala ekiranga ekitali ku katale n\'ebifaananyi byakyo okuva mu Nyumba. Tekisobola kuzzibwayo.';
+
+  @override
+  String get removeListingConfirm => 'Ggyawo ekiranga';
+
+  @override
+  String removeListingSuccessName(String name) {
+    return '$name kiggiddwawo.';
+  }
+
+  @override
+  String get removeListingPublishedGuidance =>
+      'Sooka oggye ekiranga kino ku katale, oluvannyuma okiggyewo.';
+
+  @override
+  String get adminArchivedRecordsCascadeCaption =>
+      'Eby\'obugagga ebiterekeddwa bisobola okusangulwa n\'ebifo n\'amatangazo byabyo';
+
+  @override
+  String adminPropertyCascadeWarning(int unitCount, int listingCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      unitCount,
+      locale: localeName,
+      other: 'ebifo $unitCount eby\'okupangisa',
+      one: 'ekifo 1 eky\'okupangisa',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      listingCount,
+      locale: localeName,
+      other: 'amatangazo $listingCount',
+      one: 'ekiranga 1',
+    );
+    return 'Kino era kisangula ddala $_temp0 ne $_temp1. Ebyafaayo by\'obupangisa, endagaano, okusasula, lisiiti, ebiwandiiko, okuddaabiriza n\'obubaka bisigala.';
+  }
+
+  @override
   String get browseHomesNav => 'Laba amaka';
 
   @override
@@ -4324,4 +4461,79 @@ class AppLocalizationsLg extends AppLocalizations {
   @override
   String get couldNotOpenMapsApp =>
       'Tewali app ya maapu esobola okuggulawo amakubo.';
+
+  @override
+  String get cloudLoadingLabel => 'Kitikkibwa';
+
+  @override
+  String get cloudRefreshing => 'Tuzza buggya…';
+
+  @override
+  String get cloudCheckingForUpdates => 'Tukebera ebipya…';
+
+  @override
+  String get cloudReconnecting => 'Tuddamu okukwatagana…';
+
+  @override
+  String cloudLastUpdated(String time) {
+    return 'Byazzibwa buggya $time';
+  }
+
+  @override
+  String get cloudMayBeOutdatedTitle => 'Bino biyinza obutaba bipya';
+
+  @override
+  String get cloudMayBeOutdatedMessage =>
+      'Nyumba tesobodde kutuuka ku ssaava, bino bye byasembayo okujja.';
+
+  @override
+  String get cloudNoConnectionTitle => 'Tewali nkolagana ne Nyumba';
+
+  @override
+  String get cloudNoConnectionMessage =>
+      'Kebera yintaneeti yo, oluvannyuma ogezeeko nate.';
+
+  @override
+  String get cloudAccessDeniedTitle => 'Tolina lukusa ku bino';
+
+  @override
+  String get cloudAccessDeniedMessage =>
+      'Akawunti yo tekkirizibwa kulaba bino. Buuza nnannyini kifo ky\'emirimu singa olowooza nti kikyamu.';
+
+  @override
+  String get cloudServerRefusedTitle => 'Nyumba tesobodde kuggula bino';
+
+  @override
+  String get cloudServerRefusedMessage =>
+      'Ssaava egaanye okusaba. Gezaako nate mu kaseera katono.';
+
+  @override
+  String get cloudConnectionRequiredTitle => 'Yintaneeti yeetaagisa';
+
+  @override
+  String get cloudConnectionRequiredMessage =>
+      'Ekikolwa kino kyetaaga okutuuka ku ssaava ya Nyumba, noolwekyo tekisoboka nga tolina yintaneeti.';
+
+  @override
+  String get cloudSending => 'Tusindika…';
+
+  @override
+  String get cloudUnconfirmedTitle => 'Nyumba tesobodde kukakasa kino';
+
+  @override
+  String get cloudUnconfirmedMessage =>
+      'Okusaba kwo kwasindikiddwa, naye eky\'okuddamu tekyatuuka, n\'olwekyo kiyinza okuba nga kwatuuse oba nedda. Kebera ne ssaava nga tonnaddamu kugezaako.';
+
+  @override
+  String get cloudCheckWithServer => 'Kebera ne ssaava';
+
+  @override
+  String get availabilityUpdated => 'Obusobozi buzzibwamu.';
+
+  @override
+  String get availabilityUpdatedAdvertWithdrawn =>
+      'Obusobozi buzzibwamu. Ekirango kiggiddwa ku katale.';
+
+  @override
+  String get listingDraftSaved => 'Ekirango eky\'okusooka kitereke.';
 }

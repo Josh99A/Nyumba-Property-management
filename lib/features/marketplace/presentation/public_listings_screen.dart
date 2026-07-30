@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide Text, Tooltip;
+﻿import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/core/localization/app_localizations_adapter.dart';
@@ -6,11 +6,11 @@ import 'package:nyumba_property_management/core/localization/localized_material.
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/motion.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../auth/application/session_controller.dart';
-import '../domain/listing.dart';
 import 'marketplace_navigation.dart';
 import 'public/listing_query.dart';
 import 'public/listing_results.dart';
@@ -86,7 +86,7 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
     final session = ref.watch(sessionControllerProvider);
     final navigationAction = marketplaceNavigationAction(session);
     final copy = appLocalizationsOf(context);
-    final allListings = listingsValue.value ?? const <Listing>[];
+    final allListings = listingsValue.supportingRecords;
     final featured = const ListingQuery()
         .apply(allListings)
         .take(_featuredCount)

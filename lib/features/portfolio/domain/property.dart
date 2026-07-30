@@ -1,7 +1,6 @@
 import '../../../core/config/market_config.dart';
 import '../../../core/domain/coordinates.dart';
 import '../../../core/domain/domain_validation.dart';
-import '../../../core/domain/sync_metadata.dart';
 
 final class Property {
   Property({
@@ -13,7 +12,7 @@ final class Property {
     required this.country,
     required this.createdAt,
     required this.updatedAt,
-    required this.syncMetadata,
+    this.serverVersion,
     this.description,
     this.location,
     this.isArchived = false,
@@ -42,7 +41,14 @@ final class Property {
   final List<String> imageUrls;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final SyncMetadata syncMetadata;
+
+  /// The server's aggregate version this copy was read at.
+  ///
+  /// Sent back as `expectedVersion` so the backend can reject an edit composed
+  /// against a stale read. Null only for a record the server has not yet
+  /// confirmed — which, now that every write goes straight to the server,
+  /// means a record that does not exist rather than one waiting to be sent.
+  final int? serverVersion;
   final bool isArchived;
   final DateTime? archivedAt;
 
@@ -82,7 +88,7 @@ final class Property {
     bool clearLocation = false,
     List<String>? imageUrls,
     DateTime? updatedAt,
-    SyncMetadata? syncMetadata,
+    int? serverVersion,
     bool? isArchived,
     DateTime? archivedAt,
     bool clearArchivedAt = false,
@@ -98,7 +104,7 @@ final class Property {
     imageUrls: imageUrls ?? this.imageUrls,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
-    syncMetadata: syncMetadata ?? this.syncMetadata,
+    serverVersion: serverVersion ?? this.serverVersion,
     isArchived: isArchived ?? this.isArchived,
     archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
   );

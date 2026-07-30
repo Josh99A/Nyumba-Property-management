@@ -5,7 +5,7 @@ import '../../../core/domain/id_generator.dart';
 import '../../../core/offline/offline_database.dart';
 import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
-import '../../../core/offline/uuid_id_generator.dart';
+import '../../../core/domain/uuid_id_generator.dart';
 import '../domain/app_notification.dart';
 import '../domain/app_notification_repository.dart';
 import 'app_notification_mapper.dart';

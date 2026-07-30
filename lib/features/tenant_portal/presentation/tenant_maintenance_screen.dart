@@ -468,7 +468,7 @@ class _TenantMaintenanceScreenState
     if (submitted == true) {
       // The request must reach the landlord who actually owns this tenancy;
       // without it there is nobody to route the work to.
-      final tenancy = ref.read(myTenancyProvider(_tenantId)).value;
+      final tenancy = ref.read(myTenancyProvider(_tenantId)).value?.value;
       if (tenancy == null) {
         if (mounted) {
           showTenantMessage(

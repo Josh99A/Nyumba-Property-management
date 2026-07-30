@@ -3,18 +3,25 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_command.dart';
+import '../../../core/cloud/cloud_data.dart';
 import '../../../core/domain/domain_exception.dart';
 import '../../auth/application/session_controller.dart';
 import '../domain/rent_payment.dart';
 
-final rentPaymentsProvider = StreamProvider<List<RentPayment>>((ref) async* {
+final rentPaymentsProvider = StreamProvider<CloudData<List<RentPayment>>>((
+  ref,
+) async* {
   final deps = await ref.watch(appDependenciesProvider.future);
   yield* deps.payments.watchAll();
 });
 
 /// Payments belonging to one tenancy, newest first.
 final tenancyPaymentsProvider =
-    StreamProvider.family<List<RentPayment>, String>((ref, tenancyId) async* {
+    StreamProvider.family<CloudData<List<RentPayment>>, String>((
+      ref,
+      tenancyId,
+    ) async* {
       final deps = await ref.watch(appDependenciesProvider.future);
       yield* deps.payments.watchAll(tenancyId: tenancyId);
     });
@@ -23,33 +30,42 @@ final recordRentPaymentProvider = Provider<RecordRentPayment>(
   RecordRentPayment.new,
 );
 
-/// Records a payment and reduces the tenancy balance as two ordered offline
-/// mutations. Each write is individually atomic with its outbox command; the
-/// payment carries a durable dependency on the tenancy aggregate so remote
-/// delivery preserves tenancy-before-payment ordering.
+/// Reports money against a tenancy and waits for the server.
+///
+/// This used to be two writes: the payment, and a local balance adjustment to
+/// make it look settled immediately. Both are now one command, and the balance
+/// is not this client's to compute — `payment.recordAgainstTenancy` allocates
+/// against open invoices inside a server transaction, and the new figure
+/// arrives with the next read of the tenancy.
+///
+/// The old local adjustment was already careful to skip tenant declarations,
+/// because settling one would have let a tenant clear their own arrears by
+/// asserting them away. Removing the adjustment entirely removes the whole
+/// class of problem rather than one instance of it: there is no longer any
+/// path by which a balance on screen reflects work the server has not done.
 class RecordRentPayment {
   const RecordRentPayment(this._ref);
 
   final Ref _ref;
 
-  Future<RentPayment> call(RecordRentPaymentInput input) async {
+  /// Returns proof the server accepted the report. For a landlord recording
+  /// money they hold, that means settled and receipted; for a tenant's report,
+  /// it means the claim is now with their landlord — not that anything is paid.
+  Future<MutationResult> call(RecordRentPaymentInput input) async {
     final deps = await _ref.read(appDependenciesProvider.future);
     final tenancy = await deps.tenancies.getById(input.tenancyId);
-    if (tenancy == null) {
+    // A tenancy that could not be read is not a tenancy that does not exist,
+    // and money must not be reported against a guess either way.
+    if (tenancy.hasFailed) {
+      throw DomainValidationException(<String, String>{
+        'tenancy': 'could not be loaded; check your connection and try again',
+      });
+    }
+    final record = tenancy.value;
+    if (record == null) {
       throw EntityNotFoundException('tenancy', input.tenancyId);
     }
-    final payment = await deps.payments.record(tenancy: tenancy, input: input);
-    // A tenant's declaration settles nothing until their landlord confirms
-    // it, and the server moves no balance for one. Dropping the local balance
-    // here would promise the tenant a settlement that has not happened and
-    // then silently reverse on the next pull.
-    if (!input.declaredByTenant) {
-      await deps.tenancies.adjustBalance(
-        tenancyId: tenancy.id,
-        deltaMinor: -input.amountMinor,
-      );
-    }
-    return payment;
+    return deps.payments.record(tenancy: record, input: input);
   }
 }
 

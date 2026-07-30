@@ -1,9 +1,12 @@
 import '../../../core/domain/domain_validation.dart';
-import '../../../core/domain/sync_metadata.dart';
 
-/// One received rent payment. The record itself is authoritative locally;
-/// whether the server has confirmed it is carried by [syncMetadata], never
-/// by an optimistic status field.
+/// One rent payment the server has recorded.
+///
+/// Every instance of this describes money the server already knows about. It
+/// used to describe a record that was "authoritative locally" while a separate
+/// field tracked whether the server agreed — which meant a payment could be on
+/// a landlord's screen, reducing a tenant's visible arrears, having reached
+/// nothing. There is no local-only payment now.
 final class RentPayment {
   RentPayment({
     required this.id,
@@ -17,7 +20,7 @@ final class RentPayment {
     required this.paidOn,
     required this.createdAt,
     required this.updatedAt,
-    required this.syncMetadata,
+    this.serverVersion,
     this.tenancyId,
     this.receiptNumber,
     this.reference,
@@ -65,7 +68,11 @@ final class RentPayment {
   final DateTime paidOn;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final SyncMetadata syncMetadata;
+
+  /// The server's aggregate version this copy was read at, echoed back as
+  /// `expectedVersion` so an edit composed against a stale read is refused
+  /// rather than silently overwriting a concurrent change.
+  final int? serverVersion;
 
   void validate() {
     DomainValidation.check(<String, String?>{

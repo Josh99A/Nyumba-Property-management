@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/localization/app_localizations_adapter.dart';
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/localization/locale_controller.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/documents/nyumba_document_service.dart';
@@ -80,7 +81,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     final documentsValue = ref.watch(leaseDocumentsProvider);
-    final tenancies = ref.watch(tenanciesProvider).value ?? const <Tenancy>[];
+    final tenancies = ref.watch(tenanciesProvider).supportingRecords;
     final notices = ref.watch(noticesProvider).value ?? const <Notice>[];
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
@@ -535,11 +536,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       builder: (dialogContext) => Consumer(
         builder: (context, ref, _) {
           final propertiesValue = ref.watch(portfolioPropertiesProvider);
-          final properties =
-              propertiesValue.value
-                  ?.where((property) => !property.isArchived)
-                  .toList(growable: false) ??
-              const <Property>[];
+          final properties = propertiesValue.supportingRecords
+              .where((property) => !property.isArchived)
+              .toList(growable: false);
           final portfolioResolved = propertiesValue.hasValue;
           return StatefulBuilder(
             builder: (context, setDialogState) => AlertDialog(

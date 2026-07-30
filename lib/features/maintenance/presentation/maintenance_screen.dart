@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart' hide Text, Tooltip;
 
@@ -10,6 +10,7 @@ import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/config/maps_config.dart';
 import '../../../core/domain/coordinates.dart';
@@ -43,9 +44,8 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
   @override
   Widget build(BuildContext context) {
     final requestsValue = ref.watch(maintenanceRequestsProvider);
-    final units = ref.watch(portfolioUnitsProvider).value ?? const <Unit>[];
-    final properties =
-        ref.watch(portfolioPropertiesProvider).value ?? const <Property>[];
+    final units = ref.watch(portfolioUnitsProvider).supportingRecords;
+    final properties = ref.watch(portfolioPropertiesProvider).supportingRecords;
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
     return SingleChildScrollView(

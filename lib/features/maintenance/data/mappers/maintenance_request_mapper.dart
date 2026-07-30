@@ -1,4 +1,4 @@
-import 'package:nyumba_property_management/core/offline/json_reader.dart';
+import 'package:nyumba_property_management/core/domain/json_reader.dart';
 import 'package:nyumba_property_management/core/offline/sync_metadata_mapper.dart';
 import 'package:nyumba_property_management/features/maintenance/domain/maintenance_request.dart';
 

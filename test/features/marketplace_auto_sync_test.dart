@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/fake_billing_repositories.dart';
+import '../support/fake_listing_repository.dart';
+import '../support/fake_portfolio_repositories.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/core/documents/nyumba_document_service.dart';
 import 'package:nyumba_property_management/core/offline/firebase_remote_sync_gateway.dart';
@@ -8,16 +11,12 @@ import 'package:nyumba_property_management/core/offline/sync_engine.dart';
 import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
 import 'package:nyumba_property_management/features/auth/domain/user_session.dart';
 import 'package:nyumba_property_management/features/documents/data/sembast_lease_document_repository.dart';
-import 'package:nyumba_property_management/features/finance/data/sembast_rent_payment_repository.dart';
 import 'package:nyumba_property_management/features/maintenance/data/sembast_maintenance_repository.dart';
 import 'package:nyumba_property_management/features/marketplace/application/marketplace_use_cases.dart';
 import 'package:nyumba_property_management/features/marketplace/data/sembast_application_repository.dart';
-import 'package:nyumba_property_management/features/marketplace/data/sembast_listing_repository.dart';
 import 'package:nyumba_property_management/features/marketplace/domain/listing.dart';
 import 'package:nyumba_property_management/features/notices/data/sembast_notice_repository.dart';
 import 'package:nyumba_property_management/features/notifications/data/sembast_app_notification_repository.dart';
-import 'package:nyumba_property_management/features/portfolio/data/sembast_property_repository.dart';
-import 'package:nyumba_property_management/features/portfolio/data/sembast_unit_repository.dart';
 import 'package:nyumba_property_management/features/portfolio/application/portfolio_use_cases.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/property.dart';
 import 'package:nyumba_property_management/features/portfolio/domain/unit.dart';
@@ -27,7 +26,6 @@ import 'package:nyumba_property_management/features/feedback/data/sembast_feedba
 import 'package:nyumba_property_management/features/reviews/data/sembast_review_repository.dart';
 import 'package:nyumba_property_management/features/support/data/sembast_support_repository.dart';
 import 'package:nyumba_property_management/features/staff/data/sembast_staff_repository.dart';
-import 'package:nyumba_property_management/features/tenants/data/sembast_tenancy_repository.dart';
 import 'package:sembast/sembast_memory.dart';
 
 /// Session stub that never touches Firebase.
@@ -65,10 +63,9 @@ void main() {
     addTearDown(database.close);
     await database.initialize();
 
-    final properties = SembastPropertyRepository(database: database);
-    final units = SembastUnitRepository(database: database);
-    final listings = SembastListingRepository(
-      database: database,
+    final properties = FakePropertyRepository();
+    final units = FakeUnitRepository();
+    final listings = FakeListingRepository(
       properties: properties,
       units: units,
     );
@@ -105,8 +102,8 @@ void main() {
       documents: const PdfDocumentService(),
       userSettings: SembastUserSettingsRepository(database: database),
       maintenance: SembastMaintenanceRepository(database: database),
-      tenancies: SembastTenancyRepository(database: database),
-      payments: SembastRentPaymentRepository(database: database),
+      tenancies: FakeTenancyRepository(),
+      payments: FakeRentPaymentRepository(),
       leaseDocuments: SembastLeaseDocumentRepository(database: database),
       notices: SembastNoticeRepository(database: database),
       notifications: SembastAppNotificationRepository(database: database),
@@ -129,7 +126,7 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    final property = await properties.create(
+    final property = await properties.createReturning(
       const CreatePropertyInput(
         landlordId: 'landlord-1',
         name: 'Sunset Apartments',
@@ -138,7 +135,7 @@ void main() {
         description: 'Quiet apartment living with secure parking.',
       ),
     );
-    final unit = await units.create(
+    final unit = await units.createReturning(
       CreateUnitInput(
         propertyId: property.id,
         landlordId: 'landlord-1',
@@ -169,32 +166,116 @@ void main() {
         ],
       ),
     );
-    await _drainOutbox(database);
-    expect(_commandTypes(sent), contains('listing.saveDraft'));
+    // Advert commands no longer travel by outbox — they go straight to the
+    // router and return only once the server has answered — so the repository's
+    // own record of what it sent is where they show up.
+    expect(listings.sent, contains('listing.saveDraft'));
 
-    await container.read(publishListingProvider)(draft.id);
-    await _drainOutbox(database);
-    expect(_commandTypes(sent), contains('listing.publish'));
+    await container.read(publishListingProvider)(draft.aggregateId);
+    expect(listings.sent, contains('listing.publish'));
 
-    // Server acknowledgement is what makes a listing public; the whole point
-    // of the automatic push is that this happens without the manual sync
-    // button ever being pressed.
+    await expectLater(
+      container.read(removeListingProvider)(draft.aggregateId),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('Unpublish this listing'),
+        ),
+      ),
+    );
+    expect(listings.sent, isNot(contains('listing.discard')));
+
+    listings.put(
+      Listing(
+        id: 'foreign-listing',
+        unitId: unit.id,
+        propertyId: property.id,
+        landlordId: 'landlord-2',
+        title: 'Someone else’s advert',
+        description: 'A listing outside this workspace.',
+        monthlyRentMinor: unit.monthlyRentMinor,
+        currency: unit.currency,
+        status: ListingStatus.draft,
+        city: property.city,
+        createdAt: DateTime.utc(2026, 7, 15, 9),
+        updatedAt: DateTime.utc(2026, 7, 15, 9),
+        serverVersion: 1,
+      ),
+    );
+    await expectLater(
+      container.read(removeListingProvider)('foreign-listing'),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('only their own listings'),
+        ),
+      ),
+    );
+
+    const client = UserSession(
+      userId: 'client-1',
+      displayName: 'Amina',
+      email: 'amina@example.com',
+      role: AppRole.client,
+    );
+    final clientContainer = ProviderContainer(
+      overrides: [
+        sessionControllerProvider.overrideWith(
+          () => _FixedSessionController(client),
+        ),
+        appDependenciesProvider.overrideWith(
+          () => _FixedDependenciesController(dependencies),
+        ),
+      ],
+    );
+    addTearDown(clientContainer.dispose);
+    await expectLater(
+      clientContainer.read(removeListingProvider)(draft.aggregateId),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('permission is required'),
+        ),
+      ),
+    );
+
+    // The advert is public because the server accepted the publish, not
+    // because a queue was flushed afterwards.
     final publicListings = await listings.getAll(publicOnly: true);
-    expect(publicListings.map((listing) => listing.id), [draft.id]);
+    expect(publicListings.value!.map((listing) => listing.id), [
+      draft.aggregateId,
+    ]);
 
     final availabilityResult = await container.read(updateUnitProvider)(
       unit.copyWith(status: UnitStatus.maintenance),
     );
-    expect(availabilityResult.unpublishedListing?.id, draft.id);
-    expect(await listings.getAll(publicOnly: true), isEmpty);
+    // The result reports *that* an advert came down, not which one: the
+    // retirement is the server's to perform, and the client only knows whether
+    // there was a live advert when the change was accepted.
+    expect(availabilityResult.advertWasWithdrawn, isTrue);
     await _drainOutbox(database);
 
+    // Nothing to do with adverts or units reaches the outbox any more. Both are
+    // cloud-authoritative, so this gateway — which only ever saw queued work —
+    // records neither. That emptiness is the assertion.
     final commandTypes = _commandTypes(sent).toList(growable: false);
+    expect(commandTypes, isNot(contains('listing.unpublish')));
+    expect(commandTypes, isNot(contains('unit.update')));
     expect(
-      commandTypes,
-      containsAllInOrder(['listing.unpublish', 'unit.update']),
+      (await units.getById(unit.id)).value?.status,
+      UnitStatus.maintenance,
     );
-    expect((await units.getById(unit.id))?.status, UnitStatus.maintenance);
+
+    await container.read(unpublishListingProvider)(draft.aggregateId);
+    await container.read(removeListingProvider)(draft.aggregateId);
+    expect(
+      listings.sent,
+      containsAllInOrder(['listing.unpublish', 'listing.discard']),
+    );
+    expect((await listings.getById(draft.aggregateId)).value, isNull);
   });
 }
 

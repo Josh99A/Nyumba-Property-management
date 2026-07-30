@@ -8,6 +8,7 @@ import 'package:nyumba_property_management/core/localization/localized_material.
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../auth/application/session_controller.dart';
@@ -108,7 +109,7 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
     final session = ref.watch(sessionControllerProvider);
     final navigationAction = marketplaceNavigationAction(session);
     final copy = appLocalizationsOf(context);
-    final allListings = listingsValue.value ?? const <Listing>[];
+    final allListings = listingsValue.supportingRecords;
     final unitTypes = ListingQuery.unitTypesIn(allListings);
     final query = _query.withinTypes(unitTypes.toSet());
     final inset = marketplaceBandInset(context);
@@ -177,7 +178,8 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
                 ),
               ),
             ],
-            data: (all) => _resultSlivers(query, all, inset),
+            data: (all) =>
+                _resultSlivers(query, all.value ?? const <Listing>[], inset),
           ),
           SliverToBoxAdapter(
             child: MarketplaceFooter(

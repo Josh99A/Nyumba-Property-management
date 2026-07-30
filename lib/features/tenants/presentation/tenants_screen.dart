@@ -8,9 +8,8 @@ import '../../../core/localization/app_localizations_adapter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
+import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
-import '../../../core/offline/aggregate_sync_status.dart';
-import '../../../core/offline/offline_entity.dart';
 import '../../../core/offline/outbox_entry.dart';
 import '../../../core/presentation/async_action_button.dart';
 import '../../../core/presentation/page_header.dart';
@@ -18,7 +17,6 @@ import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
-import '../../../core/presentation/sync_state_badge.dart';
 import '../../portfolio/domain/property.dart';
 import '../../portfolio/domain/unit.dart';
 import '../../portfolio/application/rental_space_labels.dart';
@@ -50,9 +48,8 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
   @override
   Widget build(BuildContext context) {
     final tenanciesValue = ref.watch(tenanciesProvider);
-    final units = ref.watch(portfolioUnitsProvider).value ?? const <Unit>[];
-    final properties =
-        ref.watch(portfolioPropertiesProvider).value ?? const <Property>[];
+    final units = ref.watch(portfolioUnitsProvider).supportingRecords;
+    final properties = ref.watch(portfolioPropertiesProvider).supportingRecords;
     final outbox =
         ref.watch(outboxEntriesProvider).value ?? const <OutboxEntry>[];
     return SingleChildScrollView(
@@ -91,7 +88,11 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                   subject: appLocalizationsOf(context).statusSubjectTenants,
                   onRetry: () => ref.invalidate(tenanciesProvider),
                 ),
-                data: (tenancies) => _buildLoaded(context, tenancies, outbox),
+                data: (tenancies) => _buildLoaded(
+                  context,
+                  tenancies.value ?? const <Tenancy>[],
+                  outbox,
+                ),
               ),
             ],
           ),
@@ -209,16 +210,7 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                   ),
                 )
               else
-                for (final tenancy in filtered)
-                  _TenantRow(
-                    tenancy: tenancy,
-                    syncStatus: resolveAggregateSyncStatus(
-                      entityType: OfflineEntityType.tenancy,
-                      entityId: tenancy.id,
-                      outbox: outbox,
-                      syncMetadata: tenancy.syncMetadata,
-                    ),
-                  ),
+                for (final tenancy in filtered) _TenantRow(tenancy: tenancy),
             ],
           ),
         ),
@@ -430,10 +422,9 @@ class _TenantMetric extends StatelessWidget {
 }
 
 class _TenantRow extends StatelessWidget {
-  const _TenantRow({required this.tenancy, required this.syncStatus});
+  const _TenantRow({required this.tenancy});
 
   final Tenancy tenancy;
-  final AggregateSyncStatus syncStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -457,8 +448,8 @@ class _TenantRow extends StatelessWidget {
                           : 'Up to date',
                       tone: balanceDue ? BadgeTone.warning : BadgeTone.success,
                     ),
-                    const SizedBox(width: 8),
-                    SyncStateBadge(status: syncStatus),
+                    // The per-tenancy sync badge is gone: every tenancy here
+                    // came from the server, so it only ever said "synced".
                     const Spacer(),
                     IconButton(
                       tooltip: context.tr('View tenant details'),
@@ -491,7 +482,6 @@ class _TenantRow extends StatelessWidget {
                     'Ends ${DateFormat('d MMM y').format(tenancy.leaseEnd.toLocal())}',
                   ),
                 ),
-                SizedBox(width: 110, child: SyncStateBadge(status: syncStatus)),
                 IconButton(
                   tooltip: context.tr('View tenant details'),
                   onPressed: () => _showTenantDetails(context, tenancy),

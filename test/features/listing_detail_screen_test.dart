@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/cloud_fixtures.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/luganda_localizations.dart';
 import 'package:nyumba_property_management/features/auth/application/session_controller.dart';
@@ -43,7 +43,6 @@ void main() {
     createdAt: now,
     updatedAt: now,
     publishedAt: now,
-    syncMetadata: const SyncMetadata.pending(),
   );
 
   Future<void> pump(
@@ -90,9 +89,11 @@ void main() {
               ),
             ),
           ),
-          publicListingsProvider.overrideWith((ref) => Stream.value(published)),
+          publicListingsProvider.overrideWith(
+            (ref) => Stream.value(cloudOf(published)),
+          ),
           landlordListingsProvider.overrideWith(
-            (ref) => Stream.value(ownListings),
+            (ref) => Stream.value(cloudOf(ownListings)),
           ),
           publicReviewsProvider.overrideWith(
             (ref, landlordToken) => Stream.value(const <LandlordReview>[]),

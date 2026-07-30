@@ -1,4 +1,4 @@
-{
+﻿{
     "@@locale":  "en",
     "appTitle":  "Nyumba Property Management",
     "language":  "Language",
@@ -1054,6 +1054,44 @@
     ,"actionFailureActionSaveListingDraft": "save this listing draft"
     ,"actionFailureActionCreateDocument": "create this document"
     ,"actionFailureActionQueueNotice": "queue this notice"
+    ,"actionFailureCommandConnection": "Nyumba could not reach the server, so it did not {action}. Check your connection and try again."
+    ,"@actionFailureCommandConnection": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureCommandUncertain": "Nyumba could not confirm whether the request completed. Check your connection, then refresh before trying to {action} again."
+    ,"@actionFailureCommandUncertain": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureCommandRejected": "The server refused to {action} because the record no longer meets the requirements. Refresh it, review its current status, and try again."
+    ,"@actionFailureCommandRejected": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureRejectedFields": "Nyumba could not {action} because this information needs attention: {fields}."
+    ,"@actionFailureRejectedFields": {"placeholders": {"action": {"type": "String"}, "fields": {"type": "String"}}}
+    ,"actionFailureReasonListingStillPublished": "This listing is still published. Unpublish it first, then try again."
+    ,"actionFailureReasonPropertyHasActiveUnits": "This property still has an occupied rental space. End the active tenancy before trying again."
+    ,"actionFailureReasonUnitStillLinked": "This rental space still has an active tenancy or published listing. End the tenancy or unpublish the listing first."
+    ,"actionFailureReasonNotArchived": "This record must be archived before it can be deleted permanently."
+    ,"actionFailureReasonPortfolioTooLarge": "This portfolio is too large to delete safely in one step. Delete rental spaces or listings individually, then try again."
+    ,"actionFailureReasonVerifyEmail": "Verify your email address before trying this action again."
+    ,"actionFailureReasonSignIn": "Sign in before trying this action again."
+    ,"actionFailureVersionConflict": "This record changed after you opened it. Refresh it and try again."
+    ,"actionFailureRecordNotFound": "This record no longer exists. Refresh the page before trying again."
+    ,"actionFailureAccountNotApproved": "This landlord account must be approved before it can make this change."
+    ,"actionFailureAccountSuspended": "This landlord account is suspended and cannot make this change."
+    ,"actionFailureSubscriptionInactive": "An active landlord subscription is required for this change."
+    ,"actionFailureEntitlementMissing": "The current subscription plan does not include this action."
+    ,"actionFailureActionArchiveProperty": "archive this property"
+    ,"actionFailureActionArchiveRentalSpace": "archive this rental space"
+    ,"actionFailureActionRemoveListing": "remove this listing"
+    ,"actionFailureActionDeletePermanently": "delete this record permanently"
+    ,"archiveSuccessName": "Archived {name}."
+    ,"@archiveSuccessName": {"placeholders": {"name": {"type": "String"}}}
+    ,"removeListingMenu": "Remove listing"
+    ,"removeListingDialogTitle": "Remove {name}?"
+    ,"@removeListingDialogTitle": {"placeholders": {"name": {"type": "String"}}}
+    ,"removeListingDialogMessage": "This permanently removes the off-market listing and its photos from Nyumba. This cannot be undone."
+    ,"removeListingConfirm": "Remove listing"
+    ,"removeListingSuccessName": "Removed {name}."
+    ,"@removeListingSuccessName": {"placeholders": {"name": {"type": "String"}}}
+    ,"removeListingPublishedGuidance": "Unpublish this listing first, then remove it."
+    ,"adminArchivedRecordsCascadeCaption": "Archived properties can be deleted with their rental spaces and listings"
+    ,"adminPropertyCascadeWarning": "This also permanently deletes {unitCount, plural, =1{1 rental space} other{{unitCount} rental spaces}} and {listingCount, plural, =1{1 listing} other{{listingCount} listings}}. Tenancy, lease, payment, receipt, document, maintenance, and notice history is kept."
+    ,"@adminPropertyCascadeWarning": {"placeholders": {"unitCount": {"type": "int"}, "listingCount": {"type": "int"}}}
     ,"browseHomesNav": "Browse homes"
     ,"forLandlords": "For landlords"
     ,"searchAction": "Search"
@@ -1338,4 +1376,49 @@
     ,"listView": "List"
     ,"nearestToMe": "Nearest to me"
     ,"couldNotOpenMapsApp": "No maps app is available to open directions."
+
+    ,"cloudLoadingLabel": "Loading"
+    ,"@cloudLoadingLabel": {"description": "Accessible label for the first load of a screen, before anything has been shown."}
+    ,"cloudRefreshing": "Refreshing…"
+    ,"@cloudRefreshing": {"description": "Shown while already-visible data is being checked against the server."}
+    ,"cloudCheckingForUpdates": "Checking for updates…"
+    ,"@cloudCheckingForUpdates": {"description": "Shown when cached data is on screen and its freshness has not been confirmed yet."}
+    ,"cloudReconnecting": "Reconnecting…"
+    ,"@cloudReconnecting": {"description": "Shown while a dropped live connection is being re-established."}
+    ,"cloudLastUpdated": "Last updated {time}"
+    ,"@cloudLastUpdated": {"description": "Freshness stamp. {time} is a formatted time, already localized.", "placeholders": {"time": {"type": "String"}}}
+    ,"cloudMayBeOutdatedTitle": "This may be out of date"
+    ,"@cloudMayBeOutdatedTitle": {"description": "Warning heading over cached data whose refresh failed. Must never be omitted when showing unvalidated data."}
+    ,"cloudMayBeOutdatedMessage": "Nyumba could not reach the server, so this is what loaded last."
+    ,"@cloudMayBeOutdatedMessage": {"description": "Explains why visible data is unvalidated."}
+    ,"cloudNoConnectionTitle": "No connection to Nyumba"
+    ,"@cloudNoConnectionTitle": {"description": "Heading when a read failed and there is nothing cached to fall back on."}
+    ,"cloudNoConnectionMessage": "Check your internet connection, then try again."
+    ,"@cloudNoConnectionMessage": {"description": "Recovery instruction for a connection failure."}
+    ,"cloudAccessDeniedTitle": "You do not have access to this"
+    ,"@cloudAccessDeniedTitle": {"description": "Heading when the server refused this actor's read. Deliberately distinct from a connection failure so the user does not go and check their wifi."}
+    ,"cloudAccessDeniedMessage": "Your account is not permitted to see this. Ask the workspace owner if you think this is wrong."
+    ,"@cloudAccessDeniedMessage": {"description": "Explains a permission denial without revealing what was withheld."}
+    ,"cloudServerRefusedTitle": "Nyumba could not load this"
+    ,"@cloudServerRefusedTitle": {"description": "Heading when the server rejected the request itself rather than the actor."}
+    ,"cloudServerRefusedMessage": "The server refused the request. Try again shortly."
+    ,"@cloudServerRefusedMessage": {"description": "Recovery instruction for a server rejection."}
+    ,"cloudConnectionRequiredTitle": "An internet connection is required"
+    ,"@cloudConnectionRequiredTitle": {"description": "Shown where a mutation is disabled because the device is offline."}
+    ,"cloudConnectionRequiredMessage": "This action must reach Nyumba's server, so it cannot be done offline."
+    ,"@cloudConnectionRequiredMessage": {"description": "Explains why a server-dependent action is unavailable. Financial and tenancy wording: review before release."}
+    ,"cloudSending": "Sending…"
+    ,"@cloudSending": {"description": "Shown while a command is in flight. Must not claim the action has completed."}
+    ,"cloudUnconfirmedTitle": "Nyumba could not confirm this"
+    ,"@cloudUnconfirmedTitle": {"description": "Heading for an uncertain outcome: submitted, but the answer never arrived. Must never read as either success or failure."}
+    ,"cloudUnconfirmedMessage": "Your request was sent, but the answer never arrived, so it may or may not have gone through. Check with the server before trying again."
+    ,"@cloudUnconfirmedMessage": {"description": "Explains an uncertain command outcome and why a blind retry is not offered. Financial and tenancy wording: review before release."}
+    ,"cloudCheckWithServer": "Check with the server"
+    ,"@cloudCheckWithServer": {"description": "Action that reconciles an uncertain command against the server, reusing the original command id."}
+    ,"availabilityUpdated": "Availability updated."
+    ,"@availabilityUpdated": {"description": "Confirmation after the server accepted a rental-space availability change. Past tense: only shown once the server has confirmed."}
+    ,"availabilityUpdatedAdvertWithdrawn": "Availability updated. The advert has been taken off the marketplace."
+    ,"@availabilityUpdatedAdvertWithdrawn": {"description": "Confirmation when the availability change also removed a published advert. Both clauses describe completed server actions."}
+    ,"listingDraftSaved": "Draft advert saved."
+    ,"@listingDraftSaved": {"description": "Confirmation after the server accepted a new draft advert. Past tense: only shown once the server has confirmed."}
 }

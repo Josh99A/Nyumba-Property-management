@@ -1,4 +1,4 @@
-{
+﻿{
     "@@locale":  "lg",
     "appTitle":  "Enzirukanya y\u0027Ebyobupangisa eya Nyumba",
     "language":  "Olulimi",
@@ -1010,6 +1010,44 @@
     ,"actionFailureActionSaveListingDraft": "okutereka ekiwandiiko kino eky'obulangirira"
     ,"actionFailureActionCreateDocument": "okutonda ekiwandiiko kino"
     ,"actionFailureActionQueueNotice": "okuteeka obubaka buno mu lunyiriri"
+    ,"actionFailureCommandConnection": "Nyumba tesobodde kutuuka ku seva, n'olwekyo tekoze {action}. Kebera yintaneeti yo oddemu ogezeeko."
+    ,"@actionFailureCommandConnection": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureCommandUncertain": "Nyumba tesobodde kukakasa oba okusaba kuwedde. Kebera yintaneeti yo, oddemu oteeke omuko nga tonnaddamu kugezaako {action}."
+    ,"@actionFailureCommandUncertain": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureCommandRejected": "Seva egaanye {action} kubanga ebikwata ku rekodi tebikyatuukiriza bisaanyizo. Ddamu ogiteeke, kebera embeera yaayo, oddemu ogezeeko."
+    ,"@actionFailureCommandRejected": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureRejectedFields": "Nyumba tesobodde {action} kubanga bino byetaaga okutereezebwa: {fields}."
+    ,"@actionFailureRejectedFields": {"placeholders": {"action": {"type": "String"}, "fields": {"type": "String"}}}
+    ,"actionFailureReasonListingStillPublished": "Ekirango kino kikyalangiriddwa. Sooka okiggye ku katale, oluvannyuma oddemu ogezeeko."
+    ,"actionFailureReasonPropertyHasActiveUnits": "Eky'obugagga kino kikyalina ekifo eky'okupangisa ekirimu omupangisa. Sooka omale obupangisa obukola."
+    ,"actionFailureReasonUnitStillLinked": "Ekifo kino kikyalina obupangisa obukola oba ekiranga ekilangiriddwa. Sooka omale obupangisa oba oggye ekiranga ku katale."
+    ,"actionFailureReasonNotArchived": "Rekodi eno erina okusooka okuterekebwa mu tterekero nga tennasangulwa ddala."
+    ,"actionFailureReasonPortfolioTooLarge": "Ebikwata ku by'obugagga bino bingi nnyo okusangulwa obulungi mu mutendera gumu. Sangula ebifo oba amatangazo kinnakimu, oddemu ogezeeko."
+    ,"actionFailureReasonVerifyEmail": "Kakasa endagiriro yo eya imeyilo nga tonnaddamu kugezaako."
+    ,"actionFailureReasonSignIn": "Sooka oyingire nga tonnaddamu kugezaako."
+    ,"actionFailureVersionConflict": "Rekodi eno yakyusiddwa ng'omaze okugiggulawo. Ddamu ogiteeke oddemu ogezeeko."
+    ,"actionFailureRecordNotFound": "Rekodi eno tekyaliwo. Ddamu oteeke omuko nga tonnaddamu kugezaako."
+    ,"actionFailureAccountNotApproved": "Akawunti ya nannyini nnyumba erina okusooka okukakasibwa okukola enkyukakyuka eno."
+    ,"actionFailureAccountSuspended": "Akawunti ya nannyini nnyumba eyimiriziddwa era tesobola kukola nkyukakyuka eno."
+    ,"actionFailureSubscriptionInactive": "Okwewandiisa kwa nannyini nnyumba okukola kwetaagisa ku nkyukakyuka eno."
+    ,"actionFailureEntitlementMissing": "Enteekateeka y'okwewandiisa eriwo terimu kikolwa kino."
+    ,"actionFailureActionArchiveProperty": "okutereka eky'obugagga kino mu tterekero"
+    ,"actionFailureActionArchiveRentalSpace": "okutereka ekifo kino eky'okupangisa mu tterekero"
+    ,"actionFailureActionRemoveListing": "okuggyawo ekiranga kino"
+    ,"actionFailureActionDeletePermanently": "okusangula rekodi eno ddala"
+    ,"archiveSuccessName": "{name} kiterekeddwa mu tterekero."
+    ,"@archiveSuccessName": {"placeholders": {"name": {"type": "String"}}}
+    ,"removeListingMenu": "Ggyawo ekiranga"
+    ,"removeListingDialogTitle": "Ggyawo {name}?"
+    ,"@removeListingDialogTitle": {"placeholders": {"name": {"type": "String"}}}
+    ,"removeListingDialogMessage": "Kino kisangula ddala ekiranga ekitali ku katale n'ebifaananyi byakyo okuva mu Nyumba. Tekisobola kuzzibwayo."
+    ,"removeListingConfirm": "Ggyawo ekiranga"
+    ,"removeListingSuccessName": "{name} kiggiddwawo."
+    ,"@removeListingSuccessName": {"placeholders": {"name": {"type": "String"}}}
+    ,"removeListingPublishedGuidance": "Sooka oggye ekiranga kino ku katale, oluvannyuma okiggyewo."
+    ,"adminArchivedRecordsCascadeCaption": "Eby'obugagga ebiterekeddwa bisobola okusangulwa n'ebifo n'amatangazo byabyo"
+    ,"adminPropertyCascadeWarning": "Kino era kisangula ddala {unitCount, plural, =1{ekifo 1 eky'okupangisa} other{ebifo {unitCount} eby'okupangisa}} ne {listingCount, plural, =1{ekiranga 1} other{amatangazo {listingCount}}}. Ebyafaayo by'obupangisa, endagaano, okusasula, lisiiti, ebiwandiiko, okuddaabiriza n'obubaka bisigala."
+    ,"@adminPropertyCascadeWarning": {"placeholders": {"unitCount": {"type": "int"}, "listingCount": {"type": "int"}}}
     ,"browseHomesNav": "Laba amaka"
     ,"forLandlords": "Eri bannannyini nnyumba"
     ,"searchAction": "Noonya"
@@ -1294,4 +1332,28 @@
     ,"listView": "Olukalala"
     ,"nearestToMe": "Ebiri okumpi nange"
     ,"couldNotOpenMapsApp": "Tewali app ya maapu esobola okuggulawo amakubo."
+
+    ,"cloudLoadingLabel": "Kitikkibwa"
+    ,"cloudRefreshing": "Tuzza buggya…"
+    ,"cloudCheckingForUpdates": "Tukebera ebipya…"
+    ,"cloudReconnecting": "Tuddamu okukwatagana…"
+    ,"cloudLastUpdated": "Byazzibwa buggya {time}"
+    ,"@cloudLastUpdated": {"description": "Freshness stamp. {time} is a formatted time, already localized.", "placeholders": {"time": {"type": "String"}}}
+    ,"cloudMayBeOutdatedTitle": "Bino biyinza obutaba bipya"
+    ,"cloudMayBeOutdatedMessage": "Nyumba tesobodde kutuuka ku ssaava, bino bye byasembayo okujja."
+    ,"cloudNoConnectionTitle": "Tewali nkolagana ne Nyumba"
+    ,"cloudNoConnectionMessage": "Kebera yintaneeti yo, oluvannyuma ogezeeko nate."
+    ,"cloudAccessDeniedTitle": "Tolina lukusa ku bino"
+    ,"cloudAccessDeniedMessage": "Akawunti yo tekkirizibwa kulaba bino. Buuza nnannyini kifo ky'emirimu singa olowooza nti kikyamu."
+    ,"cloudServerRefusedTitle": "Nyumba tesobodde kuggula bino"
+    ,"cloudServerRefusedMessage": "Ssaava egaanye okusaba. Gezaako nate mu kaseera katono."
+    ,"cloudConnectionRequiredTitle": "Yintaneeti yeetaagisa"
+    ,"cloudConnectionRequiredMessage": "Ekikolwa kino kyetaaga okutuuka ku ssaava ya Nyumba, noolwekyo tekisoboka nga tolina yintaneeti."
+    ,"cloudSending": "Tusindika…"
+    ,"cloudUnconfirmedTitle": "Nyumba tesobodde kukakasa kino"
+    ,"cloudUnconfirmedMessage": "Okusaba kwo kwasindikiddwa, naye eky'okuddamu tekyatuuka, n'olwekyo kiyinza okuba nga kwatuuse oba nedda. Kebera ne ssaava nga tonnaddamu kugezaako."
+    ,"cloudCheckWithServer": "Kebera ne ssaava"
+    ,"availabilityUpdated": "Obusobozi buzzibwamu."
+    ,"availabilityUpdatedAdvertWithdrawn": "Obusobozi buzzibwamu. Ekirango kiggiddwa ku katale."
+    ,"listingDraftSaved": "Ekirango eky'okusooka kitereke."
 }

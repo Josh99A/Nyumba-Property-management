@@ -17,7 +17,7 @@ import '../../features/auth/application/session_controller.dart';
 import '../../features/auth/domain/user_session.dart';
 import '../../features/documents/data/sembast_lease_document_repository.dart';
 import '../../features/documents/domain/lease_document_repository.dart';
-import '../../features/finance/data/sembast_rent_payment_repository.dart';
+import '../../features/finance/data/cloud_rent_payment_repository.dart';
 import '../../features/finance/domain/rent_payment_repository.dart';
 import '../../features/feedback/data/sembast_feedback_repository.dart';
 import '../../features/support/data/sembast_support_repository.dart';
@@ -26,7 +26,7 @@ import '../../features/maintenance/data/sembast_maintenance_repository.dart';
 import '../../features/maintenance/domain/maintenance_repository.dart';
 import '../../features/reviews/data/sembast_review_repository.dart';
 import '../../features/reviews/domain/review_repository.dart';
-import '../../features/tenants/data/sembast_tenancy_repository.dart';
+import '../../features/tenants/data/cloud_tenancy_repository.dart';
 import '../../features/tenants/domain/tenancy_repository.dart';
 import '../../features/notices/data/sembast_notice_repository.dart';
 import '../../features/notices/domain/notice_repository.dart';
@@ -34,13 +34,21 @@ import '../../features/notifications/data/sembast_app_notification_repository.da
 import '../../features/notifications/domain/app_notification_repository.dart';
 import '../../features/marketplace/data/mappers/listing_mapper.dart';
 import '../../features/marketplace/data/sembast_application_repository.dart';
-import '../../features/marketplace/data/sembast_listing_repository.dart';
+import '../../features/marketplace/data/cloud_listing_repository.dart';
 import '../../features/marketplace/domain/application_repository.dart';
 import '../../features/marketplace/domain/application.dart';
 import '../../features/marketplace/domain/listing.dart';
 import '../../features/marketplace/domain/listing_repository.dart';
-import '../../features/portfolio/data/sembast_property_repository.dart';
-import '../../features/portfolio/data/sembast_unit_repository.dart';
+import '../../core/cloud/cloud_cache.dart';
+import '../../core/cloud/cloud_data.dart';
+import '../../core/cloud/cloud_read_gateway.dart';
+import '../../core/cloud/cloud_reader.dart';
+import '../../core/cloud/command_dispatcher.dart';
+import '../../core/cloud/connection_status.dart';
+import '../../core/cloud/firebase_command_gateway.dart';
+import '../../core/cloud/unavailable_gateways.dart';
+import '../../features/portfolio/data/cloud_property_repository.dart';
+import '../../features/portfolio/data/cloud_unit_repository.dart';
 import '../../features/portfolio/domain/property.dart';
 import '../../features/portfolio/domain/property_repository.dart';
 import '../../features/portfolio/domain/unit.dart';
@@ -153,6 +161,25 @@ String workspaceScopeFor(UserSession? session) {
       : '$roleScope--workspace-$workspaceId';
 }
 
+/// Which authorized projection this session reads from.
+///
+/// This names the read Firestore Rules will actually allow, not a filter the
+/// client picked for convenience. An anonymous visitor gets exactly one scope,
+/// and it is the world-readable catalogue.
+@visibleForTesting
+CloudScope cloudScopeFor(UserSession? session) {
+  if (session == null) return const PublicScope();
+  return switch (session.role) {
+    AppRole.superAdmin || AppRole.admin => const AdministrativeScope(),
+    // Staff read the owner's workspace; Rules authorize it through the
+    // membership document, so the key is the owner's uid either way.
+    AppRole.landlord ||
+    AppRole.staff => LandlordScope(session.effectiveWorkspaceId),
+    AppRole.tenant => TenantScope(session.userId),
+    AppRole.client => ProspectScope(session.userId),
+  };
+}
+
 /// Serializes workspace shutdown so a scope that is re-opened immediately
 /// after sign-out never races its predecessor's close.
 Future<void> _previousWorkspaceClosed = Future<void>.value();
@@ -231,19 +258,28 @@ class AppDependenciesController extends AsyncNotifier<AppDependencies> {
   }
 }
 
-final portfolioPropertiesProvider = StreamProvider<List<Property>>((
+/// The landlord's portfolio, carrying its own freshness.
+///
+/// A screen reading this can tell current server data from a cached copy being
+/// validated, an empty portfolio from a refused read, and a dropped connection
+/// from a rejected one. `CloudDataView` renders all of those.
+final portfolioPropertiesProvider = StreamProvider<CloudData<List<Property>>>((
   ref,
 ) async* {
   final deps = await ref.watch(appDependenciesProvider.future);
   yield* deps.properties.watchAll();
 });
 
-final portfolioUnitsProvider = StreamProvider<List<Unit>>((ref) async* {
+final portfolioUnitsProvider = StreamProvider<CloudData<List<Unit>>>((
+  ref,
+) async* {
   final deps = await ref.watch(appDependenciesProvider.future);
   yield* deps.units.watchAll();
 });
 
-final landlordListingsProvider = StreamProvider<List<Listing>>((ref) async* {
+final landlordListingsProvider = StreamProvider<CloudData<List<Listing>>>((
+  ref,
+) async* {
   final deps = await ref.watch(appDependenciesProvider.future);
   yield* deps.listings.watchAll();
 });
@@ -252,17 +288,21 @@ final landlordListingsProvider = StreamProvider<List<Listing>>((ref) async* {
 /// screens only. A landlord's own views deliberately hide what they retired;
 /// an administrator investigating an account needs to see it, and a super
 /// admin purging it needs something to select.
-final adminPropertiesProvider = StreamProvider<List<Property>>((ref) async* {
+final adminPropertiesProvider = StreamProvider<CloudData<List<Property>>>((
+  ref,
+) async* {
   final deps = await ref.watch(appDependenciesProvider.future);
   yield* deps.properties.watchAll(includeArchived: true);
 });
 
-final adminUnitsProvider = StreamProvider<List<Unit>>((ref) async* {
+final adminUnitsProvider = StreamProvider<CloudData<List<Unit>>>((ref) async* {
   final deps = await ref.watch(appDependenciesProvider.future);
   yield* deps.units.watchAll(includeArchived: true);
 });
 
-final publicListingsProvider = StreamProvider<List<Listing>>((ref) async* {
+final publicListingsProvider = StreamProvider<CloudData<List<Listing>>>((
+  ref,
+) async* {
   final deps = await ref.watch(appDependenciesProvider.future);
   yield* deps.publicListings.watchAll(publicOnly: true);
 });
@@ -374,23 +414,84 @@ Future<AppDependencies> createAppDependencies({
     OfflineEntityType.publicListing,
     ListingMapper.canDecode,
   );
-  final properties = SembastPropertyRepository(database: database);
-  final units = SembastUnitRepository(database: database);
-  final listings = SembastListingRepository(
-    database: database,
-    properties: properties,
-    units: units,
+  // Cloud plumbing. Built before the repositories because the migrated ones
+  // take it by construction; the features still on the local mirror below will
+  // move onto the same three objects as each is converted.
+  final usesFirebase = Firebase.apps.isNotEmpty;
+  final environment = usesFirebase
+      ? Firebase.app().options.projectId
+      : 'unconfigured';
+  // Partitioned by project, account, role, and workspace, so an admin session
+  // never inherits the same person's landlord reads and the next account on a
+  // shared browser starts empty.
+  final cachePartition = session == null
+      ? CachePartition.public(environment: environment)
+      : CachePartition(
+          environment: environment,
+          userId: session.userId,
+          role: session.role.name,
+          workspaceId: session.role == AppRole.staff
+              ? session.effectiveWorkspaceId
+              : null,
+        );
+  final cloudCache = CloudCache();
+  final cloudReader = CloudReader(
+    cache: cloudCache,
+    gateway: usesFirebase
+        ? FirestoreCloudReadGateway()
+        : const UnavailableCloudReadGateway(),
+    partition: cachePartition,
   );
-  final publicListings = SembastListingRepository.publicCatalog(
-    database: database,
-    properties: properties,
+  final connection = usesFirebase
+      ? DeviceConnectionStatus()
+      : const AlwaysOnlineConnectionStatus();
+  // An anonymous visitor gets a gateway that refuses every command rather than
+  // one that fakes a local acknowledgement. They may read the public catalogue;
+  // nothing they do is ever reported as saved, because nothing is.
+  final commandDispatcher = CommandDispatcher(
+    gateway: usesFirebase && session != null
+        ? await FirebaseCommandGateway.create(actorUid: session.userId)
+        : const UnavailableCommandGateway(),
+    connection: connection,
+  );
+  final cloudScope = cloudScopeFor(session);
+
+  final properties = CloudPropertyRepository(
+    reader: cloudReader,
+    commands: commandDispatcher,
+    scope: cloudScope,
+  );
+  final units = CloudUnitRepository(
+    reader: cloudReader,
+    commands: commandDispatcher,
+    scope: cloudScope,
+  );
+  final listings = CloudListingRepository(
+    reader: cloudReader,
+    commands: commandDispatcher,
+    scope: cloudScope,
     units: units,
+    properties: properties,
+  );
+  // Reads the world-readable projection and refuses every write. An anonymous
+  // visitor may browse the real catalogue; nothing they do is ever reported as
+  // saved, because nothing they do reaches a server.
+  final publicListings = CloudListingRepository.publicCatalog(
+    reader: cloudReader,
   );
   final applications = SembastApplicationRepository(database: database);
   final userSettings = SembastUserSettingsRepository(database: database);
   final maintenance = SembastMaintenanceRepository(database: database);
-  final tenancies = SembastTenancyRepository(database: database);
-  final payments = SembastRentPaymentRepository(database: database);
+  final tenancies = CloudTenancyRepository(
+    reader: cloudReader,
+    commands: commandDispatcher,
+    scope: cloudScope,
+  );
+  final payments = CloudRentPaymentRepository(
+    reader: cloudReader,
+    commands: commandDispatcher,
+    scope: cloudScope,
+  );
   final leaseDocuments = SembastLeaseDocumentRepository(database: database);
   final notices = SembastNoticeRepository(database: database);
   final notifications = SembastAppNotificationRepository(database: database);
@@ -400,9 +501,6 @@ Future<AppDependencies> createAppDependencies({
   final staff = SembastStaffRepository(database);
   final feedback = SembastFeedbackRepository(database: database);
   final support = SembastSupportRepository(database: database);
-  // Public browsing is unauthenticated but still server-backed: `publicListings`
-  // is world-readable, so an anonymous visitor reads the real catalogue.
-  final usesFirebase = Firebase.apps.isNotEmpty;
   // Built here rather than inside the pull block below because the review
   // repository needs it too: public reviews are fetched per landlord on demand
   // rather than watched for the workspace lifetime. Null in demo builds, where

@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_command.dart';
+import '../support/cloud_fixtures.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
 import 'package:nyumba_property_management/app/theme/nyumba_theme.dart';
-import 'package:nyumba_property_management/core/domain/sync_metadata.dart';
 import 'package:nyumba_property_management/core/localization/generated/app_localizations.dart';
 import 'package:nyumba_property_management/core/localization/luganda_localizations.dart';
 import 'package:nyumba_property_management/core/presentation/remote_media_image.dart';
@@ -37,9 +38,29 @@ class _RecordingUpdateListing extends UpdateListing {
   final calls = <Listing>[];
 
   @override
-  Future<Listing> call(Listing listing) async {
+  Future<MutationResult> call(Listing listing) async {
     calls.add(listing);
-    return listing;
+    // A real save returns proof the server accepted it, not the edited object:
+    // the authoritative copy arrives on the listener a moment later.
+    return MutationResult(
+      aggregateId: listing.id,
+      outcome: CommandOutcome(committedAt: DateTime.utc(2026, 7, 29, 9)),
+    );
+  }
+}
+
+class _RecordingRemoveListing extends RemoveListing {
+  _RecordingRemoveListing(super.ref);
+
+  final calls = <String>[];
+
+  @override
+  Future<MutationResult> call(String listingId) async {
+    calls.add(listingId);
+    return MutationResult(
+      aggregateId: listingId,
+      outcome: CommandOutcome(committedAt: DateTime.utc(2026, 7, 29, 9)),
+    );
   }
 }
 
@@ -75,7 +96,6 @@ void main() {
     imageUrls: [_dataUri(_pngBytes)],
     createdAt: now,
     updatedAt: now,
-    syncMetadata: const SyncMetadata.synced(serverRevision: '1'),
   );
 
   testWidgets(
@@ -152,6 +172,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Edit listing'), findsNothing);
+    expect(find.text('Remove listing'), findsNothing);
+  });
+
+  testWidgets('an off-market listing offers a confirmed permanent removal', (
+    tester,
+  ) async {
+    late _RecordingRemoveListing recorder;
+    await _pump(
+      tester,
+      listings: [listing.copyWith(status: ListingStatus.paused)],
+      overrideUpdate: (ref) => _RecordingUpdateListing(ref),
+      overrideRemove: (ref) => recorder = _RecordingRemoveListing(ref),
+    );
+
+    await tester.tap(find.byTooltip('Listing actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove listing'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Remove Apartment A1 at Ntinda Rise?'), findsOneWidget);
+    expect(find.textContaining('cannot be undone'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Remove listing'));
+    await tester.pumpAndSettle();
+
+    expect(recorder.calls, ['listing-1']);
   });
 
   testWidgets('a synced photo reopens as a real thumbnail, not a broken chip', (
@@ -249,6 +294,7 @@ Future<void> _pump(
   WidgetTester tester, {
   required List<Listing> listings,
   required UpdateListing Function(Ref ref) overrideUpdate,
+  RemoveListing Function(Ref ref)? overrideRemove,
 }) async {
   // A narrow single-column width: the 3-column layout crowds the status
   // badge row into an unrelated, pre-existing overflow at this test's
@@ -291,18 +337,22 @@ Future<void> _pump(
             ),
           ),
         ),
-        landlordListingsProvider.overrideWith((ref) => Stream.value(listings)),
+        landlordListingsProvider.overrideWith(
+          (ref) => Stream.value(cloudOf(listings)),
+        ),
         portfolioUnitsProvider.overrideWith(
-          (ref) => Stream.value(const <Unit>[]),
+          (ref) => Stream.value(cloudOf(const <Unit>[])),
         ),
         portfolioPropertiesProvider.overrideWith(
-          (ref) => Stream.value(const <Property>[]),
+          (ref) => Stream.value(cloudOf(const <Property>[])),
         ),
         rentalApplicationsProvider.overrideWith(
           (ref) => Stream.value(const <RentalApplication>[]),
         ),
         outboxEntriesProvider.overrideWith((ref) => const Stream.empty()),
         updateListingProvider.overrideWith(overrideUpdate),
+        if (overrideRemove != null)
+          removeListingProvider.overrideWith(overrideRemove),
       ],
       child: MaterialApp.router(
         theme: NyumbaTheme.light,
