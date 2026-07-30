@@ -1012,7 +1012,7 @@
     ,"actionFailureActionQueueNotice": "panga arifa hii kwenye foleni"
     ,"actionFailureCommandConnection": "Nyumba haikuweza kufikia seva, kwa hivyo haikuweza {action}. Angalia muunganisho wako kisha ujaribu tena."
     ,"@actionFailureCommandConnection": {"placeholders": {"action": {"type": "String"}}}
-    ,"actionFailureCommandUncertain": "Nyumba ilituma ombi lakini haikuweza kuthibitisha kama lilikamilika. Onyesha upya kabla ya kujaribu {action} tena."
+    ,"actionFailureCommandUncertain": "Nyumba haikuweza kuthibitisha kama ombi lilikamilika. Angalia muunganisho wako, kisha uonyeshe upya kabla ya kujaribu {action} tena."
     ,"@actionFailureCommandUncertain": {"placeholders": {"action": {"type": "String"}}}
     ,"actionFailureCommandRejected": "Seva ilikataa {action} kwa sababu rekodi haitimizi tena masharti. Onyesha upya, kagua hali yake ya sasa, kisha ujaribu tena."
     ,"@actionFailureCommandRejected": {"placeholders": {"action": {"type": "String"}}}

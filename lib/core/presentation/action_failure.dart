@@ -60,9 +60,7 @@ ActionFailure describeActionFailure(Object error, {required String action}) {
         details: raw,
       ),
       CommandFailureKind.uncertain => ActionFailure(
-        message:
-            'Nyumba sent the request but could not confirm whether it '
-            'completed. Refresh before trying to $action again.',
+        message: _uncertainNetworkMessage(action),
         details: raw,
       ),
       CommandFailureKind.rejected => ActionFailure(
@@ -152,9 +150,7 @@ ActionFailure describeActionFailure(Object error, {required String action}) {
       lower.contains('network is unreachable') ||
       lower.contains('unavailable')) {
     return ActionFailure(
-      message:
-          'Nyumba could not reach the server, so it did not $action. Check '
-          'your connection and try again.',
+      message: _uncertainNetworkMessage(action),
       details: raw,
     );
   }
@@ -166,6 +162,10 @@ ActionFailure describeActionFailure(Object error, {required String action}) {
     details: raw,
   );
 }
+
+String _uncertainNetworkMessage(String action) =>
+    'Nyumba could not confirm whether the request completed. Check your '
+    'connection, then refresh before trying to $action again.';
 
 String? _commandReasonMessage(String? reason) => switch (reason) {
   'listingStillPublished' =>

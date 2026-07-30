@@ -3374,7 +3374,7 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String actionFailureCommandUncertain(String action) {
-    return 'Nyumba eweerezza okusaba naye tesobodde kukakasa oba kuwedde. Ddamu oteeke omuko nga tonnaddamu kugezaako $action.';
+    return 'Nyumba tesobodde kukakasa oba okusaba kuwedde. Kebera yintaneeti yo, oddemu oteeke omuko nga tonnaddamu kugezaako $action.';
   }
 
   @override

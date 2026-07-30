@@ -1012,7 +1012,7 @@
     ,"actionFailureActionQueueNotice": "وضع هذا الإشعار في قائمة الانتظار"
     ,"actionFailureCommandConnection": "تعذر على Nyumba الوصول إلى الخادم، لذلك لم يتمكن من {action}. تحقق من اتصالك وحاول مرة أخرى."
     ,"@actionFailureCommandConnection": {"placeholders": {"action": {"type": "String"}}}
-    ,"actionFailureCommandUncertain": "أرسل Nyumba الطلب ولكنه لم يتمكن من تأكيد اكتماله. حدّث البيانات قبل محاولة {action} مرة أخرى."
+    ,"actionFailureCommandUncertain": "لم يتمكن Nyumba من تأكيد اكتمال الطلب. تحقق من اتصالك، ثم حدّث البيانات قبل محاولة {action} مرة أخرى."
     ,"@actionFailureCommandUncertain": {"placeholders": {"action": {"type": "String"}}}
     ,"actionFailureCommandRejected": "رفض الخادم {action} لأن السجل لم يعد مستوفيًا للمتطلبات. حدّثه وراجع حالته الحالية ثم حاول مرة أخرى."
     ,"@actionFailureCommandRejected": {"placeholders": {"action": {"type": "String"}}}

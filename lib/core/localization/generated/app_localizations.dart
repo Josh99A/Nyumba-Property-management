@@ -5919,7 +5919,7 @@ abstract class AppLocalizations {
   /// No description provided for @actionFailureCommandUncertain.
   ///
   /// In en, this message translates to:
-  /// **'Nyumba sent the request but could not confirm whether it completed. Refresh before trying to {action} again.'**
+  /// **'Nyumba could not confirm whether the request completed. Check your connection, then refresh before trying to {action} again.'**
   String actionFailureCommandUncertain(String action);
 
   /// No description provided for @actionFailureCommandRejected.

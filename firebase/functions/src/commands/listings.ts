@@ -250,11 +250,13 @@ export const listingUnpublish: CommandHandler<Record<string, never>> = {
 /**
  * A landlord removing their own off-market advert, private and public copies
  * together. This is the owner's counterpart to the super-admin `listing.delete`
- * purge in `purge.ts`: no audit reason is required because the landlord is
- * deleting their own record, and it refuses a published advert so the ordinary
- * unpublish path (which clears the unit pointer and the plan counter) always
- * runs first. An off-market listing holds neither pointer nor counter, so there
- * is nothing here to unwind.
+ * purge in `purge.ts`: no audit reason is required because this path always
+ * loads the actor's own active landlord workspace and verifies ownership, even
+ * when that actor also holds the super-admin claim. Cross-landlord removals
+ * must use the reasoned `listing.delete` command. This command also refuses a
+ * published advert so the ordinary unpublish path (which clears the unit
+ * pointer and the plan counter) always runs first. An off-market listing holds
+ * neither pointer nor counter, so there is nothing here to unwind.
  */
 export const listingDiscard: CommandHandler<Record<string, never>> = {
   payloadSchema: emptySchema,
@@ -268,10 +270,8 @@ export const listingDiscard: CommandHandler<Record<string, never>> = {
       listingSnap,
       cmd.expectedVersion,
     );
-    if (!actor.superAdmin) {
-      const landlord = await requireActiveLandlord(tx, db, actor);
-      requireOwnedByLandlord(listing, landlord.landlordId);
-    }
+    const landlord = await requireActiveLandlord(tx, db, actor);
+    requireOwnedByLandlord(listing, landlord.landlordId);
     if (listing.publicationState === 'published') {
       throw new DomainError('VALIDATION_FAILED', { reason: 'listingStillPublished' });
     }

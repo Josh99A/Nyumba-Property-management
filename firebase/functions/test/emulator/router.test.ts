@@ -512,7 +512,7 @@ describe('command router', () => {
     });
   });
 
-  it('lets an owner discard an off-market listing but not a published or foreign one', async () => {
+  it('lets only the owner discard an off-market listing', async () => {
     await seedLandlord();
     await db.doc('privateListings/listing_discard').set({
       id: 'listing_discard', landlordId: landlord.uid, unitId: 'unit_123456',
@@ -573,6 +573,24 @@ describe('command router', () => {
       now,
     )).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
     expect((await db.doc('privateListings/listing_foreign_discard').get()).exists).toBe(true);
+
+    await db.doc('privateListings/listing_super_admin_discard').set({
+      id: 'listing_super_admin_discard', landlordId: landlord.uid, unitId: 'unit_123456',
+      publicationState: 'draft', version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    expect(await executeCommandCore(
+      db,
+      superAdmin,
+      envelope(
+        'command_discard_super_admin',
+        'listing.discard',
+        'listing_super_admin_discard',
+        1,
+        {},
+      ),
+      now,
+    )).toMatchObject({ status: 'rejected', error: { code: 'PERMISSION_DENIED' } });
+    expect((await db.doc('privateListings/listing_super_admin_discard').get()).exists).toBe(true);
   });
 
   it('defers the scheduled document purge to the end of the retention window', async () => {

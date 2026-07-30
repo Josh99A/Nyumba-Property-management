@@ -3307,7 +3307,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String actionFailureCommandUncertain(String action) {
-    return 'Nyumba sent the request but could not confirm whether it completed. Refresh before trying to $action again.';
+    return 'Nyumba could not confirm whether the request completed. Check your connection, then refresh before trying to $action again.';
   }
 
   @override

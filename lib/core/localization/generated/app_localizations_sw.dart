@@ -3357,7 +3357,7 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String actionFailureCommandUncertain(String action) {
-    return 'Nyumba ilituma ombi lakini haikuweza kuthibitisha kama lilikamilika. Onyesha upya kabla ya kujaribu $action tena.';
+    return 'Nyumba haikuweza kuthibitisha kama ombi lilikamilika. Angalia muunganisho wako, kisha uonyeshe upya kabla ya kujaribu $action tena.';
   }
 
   @override

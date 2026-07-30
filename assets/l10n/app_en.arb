@@ -1056,7 +1056,7 @@
     ,"actionFailureActionQueueNotice": "queue this notice"
     ,"actionFailureCommandConnection": "Nyumba could not reach the server, so it did not {action}. Check your connection and try again."
     ,"@actionFailureCommandConnection": {"placeholders": {"action": {"type": "String"}}}
-    ,"actionFailureCommandUncertain": "Nyumba sent the request but could not confirm whether it completed. Refresh before trying to {action} again."
+    ,"actionFailureCommandUncertain": "Nyumba could not confirm whether the request completed. Check your connection, then refresh before trying to {action} again."
     ,"@actionFailureCommandUncertain": {"placeholders": {"action": {"type": "String"}}}
     ,"actionFailureCommandRejected": "The server refused to {action} because the record no longer meets the requirements. Refresh it, review its current status, and try again."
     ,"@actionFailureCommandRejected": {"placeholders": {"action": {"type": "String"}}}

@@ -1012,7 +1012,7 @@
     ,"actionFailureActionQueueNotice": "okuteeka obubaka buno mu lunyiriri"
     ,"actionFailureCommandConnection": "Nyumba tesobodde kutuuka ku seva, n'olwekyo tekoze {action}. Kebera yintaneeti yo oddemu ogezeeko."
     ,"@actionFailureCommandConnection": {"placeholders": {"action": {"type": "String"}}}
-    ,"actionFailureCommandUncertain": "Nyumba eweerezza okusaba naye tesobodde kukakasa oba kuwedde. Ddamu oteeke omuko nga tonnaddamu kugezaako {action}."
+    ,"actionFailureCommandUncertain": "Nyumba tesobodde kukakasa oba okusaba kuwedde. Kebera yintaneeti yo, oddemu oteeke omuko nga tonnaddamu kugezaako {action}."
     ,"@actionFailureCommandUncertain": {"placeholders": {"action": {"type": "String"}}}
     ,"actionFailureCommandRejected": "Seva egaanye {action} kubanga ebikwata ku rekodi tebikyatuukiriza bisaanyizo. Ddamu ogiteeke, kebera embeera yaayo, oddemu ogezeeko."
     ,"@actionFailureCommandRejected": {"placeholders": {"action": {"type": "String"}}}

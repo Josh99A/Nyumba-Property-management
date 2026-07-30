@@ -70,13 +70,15 @@ void main() {
     expect(failure.message, contains('Photos'));
   });
 
-  test('a raw connection failure does not claim a cloud write was queued', () {
+  test('a raw connection failure reports an uncertain outcome', () {
     final failure = describeActionFailure(
       Exception('SocketException: Failed host lookup'),
       action: 'save this listing draft',
     );
 
-    expect(failure.message, contains('did not save this listing draft'));
+    expect(failure.message, contains('could not confirm'));
+    expect(failure.message, contains('Check your connection'));
+    expect(failure.message, isNot(contains('did not save this listing draft')));
     expect(failure.message, isNot(contains('kept on this device')));
   });
 
@@ -97,7 +99,8 @@ void main() {
     );
 
     expect(failure.message, contains('could not confirm'));
-    expect(failure.message, contains('Refresh before trying'));
+    expect(failure.message, contains('Check your connection'));
+    expect(failure.message, contains('refresh before trying'));
     expect(failure.message, isNot(contains('Nothing was changed')));
   });
 
@@ -187,8 +190,9 @@ void main() {
       );
       expect(
         swahili.text(offline.message),
-        'Nyumba haikuweza kufikia seva, kwa hivyo haikuweza hifadhi rasimu '
-        'hii ya tangazo. Angalia muunganisho wako kisha ujaribu tena.',
+        'Nyumba haikuweza kuthibitisha kama ombi lilikamilika. Angalia '
+        'muunganisho wako, kisha uonyeshe upya kabla ya kujaribu hifadhi '
+        'rasimu hii ya tangazo tena.',
       );
 
       final notFound = describeActionFailure(

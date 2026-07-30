@@ -3274,7 +3274,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String actionFailureCommandUncertain(String action) {
-    return 'أرسل Nyumba الطلب ولكنه لم يتمكن من تأكيد اكتماله. حدّث البيانات قبل محاولة $action مرة أخرى.';
+    return 'لم يتمكن Nyumba من تأكيد اكتمال الطلب. تحقق من اتصالك، ثم حدّث البيانات قبل محاولة $action مرة أخرى.';
   }
 
   @override
