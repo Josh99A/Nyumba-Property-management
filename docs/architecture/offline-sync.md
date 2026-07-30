@@ -129,6 +129,16 @@ Foreground screens may use Firestore listeners, while background/reconnect synch
 4. Repeat until fewer than the page limit are returned.
 5. Start/refresh listeners from the resulting state for active screens.
 
+The user-facing pull-to-refresh gesture is an explicit synchronization trigger,
+not a separate source of truth. In an authenticated workspace it first gives
+the durable outbox an immediate push opportunity, then re-establishes the
+already-authorized projection listeners and recreates live collection
+subscriptions. In the public marketplace it performs a forced server read of
+the public catalogue only. Empty and short screens remain pullable, and an
+offline listener attempt times out rather than leaving the refresh indicator
+spinning indefinitely; cached records and the cloud-status UI continue to state
+their actual freshness.
+
 Only server timestamps advance cursors. The document-ID tie-breaker prevents records sharing a timestamp from being skipped. A full scope reconciliation is scheduled periodically to detect missed documents, projection removals, and cursor corruption.
 
 When access is revoked, a listener can fail rather than deliver a final removal. The server therefore maintains an access-generation marker in the user's portal root. A changed generation triggers a full reconciliation and removal of local records outside the returned scope. A signed-out offline device cannot learn about a remote revocation; this residual risk is why sign-out/account switch must purge local private data and why local storage encryption matters.

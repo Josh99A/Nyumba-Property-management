@@ -9,6 +9,7 @@ import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/motion.dart';
+import '../../../core/presentation/pull_to_refresh.dart';
 import '../../../core/presentation/responsive.dart';
 import '../../auth/application/session_controller.dart';
 import 'marketplace_navigation.dart';
@@ -240,6 +241,8 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
             ),
           ),
         ],
+      ).withNyumbaPullToRefresh(
+        onRefresh: ref.read(publicListingsRefreshProvider).call,
       ),
     );
   }

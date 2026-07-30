@@ -11,6 +11,7 @@ import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../core/cloud/cloud_async.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/presentation/responsive.dart';
+import '../../../core/presentation/pull_to_refresh.dart';
 import '../../auth/application/session_controller.dart';
 import '../../../core/domain/coordinates.dart';
 import '../application/visitor_location.dart';
@@ -189,6 +190,8 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
             ),
           ),
         ],
+      ).withNyumbaPullToRefresh(
+        onRefresh: ref.read(publicListingsRefreshProvider).call,
       ),
     );
   }

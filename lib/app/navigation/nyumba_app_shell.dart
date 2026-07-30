@@ -14,6 +14,7 @@ import '../../core/presentation/cloud_status_badge.dart';
 import '../../core/presentation/motion.dart';
 import '../../core/presentation/nyumba_logo.dart';
 import '../../core/presentation/language_menu_button.dart';
+import '../../core/presentation/pull_to_refresh.dart';
 import '../../core/presentation/responsive.dart';
 import '../../features/auth/application/session_controller.dart';
 import '../../features/auth/domain/authorization_policy.dart';
@@ -288,13 +289,17 @@ class NyumbaAppShell extends ConsumerWidget {
     });
     final destinations = _destinationsFor(session, copy.teamLabel);
     final path = GoRouterState.of(context).uri.path;
+    final refreshableChild = NyumbaRefreshIndicator(
+      onRefresh: ref.read(workspaceRefreshProvider).call,
+      child: child,
+    );
 
     if (context.isCompact) {
       return _MobileShell(
         session: session,
         destinations: destinations,
         currentPath: path,
-        child: child,
+        child: refreshableChild,
       );
     }
 
@@ -313,7 +318,7 @@ class NyumbaAppShell extends ConsumerWidget {
             child: Column(
               children: [
                 _DesktopTopBar(session: session, destinations: destinations),
-                Expanded(child: child),
+                Expanded(child: refreshableChild),
               ],
             ),
           ),

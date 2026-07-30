@@ -368,6 +368,81 @@ class ManualSync {
   }
 }
 
+/// Application-level pull-to-refresh action for an authenticated workspace.
+///
+/// Current cloud repositories already stream live server changes. A deliberate
+/// refresh therefore pushes the durable outbox, reconnects the older
+/// Sembast-backed projection listeners, and recreates the workspace streams so
+/// a failed subscription gets a fresh server attempt.
+final workspaceRefreshProvider = Provider<WorkspaceRefresh>(
+  WorkspaceRefresh.new,
+);
+
+class WorkspaceRefresh {
+  WorkspaceRefresh(this._ref);
+
+  final Ref _ref;
+  Future<void>? _activeRefresh;
+
+  Future<void> call() {
+    final active = _activeRefresh;
+    if (active != null) return active;
+
+    late final Future<void> refresh;
+    refresh = _run().whenComplete(() {
+      if (identical(_activeRefresh, refresh)) _activeRefresh = null;
+    });
+    _activeRefresh = refresh;
+    return refresh;
+  }
+
+  Future<void> _run() async {
+    final deps = await _ref.read(appDependenciesProvider.future);
+    await deps.syncEngine.syncPending(maxMutations: 200);
+    await deps.remotePullCoordinator?.refresh();
+
+    _ref
+      ..invalidate(portfolioPropertiesProvider)
+      ..invalidate(portfolioUnitsProvider)
+      ..invalidate(landlordListingsProvider)
+      ..invalidate(adminPropertiesProvider)
+      ..invalidate(adminUnitsProvider)
+      ..invalidate(rentalApplicationsProvider)
+      ..invalidate(outboxEntriesProvider)
+      ..invalidate(cloudStatusProvider);
+  }
+}
+
+/// A forced server read for the anonymous/public catalogue.
+final publicListingsRefreshProvider = Provider<PublicListingsRefresh>(
+  PublicListingsRefresh.new,
+);
+
+class PublicListingsRefresh {
+  PublicListingsRefresh(this._ref);
+
+  final Ref _ref;
+  Future<void>? _activeRefresh;
+
+  Future<void> call() {
+    final active = _activeRefresh;
+    if (active != null) return active;
+
+    late final Future<void> refresh;
+    refresh = _run().whenComplete(() {
+      if (identical(_activeRefresh, refresh)) _activeRefresh = null;
+    });
+    _activeRefresh = refresh;
+    return refresh;
+  }
+
+  Future<void> _run() async {
+    final deps = await _ref.read(appDependenciesProvider.future);
+    await deps.publicListings.getAll(publicOnly: true, forceRefresh: true);
+    _ref.invalidate(publicListingsProvider);
+  }
+}
+
 /// Re-queues one mutation the server permanently refused, then pushes.
 ///
 /// A permanently failed entry is never claimed again by [SyncEngine], which is

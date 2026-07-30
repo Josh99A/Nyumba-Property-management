@@ -454,6 +454,7 @@ final class RemotePullCoordinator {
   final OfflineDatabase database;
   final RemotePullGateway gateway;
   final List<StreamSubscription<List<RemoteRecord>>> _subscriptions = [];
+  final List<_RemotePullRegistration> _registrations = [];
   // One state per watched collection, parallel to [_subscriptions]. The
   // workspace link is an aggregate of these: a single collection failing (a
   // missing projection, a rule that denies one type) must not report the whole
@@ -502,17 +503,31 @@ final class RemotePullCoordinator {
     bool publicOnly = false,
     bool administrativeScope = false,
   }) {
+    final registration = _RemotePullRegistration(
+      type: type,
+      landlordId: landlordId,
+      tenantUid: tenantUid,
+      clientUid: clientUid,
+      userUid: userUid,
+      publicOnly: publicOnly,
+      administrativeScope: administrativeScope,
+    );
+    _registrations.add(registration);
+    _subscribe(registration);
+  }
+
+  void _subscribe(_RemotePullRegistration registration) {
     final slot = _subscriptionStates.length;
     _subscriptionStates.add(CloudLinkState.connecting);
     final subscription = gateway
         .watchCollection(
-          type,
-          landlordId: landlordId,
-          tenantUid: tenantUid,
-          clientUid: clientUid,
-          userUid: userUid,
-          publicOnly: publicOnly,
-          administrativeScope: administrativeScope,
+          registration.type,
+          landlordId: registration.landlordId,
+          tenantUid: registration.tenantUid,
+          clientUid: registration.clientUid,
+          userUid: registration.userUid,
+          publicOnly: registration.publicOnly,
+          administrativeScope: registration.administrativeScope,
         )
         .listen(
           (records) async {
@@ -559,12 +574,68 @@ final class RemotePullCoordinator {
     _subscriptions.add(subscription);
   }
 
+  /// Re-establishes every authorized listener registered for this workspace.
+  ///
+  /// Firestore listeners normally reconnect by themselves. This is the
+  /// deliberate user-triggered path used by pull-to-refresh: cancelling and
+  /// reopening them requests a new scoped snapshot without widening the
+  /// actor's read permissions or bypassing the local merge rules.
+  Future<void> refresh() async {
+    if (_registrations.isEmpty || _linkStates.isClosed) return;
+
+    for (final subscription in _subscriptions) {
+      await subscription.cancel();
+    }
+    _subscriptions.clear();
+    _subscriptionStates.clear();
+    if (_linkState != CloudLinkState.connecting) {
+      _linkState = CloudLinkState.connecting;
+      _linkStates.add(CloudLinkState.connecting);
+    }
+
+    final settled = linkStates.firstWhere(
+      (state) => state != CloudLinkState.connecting,
+    );
+    for (final registration in _registrations) {
+      _subscribe(registration);
+    }
+
+    // A listener can remain in the SDK's connecting state while the device is
+    // fully offline. Pull-to-refresh must finish rather than trapping the UI in
+    // a permanent spinner; the cloud badge continues to show the honest state.
+    await settled.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => _linkState,
+    );
+  }
+
   Future<void> close() async {
     for (final subscription in _subscriptions) {
       await subscription.cancel();
     }
     _subscriptions.clear();
     _subscriptionStates.clear();
+    _registrations.clear();
     await _linkStates.close();
   }
+}
+
+final class _RemotePullRegistration {
+  const _RemotePullRegistration({
+    required this.type,
+    required this.landlordId,
+    required this.tenantUid,
+    required this.clientUid,
+    required this.userUid,
+    required this.publicOnly,
+    required this.administrativeScope,
+  });
+
+  final OfflineEntityType type;
+  final String? landlordId;
+  final String? tenantUid;
+  final String? clientUid;
+  final String? userUid;
+  final bool publicOnly;
+  final bool administrativeScope;
 }
