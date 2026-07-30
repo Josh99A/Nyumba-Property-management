@@ -30,7 +30,7 @@ import {
   profileUpdate,
 } from './identity';
 import { maintenanceAddComment, maintenanceCreate, maintenanceUpdateStatus } from './maintenance';
-import { listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from './listings';
+import { listingDiscard, listingPublish, listingRenew, listingSaveDraft, listingUnpublish } from './listings';
 import { propertyArchive, propertyCreate, propertyUpdate, unitArchive, unitCreate, unitRestore, unitUpdate } from './portfolio';
 import { documentPurge, listingDelete, propertyDelete, unitDelete } from './purge';
 import { notificationMarkRead } from './notifications';
@@ -108,6 +108,7 @@ export const commandHandlers = new Map<string, CommandHandler<any>>([
   ['listing.saveDraft', listingSaveDraft],
   ['listing.publish', listingPublish],
   ['listing.unpublish', listingUnpublish],
+  ['listing.discard', listingDiscard],
   ['listing.renew', listingRenew],
   ['listing.delete', listingDelete],
   ['application.submit', applicationSubmit],

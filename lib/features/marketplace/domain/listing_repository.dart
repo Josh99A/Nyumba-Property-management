@@ -38,4 +38,9 @@ abstract interface class ListingRepository {
   Future<MutationResult> publish(Listing listing);
 
   Future<MutationResult> unpublish(Listing listing);
+
+  /// Sends `listing.discard`: the owner permanently removing their own
+  /// off-market advert. The server refuses while it is still published, so a
+  /// live advert must be unpublished first.
+  Future<MutationResult> remove(Listing listing);
 }

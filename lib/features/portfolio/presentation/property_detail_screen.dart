@@ -19,6 +19,7 @@ import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/cloud_data_view.dart';
 import '../../../core/presentation/surface.dart';
+import '../../../core/presentation/toast.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../marketplace/application/marketplace_use_cases.dart';
@@ -969,40 +970,43 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     try {
       await ref.read(archiveUnitProvider)(unit.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text.localized(
-            'Archive queued for ${unit.displayName}; awaiting server confirmation.',
-          ),
-        ),
+      showNyumbaToast(
+        appLocalizationsOf(context).archiveSuccessName(unit.displayName),
+        variant: NyumbaToastVariant.success,
       );
     } on Object catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text.localized('Could not archive rental space: $error'),
-        ),
+      showNyumbaToast(
+        describeActionFailure(
+          error,
+          action: appLocalizationsOf(
+            context,
+          ).actionFailureActionArchiveRentalSpace,
+        ).message,
+        variant: NyumbaToastVariant.error,
       );
     }
   }
 
   Future<void> _archiveProperty(Property property) async {
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(archivePropertyProvider)(property.id);
       if (!mounted) return;
+      final message = appLocalizationsOf(
+        context,
+      ).archiveSuccessName(property.name);
       context.go('/properties');
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text.localized(
-            'Archive queued for ${property.name}; awaiting server confirmation.',
-          ),
-        ),
-      );
+      showNyumbaToast(message, variant: NyumbaToastVariant.success);
     } on Object catch (error) {
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text.localized('Could not archive property: $error')),
+      showNyumbaToast(
+        describeActionFailure(
+          error,
+          action: appLocalizationsOf(
+            context,
+          ).actionFailureActionArchiveProperty,
+        ).message,
+        variant: NyumbaToastVariant.error,
       );
     }
   }

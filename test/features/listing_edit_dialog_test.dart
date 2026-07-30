@@ -49,6 +49,21 @@ class _RecordingUpdateListing extends UpdateListing {
   }
 }
 
+class _RecordingRemoveListing extends RemoveListing {
+  _RecordingRemoveListing(super.ref);
+
+  final calls = <String>[];
+
+  @override
+  Future<MutationResult> call(String listingId) async {
+    calls.add(listingId);
+    return MutationResult(
+      aggregateId: listingId,
+      outcome: CommandOutcome(committedAt: DateTime.utc(2026, 7, 29, 9)),
+    );
+  }
+}
+
 final _pngBytes = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk'
   'YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
@@ -157,6 +172,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Edit listing'), findsNothing);
+    expect(find.text('Remove listing'), findsNothing);
+  });
+
+  testWidgets('an off-market listing offers a confirmed permanent removal', (
+    tester,
+  ) async {
+    late _RecordingRemoveListing recorder;
+    await _pump(
+      tester,
+      listings: [listing.copyWith(status: ListingStatus.paused)],
+      overrideUpdate: (ref) => _RecordingUpdateListing(ref),
+      overrideRemove: (ref) => recorder = _RecordingRemoveListing(ref),
+    );
+
+    await tester.tap(find.byTooltip('Listing actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove listing'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Remove Apartment A1 at Ntinda Rise?'), findsOneWidget);
+    expect(find.textContaining('cannot be undone'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Remove listing'));
+    await tester.pumpAndSettle();
+
+    expect(recorder.calls, ['listing-1']);
   });
 
   testWidgets('a synced photo reopens as a real thumbnail, not a broken chip', (
@@ -254,6 +294,7 @@ Future<void> _pump(
   WidgetTester tester, {
   required List<Listing> listings,
   required UpdateListing Function(Ref ref) overrideUpdate,
+  RemoveListing Function(Ref ref)? overrideRemove,
 }) async {
   // A narrow single-column width: the 3-column layout crowds the status
   // badge row into an unrelated, pre-existing overflow at this test's
@@ -310,6 +351,8 @@ Future<void> _pump(
         ),
         outboxEntriesProvider.overrideWith((ref) => const Stream.empty()),
         updateListingProvider.overrideWith(overrideUpdate),
+        if (overrideRemove != null)
+          removeListingProvider.overrideWith(overrideRemove),
       ],
       child: MaterialApp.router(
         theme: NyumbaTheme.light,

@@ -37,10 +37,39 @@ interface ArchivableAggregate {
 }
 
 /**
- * Destroys an archived property. Refuses while any unit still references it —
- * including archived units, which a purge would orphan beyond recovery, so
- * the units must be purged first. Staged photos are removed by a follow-up
- * job because Storage deletion cannot join the Firestore transaction.
+ * Handler writes available to the cascade.
+ *
+ * Firestore caps a transaction at 500 writes. The command router always adds
+ * the command receipt and audit entry after the handler returns, so the
+ * cascade must leave two writes free for them.
+ */
+const MAX_CASCADE_HANDLER_WRITES = 498;
+
+/** Firestore `in` filters accept at most 30 values. */
+const IN_QUERY_LIMIT = 30;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+/**
+ * Destroys an archived property and everything under it: its rental spaces and
+ * their listings, private and public copies together. Tenancy, lease, payment,
+ * document, maintenance and notice history is deliberately kept — this is a
+ * portfolio cleanup, not an accounting erasure.
+ *
+ * The cascade only ever reaches records that are already out of circulation. A
+ * property can only be archived once every unit is archived, and a unit can
+ * only be archived while vacant and unadvertised, so a cascade never destroys
+ * an occupied space or a live advert and never has to touch a plan counter (the
+ * archive that preceded it already did). Those invariants are still re-checked
+ * here and the whole command refuses if any of them fail to hold. Storage
+ * objects are removed by follow-up jobs because Storage cannot join the
+ * Firestore transaction.
  */
 export const propertyDelete: CommandHandler<PurgeReason> = {
   payloadSchema: purgeReasonSchema,
@@ -49,11 +78,10 @@ export const propertyDelete: CommandHandler<PurgeReason> = {
   async apply({ tx, db, actor, cmd, now }) {
     requireSuperAdmin(actor);
     const ref = db.collection(COLLECTIONS.properties).doc(cmd.aggregateId!);
-    const unitsQuery = db
-      .collection(COLLECTIONS.units)
-      .where('propertyId', '==', cmd.aggregateId!)
-      .limit(1);
-    const [snapshot, units] = await Promise.all([tx.get(ref), tx.get(unitsQuery)]);
+    const unitsSnap = await tx.get(
+      db.collection(COLLECTIONS.units).where('propertyId', '==', cmd.aggregateId!),
+    );
+    const snapshot = await tx.get(ref);
     const current = requireAggregate<ArchivableAggregate & { stagedImagePaths?: unknown }>(
       snapshot,
       cmd.expectedVersion,
@@ -62,18 +90,69 @@ export const propertyDelete: CommandHandler<PurgeReason> = {
     if (current.isDeleted !== true) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'notArchived' });
     }
-    if (!units.empty) {
-      throw new DomainError('VALIDATION_FAILED', { reason: 'propertyHasUnits' });
+
+    const units = unitsSnap.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as { activeLeaseId?: string | null }),
+    }));
+    // Defensive: an archived property should never still own an active or
+    // occupied space, but refuse rather than silently erase one if it does.
+    if (units.some((unit) => unit.activeLeaseId)) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'propertyHasActiveUnits' });
     }
-    const paths = Array.isArray(current.stagedImagePaths)
+
+    const unitIds = units.map((unit) => unit.id);
+    const listingSnaps = await Promise.all(
+      chunk(unitIds, IN_QUERY_LIMIT).map((ids) =>
+        tx.get(db.collection(COLLECTIONS.privateListings).where('unitId', 'in', ids)),
+      ),
+    );
+    const listings = listingSnaps.flatMap((snap) =>
+      snap.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as { publicationState?: string }),
+      })),
+    );
+    if (listings.some((listing) => listing.publicationState === 'published')) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'listingStillPublished' });
+    }
+
+    const publicSnaps = await Promise.all(
+      listings.map((listing) =>
+        tx.get(db.collection(COLLECTIONS.publicListings).doc(listing.id)),
+      ),
+    );
+
+    const propertyPaths = Array.isArray(current.stagedImagePaths)
       ? current.stagedImagePaths.filter((path): path is string => typeof path === 'string')
       : [];
+    const listingCleanupJobs = listings.length;
+    const propertyMediaJob = propertyPaths.length > 0 ? 1 : 0;
+    const totalWrites =
+      1 + units.length + listings.length + publicSnaps.filter((snap) => snap.exists).length +
+      listingCleanupJobs + propertyMediaJob;
+    if (totalWrites > MAX_CASCADE_HANDLER_WRITES) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'portfolioTooLargeToCascade' });
+    }
+
+    for (const unit of units) {
+      tx.delete(db.collection(COLLECTIONS.units).doc(unit.id));
+    }
+    listings.forEach((listing, index) => {
+      tx.delete(db.collection(COLLECTIONS.privateListings).doc(listing.id));
+      if (publicSnaps[index]?.exists) {
+        tx.delete(db.collection(COLLECTIONS.publicListings).doc(listing.id));
+      }
+      createJob(tx, db, `${cmd.commandId}_listing_${index}`, 'cleanupListingMedia', {
+        listingId: listing.id,
+      }, now);
+    });
     tx.delete(ref);
-    if (paths.length > 0) {
-      createJob(tx, db, `${cmd.commandId}_media`, 'purgeStorageObjects', { paths }, now);
+    if (propertyPaths.length > 0) {
+      createJob(tx, db, `${cmd.commandId}_media`, 'purgeStorageObjects', { paths: propertyPaths }, now);
     }
     return {
-      status: paths.length > 0 ? 'accepted' : 'applied',
+      status: listingCleanupJobs > 0 || propertyMediaJob > 0 ? 'accepted' : 'applied',
       aggregateId: cmd.aggregateId!,
       // The document is gone; the last version it held is the honest answer.
       serverVersion: current.version,

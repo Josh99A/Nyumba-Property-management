@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
 import '../../app/theme/nyumba_colors.dart';
+import '../cloud/cloud_command.dart';
 import '../domain/domain_exception.dart';
 import '../localization/nyumba_localizations.dart';
 
@@ -41,6 +42,43 @@ final class ActionFailure {
 /// translated sentence will carry an English phrase in the middle of it.
 ActionFailure describeActionFailure(Object error, {required String action}) {
   final raw = error.toString();
+
+  if (error is CommandException) {
+    final reasonMessage = _commandReasonMessage(error.reason);
+    return switch (error.kind) {
+      CommandFailureKind.connection => ActionFailure(
+        message:
+            'Nyumba could not reach the server, so it did not $action. Check '
+            'your connection and try again.',
+        details: raw,
+      ),
+      CommandFailureKind.permissionDenied => ActionFailure(
+        message:
+            reasonMessage ??
+            'Your account is not allowed to $action. Ask the account owner to '
+                'give you access, then sign out and back in.',
+        details: raw,
+      ),
+      CommandFailureKind.uncertain => ActionFailure(
+        message:
+            'Nyumba sent the request but could not confirm whether it '
+            'completed. Refresh before trying to $action again.',
+        details: raw,
+      ),
+      CommandFailureKind.rejected => ActionFailure(
+        message:
+            reasonMessage ??
+            _commandCodeMessage(error.code) ??
+            (error.rejectedFields.isNotEmpty
+                ? 'Nyumba could not $action because this information needs '
+                      'attention: ${error.rejectedFields.map(_fieldLabel).join(', ')}.'
+                : 'The server refused to $action because the record no longer '
+                      'meets the requirements. Refresh it, review its current '
+                      'status, and try again.'),
+        details: raw,
+      ),
+    };
+  }
 
   if (error is DomainValidationException) {
     // Not localized like the branches below: `problem` comes verbatim from
@@ -115,8 +153,8 @@ ActionFailure describeActionFailure(Object error, {required String action}) {
       lower.contains('unavailable')) {
     return ActionFailure(
       message:
-          'Nyumba could not reach the server. Your work is kept on this device '
-          'and will sync once you are back online.',
+          'Nyumba could not reach the server, so it did not $action. Check '
+          'your connection and try again.',
       details: raw,
     );
   }
@@ -128,6 +166,45 @@ ActionFailure describeActionFailure(Object error, {required String action}) {
     details: raw,
   );
 }
+
+String? _commandReasonMessage(String? reason) => switch (reason) {
+  'listingStillPublished' =>
+    'This listing is still published. Unpublish it first, then try again.',
+  'propertyHasActiveUnits' =>
+    'This property still has an occupied rental space. End the active tenancy '
+        'before trying again.',
+  'unitNotArchivable' || 'unitStillLinked' || 'unitOccupied' =>
+    'This rental space still has an active tenancy or published listing. End '
+        'the tenancy or unpublish the listing first.',
+  'notArchived' =>
+    'This record must be archived before it can be deleted permanently.',
+  'portfolioTooLargeToCascade' =>
+    'This portfolio is too large to delete safely in one step. Delete rental '
+        'spaces or listings individually, then try again.',
+  'verifiedEmailRequired' =>
+    'Verify your email address before trying this action again.',
+  'signInRequired' => 'Sign in before trying this action again.',
+  _ => null,
+};
+
+String? _commandCodeMessage(String code) => switch (code) {
+  'VERSION_CONFLICT' =>
+    'This record changed after you opened it. Refresh it and try again.',
+  'NOT_FOUND' =>
+    'This record no longer exists. Refresh the page before trying again.',
+  'ACCOUNT_NOT_APPROVED' =>
+    'This landlord account must be approved before it can make this change.',
+  'ACCOUNT_SUSPENDED' =>
+    'This landlord account is suspended and cannot make this change.',
+  'SUBSCRIPTION_INACTIVE' =>
+    'An active landlord subscription is required for this change.',
+  'ENTITLEMENT_MISSING' =>
+    'The current subscription plan does not include this action.',
+  _ => null,
+};
+
+String _fieldLabel(String field) =>
+    _fieldLabels[field] ?? _humanizeField(field);
 
 /// "imageUrls" + "must contain at most 5 images" → "Photos must contain at
 /// most 5 images."

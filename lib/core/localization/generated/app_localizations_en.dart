@@ -3301,6 +3301,142 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionFailureActionQueueNotice => 'queue this notice';
 
   @override
+  String actionFailureCommandConnection(String action) {
+    return 'Nyumba could not reach the server, so it did not $action. Check your connection and try again.';
+  }
+
+  @override
+  String actionFailureCommandUncertain(String action) {
+    return 'Nyumba sent the request but could not confirm whether it completed. Refresh before trying to $action again.';
+  }
+
+  @override
+  String actionFailureCommandRejected(String action) {
+    return 'The server refused to $action because the record no longer meets the requirements. Refresh it, review its current status, and try again.';
+  }
+
+  @override
+  String actionFailureRejectedFields(String action, String fields) {
+    return 'Nyumba could not $action because this information needs attention: $fields.';
+  }
+
+  @override
+  String get actionFailureReasonListingStillPublished =>
+      'This listing is still published. Unpublish it first, then try again.';
+
+  @override
+  String get actionFailureReasonPropertyHasActiveUnits =>
+      'This property still has an occupied rental space. End the active tenancy before trying again.';
+
+  @override
+  String get actionFailureReasonUnitStillLinked =>
+      'This rental space still has an active tenancy or published listing. End the tenancy or unpublish the listing first.';
+
+  @override
+  String get actionFailureReasonNotArchived =>
+      'This record must be archived before it can be deleted permanently.';
+
+  @override
+  String get actionFailureReasonPortfolioTooLarge =>
+      'This portfolio is too large to delete safely in one step. Delete rental spaces or listings individually, then try again.';
+
+  @override
+  String get actionFailureReasonVerifyEmail =>
+      'Verify your email address before trying this action again.';
+
+  @override
+  String get actionFailureReasonSignIn =>
+      'Sign in before trying this action again.';
+
+  @override
+  String get actionFailureVersionConflict =>
+      'This record changed after you opened it. Refresh it and try again.';
+
+  @override
+  String get actionFailureRecordNotFound =>
+      'This record no longer exists. Refresh the page before trying again.';
+
+  @override
+  String get actionFailureAccountNotApproved =>
+      'This landlord account must be approved before it can make this change.';
+
+  @override
+  String get actionFailureAccountSuspended =>
+      'This landlord account is suspended and cannot make this change.';
+
+  @override
+  String get actionFailureSubscriptionInactive =>
+      'An active landlord subscription is required for this change.';
+
+  @override
+  String get actionFailureEntitlementMissing =>
+      'The current subscription plan does not include this action.';
+
+  @override
+  String get actionFailureActionArchiveProperty => 'archive this property';
+
+  @override
+  String get actionFailureActionArchiveRentalSpace =>
+      'archive this rental space';
+
+  @override
+  String get actionFailureActionRemoveListing => 'remove this listing';
+
+  @override
+  String get actionFailureActionDeletePermanently =>
+      'delete this record permanently';
+
+  @override
+  String archiveSuccessName(String name) {
+    return 'Archived $name.';
+  }
+
+  @override
+  String get removeListingMenu => 'Remove listing';
+
+  @override
+  String removeListingDialogTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get removeListingDialogMessage =>
+      'This permanently removes the off-market listing and its photos from Nyumba. This cannot be undone.';
+
+  @override
+  String get removeListingConfirm => 'Remove listing';
+
+  @override
+  String removeListingSuccessName(String name) {
+    return 'Removed $name.';
+  }
+
+  @override
+  String get removeListingPublishedGuidance =>
+      'Unpublish this listing first, then remove it.';
+
+  @override
+  String get adminArchivedRecordsCascadeCaption =>
+      'Archived properties can be deleted with their rental spaces and listings';
+
+  @override
+  String adminPropertyCascadeWarning(int unitCount, int listingCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      unitCount,
+      locale: localeName,
+      other: '$unitCount rental spaces',
+      one: '1 rental space',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      listingCount,
+      locale: localeName,
+      other: '$listingCount listings',
+      one: '1 listing',
+    );
+    return 'This also permanently deletes $_temp0 and $_temp1. Tenancy, lease, payment, receipt, document, maintenance, and notice history is kept.';
+  }
+
+  @override
   String get browseHomesNav => 'Browse homes';
 
   @override

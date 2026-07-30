@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import {
   loadActiveLandlordContext,
+  requireActiveLandlord,
   requireOwnedByLandlord,
   requireWorkspace,
 } from '../shared/accounts';
@@ -243,6 +244,46 @@ export const listingUnpublish: CommandHandler<Record<string, never>> = {
     });
     createJob(tx, db, `${cmd.commandId}_cleanup`, 'cleanupListingMedia', { listingId: cmd.aggregateId! }, now);
     return { status: 'accepted', aggregateId: cmd.aggregateId!, serverVersion: listing.version + 1, changedFields: ['publicationState'] };
+  },
+};
+
+/**
+ * A landlord removing their own off-market advert, private and public copies
+ * together. This is the owner's counterpart to the super-admin `listing.delete`
+ * purge in `purge.ts`: no audit reason is required because the landlord is
+ * deleting their own record, and it refuses a published advert so the ordinary
+ * unpublish path (which clears the unit pointer and the plan counter) always
+ * runs first. An off-market listing holds neither pointer nor counter, so there
+ * is nothing here to unwind.
+ */
+export const listingDiscard: CommandHandler<Record<string, never>> = {
+  payloadSchema: emptySchema,
+  aggregateIdMode: 'required',
+  expectedVersionMode: 'edit',
+  async apply({ tx, db, actor, cmd, now }) {
+    const privateRef = db.collection(COLLECTIONS.privateListings).doc(cmd.aggregateId!);
+    const publicRef = db.collection(COLLECTIONS.publicListings).doc(cmd.aggregateId!);
+    const [listingSnap, publicSnap] = await Promise.all([tx.get(privateRef), tx.get(publicRef)]);
+    const listing = requireAggregate<{ version: number; landlordId: string; publicationState: string }>(
+      listingSnap,
+      cmd.expectedVersion,
+    );
+    if (!actor.superAdmin) {
+      const landlord = await requireActiveLandlord(tx, db, actor);
+      requireOwnedByLandlord(listing, landlord.landlordId);
+    }
+    if (listing.publicationState === 'published') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'listingStillPublished' });
+    }
+    tx.delete(privateRef);
+    if (publicSnap.exists) tx.delete(publicRef);
+    createJob(tx, db, `${cmd.commandId}_cleanup`, 'cleanupListingMedia', { listingId: cmd.aggregateId! }, now);
+    return {
+      status: 'accepted',
+      aggregateId: cmd.aggregateId!,
+      serverVersion: listing.version,
+      changedFields: [],
+    };
   },
 };
 

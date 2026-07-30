@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' as material;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nyumba_property_management/core/cloud/cloud_command.dart';
 import 'package:nyumba_property_management/core/domain/domain_exception.dart';
 import 'package:nyumba_property_management/core/localization/nyumba_localizations.dart';
 import 'package:nyumba_property_management/core/presentation/action_failure.dart';
@@ -69,13 +70,81 @@ void main() {
     expect(failure.message, contains('Photos'));
   });
 
-  test('being offline is reported as safe, because the draft is kept', () {
+  test('a raw connection failure does not claim a cloud write was queued', () {
     final failure = describeActionFailure(
       Exception('SocketException: Failed host lookup'),
       action: 'save this listing draft',
     );
 
-    expect(failure.message, contains('kept on this device'));
+    expect(failure.message, contains('did not save this listing draft'));
+    expect(failure.message, isNot(contains('kept on this device')));
+  });
+
+  test('command connection failures say the action did not happen', () {
+    final failure = describeActionFailure(
+      const CommandException.connection(code: 'OFFLINE'),
+      action: 'archive this property',
+    );
+
+    expect(failure.message, contains('did not archive this property'));
+    expect(failure.message, contains('Check your connection'));
+  });
+
+  test('uncertain command outcomes require refresh before another attempt', () {
+    final failure = describeActionFailure(
+      const CommandException.uncertain(code: 'deadline-exceeded'),
+      action: 'remove this listing',
+    );
+
+    expect(failure.message, contains('could not confirm'));
+    expect(failure.message, contains('Refresh before trying'));
+    expect(failure.message, isNot(contains('Nothing was changed')));
+  });
+
+  test('command permission failures do not expose the exception class', () {
+    final failure = describeActionFailure(
+      const CommandException(
+        kind: CommandFailureKind.permissionDenied,
+        code: 'PERMISSION_DENIED',
+      ),
+      action: 'delete this record permanently',
+    );
+
+    expect(failure.message, contains('not allowed'));
+    expect(failure.message, isNot(contains('CommandException')));
+  });
+
+  test('command rejection reasons give the specific remediation', () {
+    final failure = describeActionFailure(
+      const CommandException(
+        kind: CommandFailureKind.rejected,
+        code: 'VALIDATION_FAILED',
+        details: <String, Object?>{'reason': 'listingStillPublished'},
+      ),
+      action: 'remove this listing',
+    );
+
+    expect(
+      failure.message,
+      'This listing is still published. Unpublish it first, then try again.',
+    );
+  });
+
+  test('rejected fields are named without dumping the command exception', () {
+    final failure = describeActionFailure(
+      const CommandException(
+        kind: CommandFailureKind.rejected,
+        code: 'VALIDATION_FAILED',
+        details: <String, Object?>{
+          'fields': <Object?>['imageUrls', 'monthlyRentMinor'],
+        },
+      ),
+      action: 'save this listing draft',
+    );
+
+    expect(failure.message, contains('Photos'));
+    expect(failure.message, contains('The monthly rent'));
+    expect(failure.message, isNot(contains('CommandException')));
   });
 
   test('an unrecognised error still says nothing was changed', () {
@@ -118,8 +187,8 @@ void main() {
       );
       expect(
         swahili.text(offline.message),
-        'Nyumba haikuweza kufikia seva. Kazi yako imehifadhiwa kwenye kifaa '
-        'hiki na itasawazishwa mara tu utakapounganishwa tena mtandaoni.',
+        'Nyumba haikuweza kufikia seva, kwa hivyo haikuweza hifadhi rasimu '
+        'hii ya tangazo. Angalia muunganisho wako kisha ujaribu tena.',
       );
 
       final notFound = describeActionFailure(

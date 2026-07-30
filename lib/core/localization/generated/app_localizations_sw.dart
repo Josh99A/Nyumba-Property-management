@@ -3351,6 +3351,141 @@ class AppLocalizationsSw extends AppLocalizations {
   String get actionFailureActionQueueNotice => 'panga arifa hii kwenye foleni';
 
   @override
+  String actionFailureCommandConnection(String action) {
+    return 'Nyumba haikuweza kufikia seva, kwa hivyo haikuweza $action. Angalia muunganisho wako kisha ujaribu tena.';
+  }
+
+  @override
+  String actionFailureCommandUncertain(String action) {
+    return 'Nyumba ilituma ombi lakini haikuweza kuthibitisha kama lilikamilika. Onyesha upya kabla ya kujaribu $action tena.';
+  }
+
+  @override
+  String actionFailureCommandRejected(String action) {
+    return 'Seva ilikataa $action kwa sababu rekodi haitimizi tena masharti. Onyesha upya, kagua hali yake ya sasa, kisha ujaribu tena.';
+  }
+
+  @override
+  String actionFailureRejectedFields(String action, String fields) {
+    return 'Nyumba haikuweza $action kwa sababu taarifa hizi zinahitaji kurekebishwa: $fields.';
+  }
+
+  @override
+  String get actionFailureReasonListingStillPublished =>
+      'Tangazo hili bado limechapishwa. Liondoe kwenye soko kwanza, kisha ujaribu tena.';
+
+  @override
+  String get actionFailureReasonPropertyHasActiveUnits =>
+      'Mali hii bado ina nafasi ya kupangisha yenye mpangaji. Maliza upangaji unaotumika kabla ya kujaribu tena.';
+
+  @override
+  String get actionFailureReasonUnitStillLinked =>
+      'Nafasi hii bado ina upangaji unaotumika au tangazo lililochapishwa. Maliza upangaji au uondoe tangazo kwenye soko kwanza.';
+
+  @override
+  String get actionFailureReasonNotArchived =>
+      'Rekodi hii lazima ihifadhiwe kwenye kumbukumbu kabla ya kufutwa kabisa.';
+
+  @override
+  String get actionFailureReasonPortfolioTooLarge =>
+      'Jalada hili ni kubwa mno kufutwa salama kwa hatua moja. Futa nafasi au matangazo moja moja, kisha ujaribu tena.';
+
+  @override
+  String get actionFailureReasonVerifyEmail =>
+      'Thibitisha anwani yako ya barua pepe kabla ya kujaribu tena.';
+
+  @override
+  String get actionFailureReasonSignIn => 'Ingia kabla ya kujaribu tena.';
+
+  @override
+  String get actionFailureVersionConflict =>
+      'Rekodi hii ilibadilishwa baada ya kuifungua. Onyesha upya kisha ujaribu tena.';
+
+  @override
+  String get actionFailureRecordNotFound =>
+      'Rekodi hii haipo tena. Onyesha upya ukurasa kabla ya kujaribu tena.';
+
+  @override
+  String get actionFailureAccountNotApproved =>
+      'Akaunti hii ya mwenye nyumba lazima iidhinishwe kabla ya kufanya mabadiliko haya.';
+
+  @override
+  String get actionFailureAccountSuspended =>
+      'Akaunti hii ya mwenye nyumba imesimamishwa na haiwezi kufanya mabadiliko haya.';
+
+  @override
+  String get actionFailureSubscriptionInactive =>
+      'Usajili unaotumika wa mwenye nyumba unahitajika kwa mabadiliko haya.';
+
+  @override
+  String get actionFailureEntitlementMissing =>
+      'Mpango wa sasa wa usajili haujumuishi kitendo hiki.';
+
+  @override
+  String get actionFailureActionArchiveProperty =>
+      'hifadhi mali hii kwenye kumbukumbu';
+
+  @override
+  String get actionFailureActionArchiveRentalSpace =>
+      'hifadhi nafasi hii ya kupangisha kwenye kumbukumbu';
+
+  @override
+  String get actionFailureActionRemoveListing => 'ondoa tangazo hili';
+
+  @override
+  String get actionFailureActionDeletePermanently => 'futa rekodi hii kabisa';
+
+  @override
+  String archiveSuccessName(String name) {
+    return '$name imehifadhiwa kwenye kumbukumbu.';
+  }
+
+  @override
+  String get removeListingMenu => 'Ondoa tangazo';
+
+  @override
+  String removeListingDialogTitle(String name) {
+    return 'Ondoa $name?';
+  }
+
+  @override
+  String get removeListingDialogMessage =>
+      'Hii huondoa kabisa tangazo lisilo sokoni na picha zake kutoka Nyumba. Haiwezi kutenduliwa.';
+
+  @override
+  String get removeListingConfirm => 'Ondoa tangazo';
+
+  @override
+  String removeListingSuccessName(String name) {
+    return '$name limeondolewa.';
+  }
+
+  @override
+  String get removeListingPublishedGuidance =>
+      'Ondoa tangazo hili kwenye soko kwanza, kisha ulifute.';
+
+  @override
+  String get adminArchivedRecordsCascadeCaption =>
+      'Mali zilizohifadhiwa zinaweza kufutwa pamoja na nafasi na matangazo yake';
+
+  @override
+  String adminPropertyCascadeWarning(int unitCount, int listingCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      unitCount,
+      locale: localeName,
+      other: 'nafasi $unitCount za kupangisha',
+      one: 'nafasi 1 ya kupangisha',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      listingCount,
+      locale: localeName,
+      other: 'matangazo $listingCount',
+      one: 'tangazo 1',
+    );
+    return 'Hii pia hufuta kabisa $_temp0 na $_temp1. Historia ya upangaji, mikataba, malipo, risiti, hati, matengenezo na arifa huhifadhiwa.';
+  }
+
+  @override
   String get browseHomesNav => 'Tazama nyumba';
 
   @override

@@ -174,6 +174,74 @@ void main() {
     await container.read(publishListingProvider)(draft.aggregateId);
     expect(listings.sent, contains('listing.publish'));
 
+    await expectLater(
+      container.read(removeListingProvider)(draft.aggregateId),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('Unpublish this listing'),
+        ),
+      ),
+    );
+    expect(listings.sent, isNot(contains('listing.discard')));
+
+    listings.put(
+      Listing(
+        id: 'foreign-listing',
+        unitId: unit.id,
+        propertyId: property.id,
+        landlordId: 'landlord-2',
+        title: 'Someone else’s advert',
+        description: 'A listing outside this workspace.',
+        monthlyRentMinor: unit.monthlyRentMinor,
+        currency: unit.currency,
+        status: ListingStatus.draft,
+        city: property.city,
+        createdAt: DateTime.utc(2026, 7, 15, 9),
+        updatedAt: DateTime.utc(2026, 7, 15, 9),
+        serverVersion: 1,
+      ),
+    );
+    await expectLater(
+      container.read(removeListingProvider)('foreign-listing'),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('only their own listings'),
+        ),
+      ),
+    );
+
+    const client = UserSession(
+      userId: 'client-1',
+      displayName: 'Amina',
+      email: 'amina@example.com',
+      role: AppRole.client,
+    );
+    final clientContainer = ProviderContainer(
+      overrides: [
+        sessionControllerProvider.overrideWith(
+          () => _FixedSessionController(client),
+        ),
+        appDependenciesProvider.overrideWith(
+          () => _FixedDependenciesController(dependencies),
+        ),
+      ],
+    );
+    addTearDown(clientContainer.dispose);
+    await expectLater(
+      clientContainer.read(removeListingProvider)(draft.aggregateId),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('permission is required'),
+        ),
+      ),
+    );
+
     // The advert is public because the server accepted the publish, not
     // because a queue was flushed afterwards.
     final publicListings = await listings.getAll(publicOnly: true);
@@ -200,6 +268,14 @@ void main() {
       (await units.getById(unit.id)).value?.status,
       UnitStatus.maintenance,
     );
+
+    await container.read(unpublishListingProvider)(draft.aggregateId);
+    await container.read(removeListingProvider)(draft.aggregateId);
+    expect(
+      listings.sent,
+      containsAllInOrder(['listing.unpublish', 'listing.discard']),
+    );
+    expect((await listings.getById(draft.aggregateId)).value, isNull);
   });
 }
 

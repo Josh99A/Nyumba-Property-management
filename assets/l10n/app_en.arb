@@ -1054,6 +1054,44 @@
     ,"actionFailureActionSaveListingDraft": "save this listing draft"
     ,"actionFailureActionCreateDocument": "create this document"
     ,"actionFailureActionQueueNotice": "queue this notice"
+    ,"actionFailureCommandConnection": "Nyumba could not reach the server, so it did not {action}. Check your connection and try again."
+    ,"@actionFailureCommandConnection": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureCommandUncertain": "Nyumba sent the request but could not confirm whether it completed. Refresh before trying to {action} again."
+    ,"@actionFailureCommandUncertain": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureCommandRejected": "The server refused to {action} because the record no longer meets the requirements. Refresh it, review its current status, and try again."
+    ,"@actionFailureCommandRejected": {"placeholders": {"action": {"type": "String"}}}
+    ,"actionFailureRejectedFields": "Nyumba could not {action} because this information needs attention: {fields}."
+    ,"@actionFailureRejectedFields": {"placeholders": {"action": {"type": "String"}, "fields": {"type": "String"}}}
+    ,"actionFailureReasonListingStillPublished": "This listing is still published. Unpublish it first, then try again."
+    ,"actionFailureReasonPropertyHasActiveUnits": "This property still has an occupied rental space. End the active tenancy before trying again."
+    ,"actionFailureReasonUnitStillLinked": "This rental space still has an active tenancy or published listing. End the tenancy or unpublish the listing first."
+    ,"actionFailureReasonNotArchived": "This record must be archived before it can be deleted permanently."
+    ,"actionFailureReasonPortfolioTooLarge": "This portfolio is too large to delete safely in one step. Delete rental spaces or listings individually, then try again."
+    ,"actionFailureReasonVerifyEmail": "Verify your email address before trying this action again."
+    ,"actionFailureReasonSignIn": "Sign in before trying this action again."
+    ,"actionFailureVersionConflict": "This record changed after you opened it. Refresh it and try again."
+    ,"actionFailureRecordNotFound": "This record no longer exists. Refresh the page before trying again."
+    ,"actionFailureAccountNotApproved": "This landlord account must be approved before it can make this change."
+    ,"actionFailureAccountSuspended": "This landlord account is suspended and cannot make this change."
+    ,"actionFailureSubscriptionInactive": "An active landlord subscription is required for this change."
+    ,"actionFailureEntitlementMissing": "The current subscription plan does not include this action."
+    ,"actionFailureActionArchiveProperty": "archive this property"
+    ,"actionFailureActionArchiveRentalSpace": "archive this rental space"
+    ,"actionFailureActionRemoveListing": "remove this listing"
+    ,"actionFailureActionDeletePermanently": "delete this record permanently"
+    ,"archiveSuccessName": "Archived {name}."
+    ,"@archiveSuccessName": {"placeholders": {"name": {"type": "String"}}}
+    ,"removeListingMenu": "Remove listing"
+    ,"removeListingDialogTitle": "Remove {name}?"
+    ,"@removeListingDialogTitle": {"placeholders": {"name": {"type": "String"}}}
+    ,"removeListingDialogMessage": "This permanently removes the off-market listing and its photos from Nyumba. This cannot be undone."
+    ,"removeListingConfirm": "Remove listing"
+    ,"removeListingSuccessName": "Removed {name}."
+    ,"@removeListingSuccessName": {"placeholders": {"name": {"type": "String"}}}
+    ,"removeListingPublishedGuidance": "Unpublish this listing first, then remove it."
+    ,"adminArchivedRecordsCascadeCaption": "Archived properties can be deleted with their rental spaces and listings"
+    ,"adminPropertyCascadeWarning": "This also permanently deletes {unitCount, plural, =1{1 rental space} other{{unitCount} rental spaces}} and {listingCount, plural, =1{1 listing} other{{listingCount} listings}}. Tenancy, lease, payment, receipt, document, maintenance, and notice history is kept."
+    ,"@adminPropertyCascadeWarning": {"placeholders": {"unitCount": {"type": "int"}, "listingCount": {"type": "int"}}}
     ,"browseHomesNav": "Browse homes"
     ,"forLandlords": "For landlords"
     ,"searchAction": "Search"

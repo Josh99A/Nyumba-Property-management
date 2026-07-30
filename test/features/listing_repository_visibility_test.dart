@@ -175,6 +175,7 @@ void main() {
       for (final attempt in <Future<MutationResult> Function()>[
         () => catalogue.publish(listing),
         () => catalogue.unpublish(listing),
+        () => catalogue.remove(listing),
         () => catalogue.update(listing),
       ]) {
         await expectLater(

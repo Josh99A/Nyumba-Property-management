@@ -299,6 +299,29 @@ final class CloudListingRepository implements ListingRepository {
     );
   }
 
+  @override
+  Future<MutationResult> remove(Listing listing) async {
+    _ensureWritable();
+    // A published advert has to be unpublished first so the ordinary retirement
+    // clears the unit pointer and the plan counter; the server enforces this,
+    // and refusing here spares a doomed round trip.
+    if (listing.status == ListingStatus.published) {
+      throw DomainValidationException(<String, String>{
+        'listing': 'unpublish this advert before removing it',
+      });
+    }
+    return _send(
+      type: 'listing.discard',
+      aggregateId: listing.id,
+      operation: CommandOperation.delete,
+      expectedVersion: _requireVersion(
+        listing.serverVersion,
+        'listing.discard',
+      ),
+      payload: const <String, Object?>{},
+    );
+  }
+
   /// The fields `listing.saveDraft` accepts, shared by create and edit.
   ///
   /// The server's schema is strict, so anything not named here is rejected

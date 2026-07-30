@@ -40,6 +40,7 @@ Property _property({
   country: 'UG',
   createdAt: _now,
   updatedAt: _now,
+  serverVersion: 2,
   isArchived: archived,
   archivedAt: archived ? _now : null,
 );
@@ -60,6 +61,7 @@ Unit _unit({
   currency: 'UGX',
   createdAt: _now,
   updatedAt: _now,
+  serverVersion: 2,
   isArchived: archived,
   archivedAt: archived ? _now : null,
 );
@@ -133,7 +135,7 @@ void main() {
     expect(find.byIcon(Icons.delete_forever_outlined), findsOneWidget);
   });
 
-  testWidgets('a property is only purgeable once its units are gone', (
+  testWidgets('an archived property with units offers a warned cascade purge', (
     tester,
   ) async {
     await _pump(
@@ -141,8 +143,8 @@ void main() {
       properties: [
         _property(id: 'property-2', name: 'Retired Court', archived: true),
       ],
-      // An archived unit still references the property, so the server would
-      // reject the purge — the action must not be offered.
+      // Archived children are named in the property cascade warning and keep
+      // their own granular purge actions.
       units: [
         _unit(
           id: 'unit-1',
@@ -156,16 +158,27 @@ void main() {
     await tester.tap(find.text('Show archived'));
     await tester.pumpAndSettle();
 
-    // The property's own row offers nothing while a unit still points at it.
-    expect(find.byIcon(Icons.delete_forever_outlined), findsNothing);
+    // The property's own action is available even with an archived child.
+    expect(find.byIcon(Icons.delete_forever_outlined), findsOneWidget);
+    await tester.ensureVisible(find.byIcon(Icons.delete_forever_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.delete_forever_outlined));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(
+      find.textContaining('1 rental space and 0 listings'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('payment, receipt, document'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
 
-    // Expanding it reveals the unit, which is purgeable on its own.
+    // The granular per-unit purge remains available after expanding.
     await tester.ensureVisible(find.text('Retired Court'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Retired Court'));
     await tester.pumpAndSettle();
     expect(find.text('Apartment A1'), findsOneWidget);
-    expect(find.byIcon(Icons.delete_forever_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.delete_forever_outlined), findsNWidgets(2));
   });
 }
 

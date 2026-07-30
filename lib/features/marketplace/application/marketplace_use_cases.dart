@@ -26,6 +26,7 @@ final publishListingProvider = Provider<PublishListing>(PublishListing.new);
 final unpublishListingProvider = Provider<UnpublishListing>(
   UnpublishListing.new,
 );
+final removeListingProvider = Provider<RemoveListing>(RemoveListing.new);
 final submitRentalApplicationProvider = Provider<SubmitRentalApplication>(
   SubmitRentalApplication.new,
 );
@@ -116,6 +117,30 @@ class UnpublishListing {
       listingId,
     );
     return deps.listings.unpublish(listing);
+  }
+}
+
+class RemoveListing {
+  const RemoveListing(this._ref);
+
+  final Ref _ref;
+
+  Future<MutationResult> call(String listingId) async {
+    final session = _requirePermission(
+      _ref,
+      AppResource.privateListing,
+      CrudOperation.delete,
+    );
+    final deps = await _ref.read(appDependenciesProvider.future);
+    final listing = _requireOwnedListing(
+      await deps.listings.getById(listingId),
+      session,
+      listingId,
+    );
+    if (listing.status == ListingStatus.published) {
+      throw StateError('Unpublish this listing before removing it.');
+    }
+    return deps.listings.remove(listing);
   }
 }
 

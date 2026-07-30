@@ -3268,6 +3268,141 @@ class AppLocalizationsAr extends AppLocalizations {
       'وضع هذا الإشعار في قائمة الانتظار';
 
   @override
+  String actionFailureCommandConnection(String action) {
+    return 'تعذر على Nyumba الوصول إلى الخادم، لذلك لم يتمكن من $action. تحقق من اتصالك وحاول مرة أخرى.';
+  }
+
+  @override
+  String actionFailureCommandUncertain(String action) {
+    return 'أرسل Nyumba الطلب ولكنه لم يتمكن من تأكيد اكتماله. حدّث البيانات قبل محاولة $action مرة أخرى.';
+  }
+
+  @override
+  String actionFailureCommandRejected(String action) {
+    return 'رفض الخادم $action لأن السجل لم يعد مستوفيًا للمتطلبات. حدّثه وراجع حالته الحالية ثم حاول مرة أخرى.';
+  }
+
+  @override
+  String actionFailureRejectedFields(String action, String fields) {
+    return 'تعذر على Nyumba $action لأن هذه المعلومات تحتاج إلى مراجعة: $fields.';
+  }
+
+  @override
+  String get actionFailureReasonListingStillPublished =>
+      'لا يزال هذا الإعلان منشورًا. ألغِ نشره أولاً ثم حاول مرة أخرى.';
+
+  @override
+  String get actionFailureReasonPropertyHasActiveUnits =>
+      'لا يزال هذا العقار يحتوي على مساحة مؤجرة. أنهِ عقد الإيجار النشط قبل المحاولة مرة أخرى.';
+
+  @override
+  String get actionFailureReasonUnitStillLinked =>
+      'لا تزال هذه المساحة مرتبطة بعقد إيجار نشط أو إعلان منشور. أنهِ العقد أو ألغِ نشر الإعلان أولاً.';
+
+  @override
+  String get actionFailureReasonNotArchived =>
+      'يجب أرشفة هذا السجل قبل حذفه نهائيًا.';
+
+  @override
+  String get actionFailureReasonPortfolioTooLarge =>
+      'هذه المحفظة كبيرة جدًا بحيث لا يمكن حذفها بأمان في خطوة واحدة. احذف المساحات أو الإعلانات بشكل منفرد ثم حاول مرة أخرى.';
+
+  @override
+  String get actionFailureReasonVerifyEmail =>
+      'تحقق من عنوان بريدك الإلكتروني قبل محاولة هذا الإجراء مرة أخرى.';
+
+  @override
+  String get actionFailureReasonSignIn =>
+      'سجّل الدخول قبل محاولة هذا الإجراء مرة أخرى.';
+
+  @override
+  String get actionFailureVersionConflict =>
+      'تغيّر هذا السجل بعد فتحه. حدّثه ثم حاول مرة أخرى.';
+
+  @override
+  String get actionFailureRecordNotFound =>
+      'لم يعد هذا السجل موجودًا. حدّث الصفحة قبل المحاولة مرة أخرى.';
+
+  @override
+  String get actionFailureAccountNotApproved =>
+      'يجب اعتماد حساب المالك قبل إجراء هذا التغيير.';
+
+  @override
+  String get actionFailureAccountSuspended =>
+      'حساب المالك موقوف ولا يمكنه إجراء هذا التغيير.';
+
+  @override
+  String get actionFailureSubscriptionInactive =>
+      'يلزم اشتراك مالك نشط لإجراء هذا التغيير.';
+
+  @override
+  String get actionFailureEntitlementMissing =>
+      'لا تتضمن خطة الاشتراك الحالية هذا الإجراء.';
+
+  @override
+  String get actionFailureActionArchiveProperty => 'أرشفة هذا العقار';
+
+  @override
+  String get actionFailureActionArchiveRentalSpace =>
+      'أرشفة هذه المساحة المؤجرة';
+
+  @override
+  String get actionFailureActionRemoveListing => 'إزالة هذا الإعلان';
+
+  @override
+  String get actionFailureActionDeletePermanently => 'حذف هذا السجل نهائيًا';
+
+  @override
+  String archiveSuccessName(String name) {
+    return 'تمت أرشفة $name.';
+  }
+
+  @override
+  String get removeListingMenu => 'إزالة الإعلان';
+
+  @override
+  String removeListingDialogTitle(String name) {
+    return 'إزالة $name؟';
+  }
+
+  @override
+  String get removeListingDialogMessage =>
+      'يؤدي هذا إلى إزالة الإعلان غير المعروض وصوره نهائيًا من Nyumba. لا يمكن التراجع عن ذلك.';
+
+  @override
+  String get removeListingConfirm => 'إزالة الإعلان';
+
+  @override
+  String removeListingSuccessName(String name) {
+    return 'تمت إزالة $name.';
+  }
+
+  @override
+  String get removeListingPublishedGuidance =>
+      'ألغِ نشر هذا الإعلان أولاً، ثم أزله.';
+
+  @override
+  String get adminArchivedRecordsCascadeCaption =>
+      'يمكن حذف العقارات المؤرشفة مع مساحاتها وإعلاناتها';
+
+  @override
+  String adminPropertyCascadeWarning(int unitCount, int listingCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      unitCount,
+      locale: localeName,
+      other: '$unitCount مساحة مؤجرة',
+      one: 'مساحة مؤجرة واحدة',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      listingCount,
+      locale: localeName,
+      other: '$listingCount إعلانات',
+      one: 'إعلان واحد',
+    );
+    return 'يؤدي هذا أيضًا إلى حذف $_temp0 و$_temp1 نهائيًا. يتم الاحتفاظ بسجل الإيجارات والعقود والمدفوعات والإيصالات والمستندات والصيانة والإشعارات.';
+  }
+
+  @override
   String get browseHomesNav => 'تصفح المنازل';
 
   @override

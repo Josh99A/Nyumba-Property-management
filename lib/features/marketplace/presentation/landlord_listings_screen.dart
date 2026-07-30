@@ -24,6 +24,7 @@ import '../../../core/presentation/responsive.dart';
 import '../../../core/presentation/status_badge.dart';
 import '../../../core/presentation/status_message.dart';
 import '../../../core/presentation/surface.dart';
+import '../../../core/presentation/toast.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../portfolio/domain/property.dart';
@@ -298,12 +299,14 @@ class _LandlordListingsScreenState
     onPublish: () => _publish(listing),
     onEdit: () => _editListing(listing),
     onUnpublish: () => _unpublish(listing),
+    onRemove: () => _removeListing(listing),
     // No per-advert retry. A refused command is reported when it is refused,
     // and the action that failed is still right there to try again.
     onRetry: null,
     canPublish: canUpdate,
     canEdit: canUpdate,
     canUnpublish: canUnpublish,
+    canRemove: canUnpublish,
   );
 
   /// Recovery for an advert the server refused. The failed command is put back
@@ -604,6 +607,58 @@ class _LandlordListingsScreenState
           content: Text.localized('Could not unpublish: ${_reason(error)}'),
         ),
       );
+    }
+  }
+
+  Future<void> _removeListing(Listing listing) async {
+    final copy = appLocalizationsOf(context);
+    if (listing.status == ListingStatus.published) {
+      showNyumbaToast(
+        copy.removeListingPublishedGuidance,
+        variant: NyumbaToastVariant.info,
+      );
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(copy.removeListingDialogTitle(listing.title)),
+        content: Text(copy.removeListingDialogMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text.localized('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: dialogContext.nyumba.danger,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(copy.removeListingConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(removeListingProvider)(listing.id);
+      if (!mounted) return;
+      showNyumbaToast(
+        appLocalizationsOf(context).removeListingSuccessName(listing.title),
+        variant: NyumbaToastVariant.success,
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      final copy = appLocalizationsOf(context);
+      final message =
+          error is StateError &&
+              error.message.toString().contains('Unpublish this listing')
+          ? copy.removeListingPublishedGuidance
+          : describeActionFailure(
+              error,
+              action: copy.actionFailureActionRemoveListing,
+            ).message;
+      showNyumbaToast(message, variant: NyumbaToastVariant.error);
     }
   }
 
@@ -1285,10 +1340,12 @@ class _LandlordListingCard extends StatelessWidget {
     required this.onPublish,
     required this.onEdit,
     required this.onUnpublish,
+    required this.onRemove,
     required this.onRetry,
     required this.canPublish,
     required this.canEdit,
     required this.canUnpublish,
+    required this.canRemove,
   });
 
   final Listing listing;
@@ -1297,12 +1354,14 @@ class _LandlordListingCard extends StatelessWidget {
   final VoidCallback onPublish;
   final VoidCallback onEdit;
   final VoidCallback onUnpublish;
+  final VoidCallback onRemove;
 
   /// Null when there is no refused command to re-queue.
   final Future<void> Function()? onRetry;
   final bool canPublish;
   final bool canEdit;
   final bool canUnpublish;
+  final bool canRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -1419,6 +1478,8 @@ class _LandlordListingCard extends StatelessWidget {
                           );
                         } else if (value == 'unpublish') {
                           onUnpublish();
+                        } else if (value == 'remove') {
+                          onRemove();
                         } else if (value == 'edit') {
                           onEdit();
                         }
@@ -1453,6 +1514,15 @@ class _LandlordListingCard extends StatelessWidget {
                           const PopupMenuItem(
                             value: 'unpublish',
                             child: Text.localized('Unpublish listing'),
+                          ),
+                        if (canRemove &&
+                            (listing.status == ListingStatus.draft ||
+                                listing.status == ListingStatus.paused))
+                          PopupMenuItem(
+                            value: 'remove',
+                            child: Text(
+                              appLocalizationsOf(context).removeListingMenu,
+                            ),
                           ),
                       ],
                     ),

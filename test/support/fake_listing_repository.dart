@@ -120,6 +120,12 @@ final class FakeListingRepository implements ListingRepository {
     return _result(listing.id, 'listing.unpublish');
   }
 
+  @override
+  Future<MutationResult> remove(Listing listing) async {
+    records.remove(listing.id);
+    return _result(listing.id, 'listing.discard');
+  }
+
   MutationResult _result(String id, String type) {
     sent.add(type);
     return MutationResult(
