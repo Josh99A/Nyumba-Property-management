@@ -588,7 +588,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                 onPressed: isSaving || isDismissing
                     ? null
                     : () {
-                        isDismissing = true;
+                        if (isSaving || isDismissing) return;
+                        setDialogState(() => isDismissing = true);
                         Navigator.pop<MutationResult>(context);
                       },
                 child: const Text.localized('Cancel'),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -32,21 +33,24 @@ class _FixedSessionController extends SessionController {
 }
 
 class _RecordingCreateProperty extends CreateProperty {
-  _RecordingCreateProperty(super.ref, {this.failure});
+  _RecordingCreateProperty(super.ref, {this.failure, this.result});
 
   final Object? failure;
+  final Future<MutationResult>? result;
   final calls = <CreatePropertyInput>[];
 
   @override
   Future<MutationResult> call(CreatePropertyInput input) async {
     calls.add(input);
     if (failure case final failure?) throw failure;
-    return MutationResult(
-      aggregateId: 'property-created',
-      outcome: CommandOutcome(committedAt: DateTime.utc(2026, 7, 30, 15)),
-    );
+    return result == null ? _createdResult() : await result!;
   }
 }
+
+MutationResult _createdResult() => MutationResult(
+  aggregateId: 'property-created',
+  outcome: CommandOutcome(committedAt: DateTime.utc(2026, 7, 30, 15)),
+);
 
 final _photoBytes = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk'
@@ -115,6 +119,40 @@ void main() {
 
       expect(router.routeInformationProvider.value.uri.path, '/properties');
       expect(find.text('Add property'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'cancel queued immediately after save cannot discard a successful result',
+    (tester) async {
+      final completion = Completer<MutationResult>();
+      late _RecordingCreateProperty create;
+      final router = await _pumpCreateDialog(
+        tester,
+        overrideCreate: (ref) =>
+            create = _RecordingCreateProperty(ref, result: completion.future),
+      );
+
+      await _completeRequiredFields(tester);
+      await tester.tap(find.text('Save property'));
+      // Deliberately no pump between gestures: Cancel still has the callback
+      // built before Save marked the dialog busy.
+      await tester.tap(find.text('Cancel'));
+      await tester.pump();
+
+      expect(create.calls, hasLength(1));
+      expect(find.text('Save property'), findsOneWidget);
+      expect(router.routeInformationProvider.value.uri.path, '/properties');
+
+      completion.complete(_createdResult());
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/properties/property-created',
+      );
+      expect(find.text('created-property-created'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
