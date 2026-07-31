@@ -76,14 +76,12 @@ final class FakeListingRepository implements ListingRepository {
       city: input.city.trim(),
       district: input.district,
       // Mirrors the real repository: the advert falls back to the city when no
-      // neighbourhood was given, and inherits the property's gallery when the
-      // landlord selected no photos of their own.
+      // neighbourhood was given. Photos belong to the exact rental space and
+      // are never silently copied from the property's building gallery.
       neighborhood: input.neighborhood ?? input.city.trim(),
       approximateLatitude: pin?.latitude,
       approximateLongitude: pin?.longitude,
-      imageUrls: input.imageUrls.isEmpty
-          ? (property?.imageUrls ?? const <String>[])
-          : input.imageUrls,
+      imageUrls: input.imageUrls,
       contactPhone: input.contactPhone,
       createdAt: retrievedAt,
       updatedAt: retrievedAt,

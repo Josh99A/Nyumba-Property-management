@@ -1337,6 +1337,9 @@
     ,"cloudRefreshing": "جارٍ التحديث…"
     ,"cloudCheckingForUpdates": "جارٍ البحث عن تحديثات…"
     ,"cloudReconnecting": "جارٍ إعادة الاتصال…"
+    ,"cloudPartialDataTitle": "تعذّر عرض بعض السجلات"
+    ,"cloudPartialDataMessage": "{count,plural, zero{لم تُستبعد أي سجلات}one{استلم Nyumba سجلاً واحداً بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.}two{استلم Nyumba سجلين بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.}few{استلم Nyumba ‏{count} سجلات بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.}many{استلم Nyumba ‏{count} سجلاً بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.}other{استلم Nyumba ‏{count} سجل بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.}}"
+    ,"@cloudPartialDataMessage": {"placeholders": {"count": {"type": "int"}}}
     ,"cloudLastUpdated": "آخر تحديث {time}"
     ,"@cloudLastUpdated": {"description": "Freshness stamp. {time} is a formatted time, already localized.", "placeholders": {"time": {"type": "String"}}}
     ,"cloudMayBeOutdatedTitle": "قد تكون هذه البيانات قديمة"
@@ -1356,5 +1359,6 @@
     ,"availabilityUpdated": "تم تحديث التوفّر."
     ,"availabilityUpdatedAdvertWithdrawn": "تم تحديث التوفّر. وأُزيل الإعلان من السوق."
     ,"listingDraftSaved": "تم حفظ مسودة الإعلان."
+    ,"listingContactRoutingNotice": "تُوجّه الاستفسارات بأمان عبر Nyumba. ولا يُنشر رقم هاتفك الخاص أو بريدك الإلكتروني مع هذا الإعلان."
     ,"propertySaveSuccess": "تم حفظ العقار."
 }

@@ -1385,6 +1385,10 @@
     ,"@cloudCheckingForUpdates": {"description": "Shown when cached data is on screen and its freshness has not been confirmed yet."}
     ,"cloudReconnecting": "Reconnecting…"
     ,"@cloudReconnecting": {"description": "Shown while a dropped live connection is being re-established."}
+    ,"cloudPartialDataTitle": "Some records could not be shown"
+    ,"@cloudPartialDataTitle": {"description": "Warning heading when the server returned records this app build could not decode."}
+    ,"cloudPartialDataMessage": "{count,plural, =1{Nyumba received 1 record in an unexpected format. The other records are still shown.}other{Nyumba received {count} records in an unexpected format. The other records are still shown.}}"
+    ,"@cloudPartialDataMessage": {"description": "Explains that malformed records were not silently presented as an empty result.", "placeholders": {"count": {"type": "int"}}}
     ,"cloudLastUpdated": "Last updated {time}"
     ,"@cloudLastUpdated": {"description": "Freshness stamp. {time} is a formatted time, already localized.", "placeholders": {"time": {"type": "String"}}}
     ,"cloudMayBeOutdatedTitle": "This may be out of date"
@@ -1421,6 +1425,8 @@
     ,"@availabilityUpdatedAdvertWithdrawn": {"description": "Confirmation when the availability change also removed a published advert. Both clauses describe completed server actions."}
     ,"listingDraftSaved": "Draft advert saved."
     ,"@listingDraftSaved": {"description": "Confirmation after the server accepted a new draft advert. Past tense: only shown once the server has confirmed."}
+    ,"listingContactRoutingNotice": "Enquiries are routed securely through Nyumba. Your private phone number and email address are not published with this advert."
+    ,"@listingContactRoutingNotice": {"description": "Privacy notice in the listing editor. The server routes enquiries through an opaque landlord token rather than storing contact details on the advert."}
     ,"propertySaveSuccess": "Property saved."
     ,"@propertySaveSuccess": {"description": "Confirmation after the server accepted a new property. Past tense: only shown once the server has confirmed."}
 }

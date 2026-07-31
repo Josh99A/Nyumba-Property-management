@@ -9,7 +9,12 @@ import {
 } from '../shared/accounts';
 import { landlordPublicToken } from '../shared/canonical';
 import { COLLECTIONS } from '../shared/collections';
-import { LISTING_LIFETIME_DAYS, MAX_LISTING_PHOTOS, MIN_LISTING_PHOTOS } from '../shared/config';
+import {
+  CURRENCY,
+  LISTING_LIFETIME_DAYS,
+  MAX_LISTING_PHOTOS,
+  MIN_LISTING_PHOTOS,
+} from '../shared/config';
 import { DomainError } from '../shared/errors';
 import { ratingBadge, readTotals } from '../shared/ratings';
 import {
@@ -57,17 +62,39 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
     validateStagedPaths(actor.uid, cmd.payload.stagedImagePaths ?? []);
     const listingRef = db.collection(COLLECTIONS.privateListings).doc(cmd.aggregateId!);
     const unitRef = db.collection(COLLECTIONS.units).doc(cmd.payload.unitId);
-    const [listingSnap, unitSnap] = await Promise.all([tx.get(listingRef), tx.get(unitRef)]);
-    const unit = requireAggregate<Record<string, unknown> & { version: number; landlordId: string }>(unitSnap, undefined);
+    const unitListingsQuery = db.collection(COLLECTIONS.privateListings)
+      .where('unitId', '==', cmd.payload.unitId)
+      .limit(2);
+    const [listingSnap, unitSnap, unitListingsSnap] = await Promise.all([
+      tx.get(listingRef),
+      tx.get(unitRef),
+      tx.get(unitListingsQuery),
+    ]);
+    const unit = requireAggregate<Record<string, unknown> & {
+      version: number;
+      landlordId: string;
+      propertyId: string;
+    }>(unitSnap, undefined);
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, unit.landlordId)
       : await requireWorkspace(tx, db, actor, 'manageListings');
     requireOwnedByLandlord(unit, landlord.landlordId);
     if (cmd.expectedVersion === 0) {
       requireAbsent(listingSnap);
+      const existingListing = unitListingsSnap.docs.find(
+        (snapshot) => snapshot.id !== cmd.aggregateId,
+      );
+      if (existingListing) {
+        throw new DomainError('ALREADY_EXISTS', {
+          reason: 'unitAlreadyHasListing',
+          listingId: existingListing.id,
+        });
+      }
       tx.create(listingRef, {
         ...newAggregate(cmd.aggregateId!, now),
         landlordId: landlord.landlordId,
+        propertyId: unit.propertyId,
+        currency: CURRENCY,
         publicationState: 'draft',
         mediaState: 'staged',
         ...cmd.payload,
@@ -83,7 +110,13 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
     const mediaChanges = cmd.payload.stagedImagePaths
       ? { mediaState: 'staged' }
       : {};
-    tx.update(listingRef, { ...cmd.payload, ...mediaChanges, ...bumpVersion(current, now) });
+    tx.update(listingRef, {
+      ...cmd.payload,
+      propertyId: unit.propertyId,
+      currency: CURRENCY,
+      ...mediaChanges,
+      ...bumpVersion(current, now),
+    });
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: current.version + 1, changedFields: [...Object.keys(cmd.payload), ...Object.keys(mediaChanges)] };
   },
 };

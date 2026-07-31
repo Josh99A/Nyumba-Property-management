@@ -529,6 +529,27 @@ void main() {
     expect(requested, const <String>[primary]);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  test('media URL resolution retries a publication-worker race', () async {
+    var attempts = 0;
+    final waits = <Duration>[];
+
+    final url = await resolveMediaUrlWithRetry(
+      (reference) async {
+        attempts++;
+        if (attempts == 1) throw StateError('object-not-found');
+        if (attempts == 2) return null;
+        return 'https://example.test/delivered.webp';
+      },
+      'public/listings/listing-1/image.webp',
+      retryDelays: const [Duration(milliseconds: 1), Duration(milliseconds: 2)],
+      wait: (delay) async => waits.add(delay),
+    );
+
+    expect(url, 'https://example.test/delivered.webp');
+    expect(attempts, 3);
+    expect(waits, const [Duration(milliseconds: 1), Duration(milliseconds: 2)]);
+  });
 }
 
 class _MediaVisibility extends StatefulWidget {

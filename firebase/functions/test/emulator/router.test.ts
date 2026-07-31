@@ -85,6 +85,110 @@ describe('command router', () => {
     await expect(executeCommandCore(db, { ...landlord, uid: 'other_uid_1234' }, cmd, now)).rejects.toMatchObject({ code: 'IDEMPOTENCY_KEY_REUSED' });
   });
 
+  it('rejects a second active property with the same canonical identity', async () => {
+    await seedLandlord();
+    const identity = {
+      name: 'Kampala Heights',
+      addressLine: 'Plot 18 Kira Road',
+      city: 'Kampala',
+      stagedImagePaths: [],
+    };
+    const first = envelope(
+      'command_property_duplicate_1',
+      'property.create',
+      'property_duplicate_1',
+      0,
+      identity,
+    );
+    const second = envelope(
+      'command_property_duplicate_2',
+      'property.create',
+      'property_duplicate_2',
+      0,
+      identity,
+    );
+
+    expect(await executeCommandCore(db, landlord, first, now)).toMatchObject({
+      status: 'applied',
+    });
+    expect(await executeCommandCore(db, landlord, second, now)).toMatchObject({
+      status: 'rejected',
+      error: {
+        code: 'ALREADY_EXISTS',
+        details: { reason: 'duplicateProperty' },
+      },
+    });
+    expect((await db.doc('properties/property_duplicate_2').get()).exists).toBe(false);
+
+    expect(await executeCommandCore(db, landlord, envelope(
+      'command_property_duplicate_archive',
+      'property.archive',
+      'property_duplicate_1',
+      1,
+      {},
+    ), now)).toMatchObject({ status: 'applied' });
+    expect(await executeCommandCore(db, landlord, envelope(
+      'command_property_duplicate_recreate',
+      'property.create',
+      'property_duplicate_recreated',
+      0,
+      identity,
+    ), now)).toMatchObject({ status: 'applied' });
+  });
+
+  it('rejects a property edit that collides with another active property', async () => {
+    await seedLandlord();
+    const firstIdentity = {
+      name: 'Kampala Heights',
+      addressLine: 'Plot 18 Kira Road',
+      city: 'Kampala',
+      stagedImagePaths: [],
+    };
+    const secondIdentity = {
+      name: 'Ntinda Court',
+      addressLine: 'Plot 4 Ntinda Road',
+      city: 'Kampala',
+      stagedImagePaths: [],
+    };
+    await executeCommandCore(db, landlord, envelope(
+      'command_property_collision_1',
+      'property.create',
+      'property_collision_1',
+      0,
+      firstIdentity,
+    ), now);
+    await executeCommandCore(db, landlord, envelope(
+      'command_property_collision_2',
+      'property.create',
+      'property_collision_2',
+      0,
+      secondIdentity,
+    ), now);
+
+    const collision = envelope(
+      'command_property_collision_update',
+      'property.update',
+      'property_collision_2',
+      1,
+      {
+        name: firstIdentity.name,
+        addressLine: firstIdentity.addressLine,
+        city: firstIdentity.city,
+      },
+    );
+    expect(await executeCommandCore(db, landlord, collision, now)).toMatchObject({
+      status: 'rejected',
+      error: {
+        code: 'ALREADY_EXISTS',
+        details: { reason: 'duplicateProperty' },
+      },
+    });
+    expect((await db.doc('properties/property_collision_2').get()).data()).toMatchObject({
+      name: secondIdentity.name,
+      addressLine: secondIdentity.addressLine,
+    });
+  });
+
   it('updates profile preferences without a local version and marks only the actor inbox read', async () => {
     await db.doc(`users/${landlord.uid}`).set({
       id: landlord.uid, displayName: 'Landlord', role: 'landlord', status: 'active',
@@ -410,6 +514,55 @@ describe('command router', () => {
     });
     // Archive already decremented the unit counter; cascade must not repeat it.
     expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()?.activeUnitCount).toBe(0);
+  });
+
+  it('cascades a Super Admin unit purge through its retired listings', async () => {
+    await db.doc('units/unit_retired_1234').set({
+      id: 'unit_retired_1234',
+      propertyId: 'property_retired_1234',
+      landlordId: landlord.uid,
+      isDeleted: true,
+      activeLeaseId: null,
+      activePublicListingId: null,
+      version: 2,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.doc('privateListings/listing_retired_1234').set({
+      id: 'listing_retired_1234',
+      unitId: 'unit_retired_1234',
+      landlordId: landlord.uid,
+      publicationState: 'draft',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.doc('publicListings/listing_retired_1234').set({
+      id: 'listing_retired_1234',
+      status: 'unpublished',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const remove = envelope(
+      'command_unit_purge_cascade',
+      'unit.delete',
+      'unit_retired_1234',
+      2,
+      { reasonCode: 'ADMIN_CORRECTION' },
+    );
+    expect(await executeCommandCore(db, superAdmin, remove, now)).toMatchObject({
+      status: 'accepted',
+    });
+    expect((await db.doc('units/unit_retired_1234').get()).exists).toBe(false);
+    expect((await db.doc('privateListings/listing_retired_1234').get()).exists).toBe(false);
+    expect((await db.doc('publicListings/listing_retired_1234').get()).exists).toBe(false);
+    expect((await db.doc('backendJobs/command_unit_purge_cascade_listing_0').get()).data())
+      .toMatchObject({
+        type: 'cleanupListingMedia',
+        payload: { listingId: 'listing_retired_1234' },
+      });
   });
 
   it('refuses a property cascade while a space is occupied or an advert is published', async () => {
@@ -748,6 +901,37 @@ describe('command router', () => {
         stagedImagePaths: [`uploads/${superAdmin.uid}/staff-cover.jpg`],
       },
     ), now)).toMatchObject({ status: 'applied' });
+    expect((await db.doc(`privateListings/${listingId}`).get()).data()).toMatchObject({
+      propertyId,
+      currency: 'UGX',
+      publicationState: 'draft',
+    });
+    expect(await executeCommandCore(db, superAdmin, envelope(
+      'command_staff_listing_duplicate',
+      'listing.saveDraft',
+      'listing_staff_duplicate',
+      0,
+      {
+        unitId,
+        title: 'Duplicate staff managed apartment',
+        description: 'A second draft for the same unit must not be recorded.',
+        monthlyRentMinor: 100_000,
+        unitType: 'apartment',
+        city: 'Kampala',
+        neighborhood: 'Ntinda',
+        district: 'Kampala',
+        bedrooms: 1,
+        bathrooms: 1,
+        amenities: [],
+        stagedImagePaths: [`uploads/${superAdmin.uid}/staff-cover.jpg`],
+      },
+    ), now)).toMatchObject({
+      status: 'rejected',
+      error: {
+        code: 'ALREADY_EXISTS',
+        details: { reason: 'unitAlreadyHasListing', listingId },
+      },
+    });
     expect(await executeCommandCore(db, superAdmin, envelope(
       'command_staff_listing_update',
       'listing.saveDraft',

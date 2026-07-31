@@ -219,7 +219,7 @@ final class _PropertyMediaUrlCache {
   _PropertyMediaUrlCache(this._resolver);
 
   final PropertyMediaUrlResolver _resolver;
-  final Map<String, String?> _values = <String, String?>{};
+  final Map<String, String> _values = <String, String>{};
   final Map<String, Future<String?>> _inFlight = <String, Future<String?>>{};
 
   Future<String?> resolve(String reference) {
@@ -228,14 +228,50 @@ final class _PropertyMediaUrlCache {
     }
     return _inFlight.putIfAbsent(reference, () async {
       try {
-        final url = await _resolver(reference);
-        _values[reference] = url;
+        final url = await resolveMediaUrlWithRetry(_resolver, reference);
+        // A null is transient (usually the delivery worker has not produced
+        // the object yet), so never memoise it as a permanent grey tile.
+        if (url != null) _values[reference] = url;
         return url;
       } finally {
         _inFlight.remove(reference);
       }
     });
   }
+}
+
+/// Gives an asynchronously delivered listing image a short window to appear.
+///
+/// Publication commits the public projection before its media worker finishes.
+/// A single Storage lookup therefore races that worker and used to leave the
+/// mounted card failed until the whole page was reloaded.
+@visibleForTesting
+Future<String?> resolveMediaUrlWithRetry(
+  PropertyMediaUrlResolver resolver,
+  String reference, {
+  List<Duration> retryDelays = const <Duration>[
+    Duration(milliseconds: 400),
+    Duration(milliseconds: 1200),
+    Duration(milliseconds: 2400),
+  ],
+  Future<void> Function(Duration delay) wait = Future<void>.delayed,
+}) async {
+  Object? lastError;
+  StackTrace? lastStackTrace;
+  for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
+    if (attempt > 0) await wait(retryDelays[attempt - 1]);
+    try {
+      final url = await resolver(reference);
+      if (url != null) return url;
+    } on Object catch (error, stackTrace) {
+      lastError = error;
+      lastStackTrace = stackTrace;
+    }
+  }
+  if (lastError != null) {
+    Error.throwWithStackTrace(lastError, lastStackTrace!);
+  }
+  return null;
 }
 
 /// Builds one offline workspace per signed-in account (plus one anonymous

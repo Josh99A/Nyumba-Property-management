@@ -1337,6 +1337,9 @@
     ,"cloudRefreshing": "Tuzza buggya…"
     ,"cloudCheckingForUpdates": "Tukebera ebipya…"
     ,"cloudReconnecting": "Tuddamu okukwatagana…"
+    ,"cloudPartialDataTitle": "Ebiwandiiko ebimu tebisobodde kulagibwa"
+    ,"cloudPartialDataMessage": "{count,plural, =1{Nyumba efunye ekiwandiiko 1 mu nkola etasuubirwa. Ebiwandiiko ebirala bikyalagibwa.}other{Nyumba efunye ebiwandiiko {count} mu nkola etasuubirwa. Ebiwandiiko ebirala bikyalagibwa.}}"
+    ,"@cloudPartialDataMessage": {"placeholders": {"count": {"type": "int"}}}
     ,"cloudLastUpdated": "Byazzibwa buggya {time}"
     ,"@cloudLastUpdated": {"description": "Freshness stamp. {time} is a formatted time, already localized.", "placeholders": {"time": {"type": "String"}}}
     ,"cloudMayBeOutdatedTitle": "Bino biyinza obutaba bipya"
@@ -1356,5 +1359,6 @@
     ,"availabilityUpdated": "Obusobozi buzzibwamu."
     ,"availabilityUpdatedAdvertWithdrawn": "Obusobozi buzzibwamu. Ekirango kiggiddwa ku katale."
     ,"listingDraftSaved": "Ekirango eky'okusooka kitereke."
+    ,"listingContactRoutingNotice": "Okubuuza kuyisibwa mu ngeri enkuumi mu Nyumba. Ennamba yo ey'essimu ne email eby'obwannannyini tebifulumizibwa n'ekirango kino."
     ,"propertySaveSuccess": "Eky'obugagga kiterekeddwa."
 }

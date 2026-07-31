@@ -4366,6 +4366,29 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cloudReconnecting => 'جارٍ إعادة الاتصال…';
 
   @override
+  String get cloudPartialDataTitle => 'تعذّر عرض بعض السجلات';
+
+  @override
+  String cloudPartialDataMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'استلم Nyumba ‏$count سجل بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.',
+      many:
+          'استلم Nyumba ‏$count سجلاً بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.',
+      few:
+          'استلم Nyumba ‏$count سجلات بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.',
+      two:
+          'استلم Nyumba سجلين بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.',
+      one:
+          'استلم Nyumba سجلاً واحداً بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.',
+      zero: 'لم تُستبعد أي سجلات',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String cloudLastUpdated(String time) {
     return 'آخر تحديث $time';
   }
@@ -4427,6 +4450,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get listingDraftSaved => 'تم حفظ مسودة الإعلان.';
+
+  @override
+  String get listingContactRoutingNotice =>
+      'تُوجّه الاستفسارات بأمان عبر Nyumba. ولا يُنشر رقم هاتفك الخاص أو بريدك الإلكتروني مع هذا الإعلان.';
 
   @override
   String get propertySaveSuccess => 'تم حفظ العقار.';

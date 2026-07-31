@@ -171,9 +171,12 @@ export const unitDelete: CommandHandler<PurgeReason> = {
   payloadSchema: purgeReasonSchema,
   aggregateIdMode: 'required',
   expectedVersionMode: 'edit',
-  async apply({ tx, db, actor, cmd }) {
+  async apply({ tx, db, actor, cmd, now }) {
     requireSuperAdmin(actor);
     const ref = db.collection(COLLECTIONS.units).doc(cmd.aggregateId!);
+    const listingsSnap = await tx.get(
+      db.collection(COLLECTIONS.privateListings).where('unitId', '==', cmd.aggregateId!),
+    );
     const snapshot = await tx.get(ref);
     const current = requireAggregate<
       ArchivableAggregate & { activeLeaseId?: string | null; activePublicListingId?: string | null }
@@ -184,9 +187,38 @@ export const unitDelete: CommandHandler<PurgeReason> = {
     if (current.activeLeaseId || current.activePublicListingId) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'unitStillLinked' });
     }
+
+    const listings = listingsSnap.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as { publicationState?: string }),
+    }));
+    if (listings.some((listing) => listing.publicationState === 'published')) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'listingStillPublished' });
+    }
+    const publicSnaps = await Promise.all(
+      listings.map((listing) =>
+        tx.get(db.collection(COLLECTIONS.publicListings).doc(listing.id)),
+      ),
+    );
+    const totalWrites =
+      1 + listings.length + publicSnaps.filter((snap) => snap.exists).length +
+      listings.length;
+    if (totalWrites > MAX_CASCADE_HANDLER_WRITES) {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'portfolioTooLargeToCascade' });
+    }
+
+    listings.forEach((listing, index) => {
+      tx.delete(db.collection(COLLECTIONS.privateListings).doc(listing.id));
+      if (publicSnaps[index]?.exists) {
+        tx.delete(db.collection(COLLECTIONS.publicListings).doc(listing.id));
+      }
+      createJob(tx, db, `${cmd.commandId}_listing_${index}`, 'cleanupListingMedia', {
+        listingId: listing.id,
+      }, now);
+    });
     tx.delete(ref);
     return {
-      status: 'applied',
+      status: listings.length > 0 ? 'accepted' : 'applied',
       aggregateId: cmd.aggregateId!,
       serverVersion: current.version,
       changedFields: [],

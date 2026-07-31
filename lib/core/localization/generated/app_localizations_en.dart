@@ -4397,6 +4397,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cloudReconnecting => 'Reconnecting…';
 
   @override
+  String get cloudPartialDataTitle => 'Some records could not be shown';
+
+  @override
+  String cloudPartialDataMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Nyumba received $count records in an unexpected format. The other records are still shown.',
+      one:
+          'Nyumba received 1 record in an unexpected format. The other records are still shown.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String cloudLastUpdated(String time) {
     return 'Last updated $time';
   }
@@ -4459,6 +4475,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get listingDraftSaved => 'Draft advert saved.';
+
+  @override
+  String get listingContactRoutingNotice =>
+      'Enquiries are routed securely through Nyumba. Your private phone number and email address are not published with this advert.';
 
   @override
   String get propertySaveSuccess => 'Property saved.';

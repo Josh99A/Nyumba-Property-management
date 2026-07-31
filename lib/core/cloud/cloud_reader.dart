@@ -80,13 +80,17 @@ final class CloudReader {
           case CloudDataStatus.empty:
             final decoded = _decodeAll(snapshot.value!, decode, aggregate);
             final at = snapshot.retrievedAt ?? _clock.now().toUtc();
-            _cache.write(_partition, key, decoded, retrievedAt: at);
-            lastGood = decoded;
+            _cache.write(_partition, key, decoded.values, retrievedAt: at);
+            lastGood = decoded.values;
             lastGoodAt = at;
             controller.add(
-              decoded.isEmpty
-                  ? CloudData<List<T>>.empty(decoded, retrievedAt: at)
-                  : CloudData<List<T>>.live(decoded, retrievedAt: at),
+              decoded.values.isEmpty && decoded.discardedCount == 0
+                  ? CloudData<List<T>>.empty(decoded.values, retrievedAt: at)
+                  : CloudData<List<T>>.live(
+                      decoded.values,
+                      retrievedAt: at,
+                      discardedRecordCount: decoded.discardedCount,
+                    ),
             );
           case CloudDataStatus.connectionFailure:
           case CloudDataStatus.permissionDenied:
@@ -179,10 +183,14 @@ final class CloudReader {
 
     final decoded = _decodeAll(snapshot.value!, decode, aggregate);
     final at = snapshot.retrievedAt ?? _clock.now().toUtc();
-    _cache.write(_partition, key, decoded, retrievedAt: at);
-    return decoded.isEmpty
-        ? CloudData<List<T>>.empty(decoded, retrievedAt: at)
-        : CloudData<List<T>>.live(decoded, retrievedAt: at);
+    _cache.write(_partition, key, decoded.values, retrievedAt: at);
+    return decoded.values.isEmpty && decoded.discardedCount == 0
+        ? CloudData<List<T>>.empty(decoded.values, retrievedAt: at)
+        : CloudData<List<T>>.live(
+            decoded.values,
+            retrievedAt: at,
+            discardedRecordCount: decoded.discardedCount,
+          );
   }
 
   /// Drops every cache entry for [aggregate].
@@ -196,7 +204,7 @@ final class CloudReader {
 
   void invalidateKey(String key) => _cache.invalidate(_partition, key);
 
-  List<T> _decodeAll<T>(
+  _DecodedRecords<T> _decodeAll<T>(
     List<Map<String, Object?>> records,
     T Function(Map<String, Object?> record) decode,
     CommandAggregate aggregate,
@@ -221,6 +229,16 @@ final class CloudReader {
         name: 'cloud_reader',
       );
     }
-    return List<T>.unmodifiable(result);
+    return _DecodedRecords<T>(
+      values: List<T>.unmodifiable(result),
+      discardedCount: rejected,
+    );
   }
+}
+
+final class _DecodedRecords<T> {
+  const _DecodedRecords({required this.values, required this.discardedCount});
+
+  final List<T> values;
+  final int discardedCount;
 }

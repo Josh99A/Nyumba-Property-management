@@ -20,82 +20,84 @@ import 'package:nyumba_property_management/features/portfolio/domain/unit.dart';
 import 'package:sembast/sembast_memory.dart';
 
 void main() {
-  test('createDraft copies unit facts and ordered property photos', () async {
-    final database = OfflineDatabase(
-      await databaseFactoryMemory.openDatabase('listing-projection.db'),
-    );
-    addTearDown(database.close);
-    await database.initialize();
-    final properties = FakePropertyRepository();
-    final units = FakeUnitRepository();
-    final repository = FakeListingRepository(
-      properties: properties,
-      units: units,
-    );
-
-    final property = await properties.createReturning(
-      const CreatePropertyInput(
-        landlordId: 'landlord-1',
-        name: 'Sunset Apartments',
-        addressLine: 'Muthangari Drive',
-        city: 'Kampala',
-        description: 'Quiet apartment living with secure parking.',
-        imageUrls: <String>[
-          'uploads/landlord-1/property-command/0_primary.webp',
-          'uploads/landlord-1/property-command/1_kitchen.webp',
-        ],
-      ),
-    );
-
-    final unit = await units.createReturning(
-      CreateUnitInput(
-        propertyId: property.id,
-        landlordId: 'landlord-1',
-        label: 'C1',
-        type: UnitType.apartment,
-        status: UnitStatus.vacant,
-        monthlyRentMinor: 150000000,
-        bedrooms: 3,
-        bathrooms: 2,
-        amenities: const ['Secure parking', 'Backup water'],
-      ),
-    );
-
-    final draft = await repository.createReturning(
-      CreateListingInput(
-        unitId: unit.id,
-        propertyId: property.id,
-        landlordId: 'landlord-1',
-        title: 'C1 at Sunset Apartments',
-        description: 'A bright three-bedroom apartment.',
-        monthlyRentMinor: unit.monthlyRentMinor,
-        city: property.city,
-        neighborhood: 'Ntinda',
-        contactPhone: '+256 772 000 100',
-      ),
-    );
-
-    expect(draft.bedrooms, 3);
-    expect(draft.bathrooms, 2);
-    expect(draft.unitType, 'apartment');
-    expect(draft.amenities, ['Secure parking', 'Backup water']);
-    expect(draft.city, 'Kampala');
-    expect(draft.neighborhood, 'Ntinda');
-    expect(draft.imageUrls, property.imageUrls);
-
-    final reloaded = (await repository.getById(draft.id)).value;
-    expect(reloaded?.bedrooms, 3);
-    expect(reloaded?.bathrooms, 2);
-    expect(reloaded?.amenities, draft.amenities);
-    expect(reloaded?.imageUrls, draft.imageUrls);
-  });
-
-  // The same inheritance, asserted where it actually has to hold: on the
-  // command the server receives. This replaces an outbox assertion, and checks
-  // something strictly stronger — the payload that crosses the wire, rather
-  // than a queue entry that no longer exists.
   test(
-    'the draft command carries the inherited photos and unit facts',
+    'createDraft copies unit facts without assuming property photos',
+    () async {
+      final database = OfflineDatabase(
+        await databaseFactoryMemory.openDatabase('listing-projection.db'),
+      );
+      addTearDown(database.close);
+      await database.initialize();
+      final properties = FakePropertyRepository();
+      final units = FakeUnitRepository();
+      final repository = FakeListingRepository(
+        properties: properties,
+        units: units,
+      );
+
+      final property = await properties.createReturning(
+        const CreatePropertyInput(
+          landlordId: 'landlord-1',
+          name: 'Sunset Apartments',
+          addressLine: 'Muthangari Drive',
+          city: 'Kampala',
+          description: 'Quiet apartment living with secure parking.',
+          imageUrls: <String>[
+            'uploads/landlord-1/property-command/0_primary.webp',
+            'uploads/landlord-1/property-command/1_kitchen.webp',
+          ],
+        ),
+      );
+
+      final unit = await units.createReturning(
+        CreateUnitInput(
+          propertyId: property.id,
+          landlordId: 'landlord-1',
+          label: 'C1',
+          type: UnitType.apartment,
+          status: UnitStatus.vacant,
+          monthlyRentMinor: 150000000,
+          bedrooms: 3,
+          bathrooms: 2,
+          amenities: const ['Secure parking', 'Backup water'],
+        ),
+      );
+
+      final draft = await repository.createReturning(
+        CreateListingInput(
+          unitId: unit.id,
+          propertyId: property.id,
+          landlordId: 'landlord-1',
+          title: 'C1 at Sunset Apartments',
+          description: 'A bright three-bedroom apartment.',
+          monthlyRentMinor: unit.monthlyRentMinor,
+          city: property.city,
+          neighborhood: 'Ntinda',
+          contactPhone: '+256 772 000 100',
+        ),
+      );
+
+      expect(draft.bedrooms, 3);
+      expect(draft.bathrooms, 2);
+      expect(draft.unitType, 'apartment');
+      expect(draft.amenities, ['Secure parking', 'Backup water']);
+      expect(draft.city, 'Kampala');
+      expect(draft.neighborhood, 'Ntinda');
+      expect(draft.imageUrls, isEmpty);
+
+      final reloaded = (await repository.getById(draft.id)).value;
+      expect(reloaded?.bedrooms, 3);
+      expect(reloaded?.bathrooms, 2);
+      expect(reloaded?.amenities, draft.amenities);
+      expect(reloaded?.imageUrls, draft.imageUrls);
+    },
+  );
+
+  // The separation is asserted where it actually has to hold: on the command
+  // the server receives. A building photo must not quietly become a photo of
+  // the exact rental space prospects are being offered.
+  test(
+    'the draft command leaves media empty until listing photos are selected',
     () async {
       final reads = FakeCloudReadGateway();
       final commands = RecordingCommandGateway();
@@ -171,12 +173,11 @@ void main() {
       expect(payload['bathrooms'], 2);
       expect(payload['unitType'], 'apartment');
       expect(payload['amenities'], ['Secure parking', 'Backup water']);
-      // An empty photo selection inherits the property's gallery, in order.
-      expect(payload['imageUrls'], property.imageUrls);
+      expect(payload['imageUrls'], isEmpty);
     },
   );
 
-  test('listing-specific photos override inherited property media', () async {
+  test('listing-specific photos are carried to the draft', () async {
     final database = OfflineDatabase(
       await databaseFactoryMemory.openDatabase(
         'listing-photo-override-projection.db',

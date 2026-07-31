@@ -4450,6 +4450,22 @@ class AppLocalizationsSw extends AppLocalizations {
   String get cloudReconnecting => 'Inaunganisha upya…';
 
   @override
+  String get cloudPartialDataTitle => 'Baadhi ya rekodi hazikuweza kuonyeshwa';
+
+  @override
+  String cloudPartialDataMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Nyumba ilipokea rekodi $count katika muundo usiotarajiwa. Rekodi nyingine bado zinaonyeshwa.',
+      one:
+          'Nyumba ilipokea rekodi 1 katika muundo usiotarajiwa. Rekodi nyingine bado zinaonyeshwa.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String cloudLastUpdated(String time) {
     return 'Ilisasishwa $time';
   }
@@ -4512,6 +4528,10 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get listingDraftSaved => 'Rasimu ya tangazo imehifadhiwa.';
+
+  @override
+  String get listingContactRoutingNotice =>
+      'Maulizo yanapitishwa kwa usalama kupitia Nyumba. Nambari yako binafsi ya simu na anwani ya barua pepe hazichapishwi pamoja na tangazo hili.';
 
   @override
   String get propertySaveSuccess => 'Mali imehifadhiwa.';

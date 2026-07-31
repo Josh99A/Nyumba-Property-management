@@ -1337,6 +1337,9 @@
     ,"cloudRefreshing": "Inasasisha…"
     ,"cloudCheckingForUpdates": "Inatafuta masasisho…"
     ,"cloudReconnecting": "Inaunganisha upya…"
+    ,"cloudPartialDataTitle": "Baadhi ya rekodi hazikuweza kuonyeshwa"
+    ,"cloudPartialDataMessage": "{count,plural, =1{Nyumba ilipokea rekodi 1 katika muundo usiotarajiwa. Rekodi nyingine bado zinaonyeshwa.}other{Nyumba ilipokea rekodi {count} katika muundo usiotarajiwa. Rekodi nyingine bado zinaonyeshwa.}}"
+    ,"@cloudPartialDataMessage": {"placeholders": {"count": {"type": "int"}}}
     ,"cloudLastUpdated": "Ilisasishwa {time}"
     ,"@cloudLastUpdated": {"description": "Freshness stamp. {time} is a formatted time, already localized.", "placeholders": {"time": {"type": "String"}}}
     ,"cloudMayBeOutdatedTitle": "Huenda haya yamepitwa na wakati"
@@ -1356,5 +1359,6 @@
     ,"availabilityUpdated": "Upatikanaji umesasishwa."
     ,"availabilityUpdatedAdvertWithdrawn": "Upatikanaji umesasishwa. Tangazo limeondolewa sokoni."
     ,"listingDraftSaved": "Rasimu ya tangazo imehifadhiwa."
+    ,"listingContactRoutingNotice": "Maulizo yanapitishwa kwa usalama kupitia Nyumba. Nambari yako binafsi ya simu na anwani ya barua pepe hazichapishwi pamoja na tangazo hili."
     ,"propertySaveSuccess": "Mali imehifadhiwa."
 }

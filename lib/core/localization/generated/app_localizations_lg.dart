@@ -4475,6 +4475,22 @@ class AppLocalizationsLg extends AppLocalizations {
   String get cloudReconnecting => 'Tuddamu okukwatagana…';
 
   @override
+  String get cloudPartialDataTitle => 'Ebiwandiiko ebimu tebisobodde kulagibwa';
+
+  @override
+  String cloudPartialDataMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Nyumba efunye ebiwandiiko $count mu nkola etasuubirwa. Ebiwandiiko ebirala bikyalagibwa.',
+      one:
+          'Nyumba efunye ekiwandiiko 1 mu nkola etasuubirwa. Ebiwandiiko ebirala bikyalagibwa.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String cloudLastUpdated(String time) {
     return 'Byazzibwa buggya $time';
   }
@@ -4536,6 +4552,10 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get listingDraftSaved => 'Ekirango eky\'okusooka kitereke.';
+
+  @override
+  String get listingContactRoutingNotice =>
+      'Okubuuza kuyisibwa mu ngeri enkuumi mu Nyumba. Ennamba yo ey\'essimu ne email eby\'obwannannyini tebifulumizibwa n\'ekirango kino.';
 
   @override
   String get propertySaveSuccess => 'Eky\'obugagga kiterekeddwa.';

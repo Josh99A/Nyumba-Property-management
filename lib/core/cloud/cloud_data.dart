@@ -116,6 +116,7 @@ final class CloudData<T> {
     this.value,
     this.retrievedAt,
     this.error,
+    this.discardedRecordCount = 0,
   });
 
   /// First read in flight, nothing to show.
@@ -123,12 +124,16 @@ final class CloudData<T> {
     : this._(status: CloudDataStatus.initialLoading);
 
   /// Validated current server data.
-  const CloudData.live(T value, {required DateTime retrievedAt})
-    : this._(
-        status: CloudDataStatus.live,
-        value: value,
-        retrievedAt: retrievedAt,
-      );
+  const CloudData.live(
+    T value, {
+    required DateTime retrievedAt,
+    int discardedRecordCount = 0,
+  }) : this._(
+         status: CloudDataStatus.live,
+         value: value,
+         retrievedAt: retrievedAt,
+         discardedRecordCount: discardedRecordCount,
+       );
 
   /// A confirmed empty server result. [value] carries the caller's empty
   /// collection so widgets need not special-case null.
@@ -193,6 +198,15 @@ final class CloudData<T> {
   /// Why the most recent attempt failed, when it did.
   final CloudReadError? error;
 
+  /// Records returned by the server that this build could not decode.
+  ///
+  /// The readable records remain useful, but this count must be visible in the
+  /// UI: silently dropping malformed rows made a projection mismatch look like
+  /// a genuinely empty workspace.
+  final int discardedRecordCount;
+
+  bool get hasDiscardedRecords => discardedRecordCount > 0;
+
   bool get hasValue => value != null;
 
   /// Whether a request is currently in flight.
@@ -224,13 +238,20 @@ final class CloudData<T> {
           status: CloudDataStatus.refreshing,
           value: value,
           retrievedAt: retrievedAt,
+          discardedRecordCount: discardedRecordCount,
         )
       : const CloudData.initialLoading();
 
   /// Applies a failed refresh: keeps visible data but marks it unvalidated.
   /// With nothing to keep, the failure stands alone.
   CloudData<T> asFailed(CloudReadError error) => hasValue && retrievedAt != null
-      ? CloudData.stale(value as T, retrievedAt: retrievedAt!, error: error)
+      ? CloudData._(
+          status: CloudDataStatus.cachedPotentiallyOutdated,
+          value: value,
+          retrievedAt: retrievedAt,
+          error: error,
+          discardedRecordCount: discardedRecordCount,
+        )
       : CloudData.failure(error);
 
   CloudData<R> map<R>(R Function(T value) transform) => CloudData._(
@@ -238,6 +259,7 @@ final class CloudData<T> {
     value: value == null ? null : transform(value as T),
     retrievedAt: retrievedAt,
     error: error,
+    discardedRecordCount: discardedRecordCount,
   );
 
   @override

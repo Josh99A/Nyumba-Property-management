@@ -7758,6 +7758,18 @@ abstract class AppLocalizations {
   /// **'Reconnecting…'**
   String get cloudReconnecting;
 
+  /// Warning heading when the server returned records this app build could not decode.
+  ///
+  /// In en, this message translates to:
+  /// **'Some records could not be shown'**
+  String get cloudPartialDataTitle;
+
+  /// Explains that malformed records were not silently presented as an empty result.
+  ///
+  /// In en, this message translates to:
+  /// **'{count,plural, =1{Nyumba received 1 record in an unexpected format. The other records are still shown.}other{Nyumba received {count} records in an unexpected format. The other records are still shown.}}'**
+  String cloudPartialDataMessage(int count);
+
   /// Freshness stamp. {time} is a formatted time, already localized.
   ///
   /// In en, this message translates to:
@@ -7865,6 +7877,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Draft advert saved.'**
   String get listingDraftSaved;
+
+  /// Privacy notice in the listing editor. The server routes enquiries through an opaque landlord token rather than storing contact details on the advert.
+  ///
+  /// In en, this message translates to:
+  /// **'Enquiries are routed securely through Nyumba. Your private phone number and email address are not published with this advert.'**
+  String get listingContactRoutingNotice;
 
   /// Confirmation after the server accepted a new property. Past tense: only shown once the server has confirmed.
   ///

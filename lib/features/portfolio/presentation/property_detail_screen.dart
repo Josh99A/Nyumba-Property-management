@@ -22,7 +22,6 @@ import '../../../core/presentation/surface.dart';
 import '../../../core/presentation/toast.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
-import '../../marketplace/application/marketplace_use_cases.dart';
 import '../../marketplace/domain/listing.dart';
 import '../../subscriptions/application/subscription_providers.dart';
 import '../../subscriptions/domain/landlord_entitlement.dart';
@@ -268,8 +267,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                               canAdvertise: canCreateListing,
                               canUpdate: canUpdateUnit,
                               canArchive: canArchiveUnit,
-                              onAdvertise: () =>
-                                  _createListing(property!, unit),
+                              onAdvertise: () => _openListingEditor(unit),
                               onEdit: () => _editUnit(unit),
                               onArchive: () => _archiveUnit(unit, listings),
                             ),
@@ -1011,35 +1009,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     }
   }
 
-  Future<void> _createListing(Property property, Unit unit) async {
-    await ref.read(createListingDraftProvider)(
-      CreateListingInput(
-        unitId: unit.id,
-        propertyId: property.id,
-        landlordId: property.landlordId,
-        title: '${unit.displayName} at ${property.name}',
-        description:
-            'A well maintained ${unit.type.displayLabel.toLowerCase()} in ${property.city}.',
-        monthlyRentMinor: unit.monthlyRentMinor,
-        currency: unit.currency,
-        city: property.city,
-        neighborhood: property.city,
-        contactPhone: '+256 772 000 100',
-      ),
+  Future<void> _openListingEditor(Unit unit) async {
+    context.go(
+      Uri(
+        path: '/listings',
+        queryParameters: <String, String>{'unitId': unit.id},
+      ).toString(),
     );
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          // The draft is on the server by the time this runs — `createDraft`
-          // does not return until it says so. The old copy called it "a local
-          // draft", which was true then and would be a lie now.
-          content: Text.localized(
-            appLocalizationsOf(context).listingDraftSaved,
-          ),
-        ),
-      );
-      context.go('/listings');
-    }
   }
 }
 

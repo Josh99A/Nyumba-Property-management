@@ -99,8 +99,8 @@ void main() {
   );
 
   testWidgets(
-    'edit listing pre-fills fields the create form always collected but '
-    'edit used to withhold, and saves them back',
+    'edit listing pre-fills public fields, explains private enquiry routing, '
+    'and preserves legacy contact data without exposing it',
     (tester) async {
       late _RecordingUpdateListing recorder;
       await _pump(
@@ -127,8 +127,9 @@ void main() {
         find.widgetWithText(TextFormField, 'Request a viewing through Nyumba.'),
         findsOneWidget,
       );
+      expect(find.widgetWithText(TextFormField, '+256700000000'), findsNothing);
       expect(
-        find.widgetWithText(TextFormField, '+256700000000'),
+        find.textContaining('Enquiries are routed securely through Nyumba'),
         findsOneWidget,
       );
       // The saved photo renders as a removable chip.
@@ -151,6 +152,94 @@ void main() {
       expect(saved.imageUrls, [_dataUri(_pngBytes)]);
     },
   );
+
+  testWidgets('edit dialog keeps validation and actions visible on a phone', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      listings: [listing],
+      overrideUpdate: (ref) => _RecordingUpdateListing(ref),
+      size: const Size(390, 844),
+    );
+
+    await tester.ensureVisible(find.byTooltip('Listing actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Listing actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit listing'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(FilledButton, 'Save changes'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Cancel'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a property Advertise deep link opens the chosen unit editor', (
+    tester,
+  ) async {
+    final property = Property(
+      id: 'property-1',
+      landlordId: 'landlord-uid',
+      name: 'Ntinda Rise',
+      addressLine: 'Plot 12',
+      city: 'Kampala',
+      country: 'Uganda',
+      createdAt: now,
+      updatedAt: now,
+    );
+    final units = [
+      Unit(
+        id: 'unit-1',
+        propertyId: property.id,
+        landlordId: 'landlord-uid',
+        label: 'A1',
+        type: UnitType.apartment,
+        status: UnitStatus.vacant,
+        monthlyRentMinor: 100000000,
+        currency: 'UGX',
+        createdAt: now,
+        updatedAt: now,
+      ),
+      Unit(
+        id: 'unit-2',
+        propertyId: property.id,
+        landlordId: 'landlord-uid',
+        label: 'B2',
+        type: UnitType.apartment,
+        status: UnitStatus.vacant,
+        monthlyRentMinor: 120000000,
+        currency: 'UGX',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ];
+
+    await _pump(
+      tester,
+      listings: const [],
+      units: units,
+      properties: [property],
+      initialUnitId: 'unit-2',
+      overrideUpdate: (ref) => _RecordingUpdateListing(ref),
+    );
+
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Create listing'),
+      ),
+      findsOneWidget,
+    );
+    final selectedUnit = tester.widget<DropdownButtonFormField<Unit>>(
+      find.byType(DropdownButtonFormField<Unit>),
+    );
+    expect(selectedUnit.initialValue?.id, 'unit-2');
+    expect(
+      find.text('Draft saved locally. You can publish it when ready.'),
+      findsNothing,
+    );
+  });
 
   testWidgets('a published listing offers no edit action', (tester) async {
     await _pump(
@@ -295,11 +384,15 @@ Future<void> _pump(
   required List<Listing> listings,
   required UpdateListing Function(Ref ref) overrideUpdate,
   RemoveListing Function(Ref ref)? overrideRemove,
+  Size size = const Size(600, 1400),
+  List<Unit> units = const <Unit>[],
+  List<Property> properties = const <Property>[],
+  String? initialUnitId,
 }) async {
   // A narrow single-column width: the 3-column layout crowds the status
   // badge row into an unrelated, pre-existing overflow at this test's
   // default text scale, which is not what these tests are about.
-  tester.view.physicalSize = const Size(600, 1400);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(() {
     tester.view.resetPhysicalSize();
@@ -307,12 +400,17 @@ Future<void> _pump(
   });
 
   final router = GoRouter(
-    initialLocation: '/listings',
+    initialLocation: initialUnitId == null
+        ? '/listings'
+        : '/listings?unitId=$initialUnitId',
     routes: [
       GoRoute(
         path: '/listings',
-        builder: (context, state) =>
-            const Scaffold(body: LandlordListingsScreen()),
+        builder: (context, state) => Scaffold(
+          body: LandlordListingsScreen(
+            initialUnitId: state.uri.queryParameters['unitId'],
+          ),
+        ),
       ),
       GoRoute(
         path: '/listing/:listingId',
@@ -341,10 +439,10 @@ Future<void> _pump(
           (ref) => Stream.value(cloudOf(listings)),
         ),
         portfolioUnitsProvider.overrideWith(
-          (ref) => Stream.value(cloudOf(const <Unit>[])),
+          (ref) => Stream.value(cloudOf(units)),
         ),
         portfolioPropertiesProvider.overrideWith(
-          (ref) => Stream.value(cloudOf(const <Property>[])),
+          (ref) => Stream.value(cloudOf(properties)),
         ),
         rentalApplicationsProvider.overrideWith(
           (ref) => Stream.value(const <RentalApplication>[]),

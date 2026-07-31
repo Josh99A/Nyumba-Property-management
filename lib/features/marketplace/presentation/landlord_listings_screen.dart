@@ -14,9 +14,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/domain/coordinates.dart';
 import '../../../core/domain/domain_exception.dart';
 import '../../../core/domain/sync_metadata.dart';
-import '../../../core/config/market_config.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
+import '../../../core/presentation/cloud_data_view.dart';
 import '../../../core/presentation/location_picker.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/photo_editor_field.dart';
@@ -41,7 +41,11 @@ import 'listing_visuals.dart';
 import 'listing_photo_picker.dart';
 
 class LandlordListingsScreen extends ConsumerStatefulWidget {
-  const LandlordListingsScreen({super.key});
+  const LandlordListingsScreen({super.key, this.initialUnitId});
+
+  /// Opens the create editor for this vacant space once its cloud context has
+  /// loaded. Used by the property detail "Advertise" action.
+  final String? initialUnitId;
 
   @override
   ConsumerState<LandlordListingsScreen> createState() =>
@@ -51,6 +55,7 @@ class LandlordListingsScreen extends ConsumerStatefulWidget {
 class _LandlordListingsScreenState
     extends ConsumerState<LandlordListingsScreen> {
   String _filter = 'All';
+  bool _initialCreateHandled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +92,27 @@ class _LandlordListingsScreenState
     final canCreate = allows(CrudOperation.create);
     final canUpdate = allows(CrudOperation.update);
     final canUnpublish = allows(CrudOperation.delete);
+
+    if (!_initialCreateHandled &&
+        widget.initialUnitId != null &&
+        unitsValue.value != null &&
+        propertiesValue.value != null) {
+      _initialCreateHandled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await _showCreateListing(
+          this.context,
+          unitsValue.supportingRecords,
+          propertiesValue.supportingRecords,
+          initialUnitId: widget.initialUnitId,
+        );
+        if (mounted) {
+          // Clear the one-shot query after the editor closes, so later rebuilds
+          // cannot reopen a form the landlord already handled.
+          this.context.replace('/listings');
+        }
+      });
+    }
 
     // Counted once instead of re-scanning every application for every card.
     final applicationsByListing = <String, int>{};
@@ -135,6 +161,14 @@ class _LandlordListingsScreenState
                     // no-op dressed up as an action.
                   ),
                   const SizedBox(height: 22),
+                  if (listingsValue.cloudData case final cloud?) ...[
+                    CloudFreshnessBanner<List<Listing>>(
+                      data: cloud,
+                      onRetry: () async =>
+                          ref.invalidate(landlordListingsProvider),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   // The 'adverts did not go through' banner is gone with the
                   // outbox that produced it. A refusal is now shown at the
                   // moment the landlord attempts the change, not as a standing
@@ -418,6 +452,10 @@ class _LandlordListingsScreenState
         dialogRoute ??= ModalRoute.of<bool>(context);
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: context.isCompact ? 16 : 40,
+              vertical: 24,
+            ),
             title: Text.localized('Edit ${listing.title}'),
             content: SizedBox(
               width: 560,
@@ -528,10 +566,6 @@ class _LandlordListingsScreenState
                         imageUrls: fields.photos.toImageUrls(),
                         videoUrl: fields.videoUrl.text.trim(),
                         clearVideoUrl: fields.videoUrl.text.trim().isEmpty,
-                        contactPhone: fields.phone.text.trim(),
-                        clearContactPhone: fields.phone.text.trim().isEmpty,
-                        contactEmail: fields.email.text.trim(),
-                        clearContactEmail: fields.email.text.trim().isEmpty,
                       ),
                     );
                     if (context.mounted) Navigator.pop(context, true);
@@ -665,8 +699,9 @@ class _LandlordListingsScreenState
   Future<void> _showCreateListing(
     BuildContext context,
     List<Unit> units,
-    List<Property> properties,
-  ) async {
+    List<Property> properties, {
+    String? initialUnitId,
+  }) async {
     final vacant = units.where((unit) => unit.canBeAdvertised).toList();
     if (vacant.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -679,7 +714,10 @@ class _LandlordListingsScreenState
       return;
     }
     final formKey = GlobalKey<FormState>();
-    Unit selectedUnit = vacant.first;
+    Unit selectedUnit = vacant.firstWhere(
+      (unit) => unit.id == initialUnitId,
+      orElse: () => vacant.first,
+    );
     final propertyById = {
       for (final property in properties) property.id: property,
     };
@@ -697,6 +735,10 @@ class _LandlordListingsScreenState
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: context.isCompact ? 16 : 40,
+            vertical: 24,
+          ),
           title: const Text.localized('Create listing'),
           content: SizedBox(
             width: 520,
@@ -827,8 +869,6 @@ class _LandlordListingsScreenState
                           .trim(),
                       imageUrls: fields.photos.toImageUrls(),
                       videoUrl: fields.videoUrl.text.trim(),
-                      contactPhone: fields.phone.text.trim(),
-                      contactEmail: fields.email.text.trim(),
                     ),
                   );
                   if (context.mounted) Navigator.pop(context, true);
@@ -917,8 +957,6 @@ class _ListingFields {
     fields.smokingPolicy.text = listing.smokingPolicy ?? '';
     fields.viewingInstructions.text = listing.viewingInstructions ?? '';
     fields.videoUrl.text = listing.videoUrl ?? '';
-    fields.phone.text = listing.contactPhone ?? '';
-    fields.email.text = listing.contactEmail ?? '';
     fields.photos.existing.addAll(listing.imageUrls);
     fields.availableFrom = listing.availableFrom;
     fields.furnished = listing.furnished;
@@ -929,8 +967,6 @@ class _ListingFields {
   final description = TextEditingController();
   final rent = TextEditingController();
   final city = TextEditingController();
-  final phone = TextEditingController();
-  final email = TextEditingController();
   final neighborhood = TextEditingController();
   final district = TextEditingController();
   final latitude = TextEditingController();
@@ -1229,35 +1265,33 @@ class _ListingFields {
       ),
     ),
     const SizedBox(height: 14),
-    TextFormField(
-      controller: phone,
-      keyboardType: TextInputType.phone,
-      decoration: InputDecoration(labelText: context.tr('Contact phone')),
-      validator: (value) => (value?.trim().length ?? 0) < 7
-          ? email.text.trim().isEmpty
-                ? context.tr('Enter a phone or email for routed enquiries')
-                : null
-          : !NyumbaMarket.isValidPhone(value!.trim())
-          ? context.tr('Use the Ugandan +256 format')
-          : null,
-    ),
-    const SizedBox(height: 14),
-    TextFormField(
-      controller: email,
-      keyboardType: TextInputType.emailAddress,
-      decoration: InputDecoration(
-        labelText: context.tr('Private contact email (optional)'),
-        helperText: context.tr('Used for routed enquiries; not shown publicly'),
+    Semantics(
+      container: true,
+      child: Container(
+        padding: const EdgeInsetsDirectional.all(12),
+        decoration: BoxDecoration(
+          color: context.nyumba.navyTint,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: context.nyumba.navyBorder),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.privacy_tip_outlined,
+              size: 20,
+              color: context.nyumba.midnightNavy,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text.localized(
+                appLocalizationsOf(context).listingContactRoutingNotice,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
       ),
-      validator: (value) {
-        final text = value?.trim() ?? '';
-        if (text.isEmpty && phone.text.trim().isEmpty) {
-          return context.tr('Enter a phone or email for routed enquiries');
-        }
-        return text.isNotEmpty && !text.contains('@')
-            ? context.tr('Enter a valid email')
-            : null;
-      },
     ),
   ];
 
@@ -1267,8 +1301,6 @@ class _ListingFields {
       description,
       rent,
       city,
-      phone,
-      email,
       neighborhood,
       district,
       latitude,
@@ -1438,11 +1470,14 @@ class _LandlordListingCard extends StatelessWidget {
                       color: context.nyumba.mutedInk,
                     ),
                     const SizedBox(width: 6),
-                    Text.localized(
-                      '$applicationCount ${applicationCount == 1 ? 'application' : 'applications'}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                    Expanded(
+                      child: Text.localized(
+                        '$applicationCount ${applicationCount == 1 ? 'application' : 'applications'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
-                    const Spacer(),
                     // A paused advert can only be republished once its removal
                     // has settled; publishing over an in-flight unpublish would
                     // race the server for the same aggregate.

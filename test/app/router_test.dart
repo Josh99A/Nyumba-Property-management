@@ -61,6 +61,45 @@ ProviderContainer _containerFor(AppRole role) => ProviderContainer(
 );
 
 void main() {
+  test('private deep links survive session hydration with their query', () {
+    final signIn = redirectForLocation(
+      null,
+      Uri.parse('/listings?unitId=unit-42'),
+    );
+    expect(signIn, '/sign-in?redirect=%2Flistings%3FunitId%3Dunit-42');
+
+    final restored = redirectForLocation(
+      _sessionFor(AppRole.landlord),
+      Uri.parse(signIn!),
+    );
+    expect(restored, '/listings?unitId=unit-42');
+  });
+
+  test('saved redirects cannot escape the app or bypass role access', () {
+    final landlord = _sessionFor(AppRole.landlord);
+    expect(
+      redirectForLocation(
+        landlord,
+        Uri.parse('/sign-in?redirect=https%3A%2F%2Fevil.example'),
+      ),
+      '/dashboard',
+    );
+    expect(
+      redirectForLocation(
+        landlord,
+        Uri.parse('/sign-in?redirect=%2Fadmin%2Fusers'),
+      ),
+      '/dashboard',
+    );
+    expect(
+      redirectForLocation(
+        landlord,
+        Uri.parse('/sign-in?redirect=%2F%2Fevil.example'),
+      ),
+      '/dashboard',
+    );
+  });
+
   test('landlord workspace stays locked until payment is confirmed', () {
     const pending = UserSession(
       userId: 'landlord-pending',

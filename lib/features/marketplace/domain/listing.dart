@@ -243,12 +243,10 @@ final class Listing {
               (district == null || district!.trim().isEmpty)
           ? 'a neighborhood or district is required'
           : null,
-      'contact':
-          (contactPhone == null || contactPhone!.trim().isEmpty) &&
-              (contactEmail == null || contactEmail!.trim().isEmpty) &&
-              (publicContactToken == null || publicContactToken!.trim().isEmpty)
-          ? 'a phone number, email address, or public contact token is required'
-          : null,
+      // Contact routing is server-owned. Private listing documents deliberately
+      // contain neither the landlord's PII nor the public opaque token (which
+      // exists only on `publicListings`). Requiring either here made a valid
+      // private record become undecodable immediately after publication.
       'imageUrls':
           imageUrls.any((reference) => reference.startsWith('data:image/'))
           ? 'locally selected photos must finish uploading before publication'

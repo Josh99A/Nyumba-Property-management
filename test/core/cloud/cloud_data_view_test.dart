@@ -79,6 +79,28 @@ void main() {
       expect(find.byType(NyumbaStatusMessage), findsNothing);
       expect(find.textContaining('Last updated'), findsOneWidget);
     });
+
+    testWidgets('warns when the server also returned unreadable records', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          viewOf(
+            CloudData<List<String>>.live(
+              const ['Kololo'],
+              retrievedAt: readAt,
+              discardedRecordCount: 2,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kololo'), findsOneWidget);
+      expect(find.text('Some records could not be shown'), findsOneWidget);
+      expect(find.textContaining('2 records'), findsOneWidget);
+      expect(find.byType(NyumbaStatusMessage), findsOneWidget);
+    });
   });
 
   group('cached awaiting validation', () {
@@ -255,6 +277,29 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Hakuna muunganisho na Nyumba'), findsOneWidget);
+    });
+
+    testWidgets('partial-data warning follows Arabic RTL direction', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          viewOf(
+            CloudData<List<String>>.live(
+              const ['Kololo'],
+              retrievedAt: readAt,
+              discardedRecordCount: 1,
+            ),
+          ),
+          locale: const Locale('ar'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        Directionality.of(tester.element(find.text('تعذّر عرض بعض السجلات'))),
+        TextDirection.rtl,
+      );
     });
   });
 }

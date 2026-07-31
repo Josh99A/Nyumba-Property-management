@@ -39,6 +39,17 @@
       ]
     },
     {
+      "collectionGroup": "properties",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "landlordId", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" },
+        { "fieldPath": "addressLine", "order": "ASCENDING" },
+        { "fieldPath": "city", "order": "ASCENDING" },
+        { "fieldPath": "isDeleted", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "units",
       "queryScope": "COLLECTION",
       "fields": [

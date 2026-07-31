@@ -127,11 +127,21 @@ class CloudDataView<T> extends StatelessWidget {
     AppLocalizations copy, {
     required Widget child,
   }) {
-    if (!showFreshness || data.retrievedAt == null) return child;
+    if ((!showFreshness || data.retrievedAt == null) &&
+        !data.hasDiscardedRecords) {
+      return child;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _FreshnessStamp(retrievedAt: data.retrievedAt!),
+        if (data.hasDiscardedRecords)
+          _DiscardedRecordsWarning(count: data.discardedRecordCount),
+        if (data.hasDiscardedRecords &&
+            showFreshness &&
+            data.retrievedAt != null)
+          const SizedBox(height: 8),
+        if (showFreshness && data.retrievedAt != null)
+          _FreshnessStamp(retrievedAt: data.retrievedAt!),
         const SizedBox(height: 8),
         child,
       ],
@@ -192,6 +202,16 @@ class CloudFreshnessBanner<T> extends StatelessWidget {
     final copy = appLocalizationsOf(context);
     return switch (data.status) {
       CloudDataStatus.initialLoading => const SizedBox.shrink(),
+      CloudDataStatus.live when data.hasDiscardedRecords => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _DiscardedRecordsWarning(count: data.discardedRecordCount),
+          if (showFreshness && data.retrievedAt != null) ...[
+            const SizedBox(height: 8),
+            _FreshnessStamp(retrievedAt: data.retrievedAt!),
+          ],
+        ],
+      ),
       CloudDataStatus.live || CloudDataStatus.empty =>
         showFreshness && data.retrievedAt != null
             ? _FreshnessStamp(retrievedAt: data.retrievedAt!)
@@ -233,6 +253,25 @@ class CloudFreshnessBanner<T> extends StatelessWidget {
         onRetry: onRetry == null ? null : () => onRetry!(),
       ),
     };
+  }
+}
+
+class _DiscardedRecordsWarning extends StatelessWidget {
+  const _DiscardedRecordsWarning({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = appLocalizationsOf(context);
+    return Semantics(
+      liveRegion: true,
+      child: NyumbaStatusMessage(
+        severity: NyumbaMessageSeverity.warning,
+        title: copy.cloudPartialDataTitle,
+        message: copy.cloudPartialDataMessage(count),
+      ),
+    );
   }
 }
 

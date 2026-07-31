@@ -104,7 +104,7 @@ void main() {
       expect(pending.copyWith(status: ListingStatus.paused).isPublic, isFalse);
     });
 
-    test('published listing requires contact details', () {
+    test('private published listing does not require stored contact PII', () {
       expect(
         () => Listing(
           id: 'listing-id',
@@ -123,7 +123,7 @@ void main() {
           updatedAt: now,
           publishedAt: now,
         ),
-        throwsA(isA<DomainValidationException>()),
+        returnsNormally,
       );
     });
 
