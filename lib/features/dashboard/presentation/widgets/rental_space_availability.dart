@@ -12,6 +12,7 @@ import '../../../../core/presentation/surface.dart';
 import '../../../auth/application/session_controller.dart';
 import '../../../auth/domain/authorization_policy.dart';
 import '../../../marketplace/domain/listing.dart';
+import '../../../marketplace/presentation/publish_actions.dart';
 import '../../../portfolio/application/portfolio_use_cases.dart';
 import '../../../portfolio/application/rental_space_labels.dart';
 import '../../../portfolio/domain/property.dart';
@@ -284,6 +285,19 @@ class _RentalSpaceAvailabilityPanelState
         SnackBar(
           content: Text.localized('Could not update availability: $error'),
         ),
+      );
+      return;
+    }
+    // A space that has just become vacant is the only kind that may be
+    // advertised, so this is the moment to offer it — asked only after the
+    // server confirmed the space really is vacant, and outside the try above so
+    // a dismissed prompt can never be reported as a failed availability change.
+    if (status == UnitStatus.vacant && mounted) {
+      await promptToAdvertiseVacantSpace(
+        context,
+        ref,
+        unit: unit,
+        listings: listings,
       );
     }
   }

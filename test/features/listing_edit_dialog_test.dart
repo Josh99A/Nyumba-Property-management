@@ -6,6 +6,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nyumba_property_management/core/cloud/cloud_command.dart';
+import 'package:nyumba_property_management/core/domain/coordinates.dart';
+import 'package:nyumba_property_management/core/presentation/location_picker.dart';
 import '../support/cloud_fixtures.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/app/bootstrap/app_dependencies.dart';
@@ -239,6 +241,99 @@ void main() {
       find.text('Draft saved locally. You can publish it when ready.'),
       findsNothing,
     );
+  });
+
+  // An advert with no pin cannot appear on the marketplace map at all, and
+  // nothing about saving or publishing it says so. Starting the draft from the
+  // property's own location is what stops that happening silently; `listing.
+  // publish` inherits it server-side too, for drafts written before this.
+  testWidgets('a new draft starts from the property\'s own pin', (
+    tester,
+  ) async {
+    final property = Property(
+      id: 'property-1',
+      landlordId: 'landlord-uid',
+      name: 'Ntinda Rise',
+      addressLine: 'Plot 12',
+      city: 'Kampala',
+      country: 'Uganda',
+      location: Coordinates(latitude: 0.3162345, longitude: 32.5811789),
+      createdAt: now,
+      updatedAt: now,
+    );
+    final units = [
+      Unit(
+        id: 'unit-1',
+        propertyId: property.id,
+        landlordId: 'landlord-uid',
+        label: 'A1',
+        type: UnitType.apartment,
+        status: UnitStatus.vacant,
+        monthlyRentMinor: 100000000,
+        currency: 'UGX',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ];
+
+    await _pump(
+      tester,
+      listings: const [],
+      units: units,
+      properties: [property],
+      initialUnitId: 'unit-1',
+      overrideUpdate: (ref) => _RecordingUpdateListing(ref),
+    );
+
+    final picker = tester.widget<LocationPickerField>(
+      find.byType(LocationPickerField),
+    );
+    expect(picker.value?.latitude, 0.3162345);
+    expect(picker.value?.longitude, 32.5811789);
+  });
+
+  testWidgets('a property without a pin leaves the fields empty', (
+    tester,
+  ) async {
+    // No invented coordinate: an unplaced property must produce an unplaced
+    // draft, which the map then honestly reports as not shown.
+    final property = Property(
+      id: 'property-1',
+      landlordId: 'landlord-uid',
+      name: 'Ntinda Rise',
+      addressLine: 'Plot 12',
+      city: 'Kampala',
+      country: 'Uganda',
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    await _pump(
+      tester,
+      listings: const [],
+      units: [
+        Unit(
+          id: 'unit-1',
+          propertyId: property.id,
+          landlordId: 'landlord-uid',
+          label: 'A1',
+          type: UnitType.apartment,
+          status: UnitStatus.vacant,
+          monthlyRentMinor: 100000000,
+          currency: 'UGX',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ],
+      properties: [property],
+      initialUnitId: 'unit-1',
+      overrideUpdate: (ref) => _RecordingUpdateListing(ref),
+    );
+
+    final picker = tester.widget<LocationPickerField>(
+      find.byType(LocationPickerField),
+    );
+    expect(picker.value, isNull);
   });
 
   testWidgets('a published listing offers no edit action', (tester) async {

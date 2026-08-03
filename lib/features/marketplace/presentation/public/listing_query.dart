@@ -74,6 +74,81 @@ enum ListingView { list, map }
 /// [String] alongside the landlord-entered types.
 const String anyUnitType = 'all';
 
+/// The rectangle a visitor asked to search, in degrees.
+///
+/// Taken from what the map was actually showing when they pressed the button,
+/// not derived from the camera centre and zoom: the two disagree by the
+/// widget's aspect ratio, and a "search this area" that quietly searches a
+/// different area than the one on screen is worse than one that does nothing.
+@immutable
+class ListingViewport {
+  const ListingViewport({
+    required this.south,
+    required this.west,
+    required this.north,
+    required this.east,
+  });
+
+  final double south;
+  final double west;
+  final double north;
+  final double east;
+
+  /// Whether [point] falls inside the rectangle.
+  ///
+  /// Longitude is compared with a wrap-aware test because a viewport straddling
+  /// the antimeridian arrives with [west] greater than [east]. Uganda cannot
+  /// produce one, but a shared URL can carry anything and silently matching
+  /// nothing would be a confusing way to find that out.
+  bool contains(Coordinates point) {
+    if (point.latitude < south || point.latitude > north) return false;
+    return west <= east
+        ? point.longitude >= west && point.longitude <= east
+        : point.longitude >= west || point.longitude <= east;
+  }
+
+  /// `south,west,north,east` at five decimal places — about a metre, far finer
+  /// than a viewport needs and short enough to keep a shared URL readable.
+  String get encoded => [
+    south,
+    west,
+    north,
+    east,
+  ].map((degrees) => degrees.toStringAsFixed(5)).join(',');
+
+  /// Parses [encoded], or null for anything unusable.
+  static ListingViewport? tryParse(String? value) {
+    final parts = value?.split(',');
+    if (parts == null || parts.length != 4) return null;
+    final degrees = parts
+        .map((part) => double.tryParse(part.trim()))
+        .toList(growable: false);
+    if (degrees.any((degree) => degree == null || !degree.isFinite)) {
+      return null;
+    }
+    final [south!, west!, north!, east!] = degrees;
+    if (Coordinates.latitudeError(south) != null ||
+        Coordinates.latitudeError(north) != null ||
+        Coordinates.longitudeError(west) != null ||
+        Coordinates.longitudeError(east) != null ||
+        south > north) {
+      return null;
+    }
+    return ListingViewport(south: south, west: west, north: north, east: east);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is ListingViewport &&
+      other.south == south &&
+      other.west == west &&
+      other.north == north &&
+      other.east == east;
+
+  @override
+  int get hashCode => Object.hash(south, west, north, east);
+}
+
 /// One removable filter shown to a visitor, so the results header can explain
 /// exactly what is narrowing the list.
 @immutable
@@ -111,6 +186,7 @@ class ListingQuery {
     this.view = ListingView.list,
     this.centre,
     this.zoom,
+    this.searchedArea,
   });
 
   final String text;
@@ -129,6 +205,19 @@ class ListingQuery {
   /// someone shares opens where they left it.
   final Coordinates? centre;
   final double? zoom;
+
+  /// The rectangle "Search this area" committed, and the only viewport field
+  /// that narrows anything.
+  ///
+  /// [centre] and [zoom] point the camera; this decides which homes are in the
+  /// results. They are separate because the button is a deliberate act and
+  /// panning is not: the camera follows every drag, while this changes only
+  /// when the visitor asks for it.
+  ///
+  /// It narrows the map view alone — see [apply]. A filter that a visitor set
+  /// on the map and then could neither see nor remove from the list would be a
+  /// worse bug than the button doing nothing.
+  final ListingViewport? searchedArea;
 
   /// Sort order is a presentation preference, not a filter, so it is excluded
   /// here and survives "clear filters".
@@ -174,6 +263,7 @@ class ListingQuery {
     ListingView? view,
     Coordinates? centre,
     double? zoom,
+    ListingViewport? searchedArea,
     bool clearViewport = false,
   }) => ListingQuery(
     text: text ?? this.text,
@@ -184,13 +274,16 @@ class ListingQuery {
     view: view ?? this.view,
     centre: clearViewport ? null : (centre ?? this.centre),
     zoom: clearViewport ? null : (zoom ?? this.zoom),
+    searchedArea: clearViewport ? null : (searchedArea ?? this.searchedArea),
   );
 
-  /// Clears the filters and nothing else.
+  /// Clears the filters and the searched area, and nothing else.
   ///
-  /// Sort, view, and viewport all survive: someone who has panned to a
-  /// neighbourhood and then clears a price filter expects to still be looking
-  /// at that neighbourhood, on the map, in the order they chose.
+  /// Sort, view, and the camera survive: someone who clears a price filter
+  /// expects to still be looking at the same place, on the map, in the order
+  /// they chose. The searched *area* goes, because it is the one viewport field
+  /// that narrows results — leaving it would make "clear filters" land on the
+  /// same empty map it was pressed to escape.
   ListingQuery cleared() =>
       ListingQuery(sort: sort, view: view, centre: centre, zoom: zoom);
 
@@ -214,6 +307,7 @@ class ListingQuery {
           '${centre!.latitude.toStringAsFixed(5)},'
           '${centre!.longitude.toStringAsFixed(5)}',
     if (zoom != null) _zoomParam: zoom!.toStringAsFixed(2),
+    if (searchedArea != null) _areaParam: searchedArea!.encoded,
   };
 
   /// Rebuilds a query from URL parameters, ignoring anything unrecognised.
@@ -253,6 +347,7 @@ class ListingQuery {
       zoom: zoom != null && zoom.isFinite && zoom >= 1 && zoom <= 21
           ? zoom
           : null,
+      searchedArea: ListingViewport.tryParse(parameters[_areaParam]),
     );
   }
 
@@ -274,6 +369,7 @@ class ListingQuery {
   static const _viewParam = 'view';
   static const _centreParam = 'c';
   static const _zoomParam = 'z';
+  static const _areaParam = 'b';
 
   /// Drops a unit type that no longer exists in the catalogue, so a filter a
   /// visitor cannot see or remove never silently empties the results.
@@ -288,6 +384,10 @@ class ListingQuery {
   /// actually given one up. It is the one input that cannot come from the URL,
   /// which is why it is an argument rather than a field: a link is shareable,
   /// and somebody else's location must never travel inside one.
+  ///
+  /// [searchedArea] narrows the results only in [ListingView.map], because that
+  /// is the only surface that shows the visitor which area they picked and lets
+  /// them pan out of it.
   List<Listing> apply(List<Listing> listings, {Coordinates? origin}) {
     final query = text.trim().toLowerCase();
     final matched = listings.where((listing) {
@@ -300,7 +400,8 @@ class ListingQuery {
       return matchesText &&
           price.matches(listing.monthlyRentMinor ~/ 100) &&
           bedrooms.matches(listing.bedrooms) &&
-          (unitType == anyUnitType || listing.unitType == unitType);
+          (unitType == anyUnitType || listing.unitType == unitType) &&
+          _withinSearchedArea(listing);
     }).toList();
     matched.sort(switch (sort) {
       ListingSort.newest => _byNewest,
@@ -315,6 +416,19 @@ class ListingQuery {
             : (left, right) => _byDistanceFrom(origin, left, right),
     });
     return matched;
+  }
+
+  /// Whether [listing] survives the searched area.
+  ///
+  /// An advert with no pin always does. It cannot be inside or outside a
+  /// rectangle, and the map already reports how many results it is not showing
+  /// for exactly that reason — dropping them here would make that count read
+  /// zero and quietly hide adverts a visitor could otherwise reach.
+  bool _withinSearchedArea(Listing listing) {
+    final area = searchedArea;
+    if (area == null || view != ListingView.map) return true;
+    final pin = _pinOf(listing);
+    return pin == null || area.contains(pin);
   }
 
   /// Orders by distance, with unpinned adverts last.
@@ -389,9 +503,19 @@ class ListingQuery {
       other.sort == sort &&
       other.view == view &&
       other.centre == centre &&
-      other.zoom == zoom;
+      other.zoom == zoom &&
+      other.searchedArea == searchedArea;
 
   @override
-  int get hashCode =>
-      Object.hash(text, price, bedrooms, unitType, sort, view, centre, zoom);
+  int get hashCode => Object.hash(
+    text,
+    price,
+    bedrooms,
+    unitType,
+    sort,
+    view,
+    centre,
+    zoom,
+    searchedArea,
+  );
 }

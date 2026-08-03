@@ -189,6 +189,137 @@ void main() {
       expect(locations, ['Ntinda', 'Bugolobi']);
     });
 
+    group('searched area', () {
+      // Kampala-ish. `inside` and `edge` fall within the rectangle below,
+      // `outside` is a few kilometres east of it.
+      const area = ListingViewport(
+        south: 0.30,
+        west: 32.55,
+        north: 0.36,
+        east: 32.62,
+      );
+      final inside = _listing(id: 'inside', latitude: 0.33, longitude: 32.58);
+      final edge = _listing(id: 'edge', latitude: 0.30, longitude: 32.62);
+      final outside = _listing(id: 'outside', latitude: 0.33, longitude: 32.80);
+      final unpinned = _listing(id: 'unpinned');
+      final catalogue = [inside, edge, outside, unpinned];
+
+      test('narrows the map to the homes inside it', () {
+        const query = ListingQuery(view: ListingView.map, searchedArea: area);
+
+        // The unpinned advert survives: it is not outside the rectangle, it is
+        // nowhere, and the map's own "not shown here" notice counts it.
+        expect(query.apply(catalogue).map((listing) => listing.id), [
+          'inside',
+          'edge',
+          'unpinned',
+        ]);
+      });
+
+      test('leaves the list view alone', () {
+        // A filter a visitor set on the map and could then neither see nor
+        // remove from the list would be worse than the button doing nothing.
+        const query = ListingQuery(searchedArea: area);
+
+        expect(query.apply(catalogue), hasLength(4));
+      });
+
+      test('combines with the ordinary filters rather than replacing them', () {
+        final expensive = _listing(
+          id: 'expensive',
+          rentMajor: 3000000,
+          latitude: 0.33,
+          longitude: 32.58,
+        );
+        const query = ListingQuery(
+          view: ListingView.map,
+          searchedArea: area,
+          price: PriceBand.above2m,
+        );
+
+        expect(
+          query.apply([...catalogue, expensive]).map((listing) => listing.id),
+          ['expensive'],
+        );
+      });
+
+      test('clearing filters releases the area but keeps the camera', () {
+        final centre = Coordinates(latitude: 0.33, longitude: 32.58);
+        final query = ListingQuery(
+          view: ListingView.map,
+          price: PriceBand.under500k,
+          centre: centre,
+          zoom: 14,
+          searchedArea: area,
+        );
+
+        final cleared = query.cleared();
+
+        // Otherwise "clear filters" lands back on the same empty map it was
+        // pressed to escape.
+        expect(cleared.searchedArea, isNull);
+        expect(cleared.centre, centre);
+        expect(cleared.zoom, 14);
+        expect(cleared.view, ListingView.map);
+        expect(cleared.apply(catalogue), hasLength(4));
+      });
+
+      test('survives a round trip through URL parameters', () {
+        final query = ListingQuery(
+          view: ListingView.map,
+          centre: Coordinates(latitude: 0.33, longitude: 32.58),
+          zoom: 13.5,
+          searchedArea: area,
+        );
+
+        expect(
+          ListingQuery.fromQueryParameters(query.toQueryParameters()),
+          query,
+        );
+      });
+
+      test('an unusable area parameter is ignored, not fatal', () {
+        for (final value in const [
+          '',
+          '0.3,32.5',
+          '0.3,32.5,0.4',
+          'north,south,east,west',
+          '0.4,32.55,0.3,32.62', // south above north
+          '91,32.55,92,32.62', // off the globe
+        ]) {
+          expect(
+            ListingQuery.fromQueryParameters({'b': value}).searchedArea,
+            isNull,
+            reason: 'for "$value"',
+          );
+        }
+      });
+
+      test('an area straddling the antimeridian still matches', () {
+        // Uganda cannot produce one, but a shared URL can carry anything, and
+        // matching nothing at all would be a confusing way to discover that.
+        const wrapped = ListingViewport(
+          south: -1,
+          west: 179,
+          north: 1,
+          east: -179,
+        );
+
+        expect(
+          wrapped.contains(Coordinates(latitude: 0, longitude: 179.5)),
+          isTrue,
+        );
+        expect(
+          wrapped.contains(Coordinates(latitude: 0, longitude: -179.5)),
+          isTrue,
+        );
+        expect(
+          wrapped.contains(Coordinates(latitude: 0, longitude: 100)),
+          isFalse,
+        );
+      });
+    });
+
     test('unitTypesIn lists each published type once, sorted', () {
       final types = ListingQuery.unitTypesIn([
         _listing(id: 'a', unitType: 'house'),
@@ -252,10 +383,12 @@ void main() {
     });
   });
 
-  group('the view and viewport are not filters', () {
+  // The camera, unlike the searched area above, narrows nothing: it says where
+  // the map is pointed, not which homes count.
+  group('the view and camera are not filters', () {
     final centre = Coordinates(latitude: 0.3476, longitude: 32.5825);
 
-    test('map view and a viewport leave the filter count alone', () {
+    test('map view and a camera leave the filter count alone', () {
       final query = ListingQuery(
         view: ListingView.map,
         centre: centre,
@@ -270,7 +403,7 @@ void main() {
 
     // Someone who panned to a neighbourhood and then cleared a price filter
     // expects to still be looking at that neighbourhood, on the map.
-    test('clearing filters keeps the view, viewport, and sort', () {
+    test('clearing filters keeps the view, camera, and sort', () {
       final query = ListingQuery(
         text: 'Ntinda',
         price: PriceBand.under500k,

@@ -240,23 +240,10 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
       ];
     }
     final listings = query.apply(all, origin: _origin);
-    if (listings.isEmpty) {
-      return [
-        _boxed(
-          inset,
-          MarketplaceEmptyState(
-            icon: Icons.search_off_rounded,
-            title: copy.noHomesMatch,
-            message: copy.tryBroaderSearch,
-            action: OutlinedButton.icon(
-              onPressed: () => _applyQuery(query.cleared()),
-              icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
-              label: Text(copy.clearFilters),
-            ),
-          ),
-        ),
-      ];
-    }
+    // The map is kept on screen even with nothing to show. Replacing it with an
+    // empty state would strand a visitor who searched a quiet area: the map is
+    // the only control that can undo a searched area, so removing it removes
+    // the way back.
     if (query.view == ListingView.map) {
       return [
         SliverPadding(
@@ -276,6 +263,23 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
                   onOpen: (listing) => context.go('/listing/${listing.id}'),
                 ),
               ),
+            ),
+          ),
+        ),
+      ];
+    }
+    if (listings.isEmpty) {
+      return [
+        _boxed(
+          inset,
+          MarketplaceEmptyState(
+            icon: Icons.search_off_rounded,
+            title: copy.noHomesMatch,
+            message: copy.tryBroaderSearch,
+            action: OutlinedButton.icon(
+              onPressed: () => _applyQuery(query.cleared()),
+              icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+              label: Text(copy.clearFilters),
             ),
           ),
         ),

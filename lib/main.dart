@@ -25,6 +25,38 @@ const _webRecaptchaV3SiteKey = String.fromEnvironment(
   'NYUMBA_RECAPTCHA_V3_SITE_KEY',
 );
 
+/// A registered App Check debug token for non-release builds, supplied at build
+/// time:
+///
+/// ```sh
+/// flutter run --profile --dart-define=NYUMBA_APP_CHECK_DEBUG_TOKEN=<uuid>
+/// ```
+///
+/// Empty by default, in which case the debug provider mints a fresh token and
+/// prints it once per install — fine for a single developer, but it has to be
+/// pasted into the console every reinstall. Registering one token and passing it
+/// here keeps every development device attested across reinstalls. A debug token
+/// *is* a secret: anyone holding it can produce valid App Check tokens for the
+/// project, so it belongs in a local `--dart-define`, never in a committed file
+/// or a CI workflow that publishes artefacts.
+const _appCheckDebugToken = String.fromEnvironment(
+  'NYUMBA_APP_CHECK_DEBUG_TOKEN',
+);
+
+/// [_appCheckDebugToken], or null when the define was left empty — which is
+/// what tells the debug provider to mint and log a token of its own.
+const String? _configuredDebugToken = _appCheckDebugToken == ''
+    ? null
+    : _appCheckDebugToken;
+
+/// A ceiling on how long App Check activation may hold up the first frame.
+///
+/// Activation is normally near-instant, but it can reach the network, and the
+/// whole point of the offline-first workspace is that a stalled Firebase call
+/// never gates the UI. Exceeding this is reported like any other activation
+/// failure and the app carries on unattested.
+const _appCheckActivationBudget = Duration(seconds: 5);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeNyumbaLocalizationFormats();
@@ -51,17 +83,34 @@ Future<void> _initializeFirebase() async {
     // session resolves.
     //
     // Web activation needs a site key for this environment. Android and iOS
-    // carry no such build input, so they activate whenever the platform is
+    // need no required build input, so they activate whenever the platform is
     // registered; the backend keeps enforcement off until every platform is.
     if (kIsWeb && _webRecaptchaV3SiteKey.isEmpty) return;
     try {
-      await FirebaseAppCheck.instance.activate(
-        providerWeb: kIsWeb
-            ? ReCaptchaV3Provider(_webRecaptchaV3SiteKey)
-            : null,
-        providerAndroid: const AndroidPlayIntegrityProvider(),
-        providerApple: const AppleAppAttestProvider(),
-      );
+      await FirebaseAppCheck.instance
+          .activate(
+            providerWeb: kIsWeb
+                ? ReCaptchaV3Provider(_webRecaptchaV3SiteKey)
+                : null,
+            // Play Integrity and App Attest attest the *distribution*, not just
+            // the binary: they only return a valid verdict for an install that
+            // came from Play or the App Store. A debug or profile build running
+            // on a developer's device can never satisfy either, so it answered
+            // every token request with an attestation failure and was then
+            // throttled — 54 token warnings in a single profile session — while
+            // anything the backend enforces (a Firestore listener, a callable)
+            // was rejected outright for want of a token. Non-release builds
+            // therefore use the debug provider, whose token is registered by
+            // hand in the console; Play-distributed release builds keep real
+            // attestation, which is the only place it means anything.
+            providerAndroid: kReleaseMode
+                ? const AndroidPlayIntegrityProvider()
+                : const AndroidDebugProvider(debugToken: _configuredDebugToken),
+            providerApple: kReleaseMode
+                ? const AppleAppAttestProvider()
+                : const AppleDebugProvider(debugToken: _configuredDebugToken),
+          )
+          .timeout(_appCheckActivationBudget);
     } on Object catch (error, stackTrace) {
       // App Check setup must not prevent access to the local offline source of
       // truth. Callable sync remains pending until platform registration is

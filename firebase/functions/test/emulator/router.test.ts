@@ -1014,6 +1014,117 @@ describe('command router', () => {
     expect((publicData.expiresAt as Timestamp).toMillis() - now.toMillis()).toBe(30 * 24 * 60 * 60 * 1000);
   });
 
+  // A draft with no pin of its own used to publish an advert that could never
+  // appear on the map, and nothing about the publish failed to say so.
+  it('inherits the property pin for a listing that carries none', async () => {
+    await seedLandlord();
+    await db.doc('properties/property_pinned').set({
+      id: 'property_pinned', landlordId: landlord.uid, name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue', city: 'Kampala',
+      location: { lat: 0.3162345, lng: 32.5811789 },
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('units/unit_pinless').set({
+      id: 'unit_pinless', landlordId: landlord.uid, propertyId: 'property_pinned', label: 'PRIVATE A1',
+      occupancyStatus: 'vacant', activePublicListingId: null,
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('privateListings/listing_pinless').set({
+      id: 'listing_pinless', landlordId: landlord.uid, unitId: 'unit_pinless', publicationState: 'draft',
+      title: 'Sunny apartment', description: 'A good home', monthlyRentMinor: 100_000,
+      unitType: 'apartment', city: 'Kampala', neighborhood: 'Ntinda', district: 'Kampala',
+      bedrooms: 1, bathrooms: 1, amenities: [], stagedImagePaths: ['uploads/landlord_1234/cover.jpg'],
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+
+    const result = await executeCommandCore(
+      db,
+      landlord,
+      envelope('command_pinless', 'listing.publish', 'listing_pinless', 1, {}),
+      now,
+    );
+
+    expect(result.status).toBe('accepted');
+    // Coarsened on the way out, exactly as a landlord-placed pin would be.
+    expect((await db.doc('publicListings/listing_pinless').get()).data()?.approximateLocation)
+      .toEqual({ lat: 0.316, lng: 32.581 });
+    // Written back at full precision so the repair sticks and the landlord can
+    // see and move the pin their advert actually uses.
+    expect((await db.doc('privateListings/listing_pinless').get()).data()?.approximateLocation)
+      .toEqual({ lat: 0.3162345, lng: 32.5811789 });
+  });
+
+  it('never inherits a pin from another landlord\'s property', async () => {
+    await seedLandlord();
+    // `propertyId` is an ordinary field on the unit, so a cross-workspace value
+    // there must not be able to pull someone else's coordinate into a public
+    // projection.
+    await db.doc('properties/property_someone_else').set({
+      id: 'property_someone_else', landlordId: 'landlord_other', name: 'Not theirs',
+      addressLine: '1 Elsewhere', city: 'Kampala',
+      location: { lat: 0.9, lng: 33.9 },
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('units/unit_crossed').set({
+      id: 'unit_crossed', landlordId: landlord.uid, propertyId: 'property_someone_else',
+      label: 'PRIVATE A1', occupancyStatus: 'vacant', activePublicListingId: null,
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('privateListings/listing_crossed').set({
+      id: 'listing_crossed', landlordId: landlord.uid, unitId: 'unit_crossed', publicationState: 'draft',
+      title: 'Sunny apartment', description: 'A good home', monthlyRentMinor: 100_000,
+      unitType: 'apartment', city: 'Kampala', neighborhood: 'Ntinda', district: 'Kampala',
+      bedrooms: 1, bathrooms: 1, amenities: [], stagedImagePaths: ['uploads/landlord_1234/cover.jpg'],
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+
+    const result = await executeCommandCore(
+      db,
+      landlord,
+      envelope('command_crossed', 'listing.publish', 'listing_crossed', 1, {}),
+      now,
+    );
+
+    expect(result.status).toBe('accepted');
+    // Unpinned is the correct outcome: the map says so, rather than pointing at
+    // a stranger's address.
+    expect((await db.doc('publicListings/listing_crossed').get()).data()?.approximateLocation).toBeNull();
+  });
+
+  it('keeps a pin the landlord placed on the listing itself', async () => {
+    await seedLandlord();
+    await db.doc('properties/property_moved').set({
+      id: 'property_moved', landlordId: landlord.uid, name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue', city: 'Kampala',
+      location: { lat: 0.9, lng: 33.9 },
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('units/unit_moved').set({
+      id: 'unit_moved', landlordId: landlord.uid, propertyId: 'property_moved', label: 'PRIVATE A1',
+      occupancyStatus: 'vacant', activePublicListingId: null,
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('privateListings/listing_moved').set({
+      id: 'listing_moved', landlordId: landlord.uid, unitId: 'unit_moved', publicationState: 'draft',
+      title: 'Sunny apartment', description: 'A good home', monthlyRentMinor: 100_000,
+      unitType: 'apartment', city: 'Kampala', neighborhood: 'Ntinda', district: 'Kampala',
+      bedrooms: 1, bathrooms: 1, amenities: [], stagedImagePaths: ['uploads/landlord_1234/cover.jpg'],
+      approximateLocation: { lat: 0.3162345, lng: 32.5811789 },
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+
+    await executeCommandCore(
+      db,
+      landlord,
+      envelope('command_moved', 'listing.publish', 'listing_moved', 1, {}),
+      now,
+    );
+
+    // Inheritance fills an absence; it never overrules a deliberate placement.
+    expect((await db.doc('publicListings/listing_moved').get()).data()?.approximateLocation)
+      .toEqual({ lat: 0.316, lng: 32.581 });
+  });
+
   it('refuses to publish an advert that has no photo', async () => {
     await seedLandlord();
     await db.doc('units/unit_123456').set({

@@ -5,7 +5,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { collection, doc, getDoc, getDocs, limit, query, setDoc, Timestamp, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, Timestamp, where } from 'firebase/firestore';
 import { getBytes, listAll, ref, uploadBytes } from 'firebase/storage';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
@@ -111,6 +111,33 @@ describe('Firestore rules matrix', () => {
       limit(50),
     )));
     await assertFails(getDocs(query(collection(db, 'publicListings'), limit(51))));
+  });
+
+  // The client cannot filter on request.time, so it names an absolute cutoff and
+  // the rules check that cutoff against the *server's* clock. A cutoff that is
+  // not strictly ahead of server time is refused outright — the whole query,
+  // not the individual rows — so a device whose clock runs behind loses the
+  // entire marketplace rather than part of it. FirestoreRemotePullGateway
+  // answers a denial by re-listening with a later cutoff; this is the contract
+  // that behaviour is written against.
+  it('accepts a public listing cutoff only while it is still in the future', async () => {
+    const db = env.unauthenticatedContext().firestore();
+    const marketplaceQuery = (offsetMinutes: number) => getDocs(query(
+      collection(db, 'publicListings'),
+      where('status', '==', 'published'),
+      where('expiresAt', '>', Timestamp.fromDate(new Date(Date.now() + offsetMinutes * 60_000))),
+      orderBy('expiresAt'),
+      orderBy('publishedAt', 'desc'),
+      limit(50),
+    ));
+
+    // Every cutoff the client is willing to try, shortest first.
+    await assertSucceeds(marketplaceQuery(5));
+    await assertSucceeds(marketplaceQuery(60));
+    await assertSucceeds(marketplaceQuery(12 * 60));
+    await assertSucceeds(marketplaceQuery(2 * 24 * 60));
+    // A device fifteen minutes behind the server produces this, and is denied.
+    await assertFails(marketplaceQuery(-15));
   });
 
   it('isolates landlord and tenant reads', async () => {

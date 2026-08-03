@@ -32,13 +32,13 @@ import '../../portfolio/domain/unit.dart';
 import '../../portfolio/application/rental_space_labels.dart';
 import '../../subscriptions/application/subscription_providers.dart';
 import '../../subscriptions/domain/landlord_entitlement.dart';
-import '../../subscriptions/presentation/upgrade_prompt.dart';
 import '../domain/application.dart';
 import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
 import 'listing_publication.dart';
 import 'listing_visuals.dart';
 import 'listing_photo_picker.dart';
+import 'publish_actions.dart';
 
 class LandlordListingsScreen extends ConsumerStatefulWidget {
   const LandlordListingsScreen({super.key, this.initialUnitId});
@@ -376,45 +376,9 @@ class _LandlordListingsScreenState
       return;
     }
 
-    // At the plan's active-listing limit, prompt for an upgrade instead of
-    // queueing a publication the server would reject. Only a confirmed
-    // entitlement blocks locally; an unknown plan leaves the server to judge.
-    if (ref.read(landlordEntitlementProvider).value case EntitlementKnown(
-      entitlement: final plan,
-    )) {
-      final listings = ref.read(landlordListingsProvider).supportingRecords;
-      final activeCount = listings
-          .where((l) => l.status == ListingStatus.published)
-          .length;
-      if (activeCount >= plan.activeListingLimit) {
-        await showUpgradePrompt(
-          context,
-          title: 'Listing limit reached',
-          message:
-              'Your ${plan.displayName} plan allows up to '
-              '${plan.activeListingLimit} active listings and all of them are '
-              'in use. Unpublish a listing, or upgrade to advertise more at '
-              'once.',
-        );
-        return;
-      }
-    }
-    try {
-      await ref.read(publishListingProvider)(listing.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text.localized(_publishConfirmation(listing))),
-        );
-      }
-    } on Object catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text.localized('Could not publish: ${_reason(error)}'),
-          ),
-        );
-      }
-    }
+    // The plan limit, the publication itself, and the confirmation copy live
+    // with the vacancy prompt, so both surfaces enforce and say the same thing.
+    await publishListingWithinPlan(context, ref, listing);
   }
 
   /// The rule that was broken, without the exception's class name and field
@@ -423,22 +387,6 @@ class _LandlordListingsScreenState
   static String _reason(Object error) => switch (error) {
     DomainValidationException(:final errors) => errors.values.join(' '),
     _ => error.toString(),
-  };
-
-  /// Answers the question the landlord actually asked — "is my advert up?" —
-  /// instead of describing the queue. Publishing pushes immediately, so with a
-  /// live link the only honest promise is "in a moment"; without one, the
-  /// useful thing to say is what has to happen first.
-  String _publishConfirmation(Listing listing) => switch (ref
-      .read(cloudStatusProvider)
-      .value) {
-    CloudStatus.local =>
-      'Saved on this device. Adverts go public only once this app is connected to the server.',
-    CloudStatus.failed ||
-    CloudStatus.connecting ||
-    null => '${listing.title} goes live as soon as you are back online.',
-    CloudStatus.live =>
-      'Publishing ${listing.title} now — the card shows Published the moment tenants can see it.',
   };
 
   Future<void> _editListing(Listing listing) async {
@@ -725,6 +673,13 @@ class _LandlordListingsScreenState
       titleSeed:
           '${selectedUnit.displayName} at ${propertyById[selectedUnit.propertyId]?.name ?? 'My property'}',
       districtSeed: 'Kampala',
+      // The property already knows where it is, so a draft starts from that pin
+      // rather than from an empty pair of coordinate fields. Filling it in here
+      // means the landlord can see and move the point their advert will use,
+      // instead of discovering after publication that the home is missing from
+      // the map. `listing.publish` inherits it server-side as well, which is
+      // what repairs drafts written before this existed.
+      locationSeed: propertyById[selectedUnit.propertyId]?.location,
     );
     // Photo rejections and a refused save are different things and are shown
     // differently. Both are pinned below the scroll view, because a snack bar
@@ -917,8 +872,13 @@ class _ListingFields {
   factory _ListingFields.blank({
     required String titleSeed,
     required String districtSeed,
+    Coordinates? locationSeed,
   }) {
     final fields = _ListingFields._();
+    if (locationSeed != null) {
+      fields.latitude.text = locationSeed.latitude.toString();
+      fields.longitude.text = locationSeed.longitude.toString();
+    }
     fields.title.text = titleSeed;
     fields.description.text =
         'A well maintained home in a convenient Kampala location.';

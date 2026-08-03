@@ -197,9 +197,9 @@ final propertyMediaUrlResolverProvider = Provider<PropertyMediaUrlResolver?>((
   return dependencies.value?.propertyMediaUrlResolver;
 });
 
-final _propertyMediaUrlCacheProvider = Provider<_PropertyMediaUrlCache?>((ref) {
+final _propertyMediaUrlCacheProvider = Provider<PropertyMediaUrlCache?>((ref) {
   final resolver = ref.watch(propertyMediaUrlResolverProvider);
-  return resolver == null ? null : _PropertyMediaUrlCache(resolver);
+  return resolver == null ? null : PropertyMediaUrlCache(resolver);
 });
 
 /// The fetchable URL for a storage reference, or null when there is not one.
@@ -209,30 +209,83 @@ final propertyMediaUrlProvider = FutureProvider.autoDispose
       return cache == null ? Future<String?>.value() : cache.resolve(reference);
     });
 
-/// Remembers resolved URLs so a rebuild never re-asks Storage for one.
+/// Remembers what Storage answered so a rebuild never re-asks for the same
+/// reference — including when the answer was "there is no such object".
 ///
 /// This holds URL strings rather than image bytes. The bytes themselves are now
 /// cached by the image layer — in memory and, on mobile, on disk across app
 /// launches — which is both far larger and far longer-lived than the 24 MB
 /// in-memory buffer this replaced.
-final class _PropertyMediaUrlCache {
-  _PropertyMediaUrlCache(this._resolver);
+///
+/// Misses are cached too, for [missTtl]. A reference whose object is genuinely
+/// absent — a listing whose media never delivered, a row pointing at something
+/// deleted — used to cost the full retry ladder *every* time its tile scrolled
+/// back into view, which is what turned one broken listing into a session-long
+/// stream of Storage 404s. Caching the miss makes it cost one ladder; the TTL
+/// keeps it from becoming permanent, so backfilling the object still shows up
+/// without restarting the app.
+@visibleForTesting
+final class PropertyMediaUrlCache {
+  PropertyMediaUrlCache(
+    this._resolver, {
+    this.clock = _defaultClock,
+    this.graceWindow = defaultGraceWindow,
+  });
+
+  static DateTime _defaultClock() => DateTime.now();
+
+  /// How long a resolved miss is trusted before Storage is asked again.
+  static const missTtl = Duration(minutes: 10);
+
+  /// The delays between attempts before an absent object is called absent.
+  static const defaultGraceWindow = <Duration>[
+    Duration(milliseconds: 400),
+    Duration(milliseconds: 1200),
+    Duration(milliseconds: 2400),
+  ];
 
   final PropertyMediaUrlResolver _resolver;
+  final DateTime Function() clock;
+  final List<Duration> graceWindow;
   final Map<String, String> _values = <String, String>{};
+  final Map<String, _SettledMiss> _misses = <String, _SettledMiss>{};
   final Map<String, Future<String?>> _inFlight = <String, Future<String?>>{};
 
   Future<String?> resolve(String reference) {
-    if (_values.containsKey(reference)) {
-      return Future<String?>.value(_values[reference]);
+    final cached = _values[reference];
+    if (cached != null) return Future<String?>.value(cached);
+    final missed = _misses[reference];
+    if (missed != null) {
+      if (clock().difference(missed.at) < missTtl) return missed.replay();
+      _misses.remove(reference);
     }
     return _inFlight.putIfAbsent(reference, () async {
       try {
-        final url = await resolveMediaUrlWithRetry(_resolver, reference);
-        // A null is transient (usually the delivery worker has not produced
-        // the object yet), so never memoise it as a permanent grey tile.
-        if (url != null) _values[reference] = url;
+        final url = await resolveMediaUrlWithRetry(
+          _resolver,
+          reference,
+          retryDelays: graceWindow,
+        );
+        if (url != null) {
+          _values[reference] = url;
+        } else {
+          // Only a settled absence reaches here: a failure that might still
+          // resolve itself throws out of the ladder instead.
+          _misses[reference] = _SettledMiss(at: clock());
+        }
         return url;
+      } on Object catch (error, stackTrace) {
+        // A rejected reference is as settled as a missing one, and replaying it
+        // keeps the two distinguishable in the log — an unauthorized read and
+        // an undelivered photo are different problems wearing the same tile.
+        if (isPermanentMediaError(error)) {
+          _misses[reference] = _SettledMiss(
+            at: clock(),
+            error: error,
+            stackTrace: stackTrace,
+          );
+        }
+        rethrow;
       } finally {
         _inFlight.remove(reference);
       }
@@ -240,20 +293,62 @@ final class _PropertyMediaUrlCache {
   }
 }
 
+/// A settled non-answer for one reference: either no object, or a refusal.
+final class _SettledMiss {
+  _SettledMiss({required this.at, this.error, this.stackTrace});
+
+  final DateTime at;
+  final Object? error;
+  final StackTrace? stackTrace;
+
+  Future<String?> replay() => error == null
+      ? Future<String?>.value()
+      : Future<String?>.error(error!, stackTrace);
+}
+
+/// Storage failures that asking again cannot fix.
+///
+/// `object-not-found` is deliberately absent: publication commits the public
+/// projection before its media worker finishes, so a missing object is
+/// legitimately transient for the length of the retry ladder — and permanent
+/// only once the ladder is exhausted. Everything here is a wrong question
+/// rather than an early one, so retrying it just multiplies the failure by
+/// four. An error this does not recognise is treated as transient, which keeps
+/// the benefit of the doubt on the side of eventually showing the photo.
+const _permanentMediaErrorCodes = <String>{
+  'unauthorized',
+  'unauthenticated',
+  'invalid-argument',
+  'invalid-url',
+  'invalid-root-operation',
+  'no-default-bucket',
+  'bucket-not-found',
+  'project-not-found',
+};
+
+@visibleForTesting
+bool isPermanentMediaError(Object error) =>
+    error is FirebaseException &&
+    _permanentMediaErrorCodes.contains(error.code);
+
+bool _isMissingObject(Object error) =>
+    error is FirebaseException && error.code == 'object-not-found';
+
 /// Gives an asynchronously delivered listing image a short window to appear.
 ///
 /// Publication commits the public projection before its media worker finishes.
 /// A single Storage lookup therefore races that worker and used to leave the
 /// mounted card failed until the whole page was reloaded.
+///
+/// Returns null — rather than throwing — when the object is simply not there
+/// once that window has passed, because that is a settled answer the caller can
+/// remember. A failure that might still resolve itself throws, so nothing
+/// memoises it.
 @visibleForTesting
 Future<String?> resolveMediaUrlWithRetry(
   PropertyMediaUrlResolver resolver,
   String reference, {
-  List<Duration> retryDelays = const <Duration>[
-    Duration(milliseconds: 400),
-    Duration(milliseconds: 1200),
-    Duration(milliseconds: 2400),
-  ],
+  List<Duration> retryDelays = PropertyMediaUrlCache.defaultGraceWindow,
   Future<void> Function(Duration delay) wait = Future<void>.delayed,
 }) async {
   Object? lastError;
@@ -263,12 +358,18 @@ Future<String?> resolveMediaUrlWithRetry(
     try {
       final url = await resolver(reference);
       if (url != null) return url;
+      // A resolver that answered null answered; it did not fail.
+      lastError = null;
+      lastStackTrace = null;
     } on Object catch (error, stackTrace) {
+      if (isPermanentMediaError(error)) {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
       lastError = error;
       lastStackTrace = stackTrace;
     }
   }
-  if (lastError != null) {
+  if (lastError != null && !_isMissingObject(lastError)) {
     Error.throwWithStackTrace(lastError, lastStackTrace!);
   }
   return null;

@@ -23,6 +23,7 @@ import '../../../core/presentation/toast.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../marketplace/domain/listing.dart';
+import '../../marketplace/presentation/publish_actions.dart';
 import '../../subscriptions/application/subscription_providers.dart';
 import '../../subscriptions/domain/landlord_entitlement.dart';
 import '../../subscriptions/presentation/upgrade_prompt.dart';
@@ -905,6 +906,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           ),
         ),
       );
+      // Vacancy is the only state in which a space may be advertised, so a
+      // space that has just reached it is offered to the public screen right
+      // here rather than waiting for a trip to the listings page.
+      if (status == UnitStatus.vacant && unit.status != UnitStatus.vacant) {
+        await promptToAdvertiseVacantSpace(
+          context,
+          ref,
+          unit: unit,
+          listings: listings,
+        );
+      }
     }
   }
 

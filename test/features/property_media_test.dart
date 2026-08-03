@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -549,6 +551,195 @@ void main() {
     expect(url, 'https://example.test/delivered.webp');
     expect(attempts, 3);
     expect(waits, const [Duration(milliseconds: 1), Duration(milliseconds: 2)]);
+  });
+
+  test(
+    'an object still missing after the grace window settles as absent',
+    () async {
+      // Not a thrown error: the caller has to tell "there is no such object"
+      // from "ask again later", because only the first is safe to cache.
+      var attempts = 0;
+
+      final url = await resolveMediaUrlWithRetry(
+        (reference) async {
+          attempts++;
+          throw FirebaseException(
+            plugin: 'firebase_storage',
+            code: 'object-not-found',
+          );
+        },
+        'public/listings/listing-1/image.webp',
+        retryDelays: const [Duration(milliseconds: 1)],
+        wait: (delay) async {},
+      );
+
+      expect(url, isNull);
+      expect(attempts, 2, reason: 'the grace window is still honoured');
+    },
+  );
+
+  test('a rejected reference is not retried at all', () async {
+    // Four attempts at a read the rules will never allow is four times the
+    // round trips for the same grey tile.
+    var attempts = 0;
+    final waits = <Duration>[];
+
+    await expectLater(
+      resolveMediaUrlWithRetry(
+        (reference) async {
+          attempts++;
+          throw FirebaseException(
+            plugin: 'firebase_storage',
+            code: 'unauthorized',
+          );
+        },
+        'private/landlords/l1/properties/p1/0-full.webp',
+        retryDelays: const [
+          Duration(milliseconds: 1),
+          Duration(milliseconds: 2),
+        ],
+        wait: (delay) async => waits.add(delay),
+      ),
+      throwsA(
+        isA<FirebaseException>().having((e) => e.code, 'code', 'unauthorized'),
+      ),
+    );
+    expect(attempts, 1);
+    expect(waits, isEmpty);
+  });
+
+  test('an unrecognised failure keeps the benefit of the doubt', () async {
+    // A socket error is not a verdict about the object, so it still gets the
+    // whole ladder — and still throws, so nothing memoises it.
+    var attempts = 0;
+
+    await expectLater(
+      resolveMediaUrlWithRetry(
+        (reference) async {
+          attempts++;
+          throw const SocketException('no route to host');
+        },
+        'public/listings/listing-1/image.webp',
+        retryDelays: const [
+          Duration(milliseconds: 1),
+          Duration(milliseconds: 2),
+        ],
+        wait: (delay) async {},
+      ),
+      throwsA(isA<SocketException>()),
+    );
+    expect(attempts, 3);
+  });
+
+  test(
+    'a missing object is asked for again only once its TTL lapses',
+    () async {
+      const reference = 'public/listings/listing-1/image.webp';
+      var attempts = 0;
+      var moment = DateTime.utc(2026, 8, 3, 9);
+      final cache = PropertyMediaUrlCache(
+        (_) async {
+          attempts++;
+          throw FirebaseException(
+            plugin: 'firebase_storage',
+            code: 'object-not-found',
+          );
+        },
+        clock: () => moment,
+        graceWindow: const [Duration.zero],
+      );
+
+      expect(await cache.resolve(reference), isNull);
+      final afterFirstLadder = attempts;
+      expect(afterFirstLadder, greaterThan(1), reason: 'the grace window ran');
+
+      moment = moment.add(
+        PropertyMediaUrlCache.missTtl - const Duration(minutes: 1),
+      );
+      expect(await cache.resolve(reference), isNull);
+      expect(attempts, afterFirstLadder);
+
+      // The TTL is what keeps a backfilled object from staying invisible until
+      // the app restarts.
+      moment = moment.add(const Duration(minutes: 2));
+      expect(await cache.resolve(reference), isNull);
+      expect(attempts, greaterThan(afterFirstLadder));
+    },
+  );
+
+  test(
+    'a rejected reference replays its refusal instead of re-asking',
+    () async {
+      const reference = 'private/landlords/l1/properties/p1/0-full.webp';
+      var attempts = 0;
+      final cache = PropertyMediaUrlCache((_) async {
+        attempts++;
+        throw FirebaseException(
+          plugin: 'firebase_storage',
+          code: 'unauthorized',
+        );
+      });
+
+      final unauthorized = throwsA(
+        isA<FirebaseException>().having((e) => e.code, 'code', 'unauthorized'),
+      );
+      await expectLater(cache.resolve(reference), unauthorized);
+      await expectLater(cache.resolve(reference), unauthorized);
+      expect(attempts, 1);
+    },
+  );
+
+  testWidgets('a missing object is looked up once, not once per rebuild', (
+    tester,
+  ) async {
+    // One listing whose media never delivered used to reissue the full retry
+    // ladder every time its tile scrolled back into view.
+    const primary = 'uploads/landlord/command/primary.png';
+    var attempts = 0;
+    final property = Property(
+      id: 'property-missing',
+      landlordId: 'landlord-1',
+      name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue',
+      city: 'Kampala',
+      country: 'Uganda',
+      imageUrls: const <String>[primary],
+      createdAt: now,
+      updatedAt: now,
+    );
+    final visibility = GlobalKey<_MediaVisibilityState>();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          propertyMediaUrlResolverProvider.overrideWith(
+            (ref) => (reference) async {
+              attempts++;
+              throw FirebaseException(
+                plugin: 'firebase_storage',
+                code: 'object-not-found',
+              );
+            },
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: _MediaVisibility(key: visibility, property: property),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final afterFirstMount = attempts;
+
+    visibility.currentState!.show = false;
+    await tester.pump();
+    visibility.currentState!.show = true;
+    await tester.pumpAndSettle();
+
+    expect(afterFirstMount, greaterThan(1), reason: 'the grace window ran');
+    expect(attempts, afterFirstMount);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 }
 
