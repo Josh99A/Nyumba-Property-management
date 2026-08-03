@@ -430,12 +430,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     address.dispose();
     city.dispose();
     description.dispose();
+    // Reached only after `property.update` came back accepted: the repository
+    // writes through the command dispatcher, which refuses outright when
+    // offline and never stores anything for later. The old copy here promised
+    // a sync queue that no longer exists.
     if (updated == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text.localized(
-            'Property changes saved locally and queued to sync.',
-          ),
+        SnackBar(
+          content: Text(appLocalizationsOf(context).propertyChangesSaved),
         ),
       );
     }
@@ -644,11 +646,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     bathrooms.dispose();
     if (created == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text.localized(
-            'Rental space saved locally and queued to sync.',
-          ),
-        ),
+        SnackBar(content: Text(appLocalizationsOf(context).rentalSpaceSaved)),
       );
     }
   }
@@ -693,6 +691,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           listing.status == ListingStatus.published,
     );
     UpdateUnitResult? result;
+    // `UpdateUnitResult` reports the outcome, not the record, and the field
+    // controllers are disposed before the prompt below runs — so the saved
+    // space has to be kept here or the prompt would name the space by its old
+    // label.
+    Unit? saved;
     String? error;
     ModalRoute<bool>? dialogRoute;
     final updated = await showDialog<bool>(
@@ -865,17 +868,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 onPressed: () async {
                   if (!formKey.currentState!.validate()) return;
                   try {
-                    result = await ref.read(updateUnitProvider)(
-                      unit.copyWith(
-                        label: label.text.trim(),
-                        type: type,
-                        status: status,
-                        monthlyRentMinor:
-                            int.parse(rent.text.replaceAll(',', '')) * 100,
-                        bedrooms: int.parse(bedrooms.text),
-                        bathrooms: int.parse(bathrooms.text),
-                      ),
+                    final edited = unit.copyWith(
+                      label: label.text.trim(),
+                      type: type,
+                      status: status,
+                      monthlyRentMinor:
+                          int.parse(rent.text.replaceAll(',', '')) * 100,
+                      bedrooms: int.parse(bedrooms.text),
+                      bathrooms: int.parse(bathrooms.text),
                     );
+                    result = await ref.read(updateUnitProvider)(edited);
+                    saved = edited;
                     if (context.mounted) Navigator.pop(context, true);
                   } on Object catch (caught) {
                     setDialogState(() => error = caught.toString());
@@ -909,12 +912,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       // Vacancy is the only state in which a space may be advertised, so a
       // space that has just reached it is offered to the public screen right
       // here rather than waiting for a trip to the listings page.
+      //
+      // Both inputs are re-read rather than reused: `listings` was captured
+      // before the save, and this same save can withdraw an advert, so the
+      // prompt would otherwise decide between "Publish now" and "Create
+      // listing" from a snapshot it has already invalidated.
       if (status == UnitStatus.vacant && unit.status != UnitStatus.vacant) {
         await promptToAdvertiseVacantSpace(
           context,
           ref,
-          unit: unit,
-          listings: listings,
+          unit: saved ?? unit,
+          listings: ref.read(landlordListingsProvider).supportingRecords,
         );
       }
     }

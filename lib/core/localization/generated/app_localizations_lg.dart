@@ -4559,4 +4559,83 @@ class AppLocalizationsLg extends AppLocalizations {
 
   @override
   String get propertySaveSuccess => 'Eky\'obugagga kiterekeddwa.';
+
+  @override
+  String get propertyChangesSaved =>
+      'Enkyukakyuka mu ky\'obugagga ziterekeddwa.';
+
+  @override
+  String get rentalSpaceSaved => 'Ekifo eky\'obupangisa kiterekeddwa.';
+
+  @override
+  String get vacancyPromptTitle => 'Olanga ekifo kino eky’obupangisa?';
+
+  @override
+  String vacancyPromptCreateBody(String name) {
+    return '$name kaakati kikalu. Tondawo ekirango okulaga abapangisa ku katale.';
+  }
+
+  @override
+  String vacancyPromptPhotosBody(String name, String title) {
+    return '$name kaakati kikalu. Ekirango kyakyo “$title” kyetaaga ekifaananyi kimu okusookera ddala nga tekinnaba kufuluma.';
+  }
+
+  @override
+  String vacancyPromptPublishBody(String name, String title) {
+    return '$name kaakati kikalu. Fulumya “$title” abapangisa basobole okukizuula ku katale.';
+  }
+
+  @override
+  String get vacancyPromptNotNow => 'Si kaakati';
+
+  @override
+  String get vacancyPromptCreateAction => 'Tondawo ekirango';
+
+  @override
+  String get vacancyPromptPhotosAction => 'Gattako ebifaananyi';
+
+  @override
+  String get vacancyPromptPublishAction => 'Fulumya kaakati';
+
+  @override
+  String get listingLimitReachedTitle =>
+      'Omuwendo gw’ebirango gutuuse ku nkomerero';
+
+  @override
+  String listingLimitReachedMessage(String plan, int limit) {
+    return 'Enteekateeka yo eya $plan ekkiriza ebirango $limit ebikola, era byonna bikozesebwa. Ggyawo ekirango, oba wanjulukuse osobole okulanga ebingi mu kiseera kimu.';
+  }
+
+  @override
+  String get publishSavedOnDevice =>
+      'Kiterekeddwa ku kyuma kino. Ebirango bifuluma bwe kiba nti app eno eyunze ku ssaava.';
+
+  @override
+  String publishWhenBackOnline(String title) {
+    return '$title kijja kufuluma nga oddiddemu ku yintaneeti.';
+  }
+
+  @override
+  String publishInProgress(String title) {
+    return 'Fulumya $title kaakati — kaadi eraga Kifulumiddwa amangu ddala nga abapangisa basobola okukiraba.';
+  }
+
+  @override
+  String get paymentRecorded => 'Okusasula kuwandiisiddwa.';
+
+  @override
+  String get listingChangesSaved => 'Enkyukakyuka mu kirango ziterekeddwa.';
+
+  @override
+  String get listingDraftSavedPublishHint =>
+      'Ekirango ekitannafuluma kiterekeddwa. Osobola okukifulumya bw\'oba weetegese.';
+
+  @override
+  String get tenantInvited =>
+      'Omupangisa ayongeddwako. Obubaka obw\'okuyita bugenda.';
+
+  @override
+  String documentDraftSavedOnDevice(String type) {
+    return 'Ekiwandiiko kya $type ekitannaggwa kiterekeddwa ku kyuma kino.';
+  }
 }

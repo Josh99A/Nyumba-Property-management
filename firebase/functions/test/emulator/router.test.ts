@@ -1014,6 +1014,53 @@ describe('command router', () => {
     expect((publicData.expiresAt as Timestamp).toMillis() - now.toMillis()).toBe(30 * 24 * 60 * 60 * 1000);
   });
 
+  // `unitId` is on every saveDraft payload, including edits, and is spread onto
+  // the aggregate — so an edit could move a draft onto a unit that already had
+  // one, bypassing the "one private listing per unit" invariant that the
+  // create path checks.
+  it('refuses to move a draft onto a unit that already has a listing', async () => {
+    await seedLandlord();
+    const batch = db.batch();
+    for (const suffix of ['a', 'b']) {
+      batch.set(db.doc(`units/unit_move_${suffix}`), {
+        id: `unit_move_${suffix}`, landlordId: landlord.uid, propertyId: 'property_move',
+        label: `PRIVATE ${suffix.toUpperCase()}`, occupancyStatus: 'vacant',
+        activePublicListingId: null,
+        version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+      });
+      batch.set(db.doc(`privateListings/listing_move_${suffix}`), {
+        id: `listing_move_${suffix}`, landlordId: landlord.uid, unitId: `unit_move_${suffix}`,
+        publicationState: 'draft', title: 'Sunny apartment', description: 'A good home',
+        monthlyRentMinor: 100_000, unitType: 'apartment', city: 'Kampala',
+        neighborhood: 'Ntinda', district: 'Kampala', bedrooms: 1, bathrooms: 1,
+        amenities: [], stagedImagePaths: [`uploads/${landlord.uid}/cover.jpg`],
+        version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+      });
+    }
+    await batch.commit();
+
+    const edit = (unitId: string, commandId: string) => executeCommandCore(db, landlord, envelope(
+      commandId, 'listing.saveDraft', 'listing_move_a', 1,
+      {
+        unitId, title: 'Sunny apartment', description: 'A good home',
+        monthlyRentMinor: 100_000, unitType: 'apartment', city: 'Kampala',
+        neighborhood: 'Ntinda', district: 'Kampala', bedrooms: 1, bathrooms: 1,
+        amenities: [], stagedImagePaths: [`uploads/${landlord.uid}/cover.jpg`],
+      },
+    ), now);
+
+    expect(await edit('unit_move_b', 'command_move_collide')).toMatchObject({
+      status: 'rejected',
+      error: {
+        code: 'ALREADY_EXISTS',
+        details: { reason: 'unitAlreadyHasListing', listingId: 'listing_move_b' },
+      },
+    });
+    expect((await db.doc('privateListings/listing_move_a').get()).data()?.unitId).toBe('unit_move_a');
+    // An ordinary edit resends the unit it is already on and must still apply.
+    expect(await edit('unit_move_a', 'command_move_same')).toMatchObject({ status: 'applied' });
+  });
+
   // A draft with no pin of its own used to publish an advert that could never
   // appear on the map, and nothing about the publish failed to say so.
   it('inherits the property pin for a listing that carries none', async () => {

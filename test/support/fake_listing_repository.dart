@@ -81,7 +81,12 @@ final class FakeListingRepository implements ListingRepository {
       neighborhood: input.neighborhood ?? input.city.trim(),
       approximateLatitude: pin?.latitude,
       approximateLongitude: pin?.longitude,
-      imageUrls: input.imageUrls,
+      // Trimmed exactly as `CloudListingRepository.createDraft` trims before it
+      // sends the command, so a test cannot accept a payload production would
+      // never produce.
+      imageUrls: input.imageUrls
+          .map((item) => item.trim())
+          .toList(growable: false),
       contactPhone: input.contactPhone,
       createdAt: retrievedAt,
       updatedAt: retrievedAt,

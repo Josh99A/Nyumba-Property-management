@@ -1361,4 +1361,31 @@
     ,"listingDraftSaved": "Ekirango eky'okusooka kitereke."
     ,"listingContactRoutingNotice": "Okubuuza kuyisibwa mu ngeri enkuumi mu Nyumba. Ennamba yo ey'essimu ne email eby'obwannannyini tebifulumizibwa n'ekirango kino."
     ,"propertySaveSuccess": "Eky'obugagga kiterekeddwa."
+    ,"propertyChangesSaved": "Enkyukakyuka mu ky'obugagga ziterekeddwa."
+    ,"rentalSpaceSaved": "Ekifo eky'obupangisa kiterekeddwa."
+    ,"vacancyPromptTitle": "Olanga ekifo kino eky’obupangisa?"
+    ,"vacancyPromptCreateBody": "{name} kaakati kikalu. Tondawo ekirango okulaga abapangisa ku katale."
+    ,"@vacancyPromptCreateBody": {"placeholders": {"name": {"type": "String"}}}
+    ,"vacancyPromptPhotosBody": "{name} kaakati kikalu. Ekirango kyakyo “{title}” kyetaaga ekifaananyi kimu okusookera ddala nga tekinnaba kufuluma."
+    ,"@vacancyPromptPhotosBody": {"placeholders": {"name": {"type": "String"}, "title": {"type": "String"}}}
+    ,"vacancyPromptPublishBody": "{name} kaakati kikalu. Fulumya “{title}” abapangisa basobole okukizuula ku katale."
+    ,"@vacancyPromptPublishBody": {"placeholders": {"name": {"type": "String"}, "title": {"type": "String"}}}
+    ,"vacancyPromptNotNow": "Si kaakati"
+    ,"vacancyPromptCreateAction": "Tondawo ekirango"
+    ,"vacancyPromptPhotosAction": "Gattako ebifaananyi"
+    ,"vacancyPromptPublishAction": "Fulumya kaakati"
+    ,"listingLimitReachedTitle": "Omuwendo gw’ebirango gutuuse ku nkomerero"
+    ,"listingLimitReachedMessage": "Enteekateeka yo eya {plan} ekkiriza ebirango {limit} ebikola, era byonna bikozesebwa. Ggyawo ekirango, oba wanjulukuse osobole okulanga ebingi mu kiseera kimu."
+    ,"@listingLimitReachedMessage": {"placeholders": {"plan": {"type": "String"}, "limit": {"type": "int"}}}
+    ,"publishSavedOnDevice": "Kiterekeddwa ku kyuma kino. Ebirango bifuluma bwe kiba nti app eno eyunze ku ssaava."
+    ,"publishWhenBackOnline": "{title} kijja kufuluma nga oddiddemu ku yintaneeti."
+    ,"@publishWhenBackOnline": {"placeholders": {"title": {"type": "String"}}}
+    ,"publishInProgress": "Fulumya {title} kaakati — kaadi eraga Kifulumiddwa amangu ddala nga abapangisa basobola okukiraba."
+    ,"@publishInProgress": {"placeholders": {"title": {"type": "String"}}}
+    ,"paymentRecorded": "Okusasula kuwandiisiddwa."
+    ,"listingChangesSaved": "Enkyukakyuka mu kirango ziterekeddwa."
+    ,"listingDraftSavedPublishHint": "Ekirango ekitannafuluma kiterekeddwa. Osobola okukifulumya bw'oba weetegese."
+    ,"tenantInvited": "Omupangisa ayongeddwako. Obubaka obw'okuyita bugenda."
+    ,"documentDraftSavedOnDevice": "Ekiwandiiko kya {type} ekitannaggwa kiterekeddwa ku kyuma kino."
+    ,"@documentDraftSavedOnDevice": {"placeholders": {"type": {"type": "String"}}}
 }

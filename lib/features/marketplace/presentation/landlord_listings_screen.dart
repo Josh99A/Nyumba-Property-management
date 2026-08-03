@@ -538,10 +538,8 @@ class _LandlordListingsScreenState
     fields.dispose();
     if (saved == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text.localized(
-            'Listing changes saved locally and queued to sync.',
-          ),
+        SnackBar(
+          content: Text(appLocalizationsOf(context).listingChangesSaved),
         ),
       );
     }
@@ -846,9 +844,9 @@ class _LandlordListingsScreenState
     if (created == true) {
       if (mounted) {
         ScaffoldMessenger.of(this.context).showSnackBar(
-          const SnackBar(
-            content: Text.localized(
-              'Draft saved locally. You can publish it when ready.',
+          SnackBar(
+            content: Text(
+              appLocalizationsOf(this.context).listingDraftSavedPublishHint,
             ),
           ),
         );

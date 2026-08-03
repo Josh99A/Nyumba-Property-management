@@ -238,7 +238,7 @@ void main() {
     );
     expect(selectedUnit.initialValue?.id, 'unit-2');
     expect(
-      find.text('Draft saved locally. You can publish it when ready.'),
+      find.text('Draft advert saved. You can publish it when ready.'),
       findsNothing,
     );
   });

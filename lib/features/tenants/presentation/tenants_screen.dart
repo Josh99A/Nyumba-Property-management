@@ -353,11 +353,12 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
           ),
         );
         if (mounted) {
+          // The invite is not this device's job to deliver: `tenant.invite`
+          // queues a `sendTenantInviteEmail` job inside the same server
+          // transaction, so it goes out whether or not this app stays open.
           ScaffoldMessenger.of(this.context).showSnackBar(
-            const SnackBar(
-              content: Text.localized(
-                'Tenant saved locally. Invitation will send when online.',
-              ),
+            SnackBar(
+              content: Text(appLocalizationsOf(this.context).tenantInvited),
             ),
           );
         }

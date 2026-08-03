@@ -40,7 +40,10 @@ initializeApp({ projectId });
 const db = getFirestore();
 
 const commandClient = {
-  installationId: 'ops_listing_repair_20260731',
+  // No date baked in: this string lands in the command envelope and the audit
+  // trail, so a literal one would report the day the script was written on
+  // every future run.
+  installationId: 'ops_listing_repair',
   appVersion: 'repair-1',
   platform: 'web',
 };

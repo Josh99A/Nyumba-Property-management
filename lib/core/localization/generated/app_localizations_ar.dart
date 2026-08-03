@@ -4457,4 +4457,80 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get propertySaveSuccess => 'تم حفظ العقار.';
+
+  @override
+  String get propertyChangesSaved => 'تم حفظ تغييرات العقار.';
+
+  @override
+  String get rentalSpaceSaved => 'تم حفظ الوحدة المؤجرة.';
+
+  @override
+  String get vacancyPromptTitle => 'هل تريد الإعلان عن هذه الوحدة المؤجرة؟';
+
+  @override
+  String vacancyPromptCreateBody(String name) {
+    return '$name أصبحت شاغرة الآن. أنشئ إعلانًا لعرضها على المستأجرين في السوق العام.';
+  }
+
+  @override
+  String vacancyPromptPhotosBody(String name, String title) {
+    return '$name أصبحت شاغرة الآن. يحتاج إعلانها “$title” إلى صورة واحدة على الأقل قبل نشره للعموم.';
+  }
+
+  @override
+  String vacancyPromptPublishBody(String name, String title) {
+    return '$name أصبحت شاغرة الآن. انشر “$title” ليتمكن المستأجرون من العثور عليها في السوق العام.';
+  }
+
+  @override
+  String get vacancyPromptNotNow => 'ليس الآن';
+
+  @override
+  String get vacancyPromptCreateAction => 'إنشاء إعلان';
+
+  @override
+  String get vacancyPromptPhotosAction => 'إضافة صور';
+
+  @override
+  String get vacancyPromptPublishAction => 'انشر الآن';
+
+  @override
+  String get listingLimitReachedTitle => 'تم بلوغ حد الإعلانات';
+
+  @override
+  String listingLimitReachedMessage(String plan, int limit) {
+    return 'تتيح خطة $plan ما يصل إلى $limit إعلانًا نشطًا، وجميعها قيد الاستخدام. ألغِ نشر أحد الإعلانات، أو قم بالترقية للإعلان عن المزيد في وقت واحد.';
+  }
+
+  @override
+  String get publishSavedOnDevice =>
+      'تم الحفظ على هذا الجهاز. لا تُنشر الإعلانات للعموم إلا بعد اتصال التطبيق بالخادم.';
+
+  @override
+  String publishWhenBackOnline(String title) {
+    return 'سيُنشر $title بمجرد عودتك إلى الاتصال بالإنترنت.';
+  }
+
+  @override
+  String publishInProgress(String title) {
+    return 'يجري نشر $title الآن — وستعرض البطاقة “منشور” فور تمكّن المستأجرين من رؤيته.';
+  }
+
+  @override
+  String get paymentRecorded => 'تم تسجيل الدفعة.';
+
+  @override
+  String get listingChangesSaved => 'تم حفظ تغييرات الإعلان.';
+
+  @override
+  String get listingDraftSavedPublishHint =>
+      'تم حفظ مسودة الإعلان. يمكنك نشرها عندما تكون جاهزًا.';
+
+  @override
+  String get tenantInvited => 'تمت إضافة المستأجر. رسالة الدعوة في طريقها.';
+
+  @override
+  String documentDraftSavedOnDevice(String type) {
+    return 'تم حفظ مسودة $type على هذا الجهاز.';
+  }
 }

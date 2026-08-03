@@ -73,6 +73,11 @@ final class CloudReader {
 
       var lastGood = cached?.value;
       var lastGoodAt = cached?.storedAt;
+      // Carried alongside the rows themselves. A live result that dropped some
+      // records, followed by a failed refresh, would otherwise show the same
+      // incomplete list with the partial-data warning removed — the list would
+      // look complete at exactly the moment it is least verifiable.
+      var lastGoodDiscarded = 0;
 
       subscription = _gateway.watch(aggregate, scope).listen((snapshot) {
         switch (snapshot.status) {
@@ -83,6 +88,7 @@ final class CloudReader {
             _cache.write(_partition, key, decoded.values, retrievedAt: at);
             lastGood = decoded.values;
             lastGoodAt = at;
+            lastGoodDiscarded = decoded.discardedCount;
             controller.add(
               decoded.values.isEmpty && decoded.discardedCount == 0
                   ? CloudData<List<T>>.empty(decoded.values, retrievedAt: at)
@@ -103,6 +109,7 @@ final class CloudReader {
               _cache.invalidate(_partition, key);
               lastGood = null;
               lastGoodAt = null;
+              lastGoodDiscarded = 0;
               controller.add(CloudData<List<T>>.failure(error));
             } else if (lastGood != null && lastGoodAt != null) {
               controller.add(
@@ -110,6 +117,7 @@ final class CloudReader {
                   lastGood!,
                   retrievedAt: lastGoodAt!,
                   error: error,
+                  discardedRecordCount: lastGoodDiscarded,
                 ),
               );
             } else {

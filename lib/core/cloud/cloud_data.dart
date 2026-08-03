@@ -159,11 +159,13 @@ final class CloudData<T> {
     T value, {
     required DateTime retrievedAt,
     required CloudReadError error,
+    int discardedRecordCount = 0,
   }) : this._(
          status: CloudDataStatus.cachedPotentiallyOutdated,
          value: value,
          retrievedAt: retrievedAt,
          error: error,
+         discardedRecordCount: discardedRecordCount,
        );
 
   /// A failure with nothing to fall back on.

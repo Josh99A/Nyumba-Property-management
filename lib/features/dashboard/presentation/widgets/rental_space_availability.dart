@@ -5,8 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
 import '../../../../app/bootstrap/app_dependencies.dart';
+import '../../../../core/cloud/cloud_async.dart';
 import '../../../../core/localization/app_localizations_adapter.dart';
+import '../../../../core/localization/nyumba_localizations.dart';
 import '../../../../app/theme/nyumba_colors.dart';
+import '../../../../core/presentation/action_failure.dart';
 import '../../../../core/presentation/status_badge.dart';
 import '../../../../core/presentation/surface.dart';
 import '../../../auth/application/session_controller.dart';
@@ -281,11 +284,16 @@ class _RentalSpaceAvailabilityPanelState
       );
     } on Object catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text.localized('Could not update availability: $error'),
-        ),
+      // Never the raw exception: `$error` puts a class name and an internal
+      // code in front of the landlord. `describeActionFailure` keeps those in
+      // `details`, which a snackbar has no room for anyway.
+      final failure = describeActionFailure(
+        error,
+        action: context.tr('change this availability'),
       );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text.localized(failure.message)));
       return;
     }
     // A space that has just become vacant is the only kind that may be
@@ -296,8 +304,11 @@ class _RentalSpaceAvailabilityPanelState
       await promptToAdvertiseVacantSpace(
         context,
         ref,
-        unit: unit,
-        listings: listings,
+        unit: unit.copyWith(status: status),
+        // Re-read, not the captured list: this same save can withdraw a
+        // published advert, so the prompt would otherwise choose between
+        // "Publish now" and "Create listing" from a snapshot it invalidated.
+        listings: ref.read(landlordListingsProvider).supportingRecords,
       );
     }
   }

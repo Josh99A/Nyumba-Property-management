@@ -7889,6 +7889,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Property saved.'**
   String get propertySaveSuccess;
+
+  /// Confirmation after the server accepted an edit to a property. Past tense: the write is cloud-authoritative, so this is only reached once the server has confirmed. Replaces copy that claimed the edit was queued for a later sync, which no longer describes what happens.
+  ///
+  /// In en, this message translates to:
+  /// **'Property changes saved.'**
+  String get propertyChangesSaved;
+
+  /// Confirmation after the server accepted a new rental space. Past tense: the write is cloud-authoritative, so this is only reached once the server has confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Rental space saved.'**
+  String get rentalSpaceSaved;
+
+  /// Dialog title offered the moment a rental space becomes vacant, which is the only state in which it may be advertised.
+  ///
+  /// In en, this message translates to:
+  /// **'Advertise this rental space?'**
+  String get vacancyPromptTitle;
+
+  /// Body when the newly vacant space has no advert at all. {name} is the landlord-entered rental-space name and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now vacant. Create a listing to show it to tenants on the public marketplace.'**
+  String vacancyPromptCreateBody(String name);
+
+  /// Body when the space has a draft advert that cannot be published until it has a photo. {name} and {title} are landlord-entered and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now vacant. Its advert “{title}” needs at least one photo before it can go public.'**
+  String vacancyPromptPhotosBody(String name, String title);
+
+  /// Body when the space has a publishable advert. {name} and {title} are landlord-entered and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now vacant. Publish “{title}” so tenants can find it on the public marketplace.'**
+  String vacancyPromptPublishBody(String name, String title);
+
+  /// Dismisses the vacancy prompt without advertising.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get vacancyPromptNotNow;
+
+  /// Opens the listing editor for a space that has no advert yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Create listing'**
+  String get vacancyPromptCreateAction;
+
+  /// Opens the adverts screen so a photoless draft can be given a photo.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photos'**
+  String get vacancyPromptPhotosAction;
+
+  /// Publishes the existing draft advert immediately.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish now'**
+  String get vacancyPromptPublishAction;
+
+  /// Title shown when the plan already has every active advert slot in use.
+  ///
+  /// In en, this message translates to:
+  /// **'Listing limit reached'**
+  String get listingLimitReachedTitle;
+
+  /// Explains the active-advert limit and the two ways out. Billing wording: review before release.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {plan} plan allows up to {limit} active listings and all of them are in use. Unpublish a listing, or upgrade to advertise more at once.'**
+  String listingLimitReachedMessage(String plan, int limit);
+
+  /// Shown after publishing on a build with no server connection. Must never claim the advert is public.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this device. Adverts go public only once this app is connected to the server.'**
+  String get publishSavedOnDevice;
+
+  /// Shown when the device is offline: the advert is queued, not live. {title} is landlord-entered and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} goes live as soon as you are back online.'**
+  String publishWhenBackOnline(String title);
+
+  /// Shown while a publication is in flight. Deliberately not past tense: the server has not confirmed. {title} is landlord-entered and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishing {title} now — the card shows Published the moment tenants can see it.'**
+  String publishInProgress(String title);
+
+  /// Confirmation after the server accepted a rent payment. Past tense and unhedged: the command dispatcher refuses when offline, so reaching this line means the server already confirmed. Replaces copy that said the payment was queued and awaiting confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment recorded.'**
+  String get paymentRecorded;
+
+  /// Confirmation after the server accepted an edit to an advert. Past tense: only reached once the server has confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Listing changes saved.'**
+  String get listingChangesSaved;
+
+  /// Confirmation after the server accepted a new draft advert, plus the next step. The draft lives on the server, not on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft advert saved. You can publish it when ready.'**
+  String get listingDraftSavedPublishHint;
+
+  /// Confirmation after the server accepted a new tenancy. The invite is dispatched by a server-side job (sendTenantInviteEmail) queued in the same transaction, so it does not depend on this device staying online.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenant added. The invitation email is on its way.'**
+  String get tenantInvited;
+
+  /// Confirmation after a lease document draft is written to the local workspace. Lease documents are local-only (LocalOnlyReason.localWorkspaceOnly) and no sync gateway carries them, so this must not promise a sync that will never happen. {type} is a document-type label.
+  ///
+  /// In en, this message translates to:
+  /// **'{type} draft saved on this device.'**
+  String documentDraftSavedOnDevice(String type);
 }
 
 class _AppLocalizationsDelegate

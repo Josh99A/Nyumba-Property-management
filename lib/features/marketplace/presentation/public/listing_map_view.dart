@@ -176,22 +176,22 @@ class _ListingMapViewState extends State<ListingMapView> {
     if (camera == null) return;
     final region = await _controller?.getVisibleRegion();
     if (!mounted) return;
+    // A null region means the platform view has not laid out yet, so there is
+    // no honest area to commit and nothing is narrowed. Leaving the button up
+    // is the point: marking the viewport as searched would hide it as though
+    // the search had worked, with no way back until the visitor pans.
+    if (region == null) return;
     setState(() => _searchedAt = camera);
     widget.onQueryChanged(
       widget.query.copyWith(
         centre: camera,
         zoom: _zoom,
-        // A null region means the platform view has not laid out yet, so there
-        // is no honest area to commit. The camera still moves; the results
-        // simply stay as they were rather than narrowing to a guess.
-        searchedArea: region == null
-            ? null
-            : ListingViewport(
-                south: region.southwest.latitude,
-                west: region.southwest.longitude,
-                north: region.northeast.latitude,
-                east: region.northeast.longitude,
-              ),
+        searchedArea: ListingViewport(
+          south: region.southwest.latitude,
+          west: region.southwest.longitude,
+          north: region.northeast.latitude,
+          east: region.northeast.longitude,
+        ),
       ),
     );
   }

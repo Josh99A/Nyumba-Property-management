@@ -1429,4 +1429,44 @@
     ,"@listingContactRoutingNotice": {"description": "Privacy notice in the listing editor. The server routes enquiries through an opaque landlord token rather than storing contact details on the advert."}
     ,"propertySaveSuccess": "Property saved."
     ,"@propertySaveSuccess": {"description": "Confirmation after the server accepted a new property. Past tense: only shown once the server has confirmed."}
+    ,"propertyChangesSaved": "Property changes saved."
+    ,"@propertyChangesSaved": {"description": "Confirmation after the server accepted an edit to a property. Past tense: the write is cloud-authoritative, so this is only reached once the server has confirmed. Replaces copy that claimed the edit was queued for a later sync, which no longer describes what happens."}
+    ,"rentalSpaceSaved": "Rental space saved."
+    ,"@rentalSpaceSaved": {"description": "Confirmation after the server accepted a new rental space. Past tense: the write is cloud-authoritative, so this is only reached once the server has confirmed."}
+    ,"vacancyPromptTitle": "Advertise this rental space?"
+    ,"@vacancyPromptTitle": {"description": "Dialog title offered the moment a rental space becomes vacant, which is the only state in which it may be advertised."}
+    ,"vacancyPromptCreateBody": "{name} is now vacant. Create a listing to show it to tenants on the public marketplace."
+    ,"@vacancyPromptCreateBody": {"placeholders": {"name": {"type": "String"}}, "description": "Body when the newly vacant space has no advert at all. {name} is the landlord-entered rental-space name and must not be translated."}
+    ,"vacancyPromptPhotosBody": "{name} is now vacant. Its advert “{title}” needs at least one photo before it can go public."
+    ,"@vacancyPromptPhotosBody": {"placeholders": {"name": {"type": "String"}, "title": {"type": "String"}}, "description": "Body when the space has a draft advert that cannot be published until it has a photo. {name} and {title} are landlord-entered and must not be translated."}
+    ,"vacancyPromptPublishBody": "{name} is now vacant. Publish “{title}” so tenants can find it on the public marketplace."
+    ,"@vacancyPromptPublishBody": {"placeholders": {"name": {"type": "String"}, "title": {"type": "String"}}, "description": "Body when the space has a publishable advert. {name} and {title} are landlord-entered and must not be translated."}
+    ,"vacancyPromptNotNow": "Not now"
+    ,"@vacancyPromptNotNow": {"description": "Dismisses the vacancy prompt without advertising."}
+    ,"vacancyPromptCreateAction": "Create listing"
+    ,"@vacancyPromptCreateAction": {"description": "Opens the listing editor for a space that has no advert yet."}
+    ,"vacancyPromptPhotosAction": "Add photos"
+    ,"@vacancyPromptPhotosAction": {"description": "Opens the adverts screen so a photoless draft can be given a photo."}
+    ,"vacancyPromptPublishAction": "Publish now"
+    ,"@vacancyPromptPublishAction": {"description": "Publishes the existing draft advert immediately."}
+    ,"listingLimitReachedTitle": "Listing limit reached"
+    ,"@listingLimitReachedTitle": {"description": "Title shown when the plan already has every active advert slot in use."}
+    ,"listingLimitReachedMessage": "Your {plan} plan allows up to {limit} active listings and all of them are in use. Unpublish a listing, or upgrade to advertise more at once."
+    ,"@listingLimitReachedMessage": {"placeholders": {"plan": {"type": "String"}, "limit": {"type": "int"}}, "description": "Explains the active-advert limit and the two ways out. Billing wording: review before release."}
+    ,"publishSavedOnDevice": "Saved on this device. Adverts go public only once this app is connected to the server."
+    ,"@publishSavedOnDevice": {"description": "Shown after publishing on a build with no server connection. Must never claim the advert is public."}
+    ,"publishWhenBackOnline": "{title} goes live as soon as you are back online."
+    ,"@publishWhenBackOnline": {"placeholders": {"title": {"type": "String"}}, "description": "Shown when the device is offline: the advert is queued, not live. {title} is landlord-entered and must not be translated."}
+    ,"publishInProgress": "Publishing {title} now — the card shows Published the moment tenants can see it."
+    ,"@publishInProgress": {"placeholders": {"title": {"type": "String"}}, "description": "Shown while a publication is in flight. Deliberately not past tense: the server has not confirmed. {title} is landlord-entered and must not be translated."}
+    ,"paymentRecorded": "Payment recorded."
+    ,"@paymentRecorded": {"description": "Confirmation after the server accepted a rent payment. Past tense and unhedged: the command dispatcher refuses when offline, so reaching this line means the server already confirmed. Replaces copy that said the payment was queued and awaiting confirmation."}
+    ,"listingChangesSaved": "Listing changes saved."
+    ,"@listingChangesSaved": {"description": "Confirmation after the server accepted an edit to an advert. Past tense: only reached once the server has confirmed."}
+    ,"listingDraftSavedPublishHint": "Draft advert saved. You can publish it when ready."
+    ,"@listingDraftSavedPublishHint": {"description": "Confirmation after the server accepted a new draft advert, plus the next step. The draft lives on the server, not on this device."}
+    ,"tenantInvited": "Tenant added. The invitation email is on its way."
+    ,"@tenantInvited": {"description": "Confirmation after the server accepted a new tenancy. The invite is dispatched by a server-side job (sendTenantInviteEmail) queued in the same transaction, so it does not depend on this device staying online."}
+    ,"documentDraftSavedOnDevice": "{type} draft saved on this device."
+    ,"@documentDraftSavedOnDevice": {"description": "Confirmation after a lease document draft is written to the local workspace. Lease documents are local-only (LocalOnlyReason.localWorkspaceOnly) and no sync gateway carries them, so this must not promise a sync that will never happen. {type} is a document-type label.", "placeholders": {"type": {"type": "String"}}}
 }

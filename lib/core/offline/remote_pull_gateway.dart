@@ -277,12 +277,23 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
               );
               subscription?.cancel();
               listen();
+              // A widened re-listen must not undo a pause the subscriber is
+              // still holding, or the Firestore listener would resume behind
+              // its back.
+              if (controller.isPaused) subscription?.pause();
             },
           );
     }
 
     controller = StreamController<List<RemoteRecord>>(
       onListen: listen,
+      // Every other branch of `watchCollection` returns `query.snapshots()`
+      // mapped, which forwards back-pressure to Firestore for free. Routing
+      // this one through a controller would have silently dropped that: a
+      // paused subscriber would buffer snapshots here, unbounded, instead of
+      // telling the listener to stop sending them.
+      onPause: () => subscription?.pause(),
+      onResume: () => subscription?.resume(),
       onCancel: () {
         closed = true;
         return subscription?.cancel();

@@ -6,7 +6,9 @@ import 'package:nyumba_property_management/core/localization/localized_material.
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../core/cloud/cloud_async.dart';
-import '../../../core/domain/domain_exception.dart';
+import '../../../core/localization/app_localizations_adapter.dart';
+import '../../../core/localization/nyumba_localizations.dart';
+import '../../../core/presentation/action_failure.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/authorization_policy.dart';
 import '../../portfolio/application/rental_space_labels.dart';
@@ -46,14 +48,14 @@ Future<bool> publishListingWithinPlan(
         .where((item) => item.status == ListingStatus.published)
         .length;
     if (activeCount >= plan.activeListingLimit) {
+      final copy = appLocalizationsOf(context);
       await showUpgradePrompt(
         context,
-        title: 'Listing limit reached',
-        message:
-            'Your ${plan.displayName} plan allows up to '
-            '${plan.activeListingLimit} active listings and all of them are '
-            'in use. Unpublish a listing, or upgrade to advertise more at '
-            'once.',
+        title: copy.listingLimitReachedTitle,
+        message: copy.listingLimitReachedMessage(
+          plan.displayName,
+          plan.activeListingLimit,
+        ),
       );
       return false;
     }
@@ -62,17 +64,25 @@ Future<bool> publishListingWithinPlan(
     await ref.read(publishListingProvider)(listing.id);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text.localized(_publishConfirmation(ref, listing))),
+        SnackBar(
+          content: Text.localized(_publishConfirmation(context, ref, listing)),
+        ),
       );
     }
     return true;
   } on Object catch (error) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text.localized('Could not publish: ${_reason(error)}'),
-        ),
+      // Never the raw exception: `error.toString()` puts a class name, an
+      // internal code, and sometimes a document path in front of the landlord.
+      // `describeActionFailure` keeps all of that in `details`, which a
+      // snackbar deliberately has no room for.
+      final failure = describeActionFailure(
+        error,
+        action: context.tr('publish this listing'),
       );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text.localized(failure.message)));
     }
     return false;
   }
@@ -82,17 +92,20 @@ Future<bool> publishListingWithinPlan(
 /// instead of describing the queue. Publishing pushes immediately, so with a
 /// live link the only honest promise is "in a moment"; without one, the useful
 /// thing to say is what has to happen first.
-String _publishConfirmation(WidgetRef ref, Listing listing) => switch (ref
-    .read(cloudStatusProvider)
-    .value) {
-  CloudStatus.local =>
-    'Saved on this device. Adverts go public only once this app is connected to the server.',
-  CloudStatus.failed ||
-  CloudStatus.connecting ||
-  null => '${listing.title} goes live as soon as you are back online.',
-  CloudStatus.live =>
-    'Publishing ${listing.title} now — the card shows Published the moment tenants can see it.',
-};
+String _publishConfirmation(
+  BuildContext context,
+  WidgetRef ref,
+  Listing listing,
+) {
+  final copy = appLocalizationsOf(context);
+  return switch (ref.read(cloudStatusProvider).value) {
+    CloudStatus.local => copy.publishSavedOnDevice,
+    CloudStatus.failed ||
+    CloudStatus.connecting ||
+    null => copy.publishWhenBackOnline(listing.title),
+    CloudStatus.live => copy.publishInProgress(listing.title),
+  };
+}
 
 /// Offers publication at the moment a rental space becomes vacant.
 ///
@@ -146,27 +159,28 @@ Future<void> promptToAdvertiseVacantSpace(
   // the offer becomes "add photos" rather than "publish".
   final needsPhotos = advert != null && !advert.hasPhotos;
 
+  // Read through generated getters rather than composed literals: an
+  // interpolated sentence can never match an ARB key, so the three bodies below
+  // would have reached Luganda, Kiswahili, and Arabic readers in English.
+  final copy = appLocalizationsOf(context);
   final choice = await showDialog<_VacancyChoice>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text.localized('Advertise this rental space?'),
+      title: Text(copy.vacancyPromptTitle),
       content: SizedBox(
         width: 420,
-        child: Text.localized(
+        child: Text(
           advert == null
-              ? '${unit.displayName} is now vacant. Create a listing to show '
-                    'it to tenants on the public marketplace.'
+              ? copy.vacancyPromptCreateBody(unit.displayName)
               : needsPhotos
-              ? '${unit.displayName} is now vacant. Its advert "${advert.title}" '
-                    'needs at least one photo before it can go public.'
-              : '${unit.displayName} is now vacant. Publish "${advert.title}" '
-                    'so tenants can find it on the public marketplace.',
+              ? copy.vacancyPromptPhotosBody(unit.displayName, advert.title)
+              : copy.vacancyPromptPublishBody(unit.displayName, advert.title),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogContext, _VacancyChoice.notNow),
-          child: const Text.localized('Not now'),
+          child: Text(copy.vacancyPromptNotNow),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(
@@ -175,12 +189,12 @@ Future<void> promptToAdvertiseVacantSpace(
                 ? _VacancyChoice.openListings
                 : _VacancyChoice.publish,
           ),
-          child: Text.localized(
+          child: Text(
             advert == null
-                ? 'Create listing'
+                ? copy.vacancyPromptCreateAction
                 : needsPhotos
-                ? 'Add photos'
-                : 'Publish now',
+                ? copy.vacancyPromptPhotosAction
+                : copy.vacancyPromptPublishAction,
           ),
         ),
       ],
@@ -208,11 +222,3 @@ Future<void> promptToAdvertiseVacantSpace(
       );
   }
 }
-
-/// The rule that was broken, without the exception's class name and field path
-/// in front of it — `DomainValidationException: unit.status: …` is a stack
-/// trace wearing a sentence's clothes.
-String _reason(Object error) => switch (error) {
-  DomainValidationException(:final errors) => errors.values.join(' '),
-  _ => error.toString(),
-};

@@ -79,8 +79,11 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
       ? await loadActiveLandlordContext(tx, db, unit.landlordId)
       : await requireWorkspace(tx, db, actor, 'manageListings');
     requireOwnedByLandlord(unit, landlord.landlordId);
-    if (cmd.expectedVersion === 0) {
-      requireAbsent(listingSnap);
+    // A unit holds at most one private listing aggregate. `unitListingsSnap`
+    // is the listings already on the *payload's* unit, so this rejects both a
+    // second draft for a unit and an edit that tries to move an existing draft
+    // onto a unit someone already advertised.
+    const requireUnitIsFree = (): void => {
       const existingListing = unitListingsSnap.docs.find(
         (snapshot) => snapshot.id !== cmd.aggregateId,
       );
@@ -90,6 +93,10 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
           listingId: existingListing.id,
         });
       }
+    };
+    if (cmd.expectedVersion === 0) {
+      requireAbsent(listingSnap);
+      requireUnitIsFree();
       tx.create(listingRef, {
         ...newAggregate(cmd.aggregateId!, now),
         landlordId: landlord.landlordId,
@@ -102,11 +109,17 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
       });
       return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: Object.keys(cmd.payload) };
     }
-    const current = requireAggregate<Record<string, unknown> & { version: number; publicationState: string }>(listingSnap, cmd.expectedVersion);
+    const current = requireAggregate<Record<string, unknown> & { version: number; publicationState: string; unitId: string }>(listingSnap, cmd.expectedVersion);
     requireOwnedByLandlord(current, landlord.landlordId);
     if (current.publicationState === 'published') {
       throw new DomainError('VALIDATION_FAILED', { reason: 'publishedListingIsImmutable' });
     }
+    // `unitId` is on every saveDraft payload, including edits, and is spread
+    // onto the aggregate below — so an edit can move a draft to another unit.
+    // Only a move needs rechecking; an ordinary edit resends the unit it is
+    // already on, and re-running the check for that would reject the listing
+    // for colliding with itself if the query ever widened.
+    if (cmd.payload.unitId !== current.unitId) requireUnitIsFree();
     const mediaChanges = cmd.payload.stagedImagePaths
       ? { mediaState: 'staged' }
       : {};

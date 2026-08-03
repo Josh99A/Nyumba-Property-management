@@ -63,4 +63,43 @@ void main() {
     expect(result.value, isEmpty);
     expect(result.discardedRecordCount, 1);
   });
+
+  // A partial live result followed by a failed refresh used to keep the
+  // incomplete list on screen while dropping the count that justifies its
+  // warning, so the list looked complete exactly when it was least verifiable.
+  test(
+    'a failed refresh keeps the discarded count with the stale rows',
+    () async {
+      final gateway = FakeCloudReadGateway()
+        ..retrievedAt = now
+        ..seed(CommandAggregate.property, const [
+          <String, Object?>{'name': 'Acacia Court'},
+          <String, Object?>{'unexpected': 'shape'},
+        ]);
+      final states = <CloudData<List<String>>>[];
+      final subscription = readerFor(gateway)
+          .watch(
+            CommandAggregate.property,
+            const LandlordScope('landlord-1'),
+            decode: decodeName,
+          )
+          .listen(states.add);
+      await pumpEventQueue();
+
+      gateway.fail(
+        CommandAggregate.property,
+        const CloudReadError(
+          kind: CloudErrorKind.connection,
+          code: 'UNAVAILABLE',
+        ),
+      );
+      await pumpEventQueue();
+      await subscription.cancel();
+
+      final stale = states.last;
+      expect(stale.status, CloudDataStatus.cachedPotentiallyOutdated);
+      expect(stale.value, const ['Acacia Court']);
+      expect(stale.discardedRecordCount, 1);
+    },
+  );
 }
