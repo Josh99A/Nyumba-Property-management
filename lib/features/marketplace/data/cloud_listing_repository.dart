@@ -153,14 +153,6 @@ final class CloudListingRepository implements ListingRepository {
           input.approximateLongitude,
         ) ??
         property.location;
-    // An advert may override the property's gallery, but an empty selection
-    // inherits it. Without this the marketplace cover for a photo-less advert
-    // falls back to the same generic placeholder for every listing, when the
-    // property's own primary image was right there.
-    final imageUrls = input.imageUrls.isEmpty
-        ? property.imageUrls
-        : input.imageUrls;
-
     return _send(
       type: 'listing.saveDraft',
       aggregateId: _idGenerator.generate(),
@@ -183,7 +175,11 @@ final class CloudListingRepository implements ListingRepository {
           longitude: pin?.longitude,
           clearablePin: false,
         ),
-        'imageUrls': imageUrls
+        // Listing photos describe this exact rental space. Automatically
+        // copying the building gallery hid an incomplete advert and could show
+        // prospects a different unit; the editor now keeps the draft photo-less
+        // until the landlord deliberately chooses its media.
+        'imageUrls': input.imageUrls
             .map((item) => item.trim())
             .toList(growable: false),
       },

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart' hide Text, Tooltip;
+import 'package:flutter/material.dart' hide Text, Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/core/localization/app_localizations_adapter.dart';
@@ -102,148 +102,155 @@ class _PublicListingsScreenState extends ConsumerState<PublicListingsScreen> {
         onBrowseHomes: _openSearch,
         onForLandlords: () => _scrollTo(_landlordKey),
       ),
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverToBoxAdapter(
-            child: MarketplaceHero(
-              searchBar: HeroSearchBar(
-                value: _searchText,
-                onChanged: (text) => setState(() => _searchText = text),
-                onSearch: _openSearch,
-              ),
-              assurances: [
-                if (listingsValue.hasValue)
-                  copy.availableHomesCount(allListings.length),
-              ],
-              quickLocations: ListingQuery.popularLocationsIn(allListings),
-              onLocationSelected: (location) => _openSearch(location),
-            ),
-          ),
-          const SliverToBoxAdapter(child: MarketplaceAssuranceBand()),
-          SliverToBoxAdapter(
-            child: MarketplaceBand(
-              key: _featuredKey,
-              padding: EdgeInsets.only(
-                top: context.isCompact ? 48 : 72,
-                bottom: context.isCompact ? 52 : 76,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  MarketplaceFeaturedHeader(
-                    resultSummary: listingsValue.hasValue
-                        ? copy.availableHomesCount(allListings.length)
-                        : null,
-                    onBrowseAll: _openSearch,
+      body:
+          CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              SliverToBoxAdapter(
+                child: MarketplaceHero(
+                  searchBar: HeroSearchBar(
+                    value: _searchText,
+                    onChanged: (text) => setState(() => _searchText = text),
+                    onSearch: _openSearch,
                   ),
-                  const SizedBox(height: 28),
-                  listingsValue.when(
-                    loading: () => const ListingResultsSkeleton(),
-                    error: (error, stack) => MarketplaceEmptyState(
-                      icon: Icons.cloud_off_rounded,
-                      title: copy.publicListingsLoadErrorTitle,
-                      message: copy.publicListingsLoadErrorMessage,
-                      action: FilledButton.icon(
-                        onPressed: () => ref.invalidate(publicListingsProvider),
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
-                        label: Text(copy.retry),
-                      ),
-                    ),
-                    data: (_) => featured.isEmpty
-                        ? MarketplaceEmptyState(
-                            icon: Icons.home_outlined,
-                            title: copy.noHomesListedTitle,
-                            message: copy.noHomesListedMessage,
-                          )
-                        : ListingResultsGrid(
-                            listings: featured,
-                            onOpen: (listing) =>
-                                context.go('/listing/${listing.id}'),
-                          ),
-                  ),
-                  if (featured.length >= _featuredCount) ...[
-                    const SizedBox(height: 28),
-                    Align(
-                      child: FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: context.nyumba.sageGreen,
-                        ),
-                        onPressed: _openSearch,
-                        iconAlignment: IconAlignment.end,
-                        icon: const Icon(Icons.arrow_forward_rounded, size: 19),
-                        label: Text(copy.browseAllHomes),
-                      ),
-                    ),
+                  assurances: [
+                    if (listingsValue.hasValue)
+                      copy.availableHomesCount(allListings.length),
                   ],
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: MarketplaceFeatureRow(
-              eyebrow: copy.forTenants,
-              title: copy.lookingForHomeTitle,
-              description: copy.lookingForHomeDescription,
-              bullets: [
-                copy.benefitVerifiedLandlords,
-                copy.benefitNoAgentFees,
-                copy.benefitRealTenantReviews,
-              ],
-              imageAsset: 'assets/listings/generated-upscale-living-room.webp',
-              imageFirst: true,
-              background: context.nyumba.softIvory,
-              action: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: context.nyumba.sageGreen,
-                ),
-                onPressed: _openSearch,
-                iconAlignment: IconAlignment.end,
-                icon: const Icon(Icons.arrow_forward_rounded, size: 19),
-                label: Text(copy.browseAvailableHomes),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: MarketplaceFeatureRow(
-              key: _landlordKey,
-              eyebrow: copy.forLandlords,
-              title: copy.haveRentalSpaceTitle,
-              description: copy.haveRentalSpaceDescription,
-              bullets: [
-                copy.benefitPublishInMinutes,
-                copy.benefitRoutedEnquiries,
-                copy.benefitOneWorkspace,
-              ],
-              imageAsset: 'assets/listings/generated-open-plan-kitchen.webp',
-              imageFirst: false,
-              action: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: context.nyumba.terracottaGold,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () => context.go(navigationAction.path),
-                iconAlignment: IconAlignment.end,
-                icon: const Icon(Icons.arrow_forward_rounded, size: 19),
-                label: Text(
-                  session == null
-                      ? copy.listYourSpace
-                      : context.tr(navigationAction.label),
+                  quickLocations: ListingQuery.popularLocationsIn(allListings),
+                  onLocationSelected: (location) => _openSearch(location),
                 ),
               ),
-            ),
+              const SliverToBoxAdapter(child: MarketplaceAssuranceBand()),
+              SliverToBoxAdapter(
+                child: MarketplaceBand(
+                  key: _featuredKey,
+                  padding: EdgeInsets.only(
+                    top: context.isCompact ? 48 : 72,
+                    bottom: context.isCompact ? 52 : 76,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      MarketplaceFeaturedHeader(
+                        resultSummary: listingsValue.hasValue
+                            ? copy.availableHomesCount(allListings.length)
+                            : null,
+                        onBrowseAll: _openSearch,
+                      ),
+                      const SizedBox(height: 28),
+                      listingsValue.when(
+                        loading: () => const ListingResultsSkeleton(),
+                        error: (error, stack) => MarketplaceEmptyState(
+                          icon: Icons.cloud_off_rounded,
+                          title: copy.publicListingsLoadErrorTitle,
+                          message: copy.publicListingsLoadErrorMessage,
+                          action: FilledButton.icon(
+                            onPressed: () =>
+                                ref.invalidate(publicListingsProvider),
+                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                            label: Text(copy.retry),
+                          ),
+                        ),
+                        data: (_) => featured.isEmpty
+                            ? MarketplaceEmptyState(
+                                icon: Icons.home_outlined,
+                                title: copy.noHomesListedTitle,
+                                message: copy.noHomesListedMessage,
+                              )
+                            : ListingResultsGrid(
+                                listings: featured,
+                                onOpen: (listing) =>
+                                    context.go('/listing/${listing.id}'),
+                              ),
+                      ),
+                      if (featured.length >= _featuredCount) ...[
+                        const SizedBox(height: 28),
+                        Align(
+                          child: FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: context.nyumba.sageGreen,
+                            ),
+                            onPressed: _openSearch,
+                            iconAlignment: IconAlignment.end,
+                            icon: const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 19,
+                            ),
+                            label: Text(copy.browseAllHomes),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: MarketplaceFeatureRow(
+                  eyebrow: copy.forTenants,
+                  title: copy.lookingForHomeTitle,
+                  description: copy.lookingForHomeDescription,
+                  bullets: [
+                    copy.benefitVerifiedLandlords,
+                    copy.benefitNoAgentFees,
+                    copy.benefitRealTenantReviews,
+                  ],
+                  imageAsset:
+                      'assets/listings/generated-upscale-living-room.webp',
+                  imageFirst: true,
+                  background: context.nyumba.softIvory,
+                  action: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: context.nyumba.sageGreen,
+                    ),
+                    onPressed: _openSearch,
+                    iconAlignment: IconAlignment.end,
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 19),
+                    label: Text(copy.browseAvailableHomes),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: MarketplaceFeatureRow(
+                  key: _landlordKey,
+                  eyebrow: copy.forLandlords,
+                  title: copy.haveRentalSpaceTitle,
+                  description: copy.haveRentalSpaceDescription,
+                  bullets: [
+                    copy.benefitPublishInMinutes,
+                    copy.benefitRoutedEnquiries,
+                    copy.benefitOneWorkspace,
+                  ],
+                  imageAsset:
+                      'assets/listings/generated-open-plan-kitchen.webp',
+                  imageFirst: false,
+                  action: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: context.nyumba.terracottaGold,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => context.go(navigationAction.path),
+                    iconAlignment: IconAlignment.end,
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 19),
+                    label: Text(
+                      session == null
+                          ? copy.listYourSpace
+                          : context.tr(navigationAction.label),
+                    ),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: MarketplaceFooter(
+                  onBrowseHomes: _openSearch,
+                  onAccount: () => context.go(navigationAction.path),
+                  accountLabel: context.tr(navigationAction.label),
+                ),
+              ),
+            ],
+          ).withNyumbaPullToRefresh(
+            onRefresh: ref.read(publicListingsRefreshProvider).call,
           ),
-          SliverToBoxAdapter(
-            child: MarketplaceFooter(
-              onBrowseHomes: _openSearch,
-              onAccount: () => context.go(navigationAction.path),
-              accountLabel: context.tr(navigationAction.label),
-            ),
-          ),
-        ],
-      ).withNyumbaPullToRefresh(
-        onRefresh: ref.read(publicListingsRefreshProvider).call,
-      ),
     );
   }
 }

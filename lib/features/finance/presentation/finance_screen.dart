@@ -732,11 +732,12 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
           ),
         );
         if (mounted) {
+          // Unhedged on purpose: `rentPayment.record` goes through the command
+          // dispatcher, which refuses outright when offline and stores nothing
+          // for later, so this line is reached only on a server acknowledgement.
           ScaffoldMessenger.of(this.context).showSnackBar(
-            const SnackBar(
-              content: Text.localized(
-                'Payment recorded locally and queued to sync — awaiting confirmation.',
-              ),
+            SnackBar(
+              content: Text(appLocalizationsOf(this.context).paymentRecorded),
             ),
           );
         }

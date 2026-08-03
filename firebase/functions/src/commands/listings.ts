@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, type Firestore, type Transaction } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import {
@@ -9,7 +9,12 @@ import {
 } from '../shared/accounts';
 import { landlordPublicToken } from '../shared/canonical';
 import { COLLECTIONS } from '../shared/collections';
-import { LISTING_LIFETIME_DAYS, MAX_LISTING_PHOTOS, MIN_LISTING_PHOTOS } from '../shared/config';
+import {
+  CURRENCY,
+  LISTING_LIFETIME_DAYS,
+  MAX_LISTING_PHOTOS,
+  MIN_LISTING_PHOTOS,
+} from '../shared/config';
 import { DomainError } from '../shared/errors';
 import { ratingBadge, readTotals } from '../shared/ratings';
 import {
@@ -57,17 +62,46 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
     validateStagedPaths(actor.uid, cmd.payload.stagedImagePaths ?? []);
     const listingRef = db.collection(COLLECTIONS.privateListings).doc(cmd.aggregateId!);
     const unitRef = db.collection(COLLECTIONS.units).doc(cmd.payload.unitId);
-    const [listingSnap, unitSnap] = await Promise.all([tx.get(listingRef), tx.get(unitRef)]);
-    const unit = requireAggregate<Record<string, unknown> & { version: number; landlordId: string }>(unitSnap, undefined);
+    const unitListingsQuery = db.collection(COLLECTIONS.privateListings)
+      .where('unitId', '==', cmd.payload.unitId)
+      .limit(2);
+    const [listingSnap, unitSnap, unitListingsSnap] = await Promise.all([
+      tx.get(listingRef),
+      tx.get(unitRef),
+      tx.get(unitListingsQuery),
+    ]);
+    const unit = requireAggregate<Record<string, unknown> & {
+      version: number;
+      landlordId: string;
+      propertyId: string;
+    }>(unitSnap, undefined);
     const landlord = isStaff
       ? await loadActiveLandlordContext(tx, db, unit.landlordId)
       : await requireWorkspace(tx, db, actor, 'manageListings');
     requireOwnedByLandlord(unit, landlord.landlordId);
+    // A unit holds at most one private listing aggregate. `unitListingsSnap`
+    // is the listings already on the *payload's* unit, so this rejects both a
+    // second draft for a unit and an edit that tries to move an existing draft
+    // onto a unit someone already advertised.
+    const requireUnitIsFree = (): void => {
+      const existingListing = unitListingsSnap.docs.find(
+        (snapshot) => snapshot.id !== cmd.aggregateId,
+      );
+      if (existingListing) {
+        throw new DomainError('ALREADY_EXISTS', {
+          reason: 'unitAlreadyHasListing',
+          listingId: existingListing.id,
+        });
+      }
+    };
     if (cmd.expectedVersion === 0) {
       requireAbsent(listingSnap);
+      requireUnitIsFree();
       tx.create(listingRef, {
         ...newAggregate(cmd.aggregateId!, now),
         landlordId: landlord.landlordId,
+        propertyId: unit.propertyId,
+        currency: CURRENCY,
         publicationState: 'draft',
         mediaState: 'staged',
         ...cmd.payload,
@@ -75,20 +109,56 @@ export const listingSaveDraft: CommandHandler<z.infer<typeof draftSchema>> = {
       });
       return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: 1, changedFields: Object.keys(cmd.payload) };
     }
-    const current = requireAggregate<Record<string, unknown> & { version: number; publicationState: string }>(listingSnap, cmd.expectedVersion);
+    const current = requireAggregate<Record<string, unknown> & { version: number; publicationState: string; unitId: string }>(listingSnap, cmd.expectedVersion);
     requireOwnedByLandlord(current, landlord.landlordId);
     if (current.publicationState === 'published') {
       throw new DomainError('VALIDATION_FAILED', { reason: 'publishedListingIsImmutable' });
     }
+    // `unitId` is on every saveDraft payload, including edits, and is spread
+    // onto the aggregate below — so an edit can move a draft to another unit.
+    // Only a move needs rechecking; an ordinary edit resends the unit it is
+    // already on, and re-running the check for that would reject the listing
+    // for colliding with itself if the query ever widened.
+    if (cmd.payload.unitId !== current.unitId) requireUnitIsFree();
     const mediaChanges = cmd.payload.stagedImagePaths
       ? { mediaState: 'staged' }
       : {};
-    tx.update(listingRef, { ...cmd.payload, ...mediaChanges, ...bumpVersion(current, now) });
+    tx.update(listingRef, {
+      ...cmd.payload,
+      propertyId: unit.propertyId,
+      currency: CURRENCY,
+      ...mediaChanges,
+      ...bumpVersion(current, now),
+    });
     return { status: 'applied', aggregateId: cmd.aggregateId!, serverVersion: current.version + 1, changedFields: [...Object.keys(cmd.payload), ...Object.keys(mediaChanges)] };
   },
 };
 
 const emptySchema = strictPayload({});
+
+/**
+ * The private pin on the property a unit belongs to, or null when there is not
+ * one to inherit.
+ *
+ * Ownership is rechecked rather than assumed. The unit was already proven to
+ * belong to the landlord, but `propertyId` is a field on that document, and a
+ * cross-workspace value there must not be able to pull another landlord's
+ * coordinate into a public projection.
+ */
+async function propertyLocation(
+  tx: Transaction,
+  db: Firestore,
+  propertyId: string | undefined,
+  landlordId: string,
+): Promise<{ lat: number; lng: number } | null> {
+  if (!propertyId) return null;
+  const snap = await tx.get(db.collection(COLLECTIONS.properties).doc(propertyId));
+  const data = snap.data();
+  if (!snap.exists || !data || data.isDeleted === true) return null;
+  if (data.landlordId !== landlordId) return null;
+  const parsed = coordinateSchema.safeParse(data.location);
+  return parsed.success ? parsed.data : null;
+}
 
 export const listingPublish: CommandHandler<Record<string, never>> = {
   payloadSchema: emptySchema,
@@ -120,7 +190,7 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
     }
     const unitRef = db.collection(COLLECTIONS.units).doc(listing.unitId);
     const unitSnap = await tx.get(unitRef);
-    const unit = requireAggregate<{ version: number; landlordId: string; occupancyStatus: string; activePublicListingId?: string | null }>(unitSnap, undefined);
+    const unit = requireAggregate<{ version: number; landlordId: string; propertyId?: string; occupancyStatus: string; activePublicListingId?: string | null }>(unitSnap, undefined);
     requireOwnedByLandlord(unit, landlord.landlordId);
     if (unit.occupancyStatus !== 'vacant' || unit.activePublicListingId) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'unitUnavailable' });
@@ -137,13 +207,25 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
     if ((listing.stagedImagePaths ?? []).length < MIN_LISTING_PHOTOS) {
       throw new DomainError('VALIDATION_FAILED', { reason: 'listingMissingPhotos' });
     }
+    // A listing with no pin of its own inherits the property's. The client
+    // seeds new drafts from the property, but that is a convenience the server
+    // cannot rely on: a draft written before it existed, or by any other
+    // caller, reaches here with no location and used to publish an advert that
+    // could never appear on the map — silently, because nothing about the
+    // publish fails. Inheriting here is what makes republishing an affected
+    // listing actually repair it. A pin the landlord placed on the listing
+    // still wins; this only fills an absence.
+    const inheritedLocation = listing.approximateLocation
+      ? null
+      : await propertyLocation(tx, db, unit.propertyId, landlord.landlordId);
     // The public map location is intentionally approximate: coordinates are
     // coarsened to ~110 m so the exact address can never be recovered from
     // the public projection.
-    const approximateLocation = listing.approximateLocation
+    const sourceLocation = listing.approximateLocation ?? inheritedLocation;
+    const approximateLocation = sourceLocation
       ? {
-          lat: Math.round(listing.approximateLocation.lat * 1_000) / 1_000,
-          lng: Math.round(listing.approximateLocation.lng * 1_000) / 1_000,
+          lat: Math.round(sourceLocation.lat * 1_000) / 1_000,
+          lng: Math.round(sourceLocation.lng * 1_000) / 1_000,
         }
       : null;
     const expiresAt = Timestamp.fromMillis(now.toMillis() + LISTING_LIFETIME_DAYS * 24 * 60 * 60 * 1000);
@@ -193,6 +275,12 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
       publishedAt: now,
       expiresAt,
       mediaState: 'pending',
+      // Written back at full precision, not coarsened: this is the private
+      // aggregate, and the landlord's own screens are entitled to the point
+      // they placed. Persisting it makes the inheritance a one-time repair
+      // rather than something recomputed on every publish, and means the
+      // landlord can see and move the pin the advert will actually use.
+      ...(inheritedLocation ? { approximateLocation: inheritedLocation } : {}),
       ...bumpVersion(listing, now),
     });
     tx.update(unitRef, { activePublicListingId: cmd.aggregateId!, ...bumpVersion(unit, now) });
@@ -203,7 +291,7 @@ export const listingPublish: CommandHandler<Record<string, never>> = {
     createJob(tx, db, `${cmd.commandId}_media`, 'publishListingMedia', {
       listingId: cmd.aggregateId!, landlordId: landlord.landlordId, stagedImagePaths: listing.stagedImagePaths ?? [],
     }, now);
-    return { status: 'accepted', aggregateId: cmd.aggregateId!, serverVersion: listing.version + 1, safeResult: { expiresAt: expiresAt.toDate().toISOString() }, changedFields: ['publicationState', 'publishedAt', 'expiresAt', 'mediaState'] };
+    return { status: 'accepted', aggregateId: cmd.aggregateId!, serverVersion: listing.version + 1, safeResult: { expiresAt: expiresAt.toDate().toISOString() }, changedFields: ['publicationState', 'publishedAt', 'expiresAt', 'mediaState', ...(inheritedLocation ? ['approximateLocation'] : [])] };
   },
 };
 

@@ -512,10 +512,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       ),
     );
     if (created == true && mounted) {
+      // Not "queued to sync": lease documents are written with
+      // `LocalOnlyReason.localWorkspaceOnly` and no sync gateway carries the
+      // `leaseDocument` entity, so nothing will ever send this. Promising a
+      // sync that cannot happen is worse than saying where the draft lives.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text.localized(
-            '${type.label} draft saved locally and queued to sync.',
+          content: Text(
+            appLocalizationsOf(context).documentDraftSavedOnDevice(type.label),
           ),
         ),
       );

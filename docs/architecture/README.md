@@ -172,6 +172,24 @@ unaffected. **App Check (iOS).** App Attest requires a paid Apple Developer
 team; deferred until one exists — which costs nothing today, because iOS cannot
 be distributed at all without one.
 
+Because attestation is a statement about the *distribution*, `main.dart`
+selects the provider by build mode: `kReleaseMode` gets Play Integrity and App
+Attest, everything else gets the debug provider. A profile build asking Play
+Integrity for a token produced 54 attestation warnings and throttling responses
+in a single session and could never have succeeded. Register a debug token
+(console → App Check → Apps → manage debug tokens) and pass it so it survives
+reinstalls:
+
+```sh
+flutter run --profile --dart-define=NYUMBA_APP_CHECK_DEBUG_TOKEN=<uuid>
+```
+
+Omitting the define still works: the provider mints a token and logs it once per
+install, to be pasted into the console by hand. Unlike the reCAPTCHA site key, a
+debug token **is** a secret — anyone holding it can mint valid App Check tokens
+for the project — so it must never enter a committed file or a workflow that
+publishes artefacts.
+
 **Enforcement sequence.** Do not flip `ENFORCE_APP_CHECK`
 (`firebase/functions/src/shared/config.ts`) or console enforcement immediately:
 

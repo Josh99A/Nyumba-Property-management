@@ -1337,6 +1337,9 @@
     ,"cloudRefreshing": "جارٍ التحديث…"
     ,"cloudCheckingForUpdates": "جارٍ البحث عن تحديثات…"
     ,"cloudReconnecting": "جارٍ إعادة الاتصال…"
+    ,"cloudPartialDataTitle": "تعذّر عرض بعض السجلات"
+    ,"cloudPartialDataMessage": "{count,plural, zero{لم تُستبعد أي سجلات}one{استلم Nyumba سجلاً واحداً بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.}two{استلم Nyumba سجلين بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.}few{استلم Nyumba ‏{count} سجلات بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.}many{استلم Nyumba ‏{count} سجلاً بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.}other{استلم Nyumba ‏{count} سجل بتنسيق غير متوقع. ولا تزال السجلات الأخرى معروضة.}}"
+    ,"@cloudPartialDataMessage": {"placeholders": {"count": {"type": "int"}}}
     ,"cloudLastUpdated": "آخر تحديث {time}"
     ,"@cloudLastUpdated": {"description": "Freshness stamp. {time} is a formatted time, already localized.", "placeholders": {"time": {"type": "String"}}}
     ,"cloudMayBeOutdatedTitle": "قد تكون هذه البيانات قديمة"
@@ -1356,4 +1359,33 @@
     ,"availabilityUpdated": "تم تحديث التوفّر."
     ,"availabilityUpdatedAdvertWithdrawn": "تم تحديث التوفّر. وأُزيل الإعلان من السوق."
     ,"listingDraftSaved": "تم حفظ مسودة الإعلان."
+    ,"listingContactRoutingNotice": "تُوجّه الاستفسارات بأمان عبر Nyumba. ولا يُنشر رقم هاتفك الخاص أو بريدك الإلكتروني مع هذا الإعلان."
+    ,"propertySaveSuccess": "تم حفظ العقار."
+    ,"propertyChangesSaved": "تم حفظ تغييرات العقار."
+    ,"rentalSpaceSaved": "تم حفظ الوحدة المؤجرة."
+    ,"vacancyPromptTitle": "هل تريد الإعلان عن هذه الوحدة المؤجرة؟"
+    ,"vacancyPromptCreateBody": "{name} أصبحت شاغرة الآن. أنشئ إعلانًا لعرضها على المستأجرين في السوق العام."
+    ,"@vacancyPromptCreateBody": {"placeholders": {"name": {"type": "String"}}}
+    ,"vacancyPromptPhotosBody": "{name} أصبحت شاغرة الآن. يحتاج إعلانها “{title}” إلى صورة واحدة على الأقل قبل نشره للعموم."
+    ,"@vacancyPromptPhotosBody": {"placeholders": {"name": {"type": "String"}, "title": {"type": "String"}}}
+    ,"vacancyPromptPublishBody": "{name} أصبحت شاغرة الآن. انشر “{title}” ليتمكن المستأجرون من العثور عليها في السوق العام."
+    ,"@vacancyPromptPublishBody": {"placeholders": {"name": {"type": "String"}, "title": {"type": "String"}}}
+    ,"vacancyPromptNotNow": "ليس الآن"
+    ,"vacancyPromptCreateAction": "إنشاء إعلان"
+    ,"vacancyPromptPhotosAction": "إضافة صور"
+    ,"vacancyPromptPublishAction": "انشر الآن"
+    ,"listingLimitReachedTitle": "تم بلوغ حد الإعلانات"
+    ,"listingLimitReachedMessage": "تتيح خطة {plan} ما يصل إلى {limit} إعلانًا نشطًا، وجميعها قيد الاستخدام. ألغِ نشر أحد الإعلانات، أو قم بالترقية للإعلان عن المزيد في وقت واحد."
+    ,"@listingLimitReachedMessage": {"placeholders": {"plan": {"type": "String"}, "limit": {"type": "int"}}}
+    ,"publishSavedOnDevice": "تم الحفظ على هذا الجهاز. لا تُنشر الإعلانات للعموم إلا بعد اتصال التطبيق بالخادم."
+    ,"publishWhenBackOnline": "سيُنشر {title} بمجرد عودتك إلى الاتصال بالإنترنت."
+    ,"@publishWhenBackOnline": {"placeholders": {"title": {"type": "String"}}}
+    ,"publishInProgress": "يجري نشر {title} الآن — وستعرض البطاقة “منشور” فور تمكّن المستأجرين من رؤيته."
+    ,"@publishInProgress": {"placeholders": {"title": {"type": "String"}}}
+    ,"paymentRecorded": "تم تسجيل الدفعة."
+    ,"listingChangesSaved": "تم حفظ تغييرات الإعلان."
+    ,"listingDraftSavedPublishHint": "تم حفظ مسودة الإعلان. يمكنك نشرها عندما تكون جاهزًا."
+    ,"tenantInvited": "تمت إضافة المستأجر. رسالة الدعوة في طريقها."
+    ,"documentDraftSavedOnDevice": "تم حفظ مسودة {type} على هذا الجهاز."
+    ,"@documentDraftSavedOnDevice": {"placeholders": {"type": {"type": "String"}}}
 }

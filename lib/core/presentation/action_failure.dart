@@ -192,6 +192,7 @@ String? _commandCodeMessage(String code) => switch (code) {
     'This record changed after you opened it. Refresh it and try again.',
   'NOT_FOUND' =>
     'This record no longer exists. Refresh the page before trying again.',
+  'ALREADY_EXISTS' => 'That record already exists.',
   'ACCOUNT_NOT_APPROVED' =>
     'This landlord account must be approved before it can make this change.',
   'ACCOUNT_SUSPENDED' =>

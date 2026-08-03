@@ -79,6 +79,103 @@ void main() {
       expect(find.byType(NyumbaStatusMessage), findsNothing);
       expect(find.textContaining('Last updated'), findsOneWidget);
     });
+
+    testWidgets('warns when the server also returned unreadable records', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          viewOf(
+            CloudData<List<String>>.live(
+              const ['Kololo'],
+              retrievedAt: readAt,
+              discardedRecordCount: 2,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kololo'), findsOneWidget);
+      expect(find.text('Some records could not be shown'), findsOneWidget);
+      expect(find.textContaining('2 records'), findsOneWidget);
+      expect(find.byType(NyumbaStatusMessage), findsOneWidget);
+    });
+  });
+
+  // The warning used to be attached to `live` alone, so an incomplete list
+  // looked complete for as long as a refresh was pending or after one failed —
+  // which is exactly when it is least verifiable and most likely to be trusted.
+  group('partial data outside the live state', () {
+    testWidgets('a pending refresh still says records are missing', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          viewOf(
+            CloudData<List<String>>.live(
+              const ['Kololo'],
+              retrievedAt: readAt,
+              discardedRecordCount: 2,
+            ).asRefreshing(),
+          ),
+        ),
+      );
+      // Not pumpAndSettle: the refreshing banner animates indefinitely, which
+      // is exactly why the data underneath it can sit there looking complete.
+      await tester.pump();
+
+      expect(find.text('Kololo'), findsOneWidget);
+      expect(find.text('Some records could not be shown'), findsOneWidget);
+    });
+
+    testWidgets('a failed refresh still says records are missing', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          viewOf(
+            CloudData<List<String>>.stale(
+              const ['Kololo'],
+              retrievedAt: readAt,
+              error: const CloudReadError(
+                kind: CloudErrorKind.connection,
+                code: 'UNAVAILABLE',
+              ),
+              discardedRecordCount: 2,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kololo'), findsOneWidget);
+      expect(find.text('Some records could not be shown'), findsOneWidget);
+    });
+
+    testWidgets('the sliver banner carries it for the same states', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          CloudFreshnessBanner<List<String>>(
+            data: CloudData<List<String>>.stale(
+              const ['Kololo'],
+              retrievedAt: readAt,
+              error: const CloudReadError(
+                kind: CloudErrorKind.connection,
+                code: 'UNAVAILABLE',
+              ),
+              discardedRecordCount: 3,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Some records could not be shown'), findsOneWidget);
+      expect(find.textContaining('3 records'), findsOneWidget);
+    });
   });
 
   group('cached awaiting validation', () {
@@ -255,6 +352,29 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Hakuna muunganisho na Nyumba'), findsOneWidget);
+    });
+
+    testWidgets('partial-data warning follows Arabic RTL direction', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          viewOf(
+            CloudData<List<String>>.live(
+              const ['Kololo'],
+              retrievedAt: readAt,
+              discardedRecordCount: 1,
+            ),
+          ),
+          locale: const Locale('ar'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        Directionality.of(tester.element(find.text('تعذّر عرض بعض السجلات'))),
+        TextDirection.rtl,
+      );
     });
   });
 }

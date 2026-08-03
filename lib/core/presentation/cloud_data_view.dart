@@ -87,14 +87,11 @@ class CloudDataView<T> extends StatelessWidget {
 
       // Data on screen and the refresh failed. This is the state that must
       // never be silent.
-      CloudDataStatus.cachedPotentiallyOutdated => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _OutdatedBanner(retrievedAt: data.retrievedAt, onRetry: onRetry),
-          const SizedBox(height: 12),
-          builder(context, data.value as T, false),
-        ],
-      ),
+      CloudDataStatus.cachedPotentiallyOutdated => _withDiscardedWarning([
+        _OutdatedBanner(retrievedAt: data.retrievedAt, onRetry: onRetry),
+        const SizedBox(height: 12),
+        builder(context, data.value as T, false),
+      ]),
 
       CloudDataStatus.connectionFailure ||
       CloudDataStatus.permissionDenied ||
@@ -112,26 +109,50 @@ class CloudDataView<T> extends StatelessWidget {
     if (!data.hasValue) {
       return loadingBuilder?.call(context) ?? _Loading(label: label);
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _RefreshingBanner(label: label, retrievedAt: data.retrievedAt),
-        const SizedBox(height: 12),
-        builder(context, data.value as T, false),
-      ],
-    );
+    return _withDiscardedWarning([
+      _RefreshingBanner(label: label, retrievedAt: data.retrievedAt),
+      const SizedBox(height: 12),
+      builder(context, data.value as T, false),
+    ]);
   }
+
+  /// Prepends the partial-data warning to any state that puts data on screen.
+  ///
+  /// Not just `live`. An incomplete list looks exactly as complete while a
+  /// refresh is pending or after one has failed, and those are the moments the
+  /// count is most likely to be trusted — `CloudData` deliberately carries it
+  /// through both transitions so this can say so.
+  Widget _withDiscardedWarning(List<Widget> children) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (data.hasDiscardedRecords) ...[
+        _DiscardedRecordsWarning(count: data.discardedRecordCount),
+        const SizedBox(height: 8),
+      ],
+      ...children,
+    ],
+  );
 
   Widget _withFreshness(
     BuildContext context,
     AppLocalizations copy, {
     required Widget child,
   }) {
-    if (!showFreshness || data.retrievedAt == null) return child;
+    if ((!showFreshness || data.retrievedAt == null) &&
+        !data.hasDiscardedRecords) {
+      return child;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _FreshnessStamp(retrievedAt: data.retrievedAt!),
+        if (data.hasDiscardedRecords)
+          _DiscardedRecordsWarning(count: data.discardedRecordCount),
+        if (data.hasDiscardedRecords &&
+            showFreshness &&
+            data.retrievedAt != null)
+          const SizedBox(height: 8),
+        if (showFreshness && data.retrievedAt != null)
+          _FreshnessStamp(retrievedAt: data.retrievedAt!),
         const SizedBox(height: 8),
         child,
       ],
@@ -192,25 +213,43 @@ class CloudFreshnessBanner<T> extends StatelessWidget {
     final copy = appLocalizationsOf(context);
     return switch (data.status) {
       CloudDataStatus.initialLoading => const SizedBox.shrink(),
+      CloudDataStatus.live when data.hasDiscardedRecords => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _DiscardedRecordsWarning(count: data.discardedRecordCount),
+          if (showFreshness && data.retrievedAt != null) ...[
+            const SizedBox(height: 8),
+            _FreshnessStamp(retrievedAt: data.retrievedAt!),
+          ],
+        ],
+      ),
       CloudDataStatus.live || CloudDataStatus.empty =>
         showFreshness && data.retrievedAt != null
             ? _FreshnessStamp(retrievedAt: data.retrievedAt!)
             : const SizedBox.shrink(),
-      CloudDataStatus.refreshing => _RefreshingBanner(
-        label: copy.cloudRefreshing,
-        retrievedAt: data.retrievedAt,
+      // Every state below still puts data on screen, so each carries the
+      // partial-data warning for the same reason `live` does — see
+      // [CloudDataView._withDiscardedWarning].
+      CloudDataStatus.refreshing => _withDiscardedWarning(
+        _RefreshingBanner(
+          label: copy.cloudRefreshing,
+          retrievedAt: data.retrievedAt,
+        ),
       ),
-      CloudDataStatus.reconnecting => _RefreshingBanner(
-        label: copy.cloudReconnecting,
-        retrievedAt: data.retrievedAt,
+      CloudDataStatus.reconnecting => _withDiscardedWarning(
+        _RefreshingBanner(
+          label: copy.cloudReconnecting,
+          retrievedAt: data.retrievedAt,
+        ),
       ),
-      CloudDataStatus.cachedAwaitingValidation => _RefreshingBanner(
-        label: copy.cloudCheckingForUpdates,
-        retrievedAt: data.retrievedAt,
+      CloudDataStatus.cachedAwaitingValidation => _withDiscardedWarning(
+        _RefreshingBanner(
+          label: copy.cloudCheckingForUpdates,
+          retrievedAt: data.retrievedAt,
+        ),
       ),
-      CloudDataStatus.cachedPotentiallyOutdated => _OutdatedBanner(
-        retrievedAt: data.retrievedAt,
-        onRetry: onRetry,
+      CloudDataStatus.cachedPotentiallyOutdated => _withDiscardedWarning(
+        _OutdatedBanner(retrievedAt: data.retrievedAt, onRetry: onRetry),
       ),
       CloudDataStatus.permissionDenied => NyumbaStatusMessage(
         severity: NyumbaMessageSeverity.warning,
@@ -233,6 +272,36 @@ class CloudFreshnessBanner<T> extends StatelessWidget {
         onRetry: onRetry == null ? null : () => onRetry!(),
       ),
     };
+  }
+
+  Widget _withDiscardedWarning(Widget banner) => data.hasDiscardedRecords
+      ? Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _DiscardedRecordsWarning(count: data.discardedRecordCount),
+            const SizedBox(height: 8),
+            banner,
+          ],
+        )
+      : banner;
+}
+
+class _DiscardedRecordsWarning extends StatelessWidget {
+  const _DiscardedRecordsWarning({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = appLocalizationsOf(context);
+    return Semantics(
+      liveRegion: true,
+      child: NyumbaStatusMessage(
+        severity: NyumbaMessageSeverity.warning,
+        title: copy.cloudPartialDataTitle,
+        message: copy.cloudPartialDataMessage(count),
+      ),
+    );
   }
 }
 

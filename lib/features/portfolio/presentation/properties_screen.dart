@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/bootstrap/app_dependencies.dart';
 import '../../../core/cloud/cloud_async.dart';
+import '../../../core/cloud/cloud_command.dart';
 import '../../../app/theme/nyumba_colors.dart';
 import '../../../core/domain/coordinates.dart';
 import '../../../core/presentation/action_failure.dart';
@@ -34,10 +35,18 @@ import '../domain/unit.dart';
 import 'portfolio_visuals.dart';
 import 'property_photo_picker.dart';
 
+typedef PropertyPhotoPicker =
+    Future<ImagePickOutcome> Function({required int remainingSlots});
+
 class PropertiesScreen extends ConsumerStatefulWidget {
-  const PropertiesScreen({super.key, this.openCreateOnLoad = false});
+  const PropertiesScreen({
+    super.key,
+    this.openCreateOnLoad = false,
+    this.photoPicker = pickPropertyPhotos,
+  });
 
   final bool openCreateOnLoad;
+  final PropertyPhotoPicker photoPicker;
 
   @override
   ConsumerState<PropertiesScreen> createState() => _PropertiesScreenState();
@@ -351,12 +360,14 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     // one string at the bottom of a scrolling column, where neither was seen.
     var photoProblems = const <String>[];
     ActionFailure? failure;
-    ModalRoute<Property>? dialogRoute;
-    final property = await showDialog<Property>(
+    var isSaving = false;
+    var isDismissing = false;
+    ModalRoute<MutationResult>? dialogRoute;
+    final result = await showDialog<MutationResult>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          dialogRoute ??= ModalRoute.of<Property>(context);
+          dialogRoute ??= ModalRoute.of<MutationResult>(context);
           return AlertDialog(
             title: const Text.localized('Add property'),
             content: SizedBox(
@@ -364,6 +375,13 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  PopScope<MutationResult>(
+                    canPop: !isSaving,
+                    onPopInvokedWithResult: (didPop, _) {
+                      if (didPop) isDismissing = true;
+                    },
+                    child: const SizedBox.shrink(),
+                  ),
                   Flexible(
                     child: Form(
                       key: formKey,
@@ -480,8 +498,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                                           propertyPhotoLimit
                                       ? null
                                       : () async {
-                                          final result =
-                                              await pickPropertyPhotos(
+                                          final result = await widget
+                                              .photoPicker(
                                                 remainingSlots:
                                                     propertyPhotoLimit -
                                                     selectedPhotos.length,
@@ -567,10 +585,17 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: isSaving || isDismissing
+                    ? null
+                    : () {
+                        if (isSaving || isDismissing) return;
+                        setDialogState(() => isDismissing = true);
+                        Navigator.pop<MutationResult>(context);
+                      },
                 child: const Text.localized('Cancel'),
               ),
               AsyncActionButton.filled(
+                enabled: !isSaving && !isDismissing,
                 onPressed: () async {
                   if (!formKey.currentState!.validate()) return;
                   if (selectedPhotos.isEmpty) {
@@ -584,6 +609,10 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                     );
                     return;
                   }
+                  setDialogState(() {
+                    isSaving = true;
+                    failure = null;
+                  });
                   try {
                     final created = await ref.read(createPropertyProvider)(
                       CreatePropertyInput(
@@ -598,15 +627,18 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                             .toList(),
                       ),
                     );
-                    if (context.mounted) Navigator.pop(context, created);
+                    if (!context.mounted || isDismissing) return;
+                    isDismissing = true;
+                    Navigator.pop<MutationResult>(context, created);
                   } on Object catch (caught) {
-                    if (!context.mounted) return;
-                    setDialogState(
-                      () => failure = describeActionFailure(
+                    if (!context.mounted || isDismissing) return;
+                    setDialogState(() {
+                      isSaving = false;
+                      failure = describeActionFailure(
                         caught,
                         action: context.tr('save this property'),
-                      ),
-                    );
+                      );
+                    });
                   }
                 },
                 child: const Text.localized('Save property'),
@@ -626,15 +658,13 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     address.dispose();
     city.dispose();
     description.dispose();
-    if (property != null && mounted) {
+    if (result != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text.localized(
-            'Property saved locally and added to the sync queue.',
-          ),
+        SnackBar(
+          content: Text(appLocalizationsOf(context).propertySaveSuccess),
         ),
       );
-      context.go('/properties/${property.id}?addUnit=true');
+      context.go('/properties/${result.aggregateId}?addUnit=true');
     }
   }
 }

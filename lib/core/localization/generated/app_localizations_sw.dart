@@ -4450,6 +4450,22 @@ class AppLocalizationsSw extends AppLocalizations {
   String get cloudReconnecting => 'Inaunganisha upya…';
 
   @override
+  String get cloudPartialDataTitle => 'Baadhi ya rekodi hazikuweza kuonyeshwa';
+
+  @override
+  String cloudPartialDataMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Nyumba ilipokea rekodi $count katika muundo usiotarajiwa. Rekodi nyingine bado zinaonyeshwa.',
+      one:
+          'Nyumba ilipokea rekodi 1 katika muundo usiotarajiwa. Rekodi nyingine bado zinaonyeshwa.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String cloudLastUpdated(String time) {
     return 'Ilisasishwa $time';
   }
@@ -4512,4 +4528,88 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get listingDraftSaved => 'Rasimu ya tangazo imehifadhiwa.';
+
+  @override
+  String get listingContactRoutingNotice =>
+      'Maulizo yanapitishwa kwa usalama kupitia Nyumba. Nambari yako binafsi ya simu na anwani ya barua pepe hazichapishwi pamoja na tangazo hili.';
+
+  @override
+  String get propertySaveSuccess => 'Mali imehifadhiwa.';
+
+  @override
+  String get propertyChangesSaved => 'Mabadiliko ya mali yamehifadhiwa.';
+
+  @override
+  String get rentalSpaceSaved => 'Sehemu ya kupangisha imehifadhiwa.';
+
+  @override
+  String get vacancyPromptTitle => 'Tangaza sehemu hii ya kupangisha?';
+
+  @override
+  String vacancyPromptCreateBody(String name) {
+    return '$name sasa ni wazi. Tengeneza tangazo ili wapangaji waione sokoni.';
+  }
+
+  @override
+  String vacancyPromptPhotosBody(String name, String title) {
+    return '$name sasa ni wazi. Tangazo lake “$title” linahitaji angalau picha moja kabla halijawekwa hadharani.';
+  }
+
+  @override
+  String vacancyPromptPublishBody(String name, String title) {
+    return '$name sasa ni wazi. Chapisha “$title” ili wapangaji waipate sokoni.';
+  }
+
+  @override
+  String get vacancyPromptNotNow => 'Si sasa';
+
+  @override
+  String get vacancyPromptCreateAction => 'Tengeneza tangazo';
+
+  @override
+  String get vacancyPromptPhotosAction => 'Ongeza picha';
+
+  @override
+  String get vacancyPromptPublishAction => 'Chapisha sasa';
+
+  @override
+  String get listingLimitReachedTitle => 'Kikomo cha matangazo kimefikiwa';
+
+  @override
+  String listingLimitReachedMessage(String plan, int limit) {
+    return 'Mpango wako wa $plan unaruhusu matangazo $limit yanayoendelea, na yote yanatumika. Ondoa tangazo moja, au pandisha mpango ili kutangaza mengi zaidi kwa wakati mmoja.';
+  }
+
+  @override
+  String get publishSavedOnDevice =>
+      'Imehifadhiwa kwenye kifaa hiki. Matangazo huwekwa hadharani pale tu programu hii inapounganishwa na seva.';
+
+  @override
+  String publishWhenBackOnline(String title) {
+    return '$title litawekwa hadharani mara tu utakaporejea mtandaoni.';
+  }
+
+  @override
+  String publishInProgress(String title) {
+    return 'Inachapisha $title sasa — kadi itaonyesha Imechapishwa mara tu wapangaji watakapoiona.';
+  }
+
+  @override
+  String get paymentRecorded => 'Malipo yamerekodiwa.';
+
+  @override
+  String get listingChangesSaved => 'Mabadiliko ya tangazo yamehifadhiwa.';
+
+  @override
+  String get listingDraftSavedPublishHint =>
+      'Rasimu ya tangazo imehifadhiwa. Unaweza kuichapisha ukiwa tayari.';
+
+  @override
+  String get tenantInvited =>
+      'Mpangaji ameongezwa. Barua pepe ya mwaliko inatumwa.';
+
+  @override
+  String documentDraftSavedOnDevice(String type) {
+    return 'Rasimu ya $type imehifadhiwa kwenye kifaa hiki.';
+  }
 }

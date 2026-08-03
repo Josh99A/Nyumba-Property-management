@@ -5,13 +5,17 @@ import 'package:go_router/go_router.dart';
 import 'package:nyumba_property_management/core/localization/localized_material.dart';
 
 import '../../../../app/bootstrap/app_dependencies.dart';
+import '../../../../core/cloud/cloud_async.dart';
 import '../../../../core/localization/app_localizations_adapter.dart';
+import '../../../../core/localization/nyumba_localizations.dart';
 import '../../../../app/theme/nyumba_colors.dart';
+import '../../../../core/presentation/action_failure.dart';
 import '../../../../core/presentation/status_badge.dart';
 import '../../../../core/presentation/surface.dart';
 import '../../../auth/application/session_controller.dart';
 import '../../../auth/domain/authorization_policy.dart';
 import '../../../marketplace/domain/listing.dart';
+import '../../../marketplace/presentation/publish_actions.dart';
 import '../../../portfolio/application/portfolio_use_cases.dart';
 import '../../../portfolio/application/rental_space_labels.dart';
 import '../../../portfolio/domain/property.dart';
@@ -280,10 +284,31 @@ class _RentalSpaceAvailabilityPanelState
       );
     } on Object catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text.localized('Could not update availability: $error'),
-        ),
+      // Never the raw exception: `$error` puts a class name and an internal
+      // code in front of the landlord. `describeActionFailure` keeps those in
+      // `details`, which a snackbar has no room for anyway.
+      final failure = describeActionFailure(
+        error,
+        action: context.tr('change this availability'),
+      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text.localized(failure.message)));
+      return;
+    }
+    // A space that has just become vacant is the only kind that may be
+    // advertised, so this is the moment to offer it — asked only after the
+    // server confirmed the space really is vacant, and outside the try above so
+    // a dismissed prompt can never be reported as a failed availability change.
+    if (status == UnitStatus.vacant && mounted) {
+      await promptToAdvertiseVacantSpace(
+        context,
+        ref,
+        unit: unit.copyWith(status: status),
+        // Re-read, not the captured list: this same save can withdraw a
+        // published advert, so the prompt would otherwise choose between
+        // "Publish now" and "Create listing" from a snapshot it invalidated.
+        listings: ref.read(landlordListingsProvider).supportingRecords,
       );
     }
   }

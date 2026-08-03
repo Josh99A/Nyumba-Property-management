@@ -4397,6 +4397,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cloudReconnecting => 'Reconnecting…';
 
   @override
+  String get cloudPartialDataTitle => 'Some records could not be shown';
+
+  @override
+  String cloudPartialDataMessage(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Nyumba received $count records in an unexpected format. The other records are still shown.',
+      one:
+          'Nyumba received 1 record in an unexpected format. The other records are still shown.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String cloudLastUpdated(String time) {
     return 'Last updated $time';
   }
@@ -4459,4 +4475,88 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get listingDraftSaved => 'Draft advert saved.';
+
+  @override
+  String get listingContactRoutingNotice =>
+      'Enquiries are routed securely through Nyumba. Your private phone number and email address are not published with this advert.';
+
+  @override
+  String get propertySaveSuccess => 'Property saved.';
+
+  @override
+  String get propertyChangesSaved => 'Property changes saved.';
+
+  @override
+  String get rentalSpaceSaved => 'Rental space saved.';
+
+  @override
+  String get vacancyPromptTitle => 'Advertise this rental space?';
+
+  @override
+  String vacancyPromptCreateBody(String name) {
+    return '$name is now vacant. Create a listing to show it to tenants on the public marketplace.';
+  }
+
+  @override
+  String vacancyPromptPhotosBody(String name, String title) {
+    return '$name is now vacant. Its advert “$title” needs at least one photo before it can go public.';
+  }
+
+  @override
+  String vacancyPromptPublishBody(String name, String title) {
+    return '$name is now vacant. Publish “$title” so tenants can find it on the public marketplace.';
+  }
+
+  @override
+  String get vacancyPromptNotNow => 'Not now';
+
+  @override
+  String get vacancyPromptCreateAction => 'Create listing';
+
+  @override
+  String get vacancyPromptPhotosAction => 'Add photos';
+
+  @override
+  String get vacancyPromptPublishAction => 'Publish now';
+
+  @override
+  String get listingLimitReachedTitle => 'Listing limit reached';
+
+  @override
+  String listingLimitReachedMessage(String plan, int limit) {
+    return 'Your $plan plan allows up to $limit active listings and all of them are in use. Unpublish a listing, or upgrade to advertise more at once.';
+  }
+
+  @override
+  String get publishSavedOnDevice =>
+      'Saved on this device. Adverts go public only once this app is connected to the server.';
+
+  @override
+  String publishWhenBackOnline(String title) {
+    return '$title goes live as soon as you are back online.';
+  }
+
+  @override
+  String publishInProgress(String title) {
+    return 'Publishing $title now — the card shows Published the moment tenants can see it.';
+  }
+
+  @override
+  String get paymentRecorded => 'Payment recorded.';
+
+  @override
+  String get listingChangesSaved => 'Listing changes saved.';
+
+  @override
+  String get listingDraftSavedPublishHint =>
+      'Draft advert saved. You can publish it when ready.';
+
+  @override
+  String get tenantInvited =>
+      'Tenant added. The invitation email is on its way.';
+
+  @override
+  String documentDraftSavedOnDevice(String type) {
+    return '$type draft saved on this device.';
+  }
 }

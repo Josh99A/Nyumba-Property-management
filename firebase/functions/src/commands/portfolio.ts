@@ -1,4 +1,9 @@
-import type { Firestore, Timestamp, Transaction } from 'firebase-admin/firestore';
+import type {
+  Firestore,
+  QuerySnapshot,
+  Timestamp,
+  Transaction,
+} from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bumpVersion, newAggregate, requireAbsent, requireAggregate } from '../shared/aggregates';
 import { loadActiveLandlordContext, requireOwnedByLandlord, requireWorkspace } from '../shared/accounts';
@@ -42,6 +47,43 @@ function validateStagedPaths(uid: string, paths: string[]): void {
   }
 }
 
+interface PropertyIdentity {
+  name: string;
+  addressLine: string;
+  city: string;
+}
+
+/**
+ * One landlord cannot keep two active records for the same physical property.
+ *
+ * Command IDs absorb transport retries, but a fresh form submission carries a
+ * fresh command and aggregate ID. The canonical fields are therefore the
+ * second line of defence against recording the same property again.
+ */
+function activePropertyIdentityQuery(
+  db: Firestore,
+  landlordId: string,
+  identity: PropertyIdentity,
+) {
+  return db.collection(COLLECTIONS.properties)
+    .where('landlordId', '==', landlordId)
+    .where('name', '==', identity.name)
+    .where('addressLine', '==', identity.addressLine)
+    .where('city', '==', identity.city)
+    .where('isDeleted', '==', false)
+    .limit(2);
+}
+
+function requireNoOtherActiveProperty(
+  snapshots: QuerySnapshot,
+  propertyId?: string,
+): void {
+  const duplicate = snapshots.docs.some((snapshot) => snapshot.id !== propertyId);
+  if (duplicate) {
+    throw new DomainError('ALREADY_EXISTS', { reason: 'duplicateProperty' });
+  }
+}
+
 /**
  * Queues the delivery copies for a property's photos.
  *
@@ -80,8 +122,13 @@ export const propertyCreate: CommandHandler<z.infer<typeof propertyCreateSchema>
       ? await loadActiveLandlordContext(tx, db, cmd.payload.targetLandlordId!)
       : await requireWorkspace(tx, db, actor, 'manageProperties');
     const ref = db.collection(COLLECTIONS.properties).doc(cmd.aggregateId!);
-    const snapshot = await tx.get(ref);
+    const duplicateQuery = activePropertyIdentityQuery(db, landlord.landlordId, cmd.payload);
+    const [snapshot, duplicates] = await Promise.all([
+      tx.get(ref),
+      tx.get(duplicateQuery),
+    ]);
     requireAbsent(snapshot);
+    requireNoOtherActiveProperty(duplicates);
     const { targetLandlordId: _targetLandlordId, ...propertyFields } = cmd.payload;
     tx.create(ref, {
       ...newAggregate(cmd.aggregateId!, now),
@@ -122,10 +169,32 @@ export const propertyUpdate: CommandHandler<z.infer<typeof propertyUpdateSchema>
     }
     const ref = db.collection(COLLECTIONS.properties).doc(cmd.aggregateId!);
     const snapshot = await tx.get(ref);
-    const current = requireAggregate<Record<string, unknown> & { version: number }>(snapshot, cmd.expectedVersion);
+    const current = requireAggregate<Record<string, unknown> & {
+      version: number;
+      landlordId: string;
+      name: string;
+      addressLine: string;
+      city: string;
+    }>(snapshot, cmd.expectedVersion);
     if (!actor.platformAdmin && !actor.superAdmin) {
       const landlord = await requireWorkspace(tx, db, actor, 'manageProperties');
       requireOwnedByLandlord(current, landlord.landlordId);
+    }
+    const identityChanged =
+      cmd.payload.name !== undefined ||
+      cmd.payload.addressLine !== undefined ||
+      cmd.payload.city !== undefined;
+    if (identityChanged) {
+      const duplicates = await tx.get(activePropertyIdentityQuery(
+        db,
+        current.landlordId,
+        {
+          name: cmd.payload.name ?? current.name,
+          addressLine: cmd.payload.addressLine ?? current.addressLine,
+          city: cmd.payload.city ?? current.city,
+        },
+      ));
+      requireNoOtherActiveProperty(duplicates, cmd.aggregateId!);
     }
     const changes = Object.fromEntries(Object.entries(cmd.payload).filter(([, value]) => value !== undefined));
     tx.update(ref, { ...changes, ...bumpVersion(current, now) });

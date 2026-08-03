@@ -132,9 +132,19 @@ class _ListingMapViewState extends State<ListingMapView> {
             end: 0,
             child: Center(child: _SearchThisAreaButton(onPressed: _searchHere)),
           ),
+        // A searched area with nothing in it. Said plainly and over a live map,
+        // because the way out is to pan and search again — not to leave.
+        if (widget.listings.isEmpty)
+          PositionedDirectional(
+            top: 0,
+            bottom: 0,
+            start: 24,
+            end: 24,
+            child: Center(child: _EmptyAreaNotice()),
+          )
         // The map can only show adverts that carry a pin, so it must say when
         // it is not showing everything the list would.
-        if (unpinned > 0)
+        else if (unpinned > 0)
           PositionedDirectional(
             bottom: 12,
             start: 12,
@@ -154,13 +164,36 @@ class _ListingMapViewState extends State<ListingMapView> {
     _visibleSpan = 360 / (1 << _zoom.round().clamp(1, 21));
   }
 
-  /// Commits the current viewport as the searched one and writes it to the
-  /// URL, so the map someone shares opens where they left it.
-  void _searchHere() {
+  /// Narrows the results to what the map is showing, and writes the viewport to
+  /// the URL so the map someone shares opens where they left it.
+  ///
+  /// The rectangle comes from the SDK rather than from the camera centre and
+  /// zoom: those two describe the same viewport only if you also know the
+  /// widget's aspect ratio, and searching a different area than the one on
+  /// screen is the failure this button is supposed to avoid.
+  Future<void> _searchHere() async {
     final camera = _camera;
     if (camera == null) return;
+    final region = await _controller?.getVisibleRegion();
+    if (!mounted) return;
+    // A null region means the platform view has not laid out yet, so there is
+    // no honest area to commit and nothing is narrowed. Leaving the button up
+    // is the point: marking the viewport as searched would hide it as though
+    // the search had worked, with no way back until the visitor pans.
+    if (region == null) return;
     setState(() => _searchedAt = camera);
-    widget.onQueryChanged(widget.query.copyWith(centre: camera, zoom: _zoom));
+    widget.onQueryChanged(
+      widget.query.copyWith(
+        centre: camera,
+        zoom: _zoom,
+        searchedArea: ListingViewport(
+          south: region.southwest.latitude,
+          west: region.southwest.longitude,
+          north: region.northeast.latitude,
+          east: region.northeast.longitude,
+        ),
+      ),
+    );
   }
 
   Set<Marker> _markersFor(List<ListingCluster> clusters) => {
@@ -234,6 +267,38 @@ class _SearchThisAreaButton extends StatelessWidget {
       onPressed: onPressed,
       icon: const Icon(Icons.refresh_rounded, size: 18),
       label: Text.localized(appLocalizationsOf(context).searchThisArea),
+    );
+  }
+}
+
+/// Shown over the map when the searched area holds nothing.
+///
+/// Deliberately not the marketplace's full empty state: that one replaces the
+/// results entirely, and replacing the map would take away the only control
+/// that can undo a searched area.
+class _EmptyAreaNotice extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text.localized(
+              appLocalizationsOf(context).noHomesMatch,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            Text.localized(
+              appLocalizationsOf(context).tryBroaderSearch,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

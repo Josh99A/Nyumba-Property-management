@@ -130,69 +130,76 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
             : null,
         onForLandlords: () => context.go('/explore'),
       ),
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverToBoxAdapter(
-            child: _SearchHeader(
-              resultSummary: listingsValue.hasValue
-                  ? _summaryFor(query, allListings)
-                  : null,
-              onBack: () => context.go('/explore'),
-            ),
-          ),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: MarketplaceFilterBar(
-              query: query,
-              searchText: _searchText,
-              listings: allListings,
-              availableUnitTypes: unitTypes,
-              onChanged: _applyQuery,
-              onSearchChanged: _changeSearchText,
-              onSearchSubmitted: _submitSearch,
-              extent: MarketplaceFilterBar.extentFor(context),
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsetsDirectional.fromSTEB(inset, 20, inset, 0),
-            sliver: SliverToBoxAdapter(
-              child: ActiveFilterChips(query: query, onChanged: _applyQuery),
-            ),
-          ),
-          ...listingsValue.when(
-            loading: () => [
-              _boxed(inset, const ListingResultsSkeleton(rows: 2)),
-            ],
-            error: (error, stack) => [
-              _boxed(
-                inset,
-                MarketplaceEmptyState(
-                  icon: Icons.cloud_off_rounded,
-                  title: copy.publicListingsLoadErrorTitle,
-                  message: copy.publicListingsLoadErrorMessage,
-                  action: FilledButton.icon(
-                    onPressed: () => ref.invalidate(publicListingsProvider),
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: Text(copy.retry),
+      body:
+          CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              SliverToBoxAdapter(
+                child: _SearchHeader(
+                  resultSummary: listingsValue.hasValue
+                      ? _summaryFor(query, allListings)
+                      : null,
+                  onBack: () => context.go('/explore'),
+                ),
+              ),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: MarketplaceFilterBar(
+                  query: query,
+                  searchText: _searchText,
+                  listings: allListings,
+                  availableUnitTypes: unitTypes,
+                  onChanged: _applyQuery,
+                  onSearchChanged: _changeSearchText,
+                  onSearchSubmitted: _submitSearch,
+                  extent: MarketplaceFilterBar.extentFor(context),
+                ),
+              ),
+              SliverPadding(
+                padding: EdgeInsetsDirectional.fromSTEB(inset, 20, inset, 0),
+                sliver: SliverToBoxAdapter(
+                  child: ActiveFilterChips(
+                    query: query,
+                    onChanged: _applyQuery,
                   ),
                 ),
               ),
+              ...listingsValue.when(
+                loading: () => [
+                  _boxed(inset, const ListingResultsSkeleton(rows: 2)),
+                ],
+                error: (error, stack) => [
+                  _boxed(
+                    inset,
+                    MarketplaceEmptyState(
+                      icon: Icons.cloud_off_rounded,
+                      title: copy.publicListingsLoadErrorTitle,
+                      message: copy.publicListingsLoadErrorMessage,
+                      action: FilledButton.icon(
+                        onPressed: () => ref.invalidate(publicListingsProvider),
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: Text(copy.retry),
+                      ),
+                    ),
+                  ),
+                ],
+                data: (all) => _resultSlivers(
+                  query,
+                  all.value ?? const <Listing>[],
+                  inset,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: MarketplaceFooter(
+                  onBrowseHomes: () => context.go('/explore'),
+                  onAccount: () => context.go(navigationAction.path),
+                  accountLabel: context.tr(navigationAction.label),
+                ),
+              ),
             ],
-            data: (all) =>
-                _resultSlivers(query, all.value ?? const <Listing>[], inset),
+          ).withNyumbaPullToRefresh(
+            onRefresh: ref.read(publicListingsRefreshProvider).call,
           ),
-          SliverToBoxAdapter(
-            child: MarketplaceFooter(
-              onBrowseHomes: () => context.go('/explore'),
-              onAccount: () => context.go(navigationAction.path),
-              accountLabel: context.tr(navigationAction.label),
-            ),
-          ),
-        ],
-      ).withNyumbaPullToRefresh(
-        onRefresh: ref.read(publicListingsRefreshProvider).call,
-      ),
     );
   }
 
@@ -233,23 +240,10 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
       ];
     }
     final listings = query.apply(all, origin: _origin);
-    if (listings.isEmpty) {
-      return [
-        _boxed(
-          inset,
-          MarketplaceEmptyState(
-            icon: Icons.search_off_rounded,
-            title: copy.noHomesMatch,
-            message: copy.tryBroaderSearch,
-            action: OutlinedButton.icon(
-              onPressed: () => _applyQuery(query.cleared()),
-              icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
-              label: Text(copy.clearFilters),
-            ),
-          ),
-        ),
-      ];
-    }
+    // The map is kept on screen even with nothing to show. Replacing it with an
+    // empty state would strand a visitor who searched a quiet area: the map is
+    // the only control that can undo a searched area, so removing it removes
+    // the way back.
     if (query.view == ListingView.map) {
       return [
         SliverPadding(
@@ -269,6 +263,23 @@ class _PublicSearchScreenState extends ConsumerState<PublicSearchScreen> {
                   onOpen: (listing) => context.go('/listing/${listing.id}'),
                 ),
               ),
+            ),
+          ),
+        ),
+      ];
+    }
+    if (listings.isEmpty) {
+      return [
+        _boxed(
+          inset,
+          MarketplaceEmptyState(
+            icon: Icons.search_off_rounded,
+            title: copy.noHomesMatch,
+            message: copy.tryBroaderSearch,
+            action: OutlinedButton.icon(
+              onPressed: () => _applyQuery(query.cleared()),
+              icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+              label: Text(copy.clearFilters),
             ),
           ),
         ),

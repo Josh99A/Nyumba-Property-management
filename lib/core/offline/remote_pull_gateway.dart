@@ -89,6 +89,22 @@ abstract interface class RemotePullGateway {
 /// cursor pagination, not a bigger number.
 const int _maximumScopedDocuments = 2000;
 
+/// Cutoffs the marketplace query tries, in order, until the rules accept one.
+///
+/// The first is the ordinary case: a few minutes covers the round trip and any
+/// trivial drift. The rest exist only for a device whose clock is genuinely
+/// wrong, where showing listings that expire more than a day from now beats
+/// showing none at all. See [FirestoreRemotePullGateway._watchPublicListings].
+///
+/// The rule these have to clear is pinned by an emulator test — see
+/// `firebase/functions/test/emulator/rules.test.ts`.
+const _publicListingCutoffs = <Duration>[
+  Duration(minutes: 5),
+  Duration(hours: 1),
+  Duration(hours: 12),
+  Duration(days: 2),
+];
+
 final class FirestoreRemotePullGateway implements RemotePullGateway {
   FirestoreRemotePullGateway({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
@@ -117,27 +133,12 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
           .orderBy('createdAt', descending: true)
           .limit(100);
     } else if (publicOnly) {
+      // The marketplace query needs to survive a rejected cutoff, so it owns
+      // its own subscription rather than sharing the one built below.
+      if (entityType == OfflineEntityType.publicListing) {
+        return _watchPublicListings();
+      }
       query = switch (entityType) {
-        OfflineEntityType.publicListing =>
-          _firestore
-              .collection('publicListings')
-              .where('status', isEqualTo: 'published')
-              // The list rule rechecks `expiresAt > request.time`. A cutoff
-              // captured at the client can be a few milliseconds behind the
-              // server by the time the query arrives, so use a small future
-              // safety window. Listings remain live for 30 days; omitting the
-              // final five minutes prevents an expired row from ever leaking.
-              .where(
-                'expiresAt',
-                isGreaterThan: Timestamp.fromDate(
-                  DateTime.now().toUtc().add(const Duration(minutes: 5)),
-                ),
-              )
-              // Match the deployed composite index exactly:
-              // status ASC, expiresAt ASC, publishedAt DESC.
-              .orderBy('expiresAt')
-              .orderBy('publishedAt', descending: true)
-              .limit(50),
         OfflineEntityType.planCatalog =>
           _firestore
               .collection('planCatalog')
@@ -184,21 +185,121 @@ final class FirestoreRemotePullGateway implements RemotePullGateway {
     }
 
     return query.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map(
-            (document) => RemoteRecord(
-              entityType: entityType,
-              id: document.id,
-              data: toLocalShape(
-                entityType,
-                document.id,
-                document.data(),
-                publicOnly: publicOnly,
-              ),
+      (snapshot) => _toRecords(entityType, snapshot, publicOnly: publicOnly),
+    );
+  }
+
+  List<RemoteRecord> _toRecords(
+    OfflineEntityType entityType,
+    QuerySnapshot<Map<String, dynamic>> snapshot, {
+    required bool publicOnly,
+  }) => snapshot.docs
+      .map(
+        (document) => RemoteRecord(
+          entityType: entityType,
+          id: document.id,
+          data: toLocalShape(
+            entityType,
+            document.id,
+            document.data(),
+            publicOnly: publicOnly,
+          ),
+        ),
+      )
+      .toList(growable: false);
+
+  Query<Map<String, dynamic>> _publicListingQuery(Duration safetyWindow) =>
+      _firestore
+          .collection('publicListings')
+          .where('status', isEqualTo: 'published')
+          .where(
+            'expiresAt',
+            isGreaterThan: Timestamp.fromDate(
+              DateTime.now().toUtc().add(safetyWindow),
             ),
           )
-          .toList(growable: false),
+          // Match the deployed composite index exactly:
+          // status ASC, expiresAt ASC, publishedAt DESC.
+          .orderBy('expiresAt')
+          .orderBy('publishedAt', descending: true)
+          .limit(50);
+
+  /// The marketplace catalogue, retried with a later cutoff when the rules
+  /// reject the one this device's clock produced.
+  ///
+  /// `publicListings` may only be listed with `expiresAt > request.time`, and
+  /// Firestore checks that against the *server's* clock: a cutoff at or behind
+  /// server time is refused outright, not filtered down. So the safety window
+  /// below is the entire margin a device gets, and a phone running more than
+  /// that behind — automatic time off, a flat battery, a bad timezone
+  /// restore — has its whole marketplace denied, on every cold start, with no
+  /// signal beyond an empty screen over a stale mirror.
+  ///
+  /// Widening the cutoff cannot leak anything. The rule still re-checks every
+  /// returned document against server time, so a later cutoff only withholds
+  /// listings nearer their expiry; it can never surface an expired one. What
+  /// actually retires a listing is the hourly `expirePublicListings` sweep,
+  /// which flips `status` away from `published`.
+  Stream<List<RemoteRecord>> _watchPublicListings() {
+    late final StreamController<List<RemoteRecord>> controller;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? subscription;
+    var cutoff = 0;
+    var closed = false;
+
+    void listen() {
+      subscription = _publicListingQuery(_publicListingCutoffs[cutoff])
+          .snapshots()
+          .listen(
+            (snapshot) => controller.add(
+              _toRecords(
+                OfflineEntityType.publicListing,
+                snapshot,
+                publicOnly: true,
+              ),
+            ),
+            onError: (Object error, StackTrace stackTrace) {
+              final canWiden =
+                  !closed &&
+                  error is FirebaseException &&
+                  error.code == 'permission-denied' &&
+                  cutoff + 1 < _publicListingCutoffs.length;
+              if (!canWiden) {
+                controller.addError(error, stackTrace);
+                return;
+              }
+              cutoff++;
+              developer.log(
+                'publicListings denied; retrying with a '
+                '${_publicListingCutoffs[cutoff].inMinutes}-minute cutoff. '
+                'This device\'s clock is most likely behind the server.',
+                name: 'remote_pull_gateway',
+                error: error,
+              );
+              subscription?.cancel();
+              listen();
+              // A widened re-listen must not undo a pause the subscriber is
+              // still holding, or the Firestore listener would resume behind
+              // its back.
+              if (controller.isPaused) subscription?.pause();
+            },
+          );
+    }
+
+    controller = StreamController<List<RemoteRecord>>(
+      onListen: listen,
+      // Every other branch of `watchCollection` returns `query.snapshots()`
+      // mapped, which forwards back-pressure to Firestore for free. Routing
+      // this one through a controller would have silently dropped that: a
+      // paused subscriber would buffer snapshots here, unbounded, instead of
+      // telling the listener to stop sending them.
+      onPause: () => subscription?.pause(),
+      onResume: () => subscription?.resume(),
+      onCancel: () {
+        closed = true;
+        return subscription?.cancel();
+      },
     );
+    return controller.stream;
   }
 
   /// Where a landlord reads [type] from.

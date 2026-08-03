@@ -320,6 +320,75 @@ build alone is not SEO verification.
 - Keep user-facing copy precise: use `pending` or `awaiting confirmation` for
   unacknowledged operations, never `paid`, `published`, or `approved`.
 
+## Performance invariants
+
+Rendering is not where this app gets slow. A profile-mode session on a physical
+Samsung SM-A145P (Android 15) measured 59–60 FPS scrolling the dashboard with no
+detected jank, and no Nyumba function appeared as a CPU hotspot. Everything that
+actually hurt was a Firebase call being made when it should not have been. Keep
+it that way — the invariants below are the ones that were violated, each with
+the symptom that found it.
+
+- **Never let a failed remote lookup repeat per rebuild.** A missing Storage
+  object used to cost the full retry ladder every time its tile scrolled back
+  into view: one broken listing produced 44 Storage 404s in a session.
+  `PropertyMediaUrlCache` now memoises settled answers — a resolved URL, an
+  absent object, a refused read — with a TTL, and only genuinely transient
+  failures are retried. When adding a remote lookup behind a widget, decide
+  explicitly which failures are settled and cache those.
+- **Retry only what retrying can fix.** `object-not-found` is transient for the
+  length of the publication grace window and permanent after it; `unauthorized`
+  and friends are permanent immediately and must not be multiplied by four. An
+  unrecognised error stays transient — see `isPermanentMediaError`.
+- **App Check attests the distribution, not the binary.** Non-release builds use
+  the debug provider. Asking Play Integrity for a token from a side-loaded
+  profile build produced 54 warnings and 6 attestation failures in one session
+  and can never succeed. Do not "simplify" `main.dart` back to a single provider.
+- **A client-supplied cutoff that the rules check against `request.time` is a
+  clock dependency.** See the `publicListings` note in
+  `docs/architecture/firebase-data-and-security.md`: the fix is to re-listen
+  with a later cutoff, never to relax the rule.
+- **Size decoded images, not just displayed ones.** Flutter's image cache is
+  bounded in decoded bytes, so a grid tile decoded at detail resolution evicts
+  its neighbours and forces continuous re-decoding. Pass `cacheWidth`
+  everywhere `RemoteMediaImage` is used.
+- **Keep the startup path bounded.** Cold start is ~2.0s and Firebase work
+  before `runApp` is part of it. Anything added there needs a timeout, because
+  the offline workspace is supposed to open whether or not Firebase answers.
+- **Measure before optimising the UI.** Android PSS ran 249–332 MB in profile
+  mode with a stable ~24–32 MB Dart heap, i.e. image cache and initialisation,
+  not a leak. Profile-mode figures are not release-mode figures; re-measure on a
+  release build with a data-rich account before acting on a memory number.
+
+### Maps
+
+An interactive map is the most expensive surface in the product — billed per
+load and rendered by a native platform view Flutter does not control. A second
+profiling pass on the same device found the Dart side already clean and the cost
+entirely native, so the rules here are about not making it worse.
+
+- **Rebuild on camera *idle*, never on camera move.** Both `ListingMapView` and
+  `LocationPickerField`'s full-screen picker mutate a plain field in
+  `onCameraMove` and call `setState` only in `onCameraIdle`. Adding a `setState`
+  to the move callback rebuilds the marker set on every frame of a drag.
+- **Maps stay opt-in.** Opening the public map took total PSS from ~246 MB to
+  ~427 MB and it stayed there after leaving — retained Google Maps/GL cache, not
+  a Dart leak (three reopen cycles were stable). Do not make a map the default
+  view of any screen, and do not mount one to show a static location.
+- **Map surface size is a performance decision.** The near-full-screen picker
+  measured 9.3–10.3% janky frames at p99 44–46 ms; the smaller public map on the
+  same device measured 2.1–2.7% at p99 22–25 ms. If the picker is reworked,
+  measure the smaller surface rather than assuming the Dart side is at fault.
+- **"Search this area" must actually narrow results.** It sets
+  `ListingQuery.searchedArea` from the SDK's own `getVisibleRegion`, not from the
+  camera centre and zoom — those describe the same rectangle only if you also
+  know the aspect ratio. It filters the map view alone, and `cleared()` releases
+  it; see the field's doc comment for why both of those matter.
+- **An advert with no pin is invisible on the map, and nothing fails to say so.**
+  `listing.publish` inherits the property's location when the draft carries
+  none, and the create dialog seeds the picker from it. Keep both: the client
+  seed is the good path, the server inheritance is what repairs old drafts.
+
 ## Localization and language invariants
 
 Nyumba ships in English (`en`), Luganda (`lg`), Kiswahili (`sw`), and Arabic

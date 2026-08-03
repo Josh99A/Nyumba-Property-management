@@ -150,6 +150,20 @@ void main() {
     expect(failure.message, isNot(contains('CommandException')));
   });
 
+  test('an already-existing command result explains the duplicate', () {
+    final failure = describeActionFailure(
+      const CommandException(
+        kind: CommandFailureKind.rejected,
+        code: 'ALREADY_EXISTS',
+        details: <String, Object?>{'reason': 'duplicateProperty'},
+      ),
+      action: 'save this property',
+    );
+
+    expect(failure.message, 'That record already exists.');
+    expect(failure.message, isNot(contains('CommandException')));
+  });
+
   test('an unrecognised error still says nothing was changed', () {
     final failure = describeActionFailure(
       Exception('something nobody has classified'),

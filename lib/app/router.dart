@@ -91,7 +91,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: false,
     refreshListenable: refreshNotifier,
     redirect: (context, state) =>
-        redirectForSession(ref.read(sessionControllerProvider), state.uri.path),
+        redirectForLocation(ref.read(sessionControllerProvider), state.uri),
     errorBuilder: (context, state) => _RouteNotFoundScreen(
       message: state.error?.toString() ?? 'Page not found',
     ),
@@ -201,7 +201,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/listings',
             pageBuilder: (context, state) => _transitionPage(
               state: state,
-              child: const LandlordListingsScreen(),
+              child: LandlordListingsScreen(
+                initialUnitId: state.uri.queryParameters['unitId'],
+              ),
             ),
           ),
           GoRoute(
@@ -480,6 +482,50 @@ String? redirectForSession(UserSession? session, String path) {
       (session.role == AppRole.tenant &&
           (path == '/tenant' || path.startsWith('/tenant/')));
   return allowed ? null : home;
+}
+
+/// Preserves an authenticated deep link while the session is hydrating.
+///
+/// GoRouter evaluates redirects before Firebase has restored the user. The old
+/// redirect replaced a private URL with `/sign-in`, then sent the restored
+/// session to its generic home, so a refresh of a property or listing always
+/// lost the page (and query parameters) the person was using.
+@visibleForTesting
+String? redirectForLocation(UserSession? session, Uri location) {
+  final pathRedirect = redirectForSession(session, location.path);
+  if (session == null) {
+    if (pathRedirect != '/sign-in') return pathRedirect;
+    return Uri(
+      path: '/sign-in',
+      queryParameters: <String, String>{'redirect': location.toString()},
+    ).toString();
+  }
+
+  if (location.path == '/sign-in' || location.path == '/sign-up') {
+    final target = _safeLocalRedirect(location.queryParameters['redirect']);
+    if (target != null && redirectForSession(session, target.path) == null) {
+      return target.toString();
+    }
+  }
+  return pathRedirect;
+}
+
+Uri? _safeLocalRedirect(String? raw) {
+  if (raw == null ||
+      raw.isEmpty ||
+      !raw.startsWith('/') ||
+      raw.startsWith('//')) {
+    return null;
+  }
+  final target = Uri.tryParse(raw);
+  if (target == null ||
+      target.hasScheme ||
+      target.hasAuthority ||
+      target.path == '/sign-in' ||
+      target.path == '/sign-up') {
+    return null;
+  }
+  return target;
 }
 
 class _RouteNotFoundScreen extends StatelessWidget {

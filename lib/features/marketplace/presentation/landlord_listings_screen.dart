@@ -14,9 +14,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/domain/coordinates.dart';
 import '../../../core/domain/domain_exception.dart';
 import '../../../core/domain/sync_metadata.dart';
-import '../../../core/config/market_config.dart';
 import '../../../core/presentation/action_failure.dart';
 import '../../../core/presentation/async_action_button.dart';
+import '../../../core/presentation/cloud_data_view.dart';
 import '../../../core/presentation/location_picker.dart';
 import '../../../core/presentation/page_header.dart';
 import '../../../core/presentation/photo_editor_field.dart';
@@ -32,16 +32,20 @@ import '../../portfolio/domain/unit.dart';
 import '../../portfolio/application/rental_space_labels.dart';
 import '../../subscriptions/application/subscription_providers.dart';
 import '../../subscriptions/domain/landlord_entitlement.dart';
-import '../../subscriptions/presentation/upgrade_prompt.dart';
 import '../domain/application.dart';
 import '../application/marketplace_use_cases.dart';
 import '../domain/listing.dart';
 import 'listing_publication.dart';
 import 'listing_visuals.dart';
 import 'listing_photo_picker.dart';
+import 'publish_actions.dart';
 
 class LandlordListingsScreen extends ConsumerStatefulWidget {
-  const LandlordListingsScreen({super.key});
+  const LandlordListingsScreen({super.key, this.initialUnitId});
+
+  /// Opens the create editor for this vacant space once its cloud context has
+  /// loaded. Used by the property detail "Advertise" action.
+  final String? initialUnitId;
 
   @override
   ConsumerState<LandlordListingsScreen> createState() =>
@@ -51,6 +55,7 @@ class LandlordListingsScreen extends ConsumerStatefulWidget {
 class _LandlordListingsScreenState
     extends ConsumerState<LandlordListingsScreen> {
   String _filter = 'All';
+  bool _initialCreateHandled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +92,27 @@ class _LandlordListingsScreenState
     final canCreate = allows(CrudOperation.create);
     final canUpdate = allows(CrudOperation.update);
     final canUnpublish = allows(CrudOperation.delete);
+
+    if (!_initialCreateHandled &&
+        widget.initialUnitId != null &&
+        unitsValue.value != null &&
+        propertiesValue.value != null) {
+      _initialCreateHandled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await _showCreateListing(
+          this.context,
+          unitsValue.supportingRecords,
+          propertiesValue.supportingRecords,
+          initialUnitId: widget.initialUnitId,
+        );
+        if (mounted) {
+          // Clear the one-shot query after the editor closes, so later rebuilds
+          // cannot reopen a form the landlord already handled.
+          this.context.replace('/listings');
+        }
+      });
+    }
 
     // Counted once instead of re-scanning every application for every card.
     final applicationsByListing = <String, int>{};
@@ -135,6 +161,14 @@ class _LandlordListingsScreenState
                     // no-op dressed up as an action.
                   ),
                   const SizedBox(height: 22),
+                  if (listingsValue.cloudData case final cloud?) ...[
+                    CloudFreshnessBanner<List<Listing>>(
+                      data: cloud,
+                      onRetry: () async =>
+                          ref.invalidate(landlordListingsProvider),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   // The 'adverts did not go through' banner is gone with the
                   // outbox that produced it. A refusal is now shown at the
                   // moment the landlord attempts the change, not as a standing
@@ -342,45 +376,9 @@ class _LandlordListingsScreenState
       return;
     }
 
-    // At the plan's active-listing limit, prompt for an upgrade instead of
-    // queueing a publication the server would reject. Only a confirmed
-    // entitlement blocks locally; an unknown plan leaves the server to judge.
-    if (ref.read(landlordEntitlementProvider).value case EntitlementKnown(
-      entitlement: final plan,
-    )) {
-      final listings = ref.read(landlordListingsProvider).supportingRecords;
-      final activeCount = listings
-          .where((l) => l.status == ListingStatus.published)
-          .length;
-      if (activeCount >= plan.activeListingLimit) {
-        await showUpgradePrompt(
-          context,
-          title: 'Listing limit reached',
-          message:
-              'Your ${plan.displayName} plan allows up to '
-              '${plan.activeListingLimit} active listings and all of them are '
-              'in use. Unpublish a listing, or upgrade to advertise more at '
-              'once.',
-        );
-        return;
-      }
-    }
-    try {
-      await ref.read(publishListingProvider)(listing.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text.localized(_publishConfirmation(listing))),
-        );
-      }
-    } on Object catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text.localized('Could not publish: ${_reason(error)}'),
-          ),
-        );
-      }
-    }
+    // The plan limit, the publication itself, and the confirmation copy live
+    // with the vacancy prompt, so both surfaces enforce and say the same thing.
+    await publishListingWithinPlan(context, ref, listing);
   }
 
   /// The rule that was broken, without the exception's class name and field
@@ -389,22 +387,6 @@ class _LandlordListingsScreenState
   static String _reason(Object error) => switch (error) {
     DomainValidationException(:final errors) => errors.values.join(' '),
     _ => error.toString(),
-  };
-
-  /// Answers the question the landlord actually asked — "is my advert up?" —
-  /// instead of describing the queue. Publishing pushes immediately, so with a
-  /// live link the only honest promise is "in a moment"; without one, the
-  /// useful thing to say is what has to happen first.
-  String _publishConfirmation(Listing listing) => switch (ref
-      .read(cloudStatusProvider)
-      .value) {
-    CloudStatus.local =>
-      'Saved on this device. Adverts go public only once this app is connected to the server.',
-    CloudStatus.failed ||
-    CloudStatus.connecting ||
-    null => '${listing.title} goes live as soon as you are back online.',
-    CloudStatus.live =>
-      'Publishing ${listing.title} now — the card shows Published the moment tenants can see it.',
   };
 
   Future<void> _editListing(Listing listing) async {
@@ -418,6 +400,10 @@ class _LandlordListingsScreenState
         dialogRoute ??= ModalRoute.of<bool>(context);
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: context.isCompact ? 16 : 40,
+              vertical: 24,
+            ),
             title: Text.localized('Edit ${listing.title}'),
             content: SizedBox(
               width: 560,
@@ -528,10 +514,6 @@ class _LandlordListingsScreenState
                         imageUrls: fields.photos.toImageUrls(),
                         videoUrl: fields.videoUrl.text.trim(),
                         clearVideoUrl: fields.videoUrl.text.trim().isEmpty,
-                        contactPhone: fields.phone.text.trim(),
-                        clearContactPhone: fields.phone.text.trim().isEmpty,
-                        contactEmail: fields.email.text.trim(),
-                        clearContactEmail: fields.email.text.trim().isEmpty,
                       ),
                     );
                     if (context.mounted) Navigator.pop(context, true);
@@ -556,10 +538,8 @@ class _LandlordListingsScreenState
     fields.dispose();
     if (saved == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text.localized(
-            'Listing changes saved locally and queued to sync.',
-          ),
+        SnackBar(
+          content: Text(appLocalizationsOf(context).listingChangesSaved),
         ),
       );
     }
@@ -665,8 +645,9 @@ class _LandlordListingsScreenState
   Future<void> _showCreateListing(
     BuildContext context,
     List<Unit> units,
-    List<Property> properties,
-  ) async {
+    List<Property> properties, {
+    String? initialUnitId,
+  }) async {
     final vacant = units.where((unit) => unit.canBeAdvertised).toList();
     if (vacant.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -679,7 +660,10 @@ class _LandlordListingsScreenState
       return;
     }
     final formKey = GlobalKey<FormState>();
-    Unit selectedUnit = vacant.first;
+    Unit selectedUnit = vacant.firstWhere(
+      (unit) => unit.id == initialUnitId,
+      orElse: () => vacant.first,
+    );
     final propertyById = {
       for (final property in properties) property.id: property,
     };
@@ -687,6 +671,13 @@ class _LandlordListingsScreenState
       titleSeed:
           '${selectedUnit.displayName} at ${propertyById[selectedUnit.propertyId]?.name ?? 'My property'}',
       districtSeed: 'Kampala',
+      // The property already knows where it is, so a draft starts from that pin
+      // rather than from an empty pair of coordinate fields. Filling it in here
+      // means the landlord can see and move the point their advert will use,
+      // instead of discovering after publication that the home is missing from
+      // the map. `listing.publish` inherits it server-side as well, which is
+      // what repairs drafts written before this existed.
+      locationSeed: propertyById[selectedUnit.propertyId]?.location,
     );
     // Photo rejections and a refused save are different things and are shown
     // differently. Both are pinned below the scroll view, because a snack bar
@@ -697,6 +688,10 @@ class _LandlordListingsScreenState
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: context.isCompact ? 16 : 40,
+            vertical: 24,
+          ),
           title: const Text.localized('Create listing'),
           content: SizedBox(
             width: 520,
@@ -827,8 +822,6 @@ class _LandlordListingsScreenState
                           .trim(),
                       imageUrls: fields.photos.toImageUrls(),
                       videoUrl: fields.videoUrl.text.trim(),
-                      contactPhone: fields.phone.text.trim(),
-                      contactEmail: fields.email.text.trim(),
                     ),
                   );
                   if (context.mounted) Navigator.pop(context, true);
@@ -851,9 +844,9 @@ class _LandlordListingsScreenState
     if (created == true) {
       if (mounted) {
         ScaffoldMessenger.of(this.context).showSnackBar(
-          const SnackBar(
-            content: Text.localized(
-              'Draft saved locally. You can publish it when ready.',
+          SnackBar(
+            content: Text(
+              appLocalizationsOf(this.context).listingDraftSavedPublishHint,
             ),
           ),
         );
@@ -877,8 +870,13 @@ class _ListingFields {
   factory _ListingFields.blank({
     required String titleSeed,
     required String districtSeed,
+    Coordinates? locationSeed,
   }) {
     final fields = _ListingFields._();
+    if (locationSeed != null) {
+      fields.latitude.text = locationSeed.latitude.toString();
+      fields.longitude.text = locationSeed.longitude.toString();
+    }
     fields.title.text = titleSeed;
     fields.description.text =
         'A well maintained home in a convenient Kampala location.';
@@ -917,8 +915,6 @@ class _ListingFields {
     fields.smokingPolicy.text = listing.smokingPolicy ?? '';
     fields.viewingInstructions.text = listing.viewingInstructions ?? '';
     fields.videoUrl.text = listing.videoUrl ?? '';
-    fields.phone.text = listing.contactPhone ?? '';
-    fields.email.text = listing.contactEmail ?? '';
     fields.photos.existing.addAll(listing.imageUrls);
     fields.availableFrom = listing.availableFrom;
     fields.furnished = listing.furnished;
@@ -929,8 +925,6 @@ class _ListingFields {
   final description = TextEditingController();
   final rent = TextEditingController();
   final city = TextEditingController();
-  final phone = TextEditingController();
-  final email = TextEditingController();
   final neighborhood = TextEditingController();
   final district = TextEditingController();
   final latitude = TextEditingController();
@@ -1229,35 +1223,33 @@ class _ListingFields {
       ),
     ),
     const SizedBox(height: 14),
-    TextFormField(
-      controller: phone,
-      keyboardType: TextInputType.phone,
-      decoration: InputDecoration(labelText: context.tr('Contact phone')),
-      validator: (value) => (value?.trim().length ?? 0) < 7
-          ? email.text.trim().isEmpty
-                ? context.tr('Enter a phone or email for routed enquiries')
-                : null
-          : !NyumbaMarket.isValidPhone(value!.trim())
-          ? context.tr('Use the Ugandan +256 format')
-          : null,
-    ),
-    const SizedBox(height: 14),
-    TextFormField(
-      controller: email,
-      keyboardType: TextInputType.emailAddress,
-      decoration: InputDecoration(
-        labelText: context.tr('Private contact email (optional)'),
-        helperText: context.tr('Used for routed enquiries; not shown publicly'),
+    Semantics(
+      container: true,
+      child: Container(
+        padding: const EdgeInsetsDirectional.all(12),
+        decoration: BoxDecoration(
+          color: context.nyumba.navyTint,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: context.nyumba.navyBorder),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.privacy_tip_outlined,
+              size: 20,
+              color: context.nyumba.midnightNavy,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text.localized(
+                appLocalizationsOf(context).listingContactRoutingNotice,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
       ),
-      validator: (value) {
-        final text = value?.trim() ?? '';
-        if (text.isEmpty && phone.text.trim().isEmpty) {
-          return context.tr('Enter a phone or email for routed enquiries');
-        }
-        return text.isNotEmpty && !text.contains('@')
-            ? context.tr('Enter a valid email')
-            : null;
-      },
     ),
   ];
 
@@ -1267,8 +1259,6 @@ class _ListingFields {
       description,
       rent,
       city,
-      phone,
-      email,
       neighborhood,
       district,
       latitude,
@@ -1438,11 +1428,14 @@ class _LandlordListingCard extends StatelessWidget {
                       color: context.nyumba.mutedInk,
                     ),
                     const SizedBox(width: 6),
-                    Text.localized(
-                      '$applicationCount ${applicationCount == 1 ? 'application' : 'applications'}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                    Expanded(
+                      child: Text.localized(
+                        '$applicationCount ${applicationCount == 1 ? 'application' : 'applications'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
-                    const Spacer(),
                     // A paused advert can only be republished once its removal
                     // has settled; publishing over an in-flight unpublish would
                     // race the server for the same aggregate.

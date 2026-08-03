@@ -85,6 +85,110 @@ describe('command router', () => {
     await expect(executeCommandCore(db, { ...landlord, uid: 'other_uid_1234' }, cmd, now)).rejects.toMatchObject({ code: 'IDEMPOTENCY_KEY_REUSED' });
   });
 
+  it('rejects a second active property with the same canonical identity', async () => {
+    await seedLandlord();
+    const identity = {
+      name: 'Kampala Heights',
+      addressLine: 'Plot 18 Kira Road',
+      city: 'Kampala',
+      stagedImagePaths: [],
+    };
+    const first = envelope(
+      'command_property_duplicate_1',
+      'property.create',
+      'property_duplicate_1',
+      0,
+      identity,
+    );
+    const second = envelope(
+      'command_property_duplicate_2',
+      'property.create',
+      'property_duplicate_2',
+      0,
+      identity,
+    );
+
+    expect(await executeCommandCore(db, landlord, first, now)).toMatchObject({
+      status: 'applied',
+    });
+    expect(await executeCommandCore(db, landlord, second, now)).toMatchObject({
+      status: 'rejected',
+      error: {
+        code: 'ALREADY_EXISTS',
+        details: { reason: 'duplicateProperty' },
+      },
+    });
+    expect((await db.doc('properties/property_duplicate_2').get()).exists).toBe(false);
+
+    expect(await executeCommandCore(db, landlord, envelope(
+      'command_property_duplicate_archive',
+      'property.archive',
+      'property_duplicate_1',
+      1,
+      {},
+    ), now)).toMatchObject({ status: 'applied' });
+    expect(await executeCommandCore(db, landlord, envelope(
+      'command_property_duplicate_recreate',
+      'property.create',
+      'property_duplicate_recreated',
+      0,
+      identity,
+    ), now)).toMatchObject({ status: 'applied' });
+  });
+
+  it('rejects a property edit that collides with another active property', async () => {
+    await seedLandlord();
+    const firstIdentity = {
+      name: 'Kampala Heights',
+      addressLine: 'Plot 18 Kira Road',
+      city: 'Kampala',
+      stagedImagePaths: [],
+    };
+    const secondIdentity = {
+      name: 'Ntinda Court',
+      addressLine: 'Plot 4 Ntinda Road',
+      city: 'Kampala',
+      stagedImagePaths: [],
+    };
+    await executeCommandCore(db, landlord, envelope(
+      'command_property_collision_1',
+      'property.create',
+      'property_collision_1',
+      0,
+      firstIdentity,
+    ), now);
+    await executeCommandCore(db, landlord, envelope(
+      'command_property_collision_2',
+      'property.create',
+      'property_collision_2',
+      0,
+      secondIdentity,
+    ), now);
+
+    const collision = envelope(
+      'command_property_collision_update',
+      'property.update',
+      'property_collision_2',
+      1,
+      {
+        name: firstIdentity.name,
+        addressLine: firstIdentity.addressLine,
+        city: firstIdentity.city,
+      },
+    );
+    expect(await executeCommandCore(db, landlord, collision, now)).toMatchObject({
+      status: 'rejected',
+      error: {
+        code: 'ALREADY_EXISTS',
+        details: { reason: 'duplicateProperty' },
+      },
+    });
+    expect((await db.doc('properties/property_collision_2').get()).data()).toMatchObject({
+      name: secondIdentity.name,
+      addressLine: secondIdentity.addressLine,
+    });
+  });
+
   it('updates profile preferences without a local version and marks only the actor inbox read', async () => {
     await db.doc(`users/${landlord.uid}`).set({
       id: landlord.uid, displayName: 'Landlord', role: 'landlord', status: 'active',
@@ -410,6 +514,55 @@ describe('command router', () => {
     });
     // Archive already decremented the unit counter; cascade must not repeat it.
     expect((await db.doc(`landlordAccounts/${landlord.uid}`).get()).data()?.activeUnitCount).toBe(0);
+  });
+
+  it('cascades a Super Admin unit purge through its retired listings', async () => {
+    await db.doc('units/unit_retired_1234').set({
+      id: 'unit_retired_1234',
+      propertyId: 'property_retired_1234',
+      landlordId: landlord.uid,
+      isDeleted: true,
+      activeLeaseId: null,
+      activePublicListingId: null,
+      version: 2,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.doc('privateListings/listing_retired_1234').set({
+      id: 'listing_retired_1234',
+      unitId: 'unit_retired_1234',
+      landlordId: landlord.uid,
+      publicationState: 'draft',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.doc('publicListings/listing_retired_1234').set({
+      id: 'listing_retired_1234',
+      status: 'unpublished',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const remove = envelope(
+      'command_unit_purge_cascade',
+      'unit.delete',
+      'unit_retired_1234',
+      2,
+      { reasonCode: 'ADMIN_CORRECTION' },
+    );
+    expect(await executeCommandCore(db, superAdmin, remove, now)).toMatchObject({
+      status: 'accepted',
+    });
+    expect((await db.doc('units/unit_retired_1234').get()).exists).toBe(false);
+    expect((await db.doc('privateListings/listing_retired_1234').get()).exists).toBe(false);
+    expect((await db.doc('publicListings/listing_retired_1234').get()).exists).toBe(false);
+    expect((await db.doc('backendJobs/command_unit_purge_cascade_listing_0').get()).data())
+      .toMatchObject({
+        type: 'cleanupListingMedia',
+        payload: { listingId: 'listing_retired_1234' },
+      });
   });
 
   it('refuses a property cascade while a space is occupied or an advert is published', async () => {
@@ -748,6 +901,37 @@ describe('command router', () => {
         stagedImagePaths: [`uploads/${superAdmin.uid}/staff-cover.jpg`],
       },
     ), now)).toMatchObject({ status: 'applied' });
+    expect((await db.doc(`privateListings/${listingId}`).get()).data()).toMatchObject({
+      propertyId,
+      currency: 'UGX',
+      publicationState: 'draft',
+    });
+    expect(await executeCommandCore(db, superAdmin, envelope(
+      'command_staff_listing_duplicate',
+      'listing.saveDraft',
+      'listing_staff_duplicate',
+      0,
+      {
+        unitId,
+        title: 'Duplicate staff managed apartment',
+        description: 'A second draft for the same unit must not be recorded.',
+        monthlyRentMinor: 100_000,
+        unitType: 'apartment',
+        city: 'Kampala',
+        neighborhood: 'Ntinda',
+        district: 'Kampala',
+        bedrooms: 1,
+        bathrooms: 1,
+        amenities: [],
+        stagedImagePaths: [`uploads/${superAdmin.uid}/staff-cover.jpg`],
+      },
+    ), now)).toMatchObject({
+      status: 'rejected',
+      error: {
+        code: 'ALREADY_EXISTS',
+        details: { reason: 'unitAlreadyHasListing', listingId },
+      },
+    });
     expect(await executeCommandCore(db, superAdmin, envelope(
       'command_staff_listing_update',
       'listing.saveDraft',
@@ -828,6 +1012,164 @@ describe('command router', () => {
     expect(publicData).not.toHaveProperty('contactPhone');
     expect(publicData.approximateLocation).toEqual({ lat: 0.316, lng: 32.581 });
     expect((publicData.expiresAt as Timestamp).toMillis() - now.toMillis()).toBe(30 * 24 * 60 * 60 * 1000);
+  });
+
+  // `unitId` is on every saveDraft payload, including edits, and is spread onto
+  // the aggregate — so an edit could move a draft onto a unit that already had
+  // one, bypassing the "one private listing per unit" invariant that the
+  // create path checks.
+  it('refuses to move a draft onto a unit that already has a listing', async () => {
+    await seedLandlord();
+    const batch = db.batch();
+    for (const suffix of ['a', 'b']) {
+      batch.set(db.doc(`units/unit_move_${suffix}`), {
+        id: `unit_move_${suffix}`, landlordId: landlord.uid, propertyId: 'property_move',
+        label: `PRIVATE ${suffix.toUpperCase()}`, occupancyStatus: 'vacant',
+        activePublicListingId: null,
+        version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+      });
+      batch.set(db.doc(`privateListings/listing_move_${suffix}`), {
+        id: `listing_move_${suffix}`, landlordId: landlord.uid, unitId: `unit_move_${suffix}`,
+        publicationState: 'draft', title: 'Sunny apartment', description: 'A good home',
+        monthlyRentMinor: 100_000, unitType: 'apartment', city: 'Kampala',
+        neighborhood: 'Ntinda', district: 'Kampala', bedrooms: 1, bathrooms: 1,
+        amenities: [], stagedImagePaths: [`uploads/${landlord.uid}/cover.jpg`],
+        version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+      });
+    }
+    await batch.commit();
+
+    const edit = (unitId: string, commandId: string) => executeCommandCore(db, landlord, envelope(
+      commandId, 'listing.saveDraft', 'listing_move_a', 1,
+      {
+        unitId, title: 'Sunny apartment', description: 'A good home',
+        monthlyRentMinor: 100_000, unitType: 'apartment', city: 'Kampala',
+        neighborhood: 'Ntinda', district: 'Kampala', bedrooms: 1, bathrooms: 1,
+        amenities: [], stagedImagePaths: [`uploads/${landlord.uid}/cover.jpg`],
+      },
+    ), now);
+
+    expect(await edit('unit_move_b', 'command_move_collide')).toMatchObject({
+      status: 'rejected',
+      error: {
+        code: 'ALREADY_EXISTS',
+        details: { reason: 'unitAlreadyHasListing', listingId: 'listing_move_b' },
+      },
+    });
+    expect((await db.doc('privateListings/listing_move_a').get()).data()?.unitId).toBe('unit_move_a');
+    // An ordinary edit resends the unit it is already on and must still apply.
+    expect(await edit('unit_move_a', 'command_move_same')).toMatchObject({ status: 'applied' });
+  });
+
+  // A draft with no pin of its own used to publish an advert that could never
+  // appear on the map, and nothing about the publish failed to say so.
+  it('inherits the property pin for a listing that carries none', async () => {
+    await seedLandlord();
+    await db.doc('properties/property_pinned').set({
+      id: 'property_pinned', landlordId: landlord.uid, name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue', city: 'Kampala',
+      location: { lat: 0.3162345, lng: 32.5811789 },
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('units/unit_pinless').set({
+      id: 'unit_pinless', landlordId: landlord.uid, propertyId: 'property_pinned', label: 'PRIVATE A1',
+      occupancyStatus: 'vacant', activePublicListingId: null,
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('privateListings/listing_pinless').set({
+      id: 'listing_pinless', landlordId: landlord.uid, unitId: 'unit_pinless', publicationState: 'draft',
+      title: 'Sunny apartment', description: 'A good home', monthlyRentMinor: 100_000,
+      unitType: 'apartment', city: 'Kampala', neighborhood: 'Ntinda', district: 'Kampala',
+      bedrooms: 1, bathrooms: 1, amenities: [], stagedImagePaths: ['uploads/landlord_1234/cover.jpg'],
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+
+    const result = await executeCommandCore(
+      db,
+      landlord,
+      envelope('command_pinless', 'listing.publish', 'listing_pinless', 1, {}),
+      now,
+    );
+
+    expect(result.status).toBe('accepted');
+    // Coarsened on the way out, exactly as a landlord-placed pin would be.
+    expect((await db.doc('publicListings/listing_pinless').get()).data()?.approximateLocation)
+      .toEqual({ lat: 0.316, lng: 32.581 });
+    // Written back at full precision so the repair sticks and the landlord can
+    // see and move the pin their advert actually uses.
+    expect((await db.doc('privateListings/listing_pinless').get()).data()?.approximateLocation)
+      .toEqual({ lat: 0.3162345, lng: 32.5811789 });
+  });
+
+  it('never inherits a pin from another landlord\'s property', async () => {
+    await seedLandlord();
+    // `propertyId` is an ordinary field on the unit, so a cross-workspace value
+    // there must not be able to pull someone else's coordinate into a public
+    // projection.
+    await db.doc('properties/property_someone_else').set({
+      id: 'property_someone_else', landlordId: 'landlord_other', name: 'Not theirs',
+      addressLine: '1 Elsewhere', city: 'Kampala',
+      location: { lat: 0.9, lng: 33.9 },
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('units/unit_crossed').set({
+      id: 'unit_crossed', landlordId: landlord.uid, propertyId: 'property_someone_else',
+      label: 'PRIVATE A1', occupancyStatus: 'vacant', activePublicListingId: null,
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('privateListings/listing_crossed').set({
+      id: 'listing_crossed', landlordId: landlord.uid, unitId: 'unit_crossed', publicationState: 'draft',
+      title: 'Sunny apartment', description: 'A good home', monthlyRentMinor: 100_000,
+      unitType: 'apartment', city: 'Kampala', neighborhood: 'Ntinda', district: 'Kampala',
+      bedrooms: 1, bathrooms: 1, amenities: [], stagedImagePaths: ['uploads/landlord_1234/cover.jpg'],
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+
+    const result = await executeCommandCore(
+      db,
+      landlord,
+      envelope('command_crossed', 'listing.publish', 'listing_crossed', 1, {}),
+      now,
+    );
+
+    expect(result.status).toBe('accepted');
+    // Unpinned is the correct outcome: the map says so, rather than pointing at
+    // a stranger's address.
+    expect((await db.doc('publicListings/listing_crossed').get()).data()?.approximateLocation).toBeNull();
+  });
+
+  it('keeps a pin the landlord placed on the listing itself', async () => {
+    await seedLandlord();
+    await db.doc('properties/property_moved').set({
+      id: 'property_moved', landlordId: landlord.uid, name: 'Acacia Court',
+      addressLine: '12 Acacia Avenue', city: 'Kampala',
+      location: { lat: 0.9, lng: 33.9 },
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('units/unit_moved').set({
+      id: 'unit_moved', landlordId: landlord.uid, propertyId: 'property_moved', label: 'PRIVATE A1',
+      occupancyStatus: 'vacant', activePublicListingId: null,
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+    await db.doc('privateListings/listing_moved').set({
+      id: 'listing_moved', landlordId: landlord.uid, unitId: 'unit_moved', publicationState: 'draft',
+      title: 'Sunny apartment', description: 'A good home', monthlyRentMinor: 100_000,
+      unitType: 'apartment', city: 'Kampala', neighborhood: 'Ntinda', district: 'Kampala',
+      bedrooms: 1, bathrooms: 1, amenities: [], stagedImagePaths: ['uploads/landlord_1234/cover.jpg'],
+      approximateLocation: { lat: 0.3162345, lng: 32.5811789 },
+      version: 1, createdAt: now, updatedAt: now, isDeleted: false,
+    });
+
+    await executeCommandCore(
+      db,
+      landlord,
+      envelope('command_moved', 'listing.publish', 'listing_moved', 1, {}),
+      now,
+    );
+
+    // Inheritance fills an absence; it never overrules a deliberate placement.
+    expect((await db.doc('publicListings/listing_moved').get()).data()?.approximateLocation)
+      .toEqual({ lat: 0.316, lng: 32.581 });
   });
 
   it('refuses to publish an advert that has no photo', async () => {
